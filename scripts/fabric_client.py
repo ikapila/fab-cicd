@@ -1,0 +1,496 @@
+"""
+Microsoft Fabric REST API Client
+Provides wrapper functions for common Fabric API operations
+"""
+
+import requests
+import logging
+from typing import Dict, List, Optional, Any
+from fabric_auth import FabricAuthenticator
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class FabricClient:
+    """Client for Microsoft Fabric REST API operations"""
+    
+    BASE_URL = "https://api.fabric.microsoft.com/v1"
+    
+    def __init__(self, authenticator: FabricAuthenticator):
+        """
+        Initialize Fabric client
+        
+        Args:
+            authenticator: FabricAuthenticator instance
+        """
+        self.auth = authenticator
+        
+    def _make_request(
+        self,
+        method: str,
+        endpoint: str,
+        json_data: Optional[Dict] = None,
+        params: Optional[Dict] = None
+    ) -> Dict:
+        """
+        Make HTTP request to Fabric API
+        
+        Args:
+            method: HTTP method (GET, POST, PUT, DELETE, PATCH)
+            endpoint: API endpoint (without base URL)
+            json_data: JSON payload for POST/PUT/PATCH requests
+            params: Query parameters
+            
+        Returns:
+            Response JSON as dictionary
+        """
+        url = f"{self.BASE_URL}/{endpoint.lstrip('/')}"
+        headers = self.auth.get_auth_headers()
+        
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=headers,
+                json=json_data,
+                params=params,
+                timeout=60
+            )
+            
+            response.raise_for_status()
+            
+            # Some endpoints return 202 Accepted or 204 No Content
+            if response.status_code in [202, 204]:
+                return {"status": "success", "status_code": response.status_code}
+            
+            return response.json()
+            
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"Request failed: {str(e)}")
+            raise
+    
+    # ==================== Workspace Operations ====================
+    
+    def list_workspaces(self) -> List[Dict]:
+        """
+        List all workspaces the service principal has access to
+        
+        Returns:
+            List of workspace dictionaries
+        """
+        logger.info("Listing workspaces")
+        response = self._make_request("GET", "/workspaces")
+        return response.get("value", [])
+    
+    def get_workspace(self, workspace_id: str) -> Dict:
+        """
+        Get workspace details
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            Workspace details dictionary
+        """
+        logger.info(f"Getting workspace: {workspace_id}")
+        return self._make_request("GET", f"/workspaces/{workspace_id}")
+    
+    def create_workspace(self, workspace_name: str, capacity_id: Optional[str] = None) -> Dict:
+        """
+        Create a new workspace
+        
+        Args:
+            workspace_name: Name for the new workspace
+            capacity_id: Optional capacity ID to assign
+            
+        Returns:
+            Created workspace details
+        """
+        logger.info(f"Creating workspace: {workspace_name}")
+        payload = {"displayName": workspace_name}
+        if capacity_id:
+            payload["capacityId"] = capacity_id
+        
+        return self._make_request("POST", "/workspaces", json_data=payload)
+    
+    # ==================== Lakehouse Operations ====================
+    
+    def list_lakehouses(self, workspace_id: str) -> List[Dict]:
+        """
+        List all lakehouses in a workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of lakehouse dictionaries
+        """
+        logger.info(f"Listing lakehouses in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/lakehouses")
+        return response.get("value", [])
+    
+    def get_lakehouse(self, workspace_id: str, lakehouse_id: str) -> Dict:
+        """
+        Get lakehouse details
+        
+        Args:
+            workspace_id: Workspace GUID
+            lakehouse_id: Lakehouse GUID
+            
+        Returns:
+            Lakehouse details dictionary
+        """
+        logger.info(f"Getting lakehouse: {lakehouse_id}")
+        return self._make_request("GET", f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}")
+    
+    def create_lakehouse(self, workspace_id: str, lakehouse_name: str, description: str = "") -> Dict:
+        """
+        Create a new lakehouse
+        
+        Args:
+            workspace_id: Workspace GUID
+            lakehouse_name: Name for the new lakehouse
+            description: Optional description
+            
+        Returns:
+            Created lakehouse details
+        """
+        logger.info(f"Creating lakehouse: {lakehouse_name}")
+        payload = {
+            "displayName": lakehouse_name,
+            "description": description
+        }
+        return self._make_request("POST", f"/workspaces/{workspace_id}/lakehouses", json_data=payload)
+    
+    # ==================== Notebook Operations ====================
+    
+    def list_notebooks(self, workspace_id: str) -> List[Dict]:
+        """
+        List all notebooks in a workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of notebook dictionaries
+        """
+        logger.info(f"Listing notebooks in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/notebooks")
+        return response.get("value", [])
+    
+    def get_notebook(self, workspace_id: str, notebook_id: str) -> Dict:
+        """
+        Get notebook details
+        
+        Args:
+            workspace_id: Workspace GUID
+            notebook_id: Notebook GUID
+            
+        Returns:
+            Notebook details dictionary
+        """
+        logger.info(f"Getting notebook: {notebook_id}")
+        return self._make_request("GET", f"/workspaces/{workspace_id}/notebooks/{notebook_id}")
+    
+    def create_notebook(self, workspace_id: str, notebook_name: str, definition: Dict) -> Dict:
+        """
+        Create or update a notebook
+        
+        Args:
+            workspace_id: Workspace GUID
+            notebook_name: Name for the notebook
+            definition: Notebook definition (content)
+            
+        Returns:
+            Created notebook details
+        """
+        logger.info(f"Creating notebook: {notebook_name}")
+        payload = {
+            "displayName": notebook_name,
+            "definition": definition
+        }
+        return self._make_request("POST", f"/workspaces/{workspace_id}/notebooks", json_data=payload)
+    
+    def update_notebook_definition(self, workspace_id: str, notebook_id: str, definition: Dict) -> Dict:
+        """
+        Update notebook definition
+        
+        Args:
+            workspace_id: Workspace GUID
+            notebook_id: Notebook GUID
+            definition: New notebook definition
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating notebook: {notebook_id}")
+        payload = {"definition": definition}
+        return self._make_request("POST", f"/workspaces/{workspace_id}/notebooks/{notebook_id}/updateDefinition", json_data=payload)
+    
+    # ==================== Spark Job Definition Operations ====================
+    
+    def list_spark_job_definitions(self, workspace_id: str) -> List[Dict]:
+        """
+        List all Spark job definitions in a workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of Spark job definition dictionaries
+        """
+        logger.info(f"Listing Spark job definitions in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/sparkJobDefinitions")
+        return response.get("value", [])
+    
+    def create_spark_job_definition(self, workspace_id: str, job_name: str, definition: Dict) -> Dict:
+        """
+        Create a Spark job definition
+        
+        Args:
+            workspace_id: Workspace GUID
+            job_name: Name for the Spark job
+            definition: Job definition
+            
+        Returns:
+            Created job details
+        """
+        logger.info(f"Creating Spark job definition: {job_name}")
+        payload = {
+            "displayName": job_name,
+            "definition": definition
+        }
+        return self._make_request("POST", f"/workspaces/{workspace_id}/sparkJobDefinitions", json_data=payload)
+    
+    # ==================== Data Pipeline Operations ====================
+    
+    def list_data_pipelines(self, workspace_id: str) -> List[Dict]:
+        """
+        List all data pipelines in a workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of data pipeline dictionaries
+        """
+        logger.info(f"Listing data pipelines in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/dataPipelines")
+        return response.get("value", [])
+    
+    def create_data_pipeline(self, workspace_id: str, pipeline_name: str, definition: Dict) -> Dict:
+        """
+        Create a data pipeline
+        
+        Args:
+            workspace_id: Workspace GUID
+            pipeline_name: Name for the pipeline
+            definition: Pipeline definition
+            
+        Returns:
+            Created pipeline details
+        """
+        logger.info(f"Creating data pipeline: {pipeline_name}")
+        payload = {
+            "displayName": pipeline_name,
+            "definition": definition
+        }
+        return self._make_request("POST", f"/workspaces/{workspace_id}/dataPipelines", json_data=payload)
+    
+    # ==================== Environment Operations ====================
+    
+    def list_environments(self, workspace_id: str) -> List[Dict]:
+        """
+        List all environments in a workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of environment dictionaries
+        """
+        logger.info(f"Listing environments in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/environments")
+        return response.get("value", [])
+    
+    def create_environment(self, workspace_id: str, environment_name: str, description: str = "") -> Dict:
+        """
+        Create an environment
+        
+        Args:
+            workspace_id: Workspace GUID
+            environment_name: Name for the environment
+            description: Optional description
+            
+        Returns:
+            Created environment details
+        """
+        logger.info(f"Creating environment: {environment_name}")
+        payload = {
+            "displayName": environment_name,
+            "description": description
+        }
+        return self._make_request("POST", f"/workspaces/{workspace_id}/environments", json_data=payload)
+    
+    # ==================== Item Operations (Generic) ====================
+    
+    def list_items(self, workspace_id: str, item_type: Optional[str] = None) -> List[Dict]:
+        """
+        List all items in a workspace, optionally filtered by type
+        
+        Args:
+            workspace_id: Workspace GUID
+            item_type: Optional item type filter (e.g., 'Notebook', 'Lakehouse')
+            
+        Returns:
+            List of item dictionaries
+        """
+        logger.info(f"Listing items in workspace: {workspace_id}")
+        params = {"type": item_type} if item_type else None
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/items", params=params)
+        return response.get("value", [])
+    
+    def delete_item(self, workspace_id: str, item_id: str) -> Dict:
+        """
+        Delete an item from a workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            item_id: Item GUID
+            
+        Returns:
+            Deletion response
+        """
+        logger.info(f"Deleting item: {item_id}")
+        return self._make_request("DELETE", f"/workspaces/{workspace_id}/items/{item_id}")
+    
+    # ==================== Shortcut Operations ====================
+    
+    def list_shortcuts(self, workspace_id: str, lakehouse_id: str, path: str = "Tables") -> List[Dict]:
+        """
+        List shortcuts in a lakehouse path
+        
+        Args:
+            workspace_id: Workspace GUID
+            lakehouse_id: Lakehouse GUID
+            path: Path within lakehouse (Tables or Files)
+            
+        Returns:
+            List of shortcuts
+        """
+        logger.info(f"Listing shortcuts in lakehouse: {lakehouse_id}, path: {path}")
+        response = self._make_request(
+            "GET", 
+            f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/shortcuts",
+            params={"path": path}
+        )
+        return response.get("value", [])
+    
+    def create_shortcut(self, workspace_id: str, lakehouse_id: str, shortcut_name: str, 
+                       path: str, target: Dict) -> Dict:
+        """
+        Create a shortcut in a lakehouse
+        
+        Args:
+            workspace_id: Workspace GUID
+            lakehouse_id: Lakehouse GUID
+            shortcut_name: Name for the shortcut
+            path: Path within lakehouse (e.g., "Tables" or "Files")
+            target: Target configuration with connection details
+            
+        Returns:
+            Created shortcut details
+            
+        Example target for ADLS Gen2:
+            {
+                "adlsGen2": {
+                    "location": "https://storageaccount.dfs.core.windows.net/container/path",
+                    "connectionId": "connection-guid"
+                }
+            }
+            
+        Example target for OneLake:
+            {
+                "oneLake": {
+                    "workspaceId": "source-workspace-guid",
+                    "itemId": "source-lakehouse-guid",
+                    "path": "Tables/SourceTable"
+                }
+            }
+        """
+        logger.info(f"Creating shortcut '{shortcut_name}' in lakehouse: {lakehouse_id}")
+        payload = {
+            "name": shortcut_name,
+            "path": path,
+            "target": target
+        }
+        return self._make_request(
+            "POST",
+            f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/shortcuts",
+            json_data=payload
+        )
+    
+    def get_shortcut(self, workspace_id: str, lakehouse_id: str, path: str, 
+                    shortcut_name: str) -> Dict:
+        """
+        Get shortcut details
+        
+        Args:
+            workspace_id: Workspace GUID
+            lakehouse_id: Lakehouse GUID
+            path: Path within lakehouse
+            shortcut_name: Name of the shortcut
+            
+        Returns:
+            Shortcut details
+        """
+        logger.info(f"Getting shortcut: {shortcut_name}")
+        return self._make_request(
+            "GET",
+            f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/shortcuts/{path}/{shortcut_name}"
+        )
+    
+    def delete_shortcut(self, workspace_id: str, lakehouse_id: str, path: str, 
+                       shortcut_name: str) -> Dict:
+        """
+        Delete a shortcut
+        
+        Args:
+            workspace_id: Workspace GUID
+            lakehouse_id: Lakehouse GUID
+            path: Path within lakehouse
+            shortcut_name: Name of the shortcut
+            
+        Returns:
+            Deletion response
+        """
+        logger.info(f"Deleting shortcut: {shortcut_name}")
+        return self._make_request(
+            "DELETE",
+            f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/shortcuts/{path}/{shortcut_name}"
+        )
+
+
+def main():
+    """Test Fabric client"""
+    from fabric_auth import FabricAuthenticator
+    
+    print("Testing Fabric Client...")
+    
+    # Authenticate
+    auth = FabricAuthenticator()
+    client = FabricClient(auth)
+    
+    # List workspaces
+    workspaces = client.list_workspaces()
+    print(f"\n✅ Found {len(workspaces)} workspaces:")
+    for ws in workspaces:
+        print(f"  - {ws.get('displayName')} (ID: {ws.get('id')})")
+
+
+if __name__ == "__main__":
+    main()

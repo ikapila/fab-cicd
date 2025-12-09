@@ -1,0 +1,334 @@
+# Microsoft Fabric Data Engineering CI/CD Pipeline
+# Automated deployment of Fabric artifacts across environments
+
+trigger:
+  branches:
+    include:
+      - main      # Production deployment
+      - uat       # UAT deployment
+      - development # Development deployment
+  paths:
+    include:
+      - notebooks/**
+      - sparkjobdefinitions/**
+      - datapipelines/**
+      - lakehouses/**
+      - environments/**
+      - config/**
+      - scripts/**
+
+variables:
+  pythonVersion: '3.11'
+  
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  # ========================================
+  # Stage 1: Build and Validate
+  # ========================================
+  - stage: Build
+    displayName: 'Build and Validate'
+    jobs:
+      - job: ValidateArtifacts
+        displayName: 'Validate Fabric Artifacts'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+            displayName: 'Use Python $(pythonVersion)'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r scripts/requirements.txt
+            displayName: 'Install Python dependencies'
+
+          - script: |
+              echo "Validating notebook syntax..."
+              python scripts/validate_notebooks.py
+            displayName: 'Validate Notebooks'
+            continueOnError: false
+
+          - script: |
+              echo "Validating pipeline definitions..."
+              python scripts/validate_pipelines.py
+            displayName: 'Validate Pipelines'
+            continueOnError: false
+
+          - script: |
+              echo "Running artifact dependency checks..."
+              python scripts/dependency_resolver.py
+            displayName: 'Check Dependencies'
+
+          - publish: $(System.DefaultWorkingDirectory)
+            artifact: fabric-artifacts
+            displayName: 'Publish artifacts'
+
+  # ========================================
+  # Stage 2: Deploy to Development
+  # ========================================
+  - stage: DeployDev
+    displayName: 'Deploy to Development'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'development'))
+    jobs:
+      - deployment: DeployToDev
+        displayName: 'Deploy to Dev Environment'
+        environment: 'fabric-dev'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: fabric-artifacts
+
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: '$(pythonVersion)'
+                  displayName: 'Use Python $(pythonVersion)'
+
+                - script: |
+                    python -m pip install --upgrade pip
+                    pip install -r $(Pipeline.Workspace)/fabric-artifacts/scripts/requirements.txt
+                  displayName: 'Install dependencies'
+
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: 'fabric-service-connection'
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      cd $(Pipeline.Workspace)/fabric-artifacts
+                      
+                      # Set environment variables for dev-specific authentication
+                      export AZURE_CLIENT_SECRET_DEV=$(AZURE_CLIENT_SECRET_DEV)
+                      
+                      # Create artifacts first (if needed)
+                      python scripts/deploy_artifacts.py dev \
+                        --config-dir config \
+                        --artifacts-dir . \
+                        --create-artifacts
+                  displayName: 'Deploy to Dev Workspace'
+                  env:
+                    AZURE_CLIENT_SECRET_DEV: $(AZURE_CLIENT_SECRET_DEV)
+
+                - script: |
+                    echo "Running smoke tests..."
+                    python $(Pipeline.Workspace)/fabric-artifacts/scripts/run_tests.py --environment dev
+                  displayName: 'Run smoke tests'
+                  continueOnError: true
+
+  # ========================================
+  # Stage 3: Deploy to UAT
+  # ========================================
+  - stage: DeployUAT
+    displayName: 'Deploy to UAT'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'uat'))
+    jobs:
+      - deployment: DeployToUAT
+        displayName: 'Deploy to UAT Environment'
+        environment: 'fabric-uat'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: fabric-artifacts
+
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: '$(pythonVersion)'
+                  displayName: 'Use Python $(pythonVersion)'
+
+                - script: |
+                    python -m pip install --upgrade pip
+                    pip install -r $(Pipeline.Workspace)/fabric-artifacts/scripts/requirements.txt
+                  displayName: 'Install dependencies'
+
+                - task: ManualValidation@0
+                  inputs:
+                    notifyUsers: |
+                      your-email@company.com
+                    instructions: 'Please review and approve the UAT deployment'
+                    onTimeout: 'reject'
+                  displayName: 'Manual approval for UAT'
+
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: 'fabric-service-connection'
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      cd $(Pipeline.Workspace)/fabric-artifacts
+                      
+                      # Set environment variables for UAT-specific authentication
+                      export AZURE_CLIENT_SECRET_UAT=$(AZURE_CLIENT_SECRET_UAT)
+                      
+                      # Create artifacts first (if needed)
+                      python scripts/deploy_artifacts.py uat \
+                        --config-dir config \
+                        --artifacts-dir . \
+                        --create-artifacts
+                  displayName: 'Deploy to UAT Workspace'
+                  env:
+                    AZURE_CLIENT_SECRET_UAT: $(AZURE_CLIENT_SECRET_UAT)
+
+                - script: |
+                    echo "Running UAT validation tests..."
+                    python $(Pipeline.Workspace)/fabric-artifacts/scripts/run_tests.py --environment uat
+                  displayName: 'Run UAT tests'
+
+                - task: PublishTestResults@2
+                  inputs:
+                    testResultsFormat: 'JUnit'
+                    testResultsFiles: '**/test-results.xml'
+                    failTaskOnFailedTests: true
+                  displayName: 'Publish test results'
+                  condition: always()
+
+  # ========================================
+  # Stage 4: Deploy to Production
+  # ========================================
+  - stage: DeployProd
+    displayName: 'Deploy to Production'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main'))
+    jobs:
+      - deployment: DeployToProduction
+        displayName: 'Deploy to Production Environment'
+        environment: 'fabric-prod'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: fabric-artifacts
+
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: '$(pythonVersion)'
+                  displayName: 'Use Python $(pythonVersion)'
+
+                - script: |
+                    python -m pip install --upgrade pip
+                    pip install -r $(Pipeline.Workspace)/fabric-artifacts/scripts/requirements.txt
+                  displayName: 'Install dependencies'
+
+                - task: ManualValidation@0
+                  inputs:
+                    notifyUsers: |
+                      senior-engineer@company.com
+                      manager@company.com
+                    instructions: 'Please review and approve the PRODUCTION deployment. This requires TWO approvals.'
+                    onTimeout: 'reject'
+                  displayName: 'Manual approval for Production (Approval 1)'
+
+                - task: ManualValidation@0
+                  inputs:
+                    notifyUsers: |
+                      senior-engineer@company.com
+                      manager@company.com
+                    instructions: 'Second approval required for PRODUCTION deployment'
+                    onTimeout: 'reject'
+                  displayName: 'Manual approval for Production (Approval 2)'
+
+                - script: |
+                    cd $(Pipeline.Workspace)/fabric-artifacts
+                    echo "Creating backup of current production state..."
+                    python scripts/backup_workspace.py --environment prod
+                  displayName: 'Backup current production'
+                  continueOnError: true
+
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: 'fabric-service-connection'
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      cd $(Pipeline.Workspace)/fabric-artifacts
+                      
+                      # Set environment variables for prod-specific authentication
+                      export AZURE_CLIENT_SECRET_PROD=$(AZURE_CLIENT_SECRET_PROD)
+                      
+                      # Create artifacts first (if needed)
+                      python scripts/deploy_artifacts.py prod \
+                        --config-dir config \
+                        --artifacts-dir . \
+                        --create-artifacts
+                  displayName: 'Deploy to Production Workspace'
+                  env:
+                    AZURE_CLIENT_SECRET_PROD: $(AZURE_CLIENT_SECRET_PROD)
+
+                - script: |
+                    echo "Running production validation tests..."
+                    python $(Pipeline.Workspace)/fabric-artifacts/scripts/run_tests.py --environment prod --critical-only
+                  displayName: 'Run production validation'
+
+                - task: PublishTestResults@2
+                  inputs:
+                    testResultsFormat: 'JUnit'
+                    testResultsFiles: '**/test-results.xml'
+                    failTaskOnFailedTests: true
+                  displayName: 'Publish test results'
+                  condition: always()
+
+                - task: EmailReport@1
+                  inputs:
+                    sendMailConditionConfig: 'Always'
+                    subject: 'Fabric Production Deployment - $(Build.BuildNumber)'
+                    to: 'team@company.com'
+                    includeInToRecipients: true
+                  displayName: 'Send deployment notification'
+                  condition: always()
+
+  # ========================================
+  # Stage 5: Rollback (Manual trigger only)
+  # ========================================
+  - stage: Rollback
+    displayName: 'Rollback Deployment'
+    dependsOn: []
+    condition: false  # This stage must be manually triggered
+    jobs:
+      - job: RollbackJob
+        displayName: 'Rollback to Previous Version'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+            displayName: 'Use Python $(pythonVersion)'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r scripts/requirements.txt
+            displayName: 'Install dependencies'
+
+          - task: ManualValidation@0
+            inputs:
+              notifyUsers: |
+                senior-engineer@company.com
+                manager@company.com
+              instructions: 'Confirm ROLLBACK operation. Specify target commit in pipeline variables.'
+              onTimeout: 'reject'
+            displayName: 'Confirm rollback operation'
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'fabric-service-connection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Set environment variables
+                export AZURE_CLIENT_ID=$(AZURE_CLIENT_ID)
+                export AZURE_CLIENT_SECRET=$(AZURE_CLIENT_SECRET)
+                export AZURE_TENANT_ID=$(AZURE_TENANT_ID)
+                
+                # Run rollback
+                python scripts/rollback.py \
+                  --environment $(ROLLBACK_ENVIRONMENT) \
+                  --commit $(ROLLBACK_COMMIT_SHA)
+            displayName: 'Execute rollback'
+            env:
+              AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
+              AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
+              AZURE_TENANT_ID: $(AZURE_TENANT_ID)

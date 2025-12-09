@@ -1,0 +1,27 @@
+{
+  "name": "DailySalesAggregation",
+  "id": "sparkjob-daily-sales-001",
+  "description": "Daily batch job to aggregate sales data",
+  "dependencies": ["lakehouse-sales-001", "notebook-ProcessSalesData"],
+  "definition": {
+    "mainDefinitionFile": "ProcessSalesData.ipynb",
+    "defaultLakehouseReference": {
+      "name": "SalesDataLakehouse"
+    },
+    "executorSize": "Small",
+    "executorCount": 2,
+    "driverSize": "Small",
+    "configuration": {
+      "spark.executor.memory": "4g",
+      "spark.driver.memory": "2g",
+      "spark.dynamicAllocation.enabled": "true",
+      "spark.dynamicAllocation.minExecutors": "1",
+      "spark.dynamicAllocation.maxExecutors": "4"
+    },
+    "commandLineArguments": [],
+    "retryPolicy": {
+      "maxRetryCount": 3,
+      "intervalInSeconds": 300
+    }
+  }
+}

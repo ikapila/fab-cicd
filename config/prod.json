@@ -1,0 +1,117 @@
+{
+  "service_principal": {
+    "client_id": "00000000-0000-0000-0000-000000000000",
+    "tenant_id": "00000000-0000-0000-0000-000000000000",
+    "secret_env_var": "AZURE_CLIENT_SECRET_PROD"
+  },
+  "workspace": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "name": "DataEng-Prod",
+    "capacity_id": "00000000-0000-0000-0000-000000000000"
+  },
+  "lakehouses": {
+    "SalesDataLakehouse": {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "description": "Production lakehouse for sales data"
+    },
+    "CustomerDataLakehouse": {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "description": "Production lakehouse for customer data"
+    }
+  },
+  "connections": {
+    "sql_connection_string": "Server=prod-sql-server.database.windows.net;Database=ProdDB;",
+    "storage_connection_string": "DefaultEndpointsProtocol=https;AccountName=prodstorageaccount;",
+    "api_endpoint": "https://api.company.com"
+  },
+  "parameters": {
+    "storage_account": "prodstorageaccount",
+    "key_vault_url": "https://prod-kv.vault.azure.net/",
+    "data_lake_path": "abfss://prod@prodstorageaccount.dfs.core.windows.net/",
+    "log_level": "WARNING",
+    "enable_monitoring": "true",
+    "batch_size": "1000",
+    "max_retries": "5"
+  },
+  "artifacts_to_create": {
+    "lakehouses": [
+      {
+        "name": "SalesDataLakehouse",
+        "description": "Production lakehouse for sales data",
+        "create_if_not_exists": true
+      },
+      {
+        "name": "CustomerDataLakehouse",
+        "description": "Production lakehouse for customer data",
+        "create_if_not_exists": true
+      }
+    ],
+    "environments": [
+      {
+        "name": "ProdSparkEnvironment",
+        "description": "Production Spark environment",
+        "create_if_not_exists": true,
+        "libraries": [
+          {"type": "PyPI", "name": "pandas", "version": "2.1.0"},
+          {"type": "PyPI", "name": "numpy", "version": "1.24.0"},
+          {"type": "PyPI", "name": "scikit-learn", "version": "1.3.0"}
+        ]
+      }
+    ],
+    "kql_databases": [
+      {
+        "name": "ProdAnalyticsDB",
+        "description": "Production KQL database for real-time analytics",
+        "create_if_not_exists": true
+      }
+    ],
+    "notebooks": [
+      {
+        "name": "SetupNotebook",
+        "description": "Initial setup and configuration notebook",
+        "create_if_not_exists": true,
+        "template": "basic_spark",
+        "default_lakehouse": "SalesDataLakehouse"
+      }
+    ],
+    "spark_job_definitions": [
+      {
+        "name": "BaselineSparkJob",
+        "description": "Baseline Spark job template",
+        "create_if_not_exists": true,
+        "main_file": "SetupNotebook",
+        "default_lakehouse": "SalesDataLakehouse"
+      }
+    ],
+    "data_pipelines": [
+      {
+        "name": "InitialPipeline",
+        "description": "Initial data pipeline template",
+        "create_if_not_exists": true,
+        "activities": [
+          {
+            "name": "Placeholder",
+            "type": "Script",
+            "script": "print('Pipeline placeholder')"
+          }
+        ]
+      }
+    ],
+    "shortcuts": [
+      {
+        "name": "SharedData",
+        "description": "OneLake shortcut to shared data",
+        "lakehouse": "SalesDataLakehouse",
+        "path": "Tables",
+        "create_if_not_exists": true,
+        "target": {
+          "oneLake": {
+            "workspaceId": "shared-workspace-id-prod",
+            "itemId": "shared-lakehouse-id-prod",
+            "path": "Tables/MasterData"
+          }
+        }
+      }
+    ]
+  }
+}

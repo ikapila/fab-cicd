@@ -1,0 +1,117 @@
+{
+  "service_principal": {
+    "client_id": "00000000-0000-0000-0000-000000000000",
+    "tenant_id": "00000000-0000-0000-0000-000000000000",
+    "secret_env_var": "AZURE_CLIENT_SECRET_UAT"
+  },
+  "workspace": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "name": "DataEng-UAT",
+    "capacity_id": "00000000-0000-0000-0000-000000000000"
+  },
+  "lakehouses": {
+    "SalesDataLakehouse": {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "description": "UAT lakehouse for sales data"
+    },
+    "CustomerDataLakehouse": {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "description": "UAT lakehouse for customer data"
+    }
+  },
+  "connections": {
+    "sql_connection_string": "Server=uat-sql-server.database.windows.net;Database=UATDB;",
+    "storage_connection_string": "DefaultEndpointsProtocol=https;AccountName=uatstorageaccount;",
+    "api_endpoint": "https://uat-api.company.com"
+  },
+  "parameters": {
+    "storage_account": "uatstorageaccount",
+    "key_vault_url": "https://uat-kv.vault.azure.net/",
+    "data_lake_path": "abfss://uat@uatstorageaccount.dfs.core.windows.net/",
+    "log_level": "INFO",
+    "enable_monitoring": "true",
+    "batch_size": "500",
+    "max_retries": "3"
+  },
+  "artifacts_to_create": {
+    "lakehouses": [
+      {
+        "name": "SalesDataLakehouse",
+        "description": "UAT lakehouse for sales data",
+        "create_if_not_exists": true
+      },
+      {
+        "name": "CustomerDataLakehouse",
+        "description": "UAT lakehouse for customer data",
+        "create_if_not_exists": true
+      }
+    ],
+    "environments": [
+      {
+        "name": "UATSparkEnvironment",
+        "description": "UAT Spark environment",
+        "create_if_not_exists": true,
+        "libraries": [
+          {"type": "PyPI", "name": "pandas", "version": "2.1.0"},
+          {"type": "PyPI", "name": "numpy", "version": "1.24.0"},
+          {"type": "PyPI", "name": "scikit-learn", "version": "1.3.0"}
+        ]
+      }
+    ],
+    "kql_databases": [
+      {
+        "name": "UATAnalyticsDB",
+        "description": "UAT KQL database for real-time analytics",
+        "create_if_not_exists": true
+      }
+    ],
+    "notebooks": [
+      {
+        "name": "SetupNotebook",
+        "description": "Initial setup and configuration notebook",
+        "create_if_not_exists": true,
+        "template": "basic_spark",
+        "default_lakehouse": "SalesDataLakehouse"
+      }
+    ],
+    "spark_job_definitions": [
+      {
+        "name": "BaselineSparkJob",
+        "description": "Baseline Spark job template",
+        "create_if_not_exists": true,
+        "main_file": "SetupNotebook",
+        "default_lakehouse": "SalesDataLakehouse"
+      }
+    ],
+    "data_pipelines": [
+      {
+        "name": "InitialPipeline",
+        "description": "Initial data pipeline template",
+        "create_if_not_exists": true,
+        "activities": [
+          {
+            "name": "Placeholder",
+            "type": "Script",
+            "script": "print('Pipeline placeholder')"
+          }
+        ]
+      }
+    ],
+    "shortcuts": [
+      {
+        "name": "SharedData",
+        "description": "OneLake shortcut to shared data",
+        "lakehouse": "SalesDataLakehouse",
+        "path": "Tables",
+        "create_if_not_exists": true,
+        "target": {
+          "oneLake": {
+            "workspaceId": "shared-workspace-id-uat",
+            "itemId": "shared-lakehouse-id-uat",
+            "path": "Tables/MasterData"
+          }
+        }
+      }
+    ]
+  }
+}

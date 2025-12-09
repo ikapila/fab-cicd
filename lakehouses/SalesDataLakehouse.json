@@ -1,0 +1,13 @@
+{
+  "name": "SalesDataLakehouse",
+  "id": "lakehouse-sales-001",
+  "description": "Lakehouse for storing and processing sales data",
+  "properties": {
+    "folders": [
+      "Files/raw",
+      "Files/processed",
+      "Files/curated",
+      "Files/archive"
+    ]
+  }
+}

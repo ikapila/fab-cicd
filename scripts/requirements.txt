@@ -1,0 +1,32 @@
+# Python dependencies for Fabric CI/CD deployment
+
+# Azure SDK
+azure-identity>=1.15.0
+azure-core>=1.29.0
+
+# HTTP requests
+requests>=2.31.0
+
+# JSON and YAML parsing
+pyyaml>=6.0.1
+
+# Command-line interface
+click>=8.1.7
+
+# Logging and monitoring
+python-json-logger>=2.0.7
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Notebook validation
+nbformat>=5.9.2
+nbconvert>=7.9.2
+
+# Data manipulation (for validation scripts)
+pandas>=2.1.0
+
+# Type checking
+mypy>=1.7.0
+types-requests>=2.31.0

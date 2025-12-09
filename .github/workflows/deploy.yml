@@ -1,0 +1,349 @@
+name: Deploy Fabric Data Engineering Artifacts
+
+on:
+  push:
+    branches:
+      - main          # Production
+      - uat           # UAT
+      - development   # Development
+    paths:
+      - 'notebooks/**'
+      - 'sparkjobdefinitions/**'
+      - 'datapipelines/**'
+      - 'lakehouses/**'
+      - 'environments/**'
+      - 'config/**'
+      - 'scripts/**'
+  
+  pull_request:
+    branches:
+      - main
+      - uat
+    paths:
+      - 'notebooks/**'
+      - 'sparkjobdefinitions/**'
+      - 'datapipelines/**'
+      - 'lakehouses/**'
+      - 'environments/**'
+      - 'config/**'
+      - 'scripts/**'
+  
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - uat
+          - prod
+      dry_run:
+        description: 'Dry run (simulate deployment)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ========================================
+  # Job 1: Build and Validate
+  # ========================================
+  build:
+    name: Build and Validate
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: Validate notebooks
+        run: |
+          echo "Validating notebook syntax..."
+          python scripts/validate_notebooks.py
+        continue-on-error: false
+
+      - name: Validate pipelines
+        run: |
+          echo "Validating pipeline definitions..."
+          python scripts/validate_pipelines.py
+        continue-on-error: false
+
+      - name: Check dependencies
+        run: |
+          echo "Running artifact dependency checks..."
+          python scripts/dependency_resolver.py
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fabric-artifacts
+          path: |
+            notebooks/
+            sparkjobdefinitions/
+            datapipelines/
+            lakehouses/
+            environments/
+            config/
+            scripts/
+          retention-days: 30
+
+  # ========================================
+  # Job 2: Deploy to Development
+  # ========================================
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/development' && github.event_name == 'push'
+    environment:
+      name: fabric-dev
+      url: https://app.fabric.microsoft.com
+    
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: fabric-artifacts
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: Deploy to Dev workspace
+        env:
+          AZURE_CLIENT_SECRET_DEV: ${{ secrets.AZURE_CLIENT_SECRET_DEV }}
+        run: |
+          python scripts/deploy_artifacts.py dev \
+            --config-dir config \
+            --artifacts-dir . \
+            --create-artifacts
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          python scripts/run_tests.py --environment dev
+        continue-on-error: true
+
+      - name: Post deployment summary
+        if: always()
+        run: |
+          echo "### Development Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** Development" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  # ========================================
+  # Job 3: Deploy to UAT
+  # ========================================
+  deploy-uat:
+    name: Deploy to UAT
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/uat' && github.event_name == 'push'
+    environment:
+      name: fabric-uat
+      url: https://app.fabric.microsoft.com
+    
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: fabric-artifacts
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: Deploy to UAT workspace
+        env:
+          AZURE_CLIENT_SECRET_UAT: ${{ secrets.AZURE_CLIENT_SECRET_UAT }}
+        run: |
+          python scripts/deploy_artifacts.py uat \
+            --config-dir config \
+            --artifacts-dir . \
+            --create-artifacts
+
+      - name: Run UAT tests
+        run: |
+          echo "Running UAT validation tests..."
+          python scripts/run_tests.py --environment uat
+
+      - name: Publish test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: uat-test-results
+          path: test-results.xml
+
+      - name: Post deployment summary
+        if: always()
+        run: |
+          echo "### UAT Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** UAT" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  # ========================================
+  # Job 4: Deploy to Production
+  # ========================================
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: fabric-prod
+      url: https://app.fabric.microsoft.com
+    
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: fabric-artifacts
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: Backup current production
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          echo "Creating backup of current production state..."
+          python scripts/backup_workspace.py --environment prod
+        continue-on-error: true
+
+      - name: Deploy to Production workspace
+        env:
+          AZURE_CLIENT_SECRET_PROD: ${{ secrets.AZURE_CLIENT_SECRET_PROD }}
+        run: |
+          python scripts/deploy_artifacts.py prod \
+            --config-dir config \
+            --artifacts-dir . \
+            --create-artifacts
+
+      - name: Run production validation
+        run: |
+          echo "Running production validation tests..."
+          python scripts/run_tests.py --environment prod --critical-only
+
+      - name: Publish test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prod-test-results
+          path: test-results.xml
+
+      - name: Create deployment tag
+        if: success()
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          TAG_NAME="prod-$(date +%Y%m%d-%H%M%S)"
+          git tag -a "$TAG_NAME" -m "Production deployment"
+          git push origin "$TAG_NAME"
+
+      - name: Post deployment summary
+        if: always()
+        run: |
+          echo "### Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** Production" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Production Deployment Failed',
+              body: `Production deployment failed for commit ${context.sha}\n\nPlease investigate immediately.\n\n[View workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId})`,
+              labels: ['deployment', 'production', 'critical']
+            })
+
+  # ========================================
+  # Job 5: Manual Rollback
+  # ========================================
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment:
+      name: fabric-${{ github.event.inputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: Execute rollback
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          python scripts/rollback.py \
+            --environment ${{ github.event.inputs.environment }} \
+            --commit ${{ github.event.inputs.rollback_commit || 'HEAD~1' }}
+
+      - name: Post rollback summary
+        if: always()
+        run: |
+          echo "### Rollback Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target commit:** ${{ github.event.inputs.rollback_commit || 'HEAD~1' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

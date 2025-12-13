@@ -112,6 +112,28 @@
           }
         }
       }
+    ],
+    "semantic_models": [
+      {
+        "name": "SalesAnalyticsModel",
+        "description": "Semantic model for sales analytics",
+        "create_if_not_exists": true
+      }
+    ],
+    "reports": [
+      {
+        "name": "SalesDashboard",
+        "description": "Executive sales dashboard",
+        "semantic_model": "SalesAnalyticsModel",
+        "create_if_not_exists": true
+      }
+    ],
+    "paginated_reports": [
+      {
+        "name": "MonthlySalesReport",
+        "description": "Detailed monthly sales report",
+        "create_if_not_exists": true
+      }
     ]
   }
 }

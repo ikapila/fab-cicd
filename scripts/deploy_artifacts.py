@@ -430,6 +430,92 @@ class FabricDeployer:
                 logger.error(f"  ✗ Failed to create pipeline '{name}': {str(e)}")
                 success = False
         
+        # Create semantic models
+        for model_def in artifacts_config.get("semantic_models", []):
+            try:
+                name = model_def["name"]
+                description = model_def.get("description", "")
+                create_if_not_exists = model_def.get("create_if_not_exists", True)
+                
+                logger.info(f"\nProcessing semantic model: {name}")
+                
+                if not dry_run:
+                    existing = self.client.list_semantic_models(self.workspace_id)
+                    existing_model = next((m for m in existing if m["displayName"] == name), None)
+                    
+                    if existing_model:
+                        logger.info(f"  ✓ Semantic model '{name}' already exists (ID: {existing_model['id']})")
+                    elif create_if_not_exists:
+                        model_definition = self._create_semantic_model_template(name, description, model_def)
+                        result = self.client.create_semantic_model(self.workspace_id, name, model_definition)
+                        logger.info(f"  ✓ Created semantic model '{name}' (ID: {result['id']})")
+                    else:
+                        logger.warning(f"  ⚠ Semantic model '{name}' does not exist and create_if_not_exists is false")
+                else:
+                    logger.info(f"  [DRY RUN] Would create semantic model: {name}")
+                    
+            except Exception as e:
+                logger.error(f"  ✗ Failed to create semantic model '{name}': {str(e)}")
+                success = False
+        
+        # Create Power BI reports
+        for report_def in artifacts_config.get("reports", []):
+            try:
+                name = report_def["name"]
+                description = report_def.get("description", "")
+                create_if_not_exists = report_def.get("create_if_not_exists", True)
+                
+                logger.info(f"\nProcessing Power BI report: {name}")
+                
+                if not dry_run:
+                    existing = self.client.list_reports(self.workspace_id)
+                    existing_report = next((r for r in existing if r["displayName"] == name), None)
+                    
+                    if existing_report:
+                        logger.info(f"  ✓ Report '{name}' already exists (ID: {existing_report['id']})")
+                    elif create_if_not_exists:
+                        report_definition = self._create_report_template(name, description, report_def)
+                        result = self.client.create_report(self.workspace_id, name, report_definition)
+                        logger.info(f"  ✓ Created report '{name}' (ID: {result['id']})")
+                    else:
+                        logger.warning(f"  ⚠ Report '{name}' does not exist and create_if_not_exists is false")
+                else:
+                    logger.info(f"  [DRY RUN] Would create report: {name}")
+                    if report_def.get("semantic_model"):
+                        logger.info(f"    Semantic model: {report_def['semantic_model']}")
+                    
+            except Exception as e:
+                logger.error(f"  ✗ Failed to create report '{name}': {str(e)}")
+                success = False
+        
+        # Create paginated reports
+        for report_def in artifacts_config.get("paginated_reports", []):
+            try:
+                name = report_def["name"]
+                description = report_def.get("description", "")
+                create_if_not_exists = report_def.get("create_if_not_exists", True)
+                
+                logger.info(f"\nProcessing paginated report: {name}")
+                
+                if not dry_run:
+                    existing = self.client.list_paginated_reports(self.workspace_id)
+                    existing_report = next((r for r in existing if r["displayName"] == name), None)
+                    
+                    if existing_report:
+                        logger.info(f"  ✓ Paginated report '{name}' already exists (ID: {existing_report['id']})")
+                    elif create_if_not_exists:
+                        report_definition = self._create_paginated_report_template(name, description, report_def)
+                        result = self.client.create_paginated_report(self.workspace_id, name, report_definition)
+                        logger.info(f"  ✓ Created paginated report '{name}' (ID: {result['id']})")
+                    else:
+                        logger.warning(f"  ⚠ Paginated report '{name}' does not exist and create_if_not_exists is false")
+                else:
+                    logger.info(f"  [DRY RUN] Would create paginated report: {name}")
+                    
+            except Exception as e:
+                logger.error(f"  ✗ Failed to create paginated report '{name}': {str(e)}")
+                success = False
+        
         # Create shortcuts
         for shortcut_def in artifacts_config.get("shortcuts", []):
             try:
@@ -678,6 +764,50 @@ class FabricDeployer:
         
         return pipeline
     
+    def _create_semantic_model_template(self, name, description, model_def):
+        """Create semantic model definition."""
+        model = {
+            "displayName": name,
+            "description": description or f"Semantic model: {name}",
+            "definition": {
+                "parts": []
+            }
+        }
+        
+        # Add connection if specified
+        if model_def.get("connection"):
+            model["definition"]["connection"] = model_def["connection"]
+        
+        return model
+    
+    def _create_report_template(self, name, description, report_def):
+        """Create Power BI report definition."""
+        report = {
+            "displayName": name,
+            "description": description or f"Report: {name}",
+            "definition": {
+                "parts": []
+            }
+        }
+        
+        # Link to semantic model if specified
+        if report_def.get("semantic_model"):
+            report["datasetId"] = report_def["semantic_model"]
+        
+        return report
+    
+    def _create_paginated_report_template(self, name, description, report_def):
+        """Create paginated report definition."""
+        report = {
+            "displayName": name,
+            "description": description or f"Paginated report: {name}",
+            "definition": {
+                "parts": []
+            }
+        }
+        
+        return report
+    
     def deploy_all(self, dry_run: bool = False) -> bool:
         """
         Deploy all discovered artifacts in dependency order
@@ -752,12 +882,18 @@ class FabricDeployer:
             self._deploy_lakehouse(artifact_name)
         elif artifact_type == ArtifactType.ENVIRONMENT:
             self._deploy_environment(artifact_name)
+        elif artifact_type == ArtifactType.SEMANTIC_MODEL:
+            self._deploy_semantic_model(artifact_name)
         elif artifact_type == ArtifactType.NOTEBOOK:
             self._deploy_notebook(artifact_name)
         elif artifact_type == ArtifactType.SPARK_JOB_DEFINITION:
             self._deploy_spark_job(artifact_name)
         elif artifact_type == ArtifactType.DATA_PIPELINE:
             self._deploy_pipeline(artifact_name)
+        elif artifact_type == ArtifactType.POWER_BI_REPORT:
+            self._deploy_report(artifact_name)
+        elif artifact_type == ArtifactType.PAGINATED_REPORT:
+            self._deploy_paginated_report(artifact_name)
         else:
             logger.warning(f"Unsupported artifact type: {artifact_type}")
     
@@ -876,6 +1012,87 @@ class FabricDeployer:
         else:
             result = self.client.create_data_pipeline(self.workspace_id, name, definition)
             logger.info(f"  Created pipeline (ID: {result['id']})")
+    
+    def _deploy_semantic_model(self, name: str) -> None:
+        """Deploy a semantic model"""
+        model_file = self.artifacts_dir / "semanticmodels" / f"{name}.json"
+        with open(model_file, 'r') as f:
+            definition = json.load(f)
+        
+        # Substitute parameters
+        definition_str = json.dumps(definition)
+        definition_str = self.config.substitute_parameters(definition_str)
+        definition = json.loads(definition_str)
+        
+        # Check if model exists
+        existing = self.client.list_semantic_models(self.workspace_id)
+        existing_model = next((m for m in existing if m["displayName"] == name), None)
+        
+        if existing_model:
+            logger.info(f"  Semantic model '{name}' already exists, updating...")
+            self.client.update_semantic_model(
+                self.workspace_id,
+                existing_model['id'],
+                definition
+            )
+            logger.info(f"  Updated semantic model (ID: {existing_model['id']})")
+        else:
+            result = self.client.create_semantic_model(self.workspace_id, name, definition)
+            logger.info(f"  Created semantic model (ID: {result['id']})")
+    
+    def _deploy_report(self, name: str) -> None:
+        """Deploy a Power BI report"""
+        report_file = self.artifacts_dir / "reports" / f"{name}.json"
+        with open(report_file, 'r') as f:
+            definition = json.load(f)
+        
+        # Substitute parameters
+        definition_str = json.dumps(definition)
+        definition_str = self.config.substitute_parameters(definition_str)
+        definition = json.loads(definition_str)
+        
+        # Check if report exists
+        existing = self.client.list_reports(self.workspace_id)
+        existing_report = next((r for r in existing if r["displayName"] == name), None)
+        
+        if existing_report:
+            logger.info(f"  Power BI report '{name}' already exists, updating...")
+            self.client.update_report(
+                self.workspace_id,
+                existing_report['id'],
+                definition
+            )
+            logger.info(f"  Updated report (ID: {existing_report['id']})")
+        else:
+            result = self.client.create_report(self.workspace_id, name, definition)
+            logger.info(f"  Created report (ID: {result['id']})")
+    
+    def _deploy_paginated_report(self, name: str) -> None:
+        """Deploy a paginated report"""
+        report_file = self.artifacts_dir / "paginatedreports" / f"{name}.json"
+        with open(report_file, 'r') as f:
+            definition = json.load(f)
+        
+        # Substitute parameters
+        definition_str = json.dumps(definition)
+        definition_str = self.config.substitute_parameters(definition_str)
+        definition = json.loads(definition_str)
+        
+        # Check if report exists
+        existing = self.client.list_paginated_reports(self.workspace_id)
+        existing_report = next((r for r in existing if r["displayName"] == name), None)
+        
+        if existing_report:
+            logger.info(f"  Paginated report '{name}' already exists, updating...")
+            self.client.update_paginated_report(
+                self.workspace_id,
+                existing_report['id'],
+                definition
+            )
+            logger.info(f"  Updated paginated report (ID: {existing_report['id']})")
+        else:
+            result = self.client.create_paginated_report(self.workspace_id, name, definition)
+            logger.info(f"  Created paginated report (ID: {result['id']})")
 
 
 def main():

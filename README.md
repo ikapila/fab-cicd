@@ -253,6 +253,9 @@ Define artifacts in your configuration files to have them automatically created 
 - ✅ Spark Job Definitions (with configuration)
 - ✅ Data Pipelines (with activities and parameters)
 - ✅ Shortcuts (OneLake and ADLS Gen2)
+- ✅ Semantic Models (Power BI datasets)
+- ✅ Power BI Reports
+- ✅ Paginated Reports
 
 Artifacts are automatically created during deployment. See **[PER-ENVIRONMENT-SP-GUIDE.md](PER-ENVIRONMENT-SP-GUIDE.md)** for details and **[QUICK-REFERENCE.md](QUICK-REFERENCE.md)** for quick examples.
 

@@ -400,6 +400,160 @@ class FabricClient:
         logger.info(f"Deleting item: {item_id}")
         return self._make_request("DELETE", f"/workspaces/{workspace_id}/items/{item_id}")
     
+    # ==================== Semantic Model Operations ====================
+    
+    def list_semantic_models(self, workspace_id: str) -> List[Dict]:
+        """
+        List all semantic models (datasets) in a workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of semantic model dictionaries
+        """
+        logger.info(f"Listing semantic models in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/semanticModels")
+        return response.get("value", [])
+    
+    def create_semantic_model(self, workspace_id: str, model_name: str, definition: Dict) -> Dict:
+        """
+        Create a semantic model
+        
+        Args:
+            workspace_id: Workspace GUID
+            model_name: Name for the semantic model
+            definition: Model definition
+            
+        Returns:
+            Created model details
+        """
+        logger.info(f"Creating semantic model: {model_name}")
+        payload = {
+            "displayName": model_name,
+            "definition": definition
+        }
+        return self._make_request("POST", f"/workspaces/{workspace_id}/semanticModels", json_data=payload)
+    
+    def update_semantic_model(self, workspace_id: str, model_id: str, definition: Dict) -> Dict:
+        """
+        Update semantic model definition
+        
+        Args:
+            workspace_id: Workspace GUID
+            model_id: Semantic model GUID
+            definition: New model definition
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating semantic model: {model_id}")
+        payload = {"definition": definition}
+        return self._make_request("POST", f"/workspaces/{workspace_id}/semanticModels/{model_id}/updateDefinition", json_data=payload)
+    
+    # ==================== Power BI Report Operations ====================
+    
+    def list_reports(self, workspace_id: str) -> List[Dict]:
+        """
+        List all Power BI reports in a workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of report dictionaries
+        """
+        logger.info(f"Listing reports in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/reports")
+        return response.get("value", [])
+    
+    def create_report(self, workspace_id: str, report_name: str, definition: Dict) -> Dict:
+        """
+        Create a Power BI report
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_name: Name for the report
+            definition: Report definition
+            
+        Returns:
+            Created report details
+        """
+        logger.info(f"Creating Power BI report: {report_name}")
+        payload = {
+            "displayName": report_name,
+            "definition": definition
+        }
+        return self._make_request("POST", f"/workspaces/{workspace_id}/reports", json_data=payload)
+    
+    def update_report(self, workspace_id: str, report_id: str, definition: Dict) -> Dict:
+        """
+        Update Power BI report definition
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Report GUID
+            definition: New report definition
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating Power BI report: {report_id}")
+        payload = {"definition": definition}
+        return self._make_request("POST", f"/workspaces/{workspace_id}/reports/{report_id}/updateDefinition", json_data=payload)
+    
+    # ==================== Paginated Report Operations ====================
+    
+    def list_paginated_reports(self, workspace_id: str) -> List[Dict]:
+        """
+        List all paginated reports in a workspace
+        
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of paginated report dictionaries
+        """
+        logger.info(f"Listing paginated reports in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/paginatedReports")
+        return response.get("value", [])
+    
+    def create_paginated_report(self, workspace_id: str, report_name: str, definition: Dict) -> Dict:
+        """
+        Create a paginated report
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_name: Name for the report
+            definition: Report definition (.rdl file)
+            
+        Returns:
+            Created report details
+        """
+        logger.info(f"Creating paginated report: {report_name}")
+        payload = {
+            "displayName": report_name,
+            "definition": definition
+        }
+        return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports", json_data=payload)
+    
+    def update_paginated_report(self, workspace_id: str, report_id: str, definition: Dict) -> Dict:
+        """
+        Update paginated report definition
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Paginated report GUID
+            definition: New report definition
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating paginated report: {report_id}")
+        payload = {"definition": definition}
+        return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports/{report_id}/updateDefinition", json_data=payload)
+    
     # ==================== Shortcut Operations ====================
     
     def list_shortcuts(self, workspace_id: str, lakehouse_id: str, path: str = "Tables") -> List[Dict]:

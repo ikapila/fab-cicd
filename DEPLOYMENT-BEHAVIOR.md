@@ -33,6 +33,9 @@ Deploys artifacts from repository files (notebooks/, datapipelines/, etc.):
 | **Notebooks** | ✅ | ✅ | Full content update via `updateDefinition` API |
 | **Spark Job Definitions** | ✅ | ✅ | Definition update via `updateDefinition` API |
 | **Data Pipelines** | ✅ | ✅ | Definition update via `updateDefinition` API |
+| **Semantic Models** | ✅ | ✅ | Schema update via `updateDefinition` API |
+| **Power BI Reports** | ✅ | ✅ | Visuals update via `updateDefinition` API |
+| **Paginated Reports** | ✅ | ✅ | Definition update via `updateDefinition` API |
 | **Lakehouses** | ✅ | ⚠️ | Immutable - only creates, skips if exists |
 | **Environments** | ✅ | ⚠️ | Immutable - only creates, skips if exists |
 | **Shortcuts** | ✅ | ⚠️ | Creates if missing, skips if exists |
@@ -93,6 +96,59 @@ Result: No update (by design) ℹ️
 ---
 
 ## Deployment Workflow Example
+
+### Scenario: Update a Semantic Model
+
+**Step 1: Update model definition**
+```bash
+# Edit semanticmodels/SalesAnalyticsModel.json
+# Add new measure, relationship, or table
+```
+
+**Step 2: Deploy update**
+```bash
+python scripts/deploy_artifacts.py dev
+# Output:
+# - Found semantic model 'SalesAnalyticsModel'
+# - Updating semantic model definition...
+# - ✅ Semantic model updated successfully
+```
+
+**Step 3: Verify in Fabric**
+```
+1. Open DataEng-Dev workspace
+2. Open SalesAnalyticsModel
+3. Verify new measures/relationships appear
+4. Test data refresh
+```
+
+---
+
+### Scenario: Update a Power BI Report
+
+**Step 1: Edit report definition**
+```bash
+# Edit reports/SalesDashboard.json
+# Update visual configuration or add new pages
+```
+
+**Step 2: Deploy update**
+```bash
+python scripts/deploy_artifacts.py dev
+# Output:
+# - Found report 'SalesDashboard'
+# - Updating report definition...
+# - ✅ Report updated successfully
+```
+
+**Step 3: Users see changes**
+```
+- Report consumers automatically see updated visuals
+- Bookmarks and personal views are preserved
+- No downtime during update
+```
+
+---
 
 ### Scenario: Update a Notebook
 

@@ -151,6 +151,43 @@
   }
 ]
 ```
+
+### Semantic Model Example:
+```json
+"semantic_models": [
+  {
+    "name": "SalesAnalyticsModel",
+    "description": "Sales semantic model",
+    "create_if_not_exists": true
+  }
+]
+```
+
+### Power BI Report Example:
+```json
+"reports": [
+  {
+    "name": "SalesDashboard",
+    "description": "Executive sales dashboard",
+    "semantic_model": "SalesAnalyticsModel",
+    "create_if_not_exists": true
+  }
+]
+```
+
+### Paginated Report Example:
+```json
+"paginated_reports": [
+  {
+    "name": "MonthlySalesReport",
+    "description": "Detailed monthly report",
+    "create_if_not_exists": true
+  }
+]
+```
+  }
+]
+```
 **Paths:** `Tables` | `Files`
 
 ---

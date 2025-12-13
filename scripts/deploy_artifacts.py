@@ -839,8 +839,13 @@ class FabricDeployer:
         existing_job = next((job for job in existing if job["displayName"] == name), None)
         
         if existing_job:
-            logger.info(f"  Spark job '{name}' already exists (ID: {existing_job['id']})")
-            # Update would go here
+            logger.info(f"  Spark job '{name}' already exists, updating...")
+            self.client.update_spark_job_definition(
+                self.workspace_id,
+                existing_job['id'],
+                definition
+            )
+            logger.info(f"  Updated Spark job (ID: {existing_job['id']})")
         else:
             result = self.client.create_spark_job_definition(self.workspace_id, name, definition)
             logger.info(f"  Created Spark job (ID: {result['id']})")
@@ -861,8 +866,13 @@ class FabricDeployer:
         existing_pipeline = next((pl for pl in existing if pl["displayName"] == name), None)
         
         if existing_pipeline:
-            logger.info(f"  Pipeline '{name}' already exists (ID: {existing_pipeline['id']})")
-            # Update would go here
+            logger.info(f"  Pipeline '{name}' already exists, updating...")
+            self.client.update_data_pipeline(
+                self.workspace_id,
+                existing_pipeline['id'],
+                definition
+            )
+            logger.info(f"  Updated pipeline (ID: {existing_pipeline['id']})")
         else:
             result = self.client.create_data_pipeline(self.workspace_id, name, definition)
             logger.info(f"  Created pipeline (ID: {result['id']})")

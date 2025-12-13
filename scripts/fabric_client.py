@@ -266,6 +266,22 @@ class FabricClient:
         }
         return self._make_request("POST", f"/workspaces/{workspace_id}/sparkJobDefinitions", json_data=payload)
     
+    def update_spark_job_definition(self, workspace_id: str, job_id: str, definition: Dict) -> Dict:
+        """
+        Update Spark job definition
+        
+        Args:
+            workspace_id: Workspace GUID
+            job_id: Spark job GUID
+            definition: New job definition
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating Spark job definition: {job_id}")
+        payload = {"definition": definition}
+        return self._make_request("POST", f"/workspaces/{workspace_id}/sparkJobDefinitions/{job_id}/updateDefinition", json_data=payload)
+    
     # ==================== Data Pipeline Operations ====================
     
     def list_data_pipelines(self, workspace_id: str) -> List[Dict]:
@@ -300,6 +316,22 @@ class FabricClient:
             "definition": definition
         }
         return self._make_request("POST", f"/workspaces/{workspace_id}/dataPipelines", json_data=payload)
+    
+    def update_data_pipeline(self, workspace_id: str, pipeline_id: str, definition: Dict) -> Dict:
+        """
+        Update data pipeline definition
+        
+        Args:
+            workspace_id: Workspace GUID
+            pipeline_id: Pipeline GUID
+            definition: New pipeline definition
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating data pipeline: {pipeline_id}")
+        payload = {"definition": definition}
+        return self._make_request("POST", f"/workspaces/{workspace_id}/dataPipelines/{pipeline_id}/updateDefinition", json_data=payload)
     
     # ==================== Environment Operations ====================
     

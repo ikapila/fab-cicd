@@ -1,0 +1,168 @@
+{
+  "displayName": "MonthlySalesReport",
+  "description": "Detailed monthly sales report for printing",
+  "version": "1.0.0",
+  "reportDefinition": {
+    "dataSource": {
+      "type": "semanticModel",
+      "name": "SalesAnalyticsModel"
+    },
+    "parameters": [
+      {
+        "name": "ReportMonth",
+        "prompt": "Report Month",
+        "dataType": "Integer",
+        "defaultValue": null,
+        "allowBlank": false,
+        "allowNull": false
+      },
+      {
+        "name": "ReportYear",
+        "prompt": "Report Year",
+        "dataType": "Integer",
+        "defaultValue": 2024,
+        "allowBlank": false,
+        "allowNull": false
+      }
+    ],
+    "pageSettings": {
+      "pageSize": "Letter",
+      "orientation": "Portrait",
+      "marginTop": "1in",
+      "marginBottom": "1in",
+      "marginLeft": "1in",
+      "marginRight": "1in"
+    },
+    "body": {
+      "height": "9in",
+      "sections": [
+        {
+          "name": "Header",
+          "type": "textbox",
+          "content": "Monthly Sales Report",
+          "style": {
+            "fontSize": "18pt",
+            "fontWeight": "Bold",
+            "textAlign": "Center",
+            "paddingTop": "0.25in",
+            "paddingBottom": "0.25in"
+          }
+        },
+        {
+          "name": "ReportPeriod",
+          "type": "textbox",
+          "content": "Report Period: {Month}/{Year}",
+          "style": {
+            "fontSize": "12pt",
+            "textAlign": "Center",
+            "paddingBottom": "0.5in"
+          }
+        },
+        {
+          "name": "SalesSummary",
+          "type": "table",
+          "query": {
+            "dataset": "SalesAnalyticsModel",
+            "query": "EVALUATE SUMMARIZE(FactSales, DimDate[Year], DimDate[Month], \"Total\", [Total Sales], \"Quantity\", [Total Quantity])"
+          },
+          "columns": [
+            {
+              "name": "Year",
+              "width": "1in",
+              "alignment": "Center"
+            },
+            {
+              "name": "Month",
+              "width": "1in",
+              "alignment": "Center"
+            },
+            {
+              "name": "Total Sales",
+              "width": "2in",
+              "alignment": "Right",
+              "format": "$#,##0.00"
+            },
+            {
+              "name": "Quantity",
+              "width": "1.5in",
+              "alignment": "Right",
+              "format": "#,##0"
+            }
+          ],
+          "style": {
+            "borderStyle": "Solid",
+            "borderWidth": "1pt",
+            "borderColor": "#000000"
+          }
+        },
+        {
+          "name": "DetailTable",
+          "type": "table",
+          "query": {
+            "dataset": "SalesAnalyticsModel",
+            "query": "EVALUATE TOPN(100, FactSales, FactSales[Amount], DESC)"
+          },
+          "columns": [
+            {
+              "name": "SaleId",
+              "width": "1.5in",
+              "alignment": "Left"
+            },
+            {
+              "name": "Date",
+              "width": "1.5in",
+              "alignment": "Center",
+              "format": "MM/dd/yyyy"
+            },
+            {
+              "name": "Amount",
+              "width": "1.5in",
+              "alignment": "Right",
+              "format": "$#,##0.00"
+            },
+            {
+              "name": "Quantity",
+              "width": "1in",
+              "alignment": "Right",
+              "format": "#,##0"
+            }
+          ],
+          "grouping": {
+            "groupBy": "Date",
+            "showTotals": true
+          },
+          "style": {
+            "borderStyle": "Solid",
+            "borderWidth": "1pt",
+            "borderColor": "#CCCCCC",
+            "alternatingRowColor": "#F0F0F0"
+          }
+        }
+      ]
+    },
+    "footer": {
+      "height": "0.5in",
+      "sections": [
+        {
+          "name": "PageNumber",
+          "type": "textbox",
+          "content": "Page {PageNumber} of {TotalPages}",
+          "style": {
+            "fontSize": "10pt",
+            "textAlign": "Right"
+          }
+        }
+      ]
+    }
+  },
+  "annotations": [
+    {
+      "name": "deployment_version",
+      "value": "1.0.0"
+    },
+    {
+      "name": "export_formats",
+      "value": "PDF,Excel,Word"
+    }
+  ]
+}

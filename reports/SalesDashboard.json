@@ -1,0 +1,106 @@
+{
+  "displayName": "SalesDashboard",
+  "description": "Executive sales dashboard",
+  "version": "1.0.0",
+  "datasetName": "SalesAnalyticsModel",
+  "pages": [
+    {
+      "name": "Overview",
+      "displayName": "Sales Overview",
+      "width": 1280,
+      "height": 720,
+      "visuals": [
+        {
+          "name": "TotalSalesCard",
+          "type": "card",
+          "x": 10,
+          "y": 10,
+          "width": 200,
+          "height": 100,
+          "data": {
+            "measure": "Total Sales"
+          },
+          "formatting": {
+            "fontSize": 24,
+            "fontFamily": "Segoe UI",
+            "fontColor": "#000000"
+          }
+        },
+        {
+          "name": "SalesTrendLine",
+          "type": "lineChart",
+          "x": 10,
+          "y": 120,
+          "width": 600,
+          "height": 300,
+          "data": {
+            "xAxis": "DimDate[Month]",
+            "yAxis": "Total Sales",
+            "legend": "DimDate[Year]"
+          },
+          "formatting": {
+            "showDataLabels": false,
+            "lineColor": "#0078D4"
+          }
+        },
+        {
+          "name": "SalesByRegion",
+          "type": "barChart",
+          "x": 620,
+          "y": 120,
+          "width": 400,
+          "height": 300,
+          "data": {
+            "xAxis": "Total Sales",
+            "yAxis": "Region[RegionName]"
+          },
+          "formatting": {
+            "barColor": "#107C10"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Details",
+      "displayName": "Detailed Analysis",
+      "width": 1280,
+      "height": 720,
+      "visuals": [
+        {
+          "name": "SalesTable",
+          "type": "table",
+          "x": 10,
+          "y": 10,
+          "width": 1260,
+          "height": 700,
+          "data": {
+            "columns": [
+              "DimDate[Date]",
+              "Product[ProductName]",
+              "Total Sales",
+              "Total Quantity"
+            ]
+          },
+          "formatting": {
+            "fontSize": 10,
+            "showTotals": true
+          }
+        }
+      ]
+    }
+  ],
+  "filters": [
+    {
+      "target": "DimDate[Year]",
+      "type": "basic",
+      "operator": "In",
+      "values": [2024]
+    }
+  ],
+  "annotations": [
+    {
+      "name": "deployment_version",
+      "value": "1.0.0"
+    }
+  ]
+}

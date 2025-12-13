@@ -1,0 +1,122 @@
+{
+  "displayName": "SalesAnalyticsModel",
+  "description": "Semantic model for sales analytics",
+  "version": "1.0.0",
+  "dataModel": {
+    "tables": [
+      {
+        "name": "FactSales",
+        "description": "Sales transactions",
+        "source": {
+          "type": "lakehouse",
+          "lakehouseName": "SalesDataLakehouse",
+          "schemaName": "dbo",
+          "tableName": "sales"
+        },
+        "columns": [
+          {
+            "name": "SaleId",
+            "dataType": "string",
+            "isHidden": false
+          },
+          {
+            "name": "DateKey",
+            "dataType": "int64",
+            "isHidden": false
+          },
+          {
+            "name": "Amount",
+            "dataType": "double",
+            "isHidden": false,
+            "formatString": "$#,##0.00"
+          },
+          {
+            "name": "Quantity",
+            "dataType": "int64",
+            "isHidden": false
+          }
+        ]
+      },
+      {
+        "name": "DimDate",
+        "description": "Date dimension",
+        "source": {
+          "type": "lakehouse",
+          "lakehouseName": "SalesDataLakehouse",
+          "schemaName": "dbo",
+          "tableName": "date_dim"
+        },
+        "columns": [
+          {
+            "name": "DateKey",
+            "dataType": "int64",
+            "isHidden": false
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "isHidden": false
+          },
+          {
+            "name": "Year",
+            "dataType": "int64",
+            "isHidden": false
+          },
+          {
+            "name": "Quarter",
+            "dataType": "int64",
+            "isHidden": false
+          },
+          {
+            "name": "Month",
+            "dataType": "int64",
+            "isHidden": false
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "FactSales_DimDate",
+        "fromTable": "FactSales",
+        "fromColumn": "DateKey",
+        "toTable": "DimDate",
+        "toColumn": "DateKey",
+        "crossFilteringBehavior": "OneDirection",
+        "isActive": true
+      }
+    ],
+    "measures": [
+      {
+        "name": "Total Sales",
+        "expression": "SUM(FactSales[Amount])",
+        "formatString": "$#,##0.00",
+        "description": "Total sales amount"
+      },
+      {
+        "name": "Total Quantity",
+        "expression": "SUM(FactSales[Quantity])",
+        "formatString": "#,##0",
+        "description": "Total quantity sold"
+      },
+      {
+        "name": "Average Sale",
+        "expression": "AVERAGE(FactSales[Amount])",
+        "formatString": "$#,##0.00",
+        "description": "Average sale amount"
+      },
+      {
+        "name": "Sales YTD",
+        "expression": "TOTALYTD([Total Sales], DimDate[Date])",
+        "formatString": "$#,##0.00",
+        "description": "Year-to-date sales"
+      }
+    ],
+    "annotations": [
+      {
+        "name": "deployment_version",
+        "value": "1.0.0"
+      }
+    ]
+  }
+}

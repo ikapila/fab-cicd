@@ -134,6 +134,39 @@
         "description": "Detailed monthly sales report",
         "create_if_not_exists": true
       }
+    ],
+    "variable_libraries": [
+      {
+        "name": "ProdVariables",
+        "description": "Production environment runtime variables",
+        "create_if_not_exists": true,
+        "variables": [
+          {
+            "name": "storage_account",
+            "value": "prodstorageaccount",
+            "type": "String",
+            "description": "Azure Storage Account name for production"
+          },
+          {
+            "name": "api_endpoint",
+            "value": "https://api.contoso.com",
+            "type": "String",
+            "description": "Production API endpoint URL"
+          },
+          {
+            "name": "log_level",
+            "value": "WARNING",
+            "type": "String",
+            "description": "Logging level for production"
+          },
+          {
+            "name": "batch_size",
+            "value": "10000",
+            "type": "Int",
+            "description": "Batch size for data processing"
+          }
+        ]
+      }
     ]
   }
 }

@@ -253,6 +253,7 @@ Define artifacts in your configuration files to have them automatically created 
 - ✅ Spark Job Definitions (with configuration)
 - ✅ Data Pipelines (with activities and parameters)
 - ✅ Shortcuts (OneLake and ADLS Gen2)
+- ✅ Variable Libraries (runtime environment variables)
 - ✅ Semantic Models (Power BI datasets)
 - ✅ Power BI Reports
 - ✅ Paginated Reports

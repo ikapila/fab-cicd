@@ -211,8 +211,26 @@ class ConfigManager:
         """
         return self.config.get("artifacts_to_create", {})
     
+    def get_parameters(self) -> Dict:
+        """
+        Get environment parameters
+        
+        Returns:
+            Dictionary of parameters
+        """
+        return self.config.get("parameters", {})
+    
+    def get_variable_library_config(self) -> Optional[Dict]:
+        """
+        Get Variable Library configuration
+        
+        Returns:
+            Variable Library configuration or None
+        """
+        return self.config.get("variable_library")
+    
     def get_config(self) -> Dict:
-        """Get entire configuration dictionary"""
+        """Get entire configuration dictionary"
         return self.config
 
 

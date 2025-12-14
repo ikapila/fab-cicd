@@ -1,0 +1,54 @@
+{
+  "name": "DevVariables",
+  "description": "Development environment runtime variables",
+  "variables": [
+    {
+      "name": "storage_account",
+      "value": "devstorageaccount",
+      "type": "String",
+      "description": "Azure Storage Account name for development"
+    },
+    {
+      "name": "api_endpoint",
+      "value": "https://dev-api.contoso.com",
+      "type": "String",
+      "description": "Development API endpoint URL"
+    },
+    {
+      "name": "data_lake_path",
+      "value": "abfss://data@devstorageaccount.dfs.core.windows.net/",
+      "type": "String",
+      "description": "Data Lake path for raw data"
+    },
+    {
+      "name": "log_level",
+      "value": "DEBUG",
+      "type": "String",
+      "description": "Logging level for development"
+    },
+    {
+      "name": "batch_size",
+      "value": "1000",
+      "type": "Int",
+      "description": "Batch size for data processing"
+    },
+    {
+      "name": "enable_caching",
+      "value": "true",
+      "type": "Bool",
+      "description": "Enable caching for performance testing"
+    },
+    {
+      "name": "max_retries",
+      "value": "3",
+      "type": "Int",
+      "description": "Maximum retry attempts for failed operations"
+    },
+    {
+      "name": "timeout_seconds",
+      "value": "300",
+      "type": "Int",
+      "description": "Timeout in seconds for external API calls"
+    }
+  ]
+}

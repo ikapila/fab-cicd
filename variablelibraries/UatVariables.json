@@ -1,0 +1,54 @@
+{
+  "name": "UatVariables",
+  "description": "UAT environment runtime variables",
+  "variables": [
+    {
+      "name": "storage_account",
+      "value": "uatstorageaccount",
+      "type": "String",
+      "description": "Azure Storage Account name for UAT"
+    },
+    {
+      "name": "api_endpoint",
+      "value": "https://uat-api.contoso.com",
+      "type": "String",
+      "description": "UAT API endpoint URL"
+    },
+    {
+      "name": "data_lake_path",
+      "value": "abfss://data@uatstorageaccount.dfs.core.windows.net/",
+      "type": "String",
+      "description": "Data Lake path for raw data"
+    },
+    {
+      "name": "log_level",
+      "value": "INFO",
+      "type": "String",
+      "description": "Logging level for UAT"
+    },
+    {
+      "name": "batch_size",
+      "value": "5000",
+      "type": "Int",
+      "description": "Batch size for data processing"
+    },
+    {
+      "name": "enable_caching",
+      "value": "true",
+      "type": "Bool",
+      "description": "Enable caching for performance"
+    },
+    {
+      "name": "max_retries",
+      "value": "5",
+      "type": "Int",
+      "description": "Maximum retry attempts for failed operations"
+    },
+    {
+      "name": "timeout_seconds",
+      "value": "600",
+      "type": "Int",
+      "description": "Timeout in seconds for external API calls"
+    }
+  ]
+}

@@ -554,6 +554,86 @@ class FabricClient:
         payload = {"definition": definition}
         return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports/{report_id}/updateDefinition", json_data=payload)
     
+    # ==================== Variable Library Operations ===================
+    
+    def list_variable_libraries(self, workspace_id: str) -> List[Dict]:
+        """
+        List Variable Libraries in workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of Variable Libraries
+        """
+        logger.info(f"Listing Variable Libraries in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/items", params={"type": "VariableLibrary"})
+        return response.get("value", [])
+    
+    def create_variable_library(self, workspace_id: str, name: str, description: str = "") -> Dict:
+        """
+        Create a Variable Library
+        
+        Args:
+            workspace_id: Workspace GUID
+            name: Variable Library name
+            description: Variable Library description
+            
+        Returns:
+            Created Variable Library
+        """
+        logger.info(f"Creating Variable Library: {name}")
+        payload = {
+            "displayName": name,
+            "type": "VariableLibrary",
+            "description": description
+        }
+        return self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
+    
+    def get_variable_library(self, workspace_id: str, library_id: str) -> Dict:
+        """
+        Get Variable Library details
+        
+        Args:
+            workspace_id: Workspace GUID
+            library_id: Variable Library GUID
+            
+        Returns:
+            Variable Library details
+        """
+        logger.info(f"Getting Variable Library: {library_id}")
+        return self._make_request("GET", f"/workspaces/{workspace_id}/items/{library_id}")
+    
+    def get_variable_library_definition(self, workspace_id: str, library_id: str) -> Dict:
+        """
+        Get Variable Library definition (variables)
+        
+        Args:
+            workspace_id: Workspace GUID
+            library_id: Variable Library GUID
+            
+        Returns:
+            Variable Library definition with variables
+        """
+        logger.info(f"Getting Variable Library definition: {library_id}")
+        return self._make_request("POST", f"/workspaces/{workspace_id}/items/{library_id}/getDefinition")
+    
+    def update_variable_library_definition(self, workspace_id: str, library_id: str, definition: Dict) -> Dict:
+        """
+        Update Variable Library definition (variables)
+        
+        Args:
+            workspace_id: Workspace GUID
+            library_id: Variable Library GUID
+            definition: Variable Library definition with variables
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating Variable Library definition: {library_id}")
+        payload = {"definition": definition}
+        return self._make_request("POST", f"/workspaces/{workspace_id}/items/{library_id}/updateDefinition", json_data=payload)
+    
     # ==================== Shortcut Operations ====================
     
     def list_shortcuts(self, workspace_id: str, lakehouse_id: str, path: str = "Tables") -> List[Dict]:

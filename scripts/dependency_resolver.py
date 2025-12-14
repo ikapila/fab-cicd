@@ -23,6 +23,7 @@ class ArtifactType(Enum):
     KQL_QUERYSET = "KQLQueryset"
     EVENTSTREAM = "Eventstream"
     SHORTCUT = "Shortcut"
+    VARIABLE_LIBRARY = "VariableLibrary"
     POWER_BI_REPORT = "Report"
     PAGINATED_REPORT = "PaginatedReport"
 
@@ -36,6 +37,7 @@ class DependencyResolver:
         ArtifactType.ENVIRONMENT: 2,         # Environments second (runtime configs)
         ArtifactType.KQL_DATABASE: 3,        # KQL Databases third
         ArtifactType.SHORTCUT: 4,            # Shortcuts fourth (after lakehouses)
+        ArtifactType.VARIABLE_LIBRARY: 4,    # Variable libraries (same as shortcuts - no dependencies)
         ArtifactType.SEMANTIC_MODEL: 5,      # Semantic models fifth (data models)
         ArtifactType.NOTEBOOK: 6,            # Notebooks sixth
         ArtifactType.SPARK_JOB_DEFINITION: 7,  # Spark jobs seventh

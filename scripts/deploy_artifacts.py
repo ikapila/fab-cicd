@@ -93,6 +93,9 @@ class FabricDeployer:
         # Discover data pipelines
         self._discover_pipelines()
         
+        # Discover variable libraries
+        self._discover_variable_libraries()
+        
         logger.info(f"Discovered {len(self.resolver.artifacts)} artifacts")
     
     def _discover_lakehouses(self) -> None:
@@ -211,6 +214,30 @@ class FabricDeployer:
             )
             
             logger.debug(f"Discovered pipeline: {pipeline_name}")
+    
+    def _discover_variable_libraries(self) -> None:
+        """Discover Variable Library definitions"""
+        library_dir = self.artifacts_dir / "variablelibraries"
+        if not library_dir.exists():
+            logger.debug("No variable libraries directory found")
+            return
+        
+        for library_file in library_dir.glob("*.json"):
+            with open(library_file, 'r') as f:
+                definition = json.load(f)
+            
+            library_name = definition.get("name", library_file.stem)
+            library_id = definition.get("id", f"varlib-{library_name}")
+            dependencies = definition.get("dependencies", [])
+            
+            self.resolver.add_artifact(
+                library_id,
+                ArtifactType.VARIABLE_LIBRARY,
+                library_name,
+                dependencies=dependencies
+            )
+            
+            logger.debug(f"Discovered Variable Library: {library_name}")
     
     def _extract_notebook_dependencies(self, notebook_path: Path) -> List[str]:
         """
@@ -516,6 +543,50 @@ class FabricDeployer:
                 logger.error(f"  ✗ Failed to create paginated report '{name}': {str(e)}")
                 success = False
         
+        # Create variable libraries
+        for library_config in artifacts_config.get("variable_libraries", []):
+            try:
+                name = library_config["name"]
+                create_if_not_exists = library_config.get("create_if_not_exists", True)
+                
+                logger.info(f"\nProcessing Variable Library: {name}")
+                
+                if not dry_run:
+                    existing = self.client.list_variable_libraries(self.workspace_id)
+                    existing_library = next((lib for lib in existing if lib["displayName"] == name), None)
+                    
+                    if existing_library:
+                        logger.info(f"  ✓ Variable Library '{name}' already exists (ID: {existing_library['id']})")
+                        # Update variables if provided
+                        variables = library_config.get("variables", [])
+                        if variables:
+                            update_payload = {"variables": variables}
+                            self.client.update_variable_library_definition(
+                                self.workspace_id, existing_library["id"], update_payload
+                            )
+                            logger.info(f"  ✓ Updated {len(variables)} variables in '{name}'")
+                    elif create_if_not_exists:
+                        library_def = self._create_variable_library_template(library_config)
+                        result = self.client.create_variable_library(
+                            self.workspace_id, name, library_def.get("description", "")
+                        )
+                        # Set initial variables
+                        variables = library_def.get("variables", [])
+                        if variables:
+                            update_payload = {"variables": variables}
+                            self.client.update_variable_library_definition(
+                                self.workspace_id, result["id"], update_payload
+                            )
+                        logger.info(f"  ✓ Created Variable Library '{name}' with {len(variables)} variables (ID: {result['id']})")
+                    else:
+                        logger.warning(f"  ⚠ Variable Library '{name}' does not exist and create_if_not_exists is false")
+                else:
+                    logger.info(f"  [DRY RUN] Would create Variable Library: {name}")
+                    
+            except Exception as e:
+                logger.error(f"  ✗ Failed to create Variable Library '{name}': {str(e)}")
+                success = False
+        
         # Create shortcuts
         for shortcut_def in artifacts_config.get("shortcuts", []):
             try:
@@ -808,6 +879,31 @@ class FabricDeployer:
         
         return report
     
+    def _create_variable_library_template(self, config: Dict) -> Dict:
+        """Create Variable Library definition from config"""
+        name = config["name"]
+        description = config.get("description", f"Variable Library: {name}")
+        variables = config.get("variables", [])
+        
+        # If no variables provided, create from environment parameters
+        if not variables:
+            params = self.config.get_parameters()
+            variables = [
+                {
+                    "name": key,
+                    "value": str(value),
+                    "type": "String",
+                    "description": f"Environment parameter: {key}"
+                }
+                for key, value in params.items()
+            ]
+        
+        return {
+            "name": name,
+            "description": description,
+            "variables": variables
+        }
+    
     def deploy_all(self, dry_run: bool = False) -> bool:
         """
         Deploy all discovered artifacts in dependency order
@@ -890,6 +986,8 @@ class FabricDeployer:
             self._deploy_spark_job(artifact_name)
         elif artifact_type == ArtifactType.DATA_PIPELINE:
             self._deploy_pipeline(artifact_name)
+        elif artifact_type == ArtifactType.VARIABLE_LIBRARY:
+            self._deploy_variable_library(artifact_name)
         elif artifact_type == ArtifactType.POWER_BI_REPORT:
             self._deploy_report(artifact_name)
         elif artifact_type == ArtifactType.PAGINATED_REPORT:
@@ -1093,6 +1191,62 @@ class FabricDeployer:
         else:
             result = self.client.create_paginated_report(self.workspace_id, name, definition)
             logger.info(f"  Created paginated report (ID: {result['id']})")
+    
+    def _deploy_variable_library(self, name: str) -> None:
+        """Deploy a Variable Library"""
+        library_file = self.artifacts_dir / "variablelibraries" / f"{name}.json"
+        with open(library_file, 'r') as f:
+            definition = json.load(f)
+        
+        # Substitute parameters in variable values
+        definition_str = json.dumps(definition)
+        definition_str = self.config.substitute_parameters(definition_str)
+        definition = json.loads(definition_str)
+        
+        # Check if Variable Library exists
+        existing = self.client.list_variable_libraries(self.workspace_id)
+        existing_library = next((lib for lib in existing if lib["displayName"] == name), None)
+        
+        if existing_library:
+            logger.info(f"  Variable Library '{name}' already exists, updating variables...")
+            library_id = existing_library["id"]
+            
+            # Get the variables from definition
+            variables = definition.get("variables", [])
+            update_payload = {
+                "variables": variables
+            }
+            
+            self.client.update_variable_library_definition(
+                self.workspace_id,
+                library_id,
+                update_payload
+            )
+            logger.info(f"  Updated Variable Library '{name}' with {len(variables)} variables")
+        else:
+            logger.info(f"  Creating Variable Library: {name}")
+            description = definition.get("description", "")
+            result = self.client.create_variable_library(
+                self.workspace_id,
+                name,
+                description
+            )
+            library_id = result["id"]
+            logger.info(f"  Created Variable Library (ID: {library_id})")
+            
+            # Set initial variables
+            variables = definition.get("variables", [])
+            if variables:
+                logger.info(f"  Setting {len(variables)} initial variables...")
+                update_payload = {
+                    "variables": variables
+                }
+                self.client.update_variable_library_definition(
+                    self.workspace_id,
+                    library_id,
+                    update_payload
+                )
+                logger.info(f"  Initialized variables for '{name}'")
 
 
 def main():

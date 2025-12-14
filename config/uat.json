@@ -134,6 +134,39 @@
         "description": "Detailed monthly sales report",
         "create_if_not_exists": true
       }
+    ],
+    "variable_libraries": [
+      {
+        "name": "UatVariables",
+        "description": "UAT environment runtime variables",
+        "create_if_not_exists": true,
+        "variables": [
+          {
+            "name": "storage_account",
+            "value": "uatstorageaccount",
+            "type": "String",
+            "description": "Azure Storage Account name for UAT"
+          },
+          {
+            "name": "api_endpoint",
+            "value": "https://uat-api.contoso.com",
+            "type": "String",
+            "description": "UAT API endpoint URL"
+          },
+          {
+            "name": "log_level",
+            "value": "INFO",
+            "type": "String",
+            "description": "Logging level for UAT"
+          },
+          {
+            "name": "batch_size",
+            "value": "5000",
+            "type": "Int",
+            "description": "Batch size for data processing"
+          }
+        ]
+      }
     ]
   }
 }

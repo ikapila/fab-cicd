@@ -230,7 +230,7 @@ class ConfigManager:
         return self.config.get("variable_library")
     
     def get_config(self) -> Dict:
-        """Get entire configuration dictionary"
+        """Get entire configuration dictionary"""
         return self.config
 
 

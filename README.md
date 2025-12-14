@@ -254,6 +254,7 @@ Define artifacts in your configuration files to have them automatically created 
 - ✅ Data Pipelines (with activities and parameters)
 - ✅ Shortcuts (OneLake and ADLS Gen2)
 - ✅ Variable Libraries (runtime environment variables)
+- ✅ SQL Views (lakehouse analytics views with dependency management)
 - ✅ Semantic Models (Power BI datasets)
 - ✅ Power BI Reports
 - ✅ Paginated Reports

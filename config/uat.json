@@ -167,6 +167,13 @@
           }
         ]
       }
+    ],
+    "sql_views": [
+      {
+        "lakehouse": "SalesDataLakehouse",
+        "views": ["SalesSummary", "ProductAnalysis", "RegionalPerformance"],
+        "description": "Sales analytics views for UAT environment"
+      }
     ]
   }
 }

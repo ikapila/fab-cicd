@@ -24,6 +24,7 @@ class ArtifactType(Enum):
     EVENTSTREAM = "Eventstream"
     SHORTCUT = "Shortcut"
     VARIABLE_LIBRARY = "VariableLibrary"
+    SQL_VIEW = "SqlView"
     POWER_BI_REPORT = "Report"
     PAGINATED_REPORT = "PaginatedReport"
 
@@ -38,14 +39,15 @@ class DependencyResolver:
         ArtifactType.KQL_DATABASE: 3,        # KQL Databases third
         ArtifactType.SHORTCUT: 4,            # Shortcuts fourth (after lakehouses)
         ArtifactType.VARIABLE_LIBRARY: 4,    # Variable libraries (same as shortcuts - no dependencies)
-        ArtifactType.SEMANTIC_MODEL: 5,      # Semantic models fifth (data models)
-        ArtifactType.NOTEBOOK: 6,            # Notebooks sixth
-        ArtifactType.SPARK_JOB_DEFINITION: 7,  # Spark jobs seventh
-        ArtifactType.KQL_QUERYSET: 8,        # KQL Querysets eighth
-        ArtifactType.POWER_BI_REPORT: 9,     # Power BI reports ninth (depend on semantic models)
-        ArtifactType.PAGINATED_REPORT: 10,   # Paginated reports tenth
-        ArtifactType.EVENTSTREAM: 11,        # Eventstreams eleventh
-        ArtifactType.DATA_PIPELINE: 12,      # Pipelines last (orchestration)
+        ArtifactType.SQL_VIEW: 5,            # SQL views fifth (after lakehouses, may depend on other views)
+        ArtifactType.SEMANTIC_MODEL: 6,      # Semantic models sixth (data models)
+        ArtifactType.NOTEBOOK: 7,            # Notebooks seventh
+        ArtifactType.SPARK_JOB_DEFINITION: 8,  # Spark jobs eighth
+        ArtifactType.KQL_QUERYSET: 9,        # KQL Querysets ninth
+        ArtifactType.POWER_BI_REPORT: 10,    # Power BI reports tenth (depend on semantic models)
+        ArtifactType.PAGINATED_REPORT: 11,   # Paginated reports eleventh
+        ArtifactType.EVENTSTREAM: 12,        # Eventstreams twelfth
+        ArtifactType.DATA_PIPELINE: 13,      # Pipelines last (orchestration)
     }
     
     def __init__(self):

@@ -96,6 +96,9 @@ class FabricDeployer:
         # Discover variable libraries
         self._discover_variable_libraries()
         
+        # Discover SQL views
+        self._discover_sql_views()
+        
         logger.info(f"Discovered {len(self.resolver.artifacts)} artifacts")
     
     def _discover_lakehouses(self) -> None:
@@ -238,6 +241,77 @@ class FabricDeployer:
             )
             
             logger.debug(f"Discovered Variable Library: {library_name}")
+    
+    def _discover_sql_views(self) -> None:
+        """Discover SQL view definitions from views/{lakehouse}/ directories"""
+        views_dir = self.artifacts_dir / "views"
+        if not views_dir.exists():
+            logger.debug("No views directory found")
+            return
+        
+        # Iterate through each lakehouse subdirectory
+        for lakehouse_dir in views_dir.iterdir():
+            if not lakehouse_dir.is_dir():
+                continue
+            
+            lakehouse_name = lakehouse_dir.name
+            logger.debug(f"Discovering views for lakehouse: {lakehouse_name}")
+            
+            # Read metadata.json for dependencies
+            metadata_file = lakehouse_dir / "metadata.json"
+            dependencies_map = {}
+            
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r') as f:
+                        metadata = json.load(f)
+                        dependencies_map = metadata.get("dependencies", {})
+                except Exception as e:
+                    logger.warning(f"Could not read metadata from {metadata_file}: {str(e)}")
+            
+            # Discover all .sql files
+            for view_file in lakehouse_dir.glob("*.sql"):
+                view_name = view_file.stem
+                view_id = f"view-{lakehouse_name}-{view_name}"
+                
+                # Get dependencies for this view from metadata
+                view_dependencies_info = dependencies_map.get(view_name, {})
+                artifact_dependencies = []
+                
+                # Add lakehouse dependency (views depend on their lakehouse)
+                lakehouse_id = f"lakehouse-{lakehouse_name}"
+                artifact_dependencies.append(lakehouse_id)
+                
+                # Add table dependencies
+                table_deps = view_dependencies_info.get("tables", [])
+                for table_ref in table_deps:
+                    # Table references are just strings like "dbo.FactSales"
+                    # We don't track table artifacts separately, just ensure lakehouse exists
+                    pass
+                
+                # Add view-to-view dependencies
+                view_deps = view_dependencies_info.get("views", [])
+                for dep_view_ref in view_deps:
+                    # Parse schema.viewname format
+                    parts = dep_view_ref.split(".")
+                    if len(parts) == 2:
+                        dep_schema, dep_name = parts
+                    else:
+                        dep_name = dep_view_ref
+                    
+                    # Create dependency on the other view
+                    dep_view_id = f"view-{lakehouse_name}-{dep_name}"
+                    artifact_dependencies.append(dep_view_id)
+                
+                # Register with resolver
+                self.resolver.add_artifact(
+                    view_id,
+                    ArtifactType.SQL_VIEW,
+                    view_name,
+                    dependencies=artifact_dependencies
+                )
+                
+                logger.debug(f"Discovered SQL view: {view_name} with {len(artifact_dependencies)} dependencies")
     
     def _extract_notebook_dependencies(self, notebook_path: Path) -> List[str]:
         """
@@ -988,6 +1062,8 @@ class FabricDeployer:
             self._deploy_pipeline(artifact_name)
         elif artifact_type == ArtifactType.VARIABLE_LIBRARY:
             self._deploy_variable_library(artifact_name)
+        elif artifact_type == ArtifactType.SQL_VIEW:
+            self._deploy_sql_view(artifact_name)
         elif artifact_type == ArtifactType.POWER_BI_REPORT:
             self._deploy_report(artifact_name)
         elif artifact_type == ArtifactType.PAGINATED_REPORT:
@@ -1247,6 +1323,93 @@ class FabricDeployer:
                     update_payload
                 )
                 logger.info(f"  Initialized variables for '{name}'")
+    
+    def _deploy_sql_view(self, name: str) -> None:
+        """Deploy a SQL view to lakehouse SQL endpoint"""
+        # Find the view file in views directories
+        views_dir = self.artifacts_dir / "views"
+        view_file = None
+        lakehouse_name = None
+        
+        for lakehouse_dir in views_dir.iterdir():
+            if not lakehouse_dir.is_dir():
+                continue
+            
+            candidate = lakehouse_dir / f"{name}.sql"
+            if candidate.exists():
+                view_file = candidate
+                lakehouse_name = lakehouse_dir.name
+                break
+        
+        if not view_file:
+            raise FileNotFoundError(f"View file not found for: {name}")
+        
+        # Read the view SQL definition
+        with open(view_file, 'r') as f:
+            view_sql = f.read()
+        
+        # Substitute parameters
+        view_sql = self.config.substitute_parameters(view_sql)
+        
+        # Get the lakehouse
+        lakehouses = self.client.list_items(self.workspace_id, type_filter="Lakehouse")
+        lakehouse = next((lh for lh in lakehouses if lh["displayName"] == lakehouse_name), None)
+        
+        if not lakehouse:
+            raise ValueError(f"Lakehouse '{lakehouse_name}' not found")
+        
+        lakehouse_id = lakehouse["id"]
+        
+        # Get SQL endpoint connection string
+        logger.info(f"  Connecting to SQL endpoint for lakehouse: {lakehouse_name}")
+        connection_string = self.client.get_lakehouse_sql_endpoint(self.workspace_id, lakehouse_id)
+        
+        # Parse schema and view name from SQL (assuming dbo schema)
+        schema = "dbo"
+        view_name = name
+        
+        # Check if SQL contains CREATE VIEW with schema
+        import re
+        create_match = re.search(r'CREATE\s+VIEW\s+(\[?(\w+)\]?\.)?(\[?(\w+)\]?)', view_sql, re.IGNORECASE)
+        if create_match:
+            if create_match.group(2):
+                schema = create_match.group(2)
+            view_name = create_match.group(4)
+        
+        # Check if view exists
+        view_exists = self.client.check_view_exists(connection_string, lakehouse_name, schema, view_name)
+        
+        if view_exists:
+            logger.info(f"  View '{schema}.{view_name}' exists, checking if update needed...")
+            
+            # Get existing definition
+            existing_def = self.client.get_view_definition(connection_string, lakehouse_name, schema, view_name)
+            
+            # Normalize both definitions for comparison (remove whitespace, comments)
+            def normalize_sql(sql):
+                # Remove comments
+                sql = re.sub(r'--.*$', '', sql, flags=re.MULTILINE)
+                sql = re.sub(r'/\*.*?\*/', '', sql, flags=re.DOTALL)
+                # Remove extra whitespace
+                sql = ' '.join(sql.split())
+                return sql.strip().upper()
+            
+            new_sql_normalized = normalize_sql(view_sql)
+            existing_sql_normalized = normalize_sql(existing_def) if existing_def else ""
+            
+            if new_sql_normalized == existing_sql_normalized:
+                logger.info(f"  View '{schema}.{view_name}' is up to date, skipping")
+                return
+            
+            logger.info(f"  View definition changed, updating...")
+            # Convert CREATE to ALTER
+            alter_sql = re.sub(r'CREATE\s+VIEW', 'ALTER VIEW', view_sql, count=1, flags=re.IGNORECASE)
+            self.client.execute_sql_command(connection_string, lakehouse_name, alter_sql)
+            logger.info(f"  Updated view '{schema}.{view_name}'")
+        else:
+            logger.info(f"  Creating view '{schema}.{view_name}'...")
+            self.client.execute_sql_command(connection_string, lakehouse_name, view_sql)
+            logger.info(f"  Created view '{schema}.{view_name}'")
 
 
 def main():

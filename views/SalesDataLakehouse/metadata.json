@@ -1,0 +1,18 @@
+{
+  "lakehouse": "SalesDataLakehouse",
+  "description": "SQL views for sales analytics on SalesDataLakehouse",
+  "dependencies": {
+    "SalesSummary": {
+      "tables": ["dbo.FactSales"],
+      "views": []
+    },
+    "ProductAnalysis": {
+      "tables": ["dbo.DimProduct"],
+      "views": ["dbo.SalesSummary"]
+    },
+    "RegionalPerformance": {
+      "tables": [],
+      "views": ["dbo.SalesSummary"]
+    }
+  }
+}

@@ -5,11 +5,20 @@ Provides wrapper functions for common Fabric API operations
 
 import requests
 import logging
+import struct
 from typing import Dict, List, Optional, Any
 from fabric_auth import FabricAuthenticator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Attempt to import pyodbc for SQL endpoint connections
+try:
+    import pyodbc
+    PYODBC_AVAILABLE = True
+except ImportError:
+    PYODBC_AVAILABLE = False
+    logger.warning("pyodbc not available - SQL view operations will not be supported")
 
 
 class FabricClient:
@@ -739,6 +748,154 @@ class FabricClient:
             "DELETE",
             f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/shortcuts/{path}/{shortcut_name}"
         )
+    
+    # ==================== SQL Endpoint Operations ====================
+    
+    def get_lakehouse_sql_endpoint(self, workspace_id: str, lakehouse_id: str) -> str:
+        """
+        Get the SQL analytics endpoint connection string for a lakehouse
+        
+        Args:
+            workspace_id: Workspace GUID
+            lakehouse_id: Lakehouse GUID
+            
+        Returns:
+            SQL endpoint connection string
+        """
+        logger.info(f"Getting SQL endpoint for lakehouse: {lakehouse_id}")
+        lakehouse = self.get_item(workspace_id, lakehouse_id)
+        
+        # Extract properties for SQL endpoint
+        properties = lakehouse.get("properties", {})
+        sql_endpoint_props = properties.get("sqlEndpointProperties", {})
+        
+        if not sql_endpoint_props:
+            raise ValueError(f"Lakehouse {lakehouse_id} does not have SQL endpoint enabled")
+        
+        # Build connection string using workspace and lakehouse info
+        # Format: <workspace-name>.datawarehouse.fabric.microsoft.com
+        connection_string = sql_endpoint_props.get("connectionString")
+        
+        if not connection_string:
+            # Fallback: construct from workspace info
+            workspace = self.get_workspace(workspace_id)
+            workspace_name = workspace.get("displayName", "").replace(" ", "")
+            lakehouse_name = lakehouse.get("displayName", "")
+            connection_string = f"{workspace_name}.datawarehouse.fabric.microsoft.com"
+            
+        return connection_string
+    
+    def execute_sql_command(self, connection_string: str, database: str, sql_command: str) -> Optional[List[Dict]]:
+        """
+        Execute SQL command against lakehouse SQL endpoint
+        
+        Args:
+            connection_string: SQL endpoint connection string
+            database: Database name (lakehouse name)
+            sql_command: SQL command to execute
+            
+        Returns:
+            Query results as list of dictionaries (for SELECT), None for DDL commands
+        """
+        if not PYODBC_AVAILABLE:
+            raise ImportError("pyodbc is required for SQL operations. Install with: pip install pyodbc")
+        
+        logger.info(f"Executing SQL command on {database}")
+        
+        # Get access token for Azure SQL
+        token = self.auth.get_access_token()
+        
+        # Convert token to bytes for pyodbc
+        token_bytes = token.encode('utf-16-le')
+        token_struct = struct.pack(f'<I{len(token_bytes)}s', len(token_bytes), token_bytes)
+        
+        # Build connection string with AAD token
+        conn_str = (
+            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+            f"SERVER={connection_string};"
+            f"DATABASE={database};"
+            f"Encrypt=yes;"
+            f"TrustServerCertificate=no;"
+        )
+        
+        connection = None
+        cursor = None
+        
+        try:
+            # Connect using AAD token
+            connection = pyodbc.connect(conn_str, attrs_before={1256: token_struct})
+            cursor = connection.cursor()
+            
+            # Execute command
+            cursor.execute(sql_command)
+            
+            # Check if this is a SELECT query
+            if sql_command.strip().upper().startswith("SELECT"):
+                columns = [column[0] for column in cursor.description]
+                results = []
+                for row in cursor.fetchall():
+                    results.append(dict(zip(columns, row)))
+                return results
+            else:
+                # DDL command (CREATE, ALTER, DROP)
+                connection.commit()
+                return None
+                
+        except pyodbc.Error as e:
+            logger.error(f"SQL execution error: {str(e)}")
+            raise
+        finally:
+            if cursor:
+                cursor.close()
+            if connection:
+                connection.close()
+    
+    def check_view_exists(self, connection_string: str, database: str, schema: str, view_name: str) -> bool:
+        """
+        Check if a SQL view exists
+        
+        Args:
+            connection_string: SQL endpoint connection string
+            database: Database name
+            schema: Schema name (typically 'dbo')
+            view_name: View name
+            
+        Returns:
+            True if view exists, False otherwise
+        """
+        query = f"""
+        SELECT COUNT(*) as count
+        FROM sys.views v
+        JOIN sys.schemas s ON v.schema_id = s.schema_id
+        WHERE s.name = '{schema}' AND v.name = '{view_name}'
+        """
+        
+        result = self.execute_sql_command(connection_string, database, query)
+        return result[0]['count'] > 0 if result else False
+    
+    def get_view_definition(self, connection_string: str, database: str, schema: str, view_name: str) -> Optional[str]:
+        """
+        Get the definition of an existing SQL view
+        
+        Args:
+            connection_string: SQL endpoint connection string
+            database: Database name
+            schema: Schema name
+            view_name: View name
+            
+        Returns:
+            View definition SQL or None if not found
+        """
+        query = f"""
+        SELECT m.definition
+        FROM sys.views v
+        JOIN sys.schemas s ON v.schema_id = s.schema_id
+        JOIN sys.sql_modules m ON v.object_id = m.object_id
+        WHERE s.name = '{schema}' AND v.name = '{view_name}'
+        """
+        
+        result = self.execute_sql_command(connection_string, database, query)
+        return result[0]['definition'] if result else None
 
 
 def main():

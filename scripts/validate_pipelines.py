@@ -6,6 +6,7 @@ Checks that all pipeline JSON files are valid and properly formatted
 
 import json
 import sys
+import argparse
 from pathlib import Path
 import logging
 
@@ -64,9 +65,17 @@ def validate_pipeline(pipeline_path: Path) -> bool:
 
 def main():
     """Main validation function"""
+    parser = argparse.ArgumentParser(description='Validate data pipeline definition files')
+    parser.add_argument(
+        '--artifacts-root',
+        default='wsartifacts',
+        help='Root folder name for artifacts (default: wsartifacts)'
+    )
+    args = parser.parse_args()
+    
     # Find all pipeline files
     repo_root = Path(__file__).parent.parent
-    pipelines_dir = repo_root / "datapipelines"
+    pipelines_dir = repo_root / args.artifacts_root / "Datapipelines"
     
     if not pipelines_dir.exists():
         logger.warning(f"Pipelines directory not found: {pipelines_dir}")

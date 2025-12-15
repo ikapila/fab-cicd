@@ -6,6 +6,7 @@ Checks that all .ipynb files in the repository are valid JSON and properly forma
 
 import json
 import sys
+import argparse
 from pathlib import Path
 import logging
 
@@ -68,9 +69,17 @@ def validate_notebook(notebook_path: Path) -> bool:
 
 def main():
     """Main validation function"""
+    parser = argparse.ArgumentParser(description='Validate Jupyter notebook files')
+    parser.add_argument(
+        '--artifacts-root',
+        default='wsartifacts',
+        help='Root folder name for artifacts (default: wsartifacts)'
+    )
+    args = parser.parse_args()
+    
     # Find all notebook files
     repo_root = Path(__file__).parent.parent
-    notebooks_dir = repo_root / "notebooks"
+    notebooks_dir = repo_root / args.artifacts_root / "Notebooks"
     
     if not notebooks_dir.exists():
         logger.warning(f"Notebooks directory not found: {notebooks_dir}")

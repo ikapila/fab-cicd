@@ -224,7 +224,7 @@ class FabricDeployer:
     
     def _discover_variable_libraries(self) -> None:
         """Discover Variable Library definitions"""
-        library_dir = self.artifacts_dir / "wsartifacts" / "Variablelibraries"
+        library_dir = self.artifacts_dir / self.artifacts_root_folder / "Variablelibraries"
         if not library_dir.exists():
             logger.debug("No variable libraries directory found")
             return
@@ -1077,7 +1077,7 @@ class FabricDeployer:
     
     def _deploy_lakehouse(self, name: str) -> None:
         """Deploy a lakehouse"""
-        lakehouse_file = self.artifacts_dir / "wsartifacts" / "Lakehouses" / f"{name}.json"
+        lakehouse_file = self.artifacts_dir / self.artifacts_root_folder / "Lakehouses" / f"{name}.json"
         with open(lakehouse_file, 'r') as f:
             definition = json.load(f)
         
@@ -1088,14 +1088,21 @@ class FabricDeployer:
         existing_lakehouse = next((lh for lh in existing if lh["displayName"] == name), None)
         
         if existing_lakehouse:
-            logger.info(f"  Lakehouse '{name}' already exists (ID: {existing_lakehouse['id']})")
+            # Check if description changed
+            existing_desc = existing_lakehouse.get("description", "")
+            if existing_desc != description:
+                logger.info(f"  Lakehouse '{name}' exists, description differs - consider manual update")
+                logger.info(f"    Current: {existing_desc}")
+                logger.info(f"    New: {description}")
+            else:
+                logger.info(f"  Lakehouse '{name}' already exists, no changes detected (ID: {existing_lakehouse['id']})")
         else:
             result = self.client.create_lakehouse(self.workspace_id, name, description)
             logger.info(f"  Created lakehouse (ID: {result['id']})")
     
     def _deploy_environment(self, name: str) -> None:
         """Deploy an environment"""
-        env_file = self.artifacts_dir / "wsartifacts" / "Environments" / f"{name}.json"
+        env_file = self.artifacts_dir / self.artifacts_root_folder / "Environments" / f"{name}.json"
         with open(env_file, 'r') as f:
             definition = json.load(f)
         
@@ -1106,14 +1113,21 @@ class FabricDeployer:
         existing_env = next((env for env in existing if env["displayName"] == name), None)
         
         if existing_env:
-            logger.info(f"  Environment '{name}' already exists (ID: {existing_env['id']})")
+            # Check if description changed
+            existing_desc = existing_env.get("description", "")
+            if existing_desc != description:
+                logger.info(f"  Environment '{name}' exists, description differs - consider manual update")
+                logger.info(f"    Current: {existing_desc}")
+                logger.info(f"    New: {description}")
+            else:
+                logger.info(f"  Environment '{name}' already exists, no changes detected (ID: {existing_env['id']})")
         else:
             result = self.client.create_environment(self.workspace_id, name, description)
             logger.info(f"  Created environment (ID: {result['id']})")
     
     def _deploy_notebook(self, name: str) -> None:
         """Deploy a notebook"""
-        notebook_file = self.artifacts_dir / "wsartifacts" / "Notebooks" / f"{name}.ipynb"
+        notebook_file = self.artifacts_dir / self.artifacts_root_folder / "Notebooks" / f"{name}.ipynb"
         
         with open(notebook_file, 'r') as f:
             notebook_content = f.read()
@@ -1139,7 +1153,7 @@ class FabricDeployer:
     
     def _deploy_spark_job(self, name: str) -> None:
         """Deploy a Spark job definition"""
-        job_file = self.artifacts_dir / "wsartifacts" / "Sparkjobdefinitions" / f"{name}.json"
+        job_file = self.artifacts_dir / self.artifacts_root_folder / "Sparkjobdefinitions" / f"{name}.json"
         with open(job_file, 'r') as f:
             definition = json.load(f)
         
@@ -1166,7 +1180,7 @@ class FabricDeployer:
     
     def _deploy_pipeline(self, name: str) -> None:
         """Deploy a data pipeline"""
-        pipeline_file = self.artifacts_dir / "wsartifacts" / "Datapipelines" / f"{name}.json"
+        pipeline_file = self.artifacts_dir / self.artifacts_root_folder / "Datapipelines" / f"{name}.json"
         with open(pipeline_file, 'r') as f:
             definition = json.load(f)
         
@@ -1193,7 +1207,7 @@ class FabricDeployer:
     
     def _deploy_semantic_model(self, name: str) -> None:
         """Deploy a semantic model"""
-        model_file = self.artifacts_dir / "wsartifacts" / "Semanticmodels" / f"{name}.json"
+        model_file = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels" / f"{name}.json"
         with open(model_file, 'r') as f:
             definition = json.load(f)
         
@@ -1220,7 +1234,7 @@ class FabricDeployer:
     
     def _deploy_report(self, name: str) -> None:
         """Deploy a Power BI report"""
-        report_file = self.artifacts_dir / "wsartifacts" / "Reports" / f"{name}.json"
+        report_file = self.artifacts_dir / self.artifacts_root_folder / "Reports" / f"{name}.json"
         with open(report_file, 'r') as f:
             definition = json.load(f)
         
@@ -1247,7 +1261,7 @@ class FabricDeployer:
     
     def _deploy_paginated_report(self, name: str) -> None:
         """Deploy a paginated report"""
-        report_file = self.artifacts_dir / "wsartifacts" / "Paginatedreports" / f"{name}.json"
+        report_file = self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports" / f"{name}.json"
         with open(report_file, 'r') as f:
             definition = json.load(f)
         
@@ -1274,7 +1288,7 @@ class FabricDeployer:
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""
-        library_file = self.artifacts_dir / "wsartifacts" / "Variablelibraries" / f"{name}.json"
+        library_file = self.artifacts_dir / self.artifacts_root_folder / "Variablelibraries" / f"{name}.json"
         with open(library_file, 'r') as f:
             definition = json.load(f)
         

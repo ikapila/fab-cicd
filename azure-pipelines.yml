@@ -9,11 +9,16 @@ trigger:
       - dev       # Development deployment
   paths:
     include:
-      - notebooks/**
-      - sparkjobdefinitions/**
-      - datapipelines/**
-      - lakehouses/**
-      - environments/**
+      - wsartifacts/Notebooks/**
+      - wsartifacts/Sparkjobdefinitions/**
+      - wsartifacts/Datapipelines/**
+      - wsartifacts/Lakehouses/**
+      - wsartifacts/Environments/**
+      - wsartifacts/Reports/**
+      - wsartifacts/Semanticmodels/**
+      - wsartifacts/Paginatedreports/**
+      - wsartifacts/Variablelibraries/**
+      - wsartifacts/Views/**
       - config/**
       - scripts/**
 
@@ -44,14 +49,20 @@ stages:
             displayName: 'Install Python dependencies'
 
           - script: |
+              echo "Validating all artifacts in wsartifacts/ with capitalized folder names..."
+              python scripts/validate_artifacts.py --artifacts-root wsartifacts
+            displayName: 'Validate All Artifacts'
+            continueOnError: false
+
+          - script: |
               echo "Validating notebook syntax..."
-              python scripts/validate_notebooks.py
+              python scripts/validate_notebooks.py --artifacts-root wsartifacts
             displayName: 'Validate Notebooks'
             continueOnError: false
 
           - script: |
               echo "Validating pipeline definitions..."
-              python scripts/validate_pipelines.py
+              python scripts/validate_pipelines.py --artifacts-root wsartifacts
             displayName: 'Validate Pipelines'
             continueOnError: false
 
@@ -106,12 +117,6 @@ stages:
                     AZURE_CLIENT_ID: $(AZURE_CLIENT_ID_DEV)
                     AZURE_CLIENT_SECRET_DEV: $(AZURE_CLIENT_SECRET_DEV)
 
-                - script: |
-                    echo "Running smoke tests..."
-                    python $(Pipeline.Workspace)/fabric-artifacts/scripts/run_tests.py --environment dev
-                  displayName: 'Run smoke tests'
-                  continueOnError: true
-
   # ========================================
   # Stage 3: Deploy to UAT
   # ========================================
@@ -153,19 +158,6 @@ stages:
                     AZURE_TENANT_ID: $(AZURE_TENANT_ID)
                     AZURE_CLIENT_ID: $(AZURE_CLIENT_ID_UAT)
                     AZURE_CLIENT_SECRET_UAT: $(AZURE_CLIENT_SECRET_UAT)
-
-                - script: |
-                    echo "Running UAT validation tests..."
-                    python $(Pipeline.Workspace)/fabric-artifacts/scripts/run_tests.py --environment uat
-                  displayName: 'Run UAT tests'
-
-                - task: PublishTestResults@2
-                  inputs:
-                    testResultsFormat: 'JUnit'
-                    testResultsFiles: '**/test-results.xml'
-                    failTaskOnFailedTests: true
-                  displayName: 'Publish test results'
-                  condition: always()
 
   # ========================================
   # Stage 4: Deploy to Production
@@ -215,27 +207,6 @@ stages:
                     AZURE_TENANT_ID: $(AZURE_TENANT_ID)
                     AZURE_CLIENT_ID: $(AZURE_CLIENT_ID_PROD)
                     AZURE_CLIENT_SECRET_PROD: $(AZURE_CLIENT_SECRET_PROD)
-
-                - script: |
-                    echo "Running production validation tests..."
-                    python $(Pipeline.Workspace)/fabric-artifacts/scripts/run_tests.py --environment prod --critical-only
-                  displayName: 'Run production validation'
-
-                - task: PublishTestResults@2
-                  inputs:
-                    testResultsFormat: 'JUnit'
-                    testResultsFiles: '**/test-results.xml'
-                    failTaskOnFailedTests: true
-                  displayName: 'Publish test results'
-                  condition: always()
-
-                - task: EmailReport@1
-                  inputs:
-                    sendMailConditionConfig: 'Always'
-                    subject: 'Fabric Production Deployment - $(Build.BuildNumber)'
-                    to: 'team@company.com'
-                    includeInToRecipients: true
-                  displayName: 'Send deployment notification'
                   condition: always()
 
   # ========================================

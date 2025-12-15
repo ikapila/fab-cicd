@@ -140,14 +140,6 @@ stages:
                     pip install -r $(Pipeline.Workspace)/fabric-artifacts/scripts/requirements.txt
                   displayName: 'Install dependencies'
 
-                - task: ManualValidation@0
-                  inputs:
-                    notifyUsers: |
-                      your-email@company.com
-                    instructions: 'Please review and approve the UAT deployment'
-                    onTimeout: 'reject'
-                  displayName: 'Manual approval for UAT'
-
                 - script: |
                     cd $(Pipeline.Workspace)/fabric-artifacts
                     
@@ -202,24 +194,6 @@ stages:
                     python -m pip install --upgrade pip
                     pip install -r $(Pipeline.Workspace)/fabric-artifacts/scripts/requirements.txt
                   displayName: 'Install dependencies'
-
-                - task: ManualValidation@0
-                  inputs:
-                    notifyUsers: |
-                      senior-engineer@company.com
-                      manager@company.com
-                    instructions: 'Please review and approve the PRODUCTION deployment. This requires TWO approvals.'
-                    onTimeout: 'reject'
-                  displayName: 'Manual approval for Production (Approval 1)'
-
-                - task: ManualValidation@0
-                  inputs:
-                    notifyUsers: |
-                      senior-engineer@company.com
-                      manager@company.com
-                    instructions: 'Second approval required for PRODUCTION deployment'
-                    onTimeout: 'reject'
-                  displayName: 'Manual approval for Production (Approval 2)'
 
                 - script: |
                     cd $(Pipeline.Workspace)/fabric-artifacts
@@ -284,15 +258,6 @@ stages:
               python -m pip install --upgrade pip
               pip install -r scripts/requirements.txt
             displayName: 'Install dependencies'
-
-          - task: ManualValidation@0
-            inputs:
-              notifyUsers: |
-                senior-engineer@company.com
-                manager@company.com
-              instructions: 'Confirm ROLLBACK operation. Specify target commit in pipeline variables.'
-              onTimeout: 'reject'
-            displayName: 'Confirm rollback operation'
 
           - script: |
               # Run rollback

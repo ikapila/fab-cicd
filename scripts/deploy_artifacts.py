@@ -381,6 +381,13 @@ class FabricDeployer:
                     elif create_if_not_exists:
                         result = self.client.create_lakehouse(self.workspace_id, name, description)
                         logger.info(f"  ✓ Created lakehouse '{name}' (ID: {result['id']})")
+                        # Save to local file
+                        lakehouse_definition = {
+                            "name": name,
+                            "id": result['id'],
+                            "description": description
+                        }
+                        self._save_artifact_to_file("Lakehouses", name, lakehouse_definition)
                     else:
                         logger.warning(f"  ⚠ Lakehouse '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -408,6 +415,15 @@ class FabricDeployer:
                     elif create_if_not_exists:
                         result = self.client.create_environment(self.workspace_id, name, description)
                         logger.info(f"  ✓ Created environment '{name}' (ID: {result['id']})")
+                        # Save to local file
+                        env_definition = {
+                            "name": name,
+                            "id": result['id'],
+                            "description": description
+                        }
+                        if env_def.get("libraries"):
+                            env_definition["libraries"] = env_def["libraries"]
+                        self._save_artifact_to_file("Environments", name, env_definition)
                         # Note: Library installation would require additional API calls
                         if env_def.get("libraries"):
                             logger.info(f"  ℹ Libraries defined: {len(env_def['libraries'])} (install separately)")
@@ -463,6 +479,8 @@ class FabricDeployer:
                         notebook_definition = self._create_notebook_template(name, description, template, notebook_def)
                         result = self.client.create_notebook(self.workspace_id, name, notebook_definition)
                         logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
+                        # Save to local file
+                        self._save_artifact_to_file("Notebooks", name, notebook_definition, ".ipynb")
                     else:
                         logger.warning(f"  ⚠ Notebook '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -493,6 +511,8 @@ class FabricDeployer:
                         job_definition = self._create_spark_job_template(name, description, job_def)
                         result = self.client.create_spark_job_definition(self.workspace_id, name, job_definition)
                         logger.info(f"  ✓ Created Spark job '{name}' (ID: {result['id']})")
+                        # Save to local file
+                        self._save_artifact_to_file("Sparkjobdefinitions", name, job_definition)
                     else:
                         logger.warning(f"  ⚠ Spark job '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -524,6 +544,8 @@ class FabricDeployer:
                         pipeline_definition = self._create_pipeline_template(name, description, pipeline_def)
                         result = self.client.create_data_pipeline(self.workspace_id, name, pipeline_definition)
                         logger.info(f"  ✓ Created pipeline '{name}' (ID: {result['id']})")
+                        # Save to local file
+                        self._save_artifact_to_file("Datapipelines", name, pipeline_definition)
                     else:
                         logger.warning(f"  ⚠ Pipeline '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -554,6 +576,8 @@ class FabricDeployer:
                         model_definition = self._create_semantic_model_template(name, description, model_def)
                         result = self.client.create_semantic_model(self.workspace_id, name, model_definition)
                         logger.info(f"  ✓ Created semantic model '{name}' (ID: {result['id']})")
+                        # Save to local file
+                        self._save_artifact_to_file("Semanticmodels", name, model_definition)
                     else:
                         logger.warning(f"  ⚠ Semantic model '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -582,6 +606,8 @@ class FabricDeployer:
                         report_definition = self._create_report_template(name, description, report_def)
                         result = self.client.create_report(self.workspace_id, name, report_definition)
                         logger.info(f"  ✓ Created report '{name}' (ID: {result['id']})")
+                        # Save to local file
+                        self._save_artifact_to_file("Reports", name, report_definition)
                     else:
                         logger.warning(f"  ⚠ Report '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -612,6 +638,8 @@ class FabricDeployer:
                         report_definition = self._create_paginated_report_template(name, description, report_def)
                         result = self.client.create_paginated_report(self.workspace_id, name, report_definition)
                         logger.info(f"  ✓ Created paginated report '{name}' (ID: {result['id']})")
+                        # Save to local file
+                        self._save_artifact_to_file("Paginatedreports", name, report_definition)
                     else:
                         logger.warning(f"  ⚠ Paginated report '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -656,6 +684,14 @@ class FabricDeployer:
                                 self.workspace_id, result["id"], update_payload
                             )
                         logger.info(f"  ✓ Created Variable Library '{name}' with {len(variables)} variables (ID: {result['id']})")
+                        # Save to local file
+                        library_definition = {
+                            "name": name,
+                            "id": result["id"],
+                            "description": library_def.get("description", ""),
+                            "variables": variables
+                        }
+                        self._save_artifact_to_file("Variablelibraries", name, library_definition)
                     else:
                         logger.warning(f"  ⚠ Variable Library '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -724,6 +760,30 @@ class FabricDeployer:
         logger.info("="*60)
         
         return success
+    
+    def _save_artifact_to_file(self, artifact_type: str, name: str, definition: Dict, extension: str = ".json") -> None:
+        """
+        Save artifact definition to local file in wsartifacts folder structure
+        
+        Args:
+            artifact_type: Type of artifact (Lakehouses, Notebooks, etc.) - capitalized
+            name: Name of the artifact
+            definition: Artifact definition dictionary
+            extension: File extension (.json or .ipynb)
+        """
+        try:
+            # Create directory structure
+            artifact_dir = self.artifacts_dir / self.artifacts_root_folder / artifact_type
+            artifact_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Save file
+            file_path = artifact_dir / f"{name}{extension}"
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(definition, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"  📁 Saved to {file_path.relative_to(self.artifacts_dir)}")
+        except Exception as e:
+            logger.warning(f"  ⚠ Failed to save artifact to file: {str(e)}")
     
     def _create_notebook_template(self, name, description, template, notebook_def):
         """Create notebook definition from template."""

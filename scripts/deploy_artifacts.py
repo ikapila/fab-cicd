@@ -1207,9 +1207,10 @@ class FabricDeployer:
                 existing_notebook['id'],
                 notebook_definition
             )
+            logger.info(f"  ✓ Updated notebook '{name}' (ID: {existing_notebook['id']})")
         else:
             result = self.client.create_notebook(self.workspace_id, name, notebook_definition)
-            logger.info(f"  Created notebook (ID: {result['id']})")
+            logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
     
     def _deploy_spark_job(self, name: str) -> None:
         """Deploy a Spark job definition"""

@@ -535,8 +535,9 @@ class FabricDeployer:
                         notebook_definition = self._create_notebook_template(name, description, template, notebook_def)
                         result = self.client.create_notebook(self.workspace_id, name, notebook_definition)
                         logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
-                        # Save to local file
-                        self._save_artifact_to_file("Notebooks", name, notebook_definition, ".ipynb")
+                        # Save to local file in Fabric Git format
+                        notebook_definition["id"] = result['id']  # Add the ID for .platform file
+                        self._save_artifact_to_file("Notebooks", name, notebook_definition, "fabric-notebook")
                     else:
                         logger.warning(f"  ⚠ Notebook '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -820,24 +821,75 @@ class FabricDeployer:
     def _save_artifact_to_file(self, artifact_type: str, name: str, definition: Dict, extension: str = ".json") -> None:
         """
         Save artifact definition to local file in wsartifacts folder structure
+        For notebooks, creates Fabric Git folder format (folder with .platform and notebook-content.py)
         
         Args:
             artifact_type: Type of artifact (Lakehouses, Notebooks, etc.) - capitalized
             name: Name of the artifact
             definition: Artifact definition dictionary
-            extension: File extension (.json or .ipynb)
+            extension: File extension (.json, .ipynb, or 'fabric-notebook' for Fabric format)
         """
         try:
             # Create directory structure
             artifact_dir = self.artifacts_dir / self.artifacts_root_folder / artifact_type
             artifact_dir.mkdir(parents=True, exist_ok=True)
             
-            # Save file
-            file_path = artifact_dir / f"{name}{extension}"
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(definition, f, indent=2, ensure_ascii=False)
-            
-            logger.info(f"  📁 Saved to {file_path.relative_to(self.artifacts_dir)}")
+            # Handle Fabric Git notebook format specially
+            if extension == "fabric-notebook":
+                # Create notebook folder
+                notebook_folder = artifact_dir / name
+                notebook_folder.mkdir(parents=True, exist_ok=True)
+                
+                # Save .platform file (metadata)
+                platform_data = {
+                    "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+                    "metadata": {
+                        "type": "Notebook",
+                        "displayName": name,
+                        "description": definition.get("description", "")
+                    },
+                    "config": {
+                        "version": "2.0",
+                        "logicalId": definition.get("id", "")
+                    }
+                }
+                
+                platform_file = notebook_folder / ".platform"
+                with open(platform_file, 'w', encoding='utf-8') as f:
+                    json.dump(platform_data, f, indent=2, ensure_ascii=False)
+                
+                # Extract and save notebook-content.py
+                # The definition should have the notebook content in parts
+                notebook_content = ""
+                if "definition" in definition and "parts" in definition["definition"]:
+                    parts = definition["definition"]["parts"]
+                    for part in parts:
+                        if "notebook-content" in part.get("path", ""):
+                            payload = part.get("payload", "")
+                            # If base64 encoded, decode it
+                            if part.get("payloadType") == "InlineBase64":
+                                import base64
+                                notebook_content = base64.b64decode(payload).decode('utf-8')
+                            else:
+                                notebook_content = payload
+                            break
+                
+                # If no content found, create a basic Python notebook
+                if not notebook_content:
+                    notebook_content = f"# Fabric notebook source\n\n# METADATA ********************\n\n# META {{\n#   \"kernel_info\": {{\n#     \"name\": \"synapse_pyspark\"\n#   }}\n# }}\n\n# MARKDOWN ********************\n\n# # {name}\n# {definition.get('description', '')}\n\n# CELL ********************\n\n# This is a placeholder notebook\nprint('Notebook initialized')"
+                
+                content_file = notebook_folder / "notebook-content.py"
+                with open(content_file, 'w', encoding='utf-8') as f:
+                    f.write(notebook_content)
+                
+                logger.info(f"  📁 Saved to {notebook_folder.relative_to(self.artifacts_dir)}/ (Fabric format)")
+            else:
+                # Standard file save for other artifact types
+                file_path = artifact_dir / f"{name}{extension}"
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(definition, f, indent=2, ensure_ascii=False)
+                
+                logger.info(f"  📁 Saved to {file_path.relative_to(self.artifacts_dir)}")
         except Exception as e:
             logger.warning(f"  ⚠ Failed to save artifact to file: {str(e)}")
     

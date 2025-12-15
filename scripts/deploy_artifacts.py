@@ -1327,24 +1327,29 @@ class FabricDeployer:
         # Substitute environment-specific parameters
         notebook_content = self.config.substitute_parameters(notebook_content)
         
-        # Parse based on format
+        # Parse based on format and construct API payload
         if notebook_format == "ipynb":
-            notebook_definition = json.loads(notebook_content)
+            # For .ipynb files, parse the JSON notebook
+            notebook_json = json.loads(notebook_content)
+            # The API expects the notebook definition, not the raw ipynb
+            # We need to extract or convert it appropriately
+            notebook_definition = notebook_json
         else:  # fabric format
-            # For Fabric format, the notebook-content.py is already in the format Fabric expects
-            # We need to construct the definition with the content
+            # For Fabric format, encode the notebook-content.py as base64
+            import base64
+            content_bytes = notebook_content.encode('utf-8')
+            content_base64 = base64.b64encode(content_bytes).decode('utf-8')
+            
+            # Construct the definition that matches Fabric API expectations
             notebook_definition = {
-                "displayName": name,
-                "definition": {
-                    "format": "py",
-                    "parts": [
-                        {
-                            "path": "notebook-content.py",
-                            "payload": notebook_content,
-                            "payloadType": "InlineBase64" if self._is_base64_encoded(notebook_content) else "Inline"
-                        }
-                    ]
-                }
+                "format": "ipynb",
+                "parts": [
+                    {
+                        "path": "notebook-content.py",
+                        "payload": content_base64,
+                        "payloadType": "InlineBase64"
+                    }
+                ]
             }
         
         # Check if notebook exists
@@ -1353,6 +1358,7 @@ class FabricDeployer:
         
         if existing_notebook:
             logger.info(f"  Notebook '{name}' already exists, updating...")
+            # For updates, send only the definition part
             self.client.update_notebook_definition(
                 self.workspace_id,
                 existing_notebook['id'],
@@ -1360,22 +1366,13 @@ class FabricDeployer:
             )
             logger.info(f"  ✓ Updated notebook '{name}' (ID: {existing_notebook['id']})")
         else:
-            result = self.client.create_notebook(self.workspace_id, name, notebook_definition)
+            # For creation, we need the full structure with displayName
+            create_payload = {
+                "displayName": name,
+                "definition": notebook_definition
+            }
+            result = self.client.create_notebook(self.workspace_id, name, create_payload)
             logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
-    
-    def _is_base64_encoded(self, content: str) -> bool:
-        """Check if content is base64 encoded"""
-        import base64
-        try:
-            if isinstance(content, str):
-                # If there's any typical base64 pattern, assume it's encoded
-                # Base64 strings are typically long and contain only alphanumeric + / =
-                if len(content) > 100 and content.replace('\n', '').replace('\r', '').replace(' ', '').isalnum():
-                    base64.b64decode(content, validate=True)
-                    return True
-            return False
-        except:
-            return False
     
     def _deploy_spark_job(self, name: str) -> None:
         """Deploy a Spark job definition"""

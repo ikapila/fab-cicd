@@ -6,7 +6,7 @@ trigger:
     include:
       - main      # Production deployment
       - uat       # UAT deployment
-      - development # Development deployment
+      - dev       # Development deployment
   paths:
     include:
       - notebooks/**
@@ -70,7 +70,7 @@ stages:
   - stage: DeployDev
     displayName: 'Deploy to Development'
     dependsOn: Build
-    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'development'))
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'dev'))
     jobs:
       - deployment: DeployToDev
         displayName: 'Deploy to Dev Environment'
@@ -104,7 +104,7 @@ stages:
                   env:
                     AZURE_TENANT_ID: $(AZURE_TENANT_ID)
                     AZURE_CLIENT_ID: $(AZURE_CLIENT_ID_DEV)
-                    AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET_DEV)
+                    AZURE_CLIENT_SECRET_DEV: $(AZURE_CLIENT_SECRET_DEV)
 
                 - script: |
                     echo "Running smoke tests..."
@@ -152,7 +152,7 @@ stages:
                   env:
                     AZURE_TENANT_ID: $(AZURE_TENANT_ID)
                     AZURE_CLIENT_ID: $(AZURE_CLIENT_ID_UAT)
-                    AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET_UAT)
+                    AZURE_CLIENT_SECRET_UAT: $(AZURE_CLIENT_SECRET_UAT)
 
                 - script: |
                     echo "Running UAT validation tests..."
@@ -214,7 +214,7 @@ stages:
                   env:
                     AZURE_TENANT_ID: $(AZURE_TENANT_ID)
                     AZURE_CLIENT_ID: $(AZURE_CLIENT_ID_PROD)
-                    AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET_PROD)
+                    AZURE_CLIENT_SECRET_PROD: $(AZURE_CLIENT_SECRET_PROD)
 
                 - script: |
                     echo "Running production validation tests..."

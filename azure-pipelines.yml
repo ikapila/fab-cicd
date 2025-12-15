@@ -92,25 +92,19 @@ stages:
                     pip install -r $(Pipeline.Workspace)/fabric-artifacts/scripts/requirements.txt
                   displayName: 'Install dependencies'
 
-                - task: AzureCLI@2
-                  inputs:
-                    azureSubscription: 'fabric-service-connection'
-                    scriptType: 'bash'
-                    scriptLocation: 'inlineScript'
-                    inlineScript: |
-                      cd $(Pipeline.Workspace)/fabric-artifacts
-                      
-                      # Set environment variables for dev-specific authentication
-                      export AZURE_CLIENT_SECRET_DEV=$(AZURE_CLIENT_SECRET_DEV)
-                      
-                      # Create artifacts first (if needed)
-                      python scripts/deploy_artifacts.py dev \
-                        --config-dir config \
-                        --artifacts-dir . \
-                        --create-artifacts
+                - script: |
+                    cd $(Pipeline.Workspace)/fabric-artifacts
+                    
+                    # Create artifacts first (if needed)
+                    python scripts/deploy_artifacts.py dev \
+                      --config-dir config \
+                      --artifacts-dir . \
+                      --create-artifacts
                   displayName: 'Deploy to Dev Workspace'
                   env:
-                    AZURE_CLIENT_SECRET_DEV: $(AZURE_CLIENT_SECRET_DEV)
+                    AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+                    AZURE_CLIENT_ID: $(AZURE_CLIENT_ID_DEV)
+                    AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET_DEV)
 
                 - script: |
                     echo "Running smoke tests..."
@@ -154,25 +148,19 @@ stages:
                     onTimeout: 'reject'
                   displayName: 'Manual approval for UAT'
 
-                - task: AzureCLI@2
-                  inputs:
-                    azureSubscription: 'fabric-service-connection'
-                    scriptType: 'bash'
-                    scriptLocation: 'inlineScript'
-                    inlineScript: |
-                      cd $(Pipeline.Workspace)/fabric-artifacts
-                      
-                      # Set environment variables for UAT-specific authentication
-                      export AZURE_CLIENT_SECRET_UAT=$(AZURE_CLIENT_SECRET_UAT)
-                      
-                      # Create artifacts first (if needed)
-                      python scripts/deploy_artifacts.py uat \
-                        --config-dir config \
-                        --artifacts-dir . \
-                        --create-artifacts
+                - script: |
+                    cd $(Pipeline.Workspace)/fabric-artifacts
+                    
+                    # Create artifacts first (if needed)
+                    python scripts/deploy_artifacts.py uat \
+                      --config-dir config \
+                      --artifacts-dir . \
+                      --create-artifacts
                   displayName: 'Deploy to UAT Workspace'
                   env:
-                    AZURE_CLIENT_SECRET_UAT: $(AZURE_CLIENT_SECRET_UAT)
+                    AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+                    AZURE_CLIENT_ID: $(AZURE_CLIENT_ID_UAT)
+                    AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET_UAT)
 
                 - script: |
                     echo "Running UAT validation tests..."
@@ -240,25 +228,19 @@ stages:
                   displayName: 'Backup current production'
                   continueOnError: true
 
-                - task: AzureCLI@2
-                  inputs:
-                    azureSubscription: 'fabric-service-connection'
-                    scriptType: 'bash'
-                    scriptLocation: 'inlineScript'
-                    inlineScript: |
-                      cd $(Pipeline.Workspace)/fabric-artifacts
-                      
-                      # Set environment variables for prod-specific authentication
-                      export AZURE_CLIENT_SECRET_PROD=$(AZURE_CLIENT_SECRET_PROD)
-                      
-                      # Create artifacts first (if needed)
-                      python scripts/deploy_artifacts.py prod \
-                        --config-dir config \
-                        --artifacts-dir . \
-                        --create-artifacts
+                - script: |
+                    cd $(Pipeline.Workspace)/fabric-artifacts
+                    
+                    # Create artifacts first (if needed)
+                    python scripts/deploy_artifacts.py prod \
+                      --config-dir config \
+                      --artifacts-dir . \
+                      --create-artifacts
                   displayName: 'Deploy to Production Workspace'
                   env:
-                    AZURE_CLIENT_SECRET_PROD: $(AZURE_CLIENT_SECRET_PROD)
+                    AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+                    AZURE_CLIENT_ID: $(AZURE_CLIENT_ID_PROD)
+                    AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET_PROD)
 
                 - script: |
                     echo "Running production validation tests..."
@@ -312,23 +294,13 @@ stages:
               onTimeout: 'reject'
             displayName: 'Confirm rollback operation'
 
-          - task: AzureCLI@2
-            inputs:
-              azureSubscription: 'fabric-service-connection'
-              scriptType: 'bash'
-              scriptLocation: 'inlineScript'
-              inlineScript: |
-                # Set environment variables
-                export AZURE_CLIENT_ID=$(AZURE_CLIENT_ID)
-                export AZURE_CLIENT_SECRET=$(AZURE_CLIENT_SECRET)
-                export AZURE_TENANT_ID=$(AZURE_TENANT_ID)
-                
-                # Run rollback
-                python scripts/rollback.py \
-                  --environment $(ROLLBACK_ENVIRONMENT) \
-                  --commit $(ROLLBACK_COMMIT_SHA)
+          - script: |
+              # Run rollback
+              python scripts/rollback.py \
+                --environment $(ROLLBACK_ENVIRONMENT) \
+                --commit $(ROLLBACK_COMMIT_SHA)
             displayName: 'Execute rollback'
             env:
+              AZURE_TENANT_ID: $(AZURE_TENANT_ID)
               AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
               AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-              AZURE_TENANT_ID: $(AZURE_TENANT_ID)

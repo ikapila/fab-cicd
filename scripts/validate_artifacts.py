@@ -6,6 +6,7 @@ Comprehensive validation for all Fabric artifact types
 
 import json
 import sys
+import argparse
 from pathlib import Path
 import logging
 
@@ -120,19 +121,33 @@ def validate_artifact_directory(dir_path: Path, artifact_type: str, extension: s
 
 def main():
     """Main validation function"""
+    parser = argparse.ArgumentParser(description='Validate Microsoft Fabric artifact definitions')
+    parser.add_argument(
+        '--artifacts-root',
+        default='wsartifacts',
+        help='Root folder name for artifacts (default: wsartifacts)'
+    )
+    args = parser.parse_args()
+    
     repo_root = Path(__file__).parent.parent
+    ws_artifacts = repo_root / args.artifacts_root
+    
+    if not ws_artifacts.exists():
+        logger.error(f"Artifacts root folder not found: {ws_artifacts}")
+        logger.info(f"Expected to find '{args.artifacts_root}' directory in {repo_root}")
+        return 1
     
     # Define artifact types to validate
     artifacts = [
-        ("lakehouses", "Lakehouse", "*.json"),
-        ("environments", "Environment", "*.json"),
-        ("notebooks", "Notebook", "*.ipynb"),
-        ("sparkjobdefinitions", "Spark Job", "*.json"),
-        ("datapipelines", "Pipeline", "*.json"),
-        ("reports", "Report", "*.json"),
-        ("semanticmodels", "Semantic Model", "*.json"),
-        ("paginatedreports", "Paginated Report", "*.json"),
-        ("variablelibraries", "Variable Library", "*.json"),
+        ("Lakehouses", "Lakehouse", "*.json"),
+        ("Environments", "Environment", "*.json"),
+        ("Notebooks", "Notebook", "*.ipynb"),
+        ("Sparkjobdefinitions", "Spark Job", "*.json"),
+        ("Datapipelines", "Pipeline", "*.json"),
+        ("Reports", "Report", "*.json"),
+        ("Semanticmodels", "Semantic Model", "*.json"),
+        ("Paginatedreports", "Paginated Report", "*.json"),
+        ("Variablelibraries", "Variable Library", "*.json"),
     ]
     
     total_artifacts = 0
@@ -142,7 +157,7 @@ def main():
     
     # Validate each artifact type
     for dir_name, artifact_type, extension in artifacts:
-        dir_path = repo_root / dir_name
+        dir_path = ws_artifacts / dir_name
         count, failed = validate_artifact_directory(dir_path, artifact_type, extension)
         
         if count > 0:
@@ -152,7 +167,7 @@ def main():
             total_failed.extend(failed)
     
     # Validate SQL views separately (nested structure)
-    views_dir = repo_root / "views"
+    views_dir = ws_artifacts / "Views"
     if views_dir.exists():
         sql_count = 0
         sql_failed = []

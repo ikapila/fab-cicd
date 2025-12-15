@@ -65,6 +65,10 @@ class FabricDeployer:
         self.client = FabricClient(self.auth)
         self.resolver = DependencyResolver()
         
+        # Get artifacts root folder from config
+        self.artifacts_root_folder = self.config.get_artifacts_root_folder()
+        logger.info(f"Using artifacts root folder: {self.artifacts_root_folder}")
+        
         # Validate authentication
         if not self.auth.validate_authentication():
             raise RuntimeError("Authentication validation failed")
@@ -103,7 +107,7 @@ class FabricDeployer:
     
     def _discover_lakehouses(self) -> None:
         """Discover lakehouse definitions"""
-        lakehouse_dir = self.artifacts_dir / "lakehouses"
+        lakehouse_dir = self.artifacts_dir / self.artifacts_root_folder / "Lakehouses"
         if not lakehouse_dir.exists():
             logger.debug("No lakehouses directory found")
             return
@@ -126,7 +130,7 @@ class FabricDeployer:
     
     def _discover_environments(self) -> None:
         """Discover environment definitions"""
-        env_dir = self.artifacts_dir / "environments"
+        env_dir = self.artifacts_dir / self.artifacts_root_folder / "Environments"
         if not env_dir.exists():
             logger.debug("No environments directory found")
             return
@@ -149,7 +153,7 @@ class FabricDeployer:
     
     def _discover_notebooks(self) -> None:
         """Discover notebook definitions"""
-        notebook_dir = self.artifacts_dir / "notebooks"
+        notebook_dir = self.artifacts_dir / self.artifacts_root_folder / "Notebooks"
         if not notebook_dir.exists():
             logger.debug("No notebooks directory found")
             return
@@ -172,7 +176,7 @@ class FabricDeployer:
     
     def _discover_spark_jobs(self) -> None:
         """Discover Spark job definitions"""
-        job_dir = self.artifacts_dir / "sparkjobdefinitions"
+        job_dir = self.artifacts_dir / self.artifacts_root_folder / "Sparkjobdefinitions"
         if not job_dir.exists():
             logger.debug("No Spark job definitions directory found")
             return
@@ -196,7 +200,7 @@ class FabricDeployer:
     
     def _discover_pipelines(self) -> None:
         """Discover data pipeline definitions"""
-        pipeline_dir = self.artifacts_dir / "datapipelines"
+        pipeline_dir = self.artifacts_dir / self.artifacts_root_folder / "Datapipelines"
         if not pipeline_dir.exists():
             logger.debug("No data pipelines directory found")
             return
@@ -220,7 +224,7 @@ class FabricDeployer:
     
     def _discover_variable_libraries(self) -> None:
         """Discover Variable Library definitions"""
-        library_dir = self.artifacts_dir / "variablelibraries"
+        library_dir = self.artifacts_dir / "wsartifacts" / "Variablelibraries"
         if not library_dir.exists():
             logger.debug("No variable libraries directory found")
             return
@@ -243,8 +247,8 @@ class FabricDeployer:
             logger.debug(f"Discovered Variable Library: {library_name}")
     
     def _discover_sql_views(self) -> None:
-        """Discover SQL view definitions from views/{lakehouse}/ directories"""
-        views_dir = self.artifacts_dir / "views"
+        """Discover SQL view definitions from {artifacts_root_folder}/Views/{lakehouse}/ directories"""
+        views_dir = self.artifacts_dir / self.artifacts_root_folder / "Views"
         if not views_dir.exists():
             logger.debug("No views directory found")
             return
@@ -1073,7 +1077,7 @@ class FabricDeployer:
     
     def _deploy_lakehouse(self, name: str) -> None:
         """Deploy a lakehouse"""
-        lakehouse_file = self.artifacts_dir / "lakehouses" / f"{name}.json"
+        lakehouse_file = self.artifacts_dir / "wsartifacts" / "Lakehouses" / f"{name}.json"
         with open(lakehouse_file, 'r') as f:
             definition = json.load(f)
         
@@ -1091,7 +1095,7 @@ class FabricDeployer:
     
     def _deploy_environment(self, name: str) -> None:
         """Deploy an environment"""
-        env_file = self.artifacts_dir / "environments" / f"{name}.json"
+        env_file = self.artifacts_dir / "wsartifacts" / "Environments" / f"{name}.json"
         with open(env_file, 'r') as f:
             definition = json.load(f)
         
@@ -1109,7 +1113,7 @@ class FabricDeployer:
     
     def _deploy_notebook(self, name: str) -> None:
         """Deploy a notebook"""
-        notebook_file = self.artifacts_dir / "notebooks" / f"{name}.ipynb"
+        notebook_file = self.artifacts_dir / "wsartifacts" / "Notebooks" / f"{name}.ipynb"
         
         with open(notebook_file, 'r') as f:
             notebook_content = f.read()
@@ -1135,7 +1139,7 @@ class FabricDeployer:
     
     def _deploy_spark_job(self, name: str) -> None:
         """Deploy a Spark job definition"""
-        job_file = self.artifacts_dir / "sparkjobdefinitions" / f"{name}.json"
+        job_file = self.artifacts_dir / "wsartifacts" / "Sparkjobdefinitions" / f"{name}.json"
         with open(job_file, 'r') as f:
             definition = json.load(f)
         
@@ -1162,7 +1166,7 @@ class FabricDeployer:
     
     def _deploy_pipeline(self, name: str) -> None:
         """Deploy a data pipeline"""
-        pipeline_file = self.artifacts_dir / "datapipelines" / f"{name}.json"
+        pipeline_file = self.artifacts_dir / "wsartifacts" / "Datapipelines" / f"{name}.json"
         with open(pipeline_file, 'r') as f:
             definition = json.load(f)
         
@@ -1189,7 +1193,7 @@ class FabricDeployer:
     
     def _deploy_semantic_model(self, name: str) -> None:
         """Deploy a semantic model"""
-        model_file = self.artifacts_dir / "semanticmodels" / f"{name}.json"
+        model_file = self.artifacts_dir / "wsartifacts" / "Semanticmodels" / f"{name}.json"
         with open(model_file, 'r') as f:
             definition = json.load(f)
         
@@ -1216,7 +1220,7 @@ class FabricDeployer:
     
     def _deploy_report(self, name: str) -> None:
         """Deploy a Power BI report"""
-        report_file = self.artifacts_dir / "reports" / f"{name}.json"
+        report_file = self.artifacts_dir / "wsartifacts" / "Reports" / f"{name}.json"
         with open(report_file, 'r') as f:
             definition = json.load(f)
         
@@ -1243,7 +1247,7 @@ class FabricDeployer:
     
     def _deploy_paginated_report(self, name: str) -> None:
         """Deploy a paginated report"""
-        report_file = self.artifacts_dir / "paginatedreports" / f"{name}.json"
+        report_file = self.artifacts_dir / "wsartifacts" / "Paginatedreports" / f"{name}.json"
         with open(report_file, 'r') as f:
             definition = json.load(f)
         
@@ -1270,7 +1274,7 @@ class FabricDeployer:
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""
-        library_file = self.artifacts_dir / "variablelibraries" / f"{name}.json"
+        library_file = self.artifacts_dir / "wsartifacts" / "Variablelibraries" / f"{name}.json"
         with open(library_file, 'r') as f:
             definition = json.load(f)
         
@@ -1326,8 +1330,8 @@ class FabricDeployer:
     
     def _deploy_sql_view(self, name: str) -> None:
         """Deploy a SQL view to lakehouse SQL endpoint"""
-        # Find the view file in views directories
-        views_dir = self.artifacts_dir / "views"
+        # Find the view file in {artifacts_root_folder}/Views directories
+        views_dir = self.artifacts_dir / self.artifacts_root_folder / "Views"
         view_file = None
         lakehouse_name = None
         

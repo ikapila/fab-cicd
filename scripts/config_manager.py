@@ -96,6 +96,10 @@ class ConfigManager:
         """Get capacity ID for this environment"""
         return self.config["workspace"].get("capacity_id")
     
+    def get_artifacts_root_folder(self) -> str:
+        """Get artifacts root folder name (defaults to 'wsartifacts')"""
+        return self.config.get("artifacts_root_folder", "wsartifacts")
+    
     def get_lakehouse_config(self, lakehouse_name: str) -> Optional[Dict]:
         """
         Get configuration for a specific lakehouse

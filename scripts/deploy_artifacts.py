@@ -152,14 +152,18 @@ class FabricDeployer:
             logger.debug(f"Discovered environment: {env_name}")
     
     def _discover_notebooks(self) -> None:
-        """Discover notebook definitions"""
+        """Discover notebook definitions (both .ipynb files and Fabric Git folder format)"""
         notebook_dir = self.artifacts_dir / self.artifacts_root_folder / "Notebooks"
         if not notebook_dir.exists():
             logger.debug("No notebooks directory found")
             return
         
+        discovered_notebooks = set()
+        
+        # Discover .ipynb files (legacy format)
         for notebook_file in notebook_dir.glob("*.ipynb"):
             notebook_name = notebook_file.stem
+            discovered_notebooks.add(notebook_name)
             notebook_id = f"notebook-{notebook_name}"
             
             # Try to read metadata for dependencies
@@ -172,7 +176,36 @@ class FabricDeployer:
                 dependencies=dependencies
             )
             
-            logger.debug(f"Discovered notebook: {notebook_name}")
+            logger.debug(f"Discovered notebook (ipynb): {notebook_name}")
+        
+        # Discover Fabric Git format (folders with .platform and notebook-content.py)
+        for item in notebook_dir.iterdir():
+            if item.is_dir():
+                platform_file = item / ".platform"
+                content_file = item / "notebook-content.py"
+                
+                # Check if it's a valid Fabric notebook folder
+                if platform_file.exists() and content_file.exists():
+                    notebook_name = item.name
+                    
+                    # Skip if already discovered as .ipynb
+                    if notebook_name in discovered_notebooks:
+                        continue
+                    
+                    discovered_notebooks.add(notebook_name)
+                    notebook_id = f"notebook-{notebook_name}"
+                    
+                    # Try to read metadata for dependencies from .platform
+                    dependencies = self._extract_notebook_dependencies_from_fabric_format(item)
+                    
+                    self.resolver.add_artifact(
+                        notebook_id,
+                        ArtifactType.NOTEBOOK,
+                        notebook_name,
+                        dependencies=dependencies
+                    )
+                    
+                    logger.debug(f"Discovered notebook (Fabric): {notebook_name}")
     
     def _discover_spark_jobs(self) -> None:
         """Discover Spark job definitions"""
@@ -319,7 +352,7 @@ class FabricDeployer:
     
     def _extract_notebook_dependencies(self, notebook_path: Path) -> List[str]:
         """
-        Extract dependencies from notebook metadata
+        Extract dependencies from notebook metadata (.ipynb format)
         
         Args:
             notebook_path: Path to notebook file
@@ -336,6 +369,29 @@ class FabricDeployer:
             return dependencies
         except Exception as e:
             logger.warning(f"Could not extract dependencies from {notebook_path}: {str(e)}")
+            return []
+    
+    def _extract_notebook_dependencies_from_fabric_format(self, notebook_folder: Path) -> List[str]:
+        """
+        Extract dependencies from Fabric Git format notebook (.platform file)
+        
+        Args:
+            notebook_folder: Path to notebook folder containing .platform
+            
+        Returns:
+            List of dependency IDs
+        """
+        try:
+            platform_file = notebook_folder / ".platform"
+            with open(platform_file, 'r') as f:
+                platform_data = json.load(f)
+            
+            # Extract dependencies from platform metadata
+            metadata = platform_data.get("metadata", {})
+            dependencies = metadata.get("dependencies", [])
+            return dependencies
+        except Exception as e:
+            logger.warning(f"Could not extract dependencies from {notebook_folder}: {str(e)}")
             return []
     
     def create_artifacts_from_config(self, dry_run: bool = False) -> bool:
@@ -1186,15 +1242,58 @@ class FabricDeployer:
             logger.info(f"  Created environment (ID: {result['id']})")
     
     def _deploy_notebook(self, name: str) -> None:
-        """Deploy a notebook"""
-        notebook_file = self.artifacts_dir / self.artifacts_root_folder / "Notebooks" / f"{name}.ipynb"
+        """Deploy a notebook (supports both .ipynb and Fabric Git folder format)"""
+        notebooks_dir = self.artifacts_dir / self.artifacts_root_folder / "Notebooks"
+        notebook_file = notebooks_dir / f"{name}.ipynb"
+        notebook_folder = notebooks_dir / name
         
-        with open(notebook_file, 'r') as f:
-            notebook_content = f.read()
+        notebook_content = None
+        notebook_format = None
+        
+        # Try .ipynb file first (legacy format)
+        if notebook_file.exists():
+            logger.debug(f"  Found notebook as .ipynb file: {name}")
+            with open(notebook_file, 'r') as f:
+                notebook_content = f.read()
+            notebook_format = "ipynb"
+        # Try Fabric Git folder format
+        elif notebook_folder.exists() and notebook_folder.is_dir():
+            platform_file = notebook_folder / ".platform"
+            content_file = notebook_folder / "notebook-content.py"
+            
+            if platform_file.exists() and content_file.exists():
+                logger.debug(f"  Found notebook as Fabric Git folder: {name}")
+                # Read the notebook content from notebook-content.py
+                with open(content_file, 'r', encoding='utf-8') as f:
+                    notebook_content = f.read()
+                notebook_format = "fabric"
+            else:
+                raise FileNotFoundError(f"Notebook folder '{name}' missing required files (.platform or notebook-content.py)")
+        else:
+            raise FileNotFoundError(f"Notebook '{name}' not found as .ipynb file or Fabric folder")
         
         # Substitute environment-specific parameters
         notebook_content = self.config.substitute_parameters(notebook_content)
-        notebook_definition = json.loads(notebook_content)
+        
+        # Parse based on format
+        if notebook_format == "ipynb":
+            notebook_definition = json.loads(notebook_content)
+        else:  # fabric format
+            # For Fabric format, the notebook-content.py is already in the format Fabric expects
+            # We need to construct the definition with the content
+            notebook_definition = {
+                "displayName": name,
+                "definition": {
+                    "format": "py",
+                    "parts": [
+                        {
+                            "path": "notebook-content.py",
+                            "payload": notebook_content,
+                            "payloadType": "InlineBase64" if self._is_base64_encoded(notebook_content) else "Inline"
+                        }
+                    ]
+                }
+            }
         
         # Check if notebook exists
         existing = self.client.list_notebooks(self.workspace_id)
@@ -1211,6 +1310,20 @@ class FabricDeployer:
         else:
             result = self.client.create_notebook(self.workspace_id, name, notebook_definition)
             logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
+    
+    def _is_base64_encoded(self, content: str) -> bool:
+        """Check if content is base64 encoded"""
+        import base64
+        try:
+            if isinstance(content, str):
+                # If there's any typical base64 pattern, assume it's encoded
+                # Base64 strings are typically long and contain only alphanumeric + / =
+                if len(content) > 100 and content.replace('\n', '').replace('\r', '').replace(' ', '').isalnum():
+                    base64.b64decode(content, validate=True)
+                    return True
+            return False
+        except:
+            return False
     
     def _deploy_spark_job(self, name: str) -> None:
         """Deploy a Spark job definition"""

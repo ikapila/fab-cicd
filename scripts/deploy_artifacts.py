@@ -1334,15 +1334,16 @@ class FabricDeployer:
             # The API expects the notebook definition, not the raw ipynb
             # We need to extract or convert it appropriately
             notebook_definition = notebook_json
-        else:  # fabric format
+        else:  # fabric format (notebook-content.py)
             # For Fabric format, encode the notebook-content.py as base64
             import base64
             content_bytes = notebook_content.encode('utf-8')
             content_base64 = base64.b64encode(content_bytes).decode('utf-8')
             
             # Construct the definition that matches Fabric API expectations
+            # According to API docs: format should be "fabricGitSource" for .py files
+            # If format is omitted, fabricGitSource is used as default
             notebook_definition = {
-                "format": "ipynb",
                 "parts": [
                     {
                         "path": "notebook-content.py",

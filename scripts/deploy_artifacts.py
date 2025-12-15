@@ -1379,12 +1379,27 @@ class FabricDeployer:
         """Deploy a Spark job definition"""
         job_file = self.artifacts_dir / self.artifacts_root_folder / "Sparkjobdefinitions" / f"{name}.json"
         with open(job_file, 'r') as f:
-            definition = json.load(f)
+            job_content = f.read()
         
         # Substitute parameters
-        definition_str = json.dumps(definition)
-        definition_str = self.config.substitute_parameters(definition_str)
-        definition = json.loads(definition_str)
+        job_content = self.config.substitute_parameters(job_content)
+        
+        # Encode as base64 for API
+        import base64
+        content_bytes = job_content.encode('utf-8')
+        content_base64 = base64.b64encode(content_bytes).decode('utf-8')
+        
+        # Construct definition according to Fabric API spec
+        # Format can be SparkJobDefinitionV1 or SparkJobDefinitionV2
+        definition = {
+            "parts": [
+                {
+                    "path": "SparkJobDefinitionV1.json",
+                    "payload": content_base64,
+                    "payloadType": "InlineBase64"
+                }
+            ]
+        }
         
         # Check if job exists
         existing = self.client.list_spark_job_definitions(self.workspace_id)
@@ -1397,21 +1412,36 @@ class FabricDeployer:
                 existing_job['id'],
                 definition
             )
-            logger.info(f"  Updated Spark job (ID: {existing_job['id']})")
+            logger.info(f"  ✓ Updated Spark job '{name}' (ID: {existing_job['id']})")
         else:
+            # For creation, client.create_spark_job_definition handles displayName + definition wrapping
             result = self.client.create_spark_job_definition(self.workspace_id, name, definition)
-            logger.info(f"  Created Spark job (ID: {result['id']})")
+            logger.info(f"  ✓ Created Spark job '{name}' (ID: {result['id']})")
     
     def _deploy_pipeline(self, name: str) -> None:
         """Deploy a data pipeline"""
         pipeline_file = self.artifacts_dir / self.artifacts_root_folder / "Datapipelines" / f"{name}.json"
         with open(pipeline_file, 'r') as f:
-            definition = json.load(f)
+            pipeline_content = f.read()
         
         # Substitute parameters
-        definition_str = json.dumps(definition)
-        definition_str = self.config.substitute_parameters(definition_str)
-        definition = json.loads(definition_str)
+        pipeline_content = self.config.substitute_parameters(pipeline_content)
+        
+        # Encode as base64 for API
+        import base64
+        content_bytes = pipeline_content.encode('utf-8')
+        content_base64 = base64.b64encode(content_bytes).decode('utf-8')
+        
+        # Construct definition according to Fabric API spec
+        definition = {
+            "parts": [
+                {
+                    "path": "pipeline-content.json",
+                    "payload": content_base64,
+                    "payloadType": "InlineBase64"
+                }
+            ]
+        }
         
         # Check if pipeline exists
         existing = self.client.list_data_pipelines(self.workspace_id)
@@ -1424,10 +1454,11 @@ class FabricDeployer:
                 existing_pipeline['id'],
                 definition
             )
-            logger.info(f"  Updated pipeline (ID: {existing_pipeline['id']})")
+            logger.info(f"  ✓ Updated pipeline '{name}' (ID: {existing_pipeline['id']})")
         else:
+            # For creation, client.create_data_pipeline handles displayName + definition wrapping
             result = self.client.create_data_pipeline(self.workspace_id, name, definition)
-            logger.info(f"  Created pipeline (ID: {result['id']})")
+            logger.info(f"  ✓ Created pipeline '{name}' (ID: {result['id']})")
     
     def _deploy_semantic_model(self, name: str) -> None:
         """Deploy a semantic model"""

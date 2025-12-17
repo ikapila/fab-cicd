@@ -908,13 +908,35 @@ class FabricDeployer:
         content_bytes = notebook_content.encode('utf-8')
         content_base64 = base64.b64encode(content_bytes).decode('utf-8')
         
+        # Generate .platform file content
+        platform_content = {
+            "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+            "metadata": {
+                "type": "Notebook",
+                "displayName": name,
+                "description": description or ""
+            },
+            "config": {
+                "version": "2.0",
+                "logicalId": ""
+            }
+        }
+        platform_json = json.dumps(platform_content)
+        platform_base64 = base64.b64encode(platform_json.encode('utf-8')).decode('utf-8')
+        
         # Construct definition for Fabric Git format
-        # Format field omitted = fabricGitSource (default)
+        # For CREATE, format field must be explicitly specified
         definition = {
+            "format": "fabricGitSource",
             "parts": [
                 {
                     "path": "notebook-content.py",
                     "payload": content_base64,
+                    "payloadType": "InlineBase64"
+                },
+                {
+                    "path": ".platform",
+                    "payload": platform_base64,
                     "payloadType": "InlineBase64"
                 }
             ]

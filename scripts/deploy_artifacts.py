@@ -132,11 +132,13 @@ class FabricDeployer:
             logger.debug("No lakehouses directory found")
             return
         
+        discovered = []
         for lakehouse_file in lakehouse_dir.glob("*.json"):
             with open(lakehouse_file, 'r') as f:
                 definition = json.load(f)
             
             lakehouse_name = definition.get("name", lakehouse_file.stem)
+            discovered.append(lakehouse_name)
             lakehouse_id = definition.get("id", f"lakehouse-{lakehouse_name}")
             
             self.resolver.add_artifact(
@@ -147,6 +149,9 @@ class FabricDeployer:
             )
             
             logger.debug(f"Discovered lakehouse: {lakehouse_name}")
+        
+        if discovered:
+            logger.info(f"Discovered {len(discovered)} lakehouse(s): {', '.join(sorted(discovered))}")
     
     def _discover_environments(self) -> None:
         """Discover environment definitions"""
@@ -155,11 +160,13 @@ class FabricDeployer:
             logger.debug("No environments directory found")
             return
         
+        discovered = []
         for env_file in env_dir.glob("*.json"):
             with open(env_file, 'r') as f:
                 definition = json.load(f)
             
             env_name = definition.get("name", env_file.stem)
+            discovered.append(env_name)
             env_id = definition.get("id", f"environment-{env_name}")
             
             self.resolver.add_artifact(
@@ -170,6 +177,9 @@ class FabricDeployer:
             )
             
             logger.debug(f"Discovered environment: {env_name}")
+        
+        if discovered:
+            logger.info(f"Discovered {len(discovered)} environment(s): {', '.join(sorted(discovered))}")
     
     def _discover_notebooks(self) -> None:
         """Discover notebook definitions (both .ipynb files and Fabric Git folder format)"""
@@ -178,61 +188,81 @@ class FabricDeployer:
             logger.debug("No notebooks directory found")
             return
         
+        logger.debug(f"Scanning for notebooks in: {notebook_dir}")
         discovered_notebooks = set()
         
         # Discover .ipynb files (legacy format)
-        for notebook_file in notebook_dir.glob("*.ipynb"):
-            notebook_name = notebook_file.stem
-            discovered_notebooks.add(notebook_name)
-            notebook_id = f"notebook-{notebook_name}"
-            
-            # Try to read metadata for dependencies
-            dependencies = self._extract_notebook_dependencies(notebook_file)
-            
-            self.resolver.add_artifact(
-                notebook_id,
-                ArtifactType.NOTEBOOK,
-                notebook_name,
-                dependencies=dependencies
-            )
-            
-            logger.debug(f"Discovered notebook (ipynb): {notebook_name}")
+        ipynb_files = list(notebook_dir.glob("*.ipynb"))
+        logger.debug(f"Found {len(ipynb_files)} .ipynb files")
+        
+        for notebook_file in ipynb_files:
+            try:
+                notebook_name = notebook_file.stem
+                discovered_notebooks.add(notebook_name)
+                notebook_id = f"notebook-{notebook_name}"
+                
+                # Try to read metadata for dependencies
+                dependencies = self._extract_notebook_dependencies(notebook_file)
+                
+                self.resolver.add_artifact(
+                    notebook_id,
+                    ArtifactType.NOTEBOOK,
+                    notebook_name,
+                    dependencies=dependencies
+                )
+                
+                logger.debug(f"Discovered notebook (ipynb): {notebook_name}")
+            except Exception as e:
+                logger.error(f"Failed to discover notebook {notebook_file.name}: {e}")
+                import traceback
+                logger.debug(traceback.format_exc())
         
         # Discover Fabric Git format (folders with .platform and notebook-content.py)
-        for item in notebook_dir.iterdir():
+        fabric_folders = [item for item in notebook_dir.iterdir() if item.is_dir()]
+        logger.debug(f"Found {len(fabric_folders)} folders to check for Fabric format")
+        
+        for item in fabric_folders:
             if item.is_dir():
                 platform_file = item / ".platform"
                 content_file = item / "notebook-content.py"
                 
                 # Check if it's a valid Fabric notebook folder
                 if platform_file.exists() and content_file.exists():
-                    # Read displayName from .platform file
                     try:
-                        with open(platform_file, 'r') as f:
-                            platform_data = json.load(f)
-                        notebook_name = platform_data.get("metadata", {}).get("displayName", item.name)
+                        # Read displayName from .platform file
+                        try:
+                            with open(platform_file, 'r') as f:
+                                platform_data = json.load(f)
+                            notebook_name = platform_data.get("metadata", {}).get("displayName", item.name)
+                        except Exception as e:
+                            logger.warning(f"Could not read displayName from {platform_file}, using folder name: {e}")
+                            notebook_name = item.name
+                        
+                        # Skip if already discovered as .ipynb
+                        if notebook_name in discovered_notebooks:
+                            logger.debug(f"Skipping duplicate notebook (already found as .ipynb): {notebook_name}")
+                            continue
+                        
+                        discovered_notebooks.add(notebook_name)
+                        notebook_id = f"notebook-{notebook_name}"
+                        
+                        # Try to read metadata for dependencies from .platform
+                        dependencies = self._extract_notebook_dependencies_from_fabric_format(item)
+                        
+                        self.resolver.add_artifact(
+                            notebook_id,
+                            ArtifactType.NOTEBOOK,
+                            notebook_name,
+                            dependencies=dependencies
+                        )
+                        
+                        logger.debug(f"Discovered notebook (Fabric): {notebook_name}")
                     except Exception as e:
-                        logger.warning(f"Could not read displayName from {platform_file}, using folder name: {e}")
-                        notebook_name = item.name
-                    
-                    # Skip if already discovered as .ipynb
-                    if notebook_name in discovered_notebooks:
-                        continue
-                    
-                    discovered_notebooks.add(notebook_name)
-                    notebook_id = f"notebook-{notebook_name}"
-                    
-                    # Try to read metadata for dependencies from .platform
-                    dependencies = self._extract_notebook_dependencies_from_fabric_format(item)
-                    
-                    self.resolver.add_artifact(
-                        notebook_id,
-                        ArtifactType.NOTEBOOK,
-                        notebook_name,
-                        dependencies=dependencies
-                    )
-                    
-                    logger.debug(f"Discovered notebook (Fabric): {notebook_name}")
+                        logger.error(f"Failed to discover Fabric notebook {item.name}: {e}")
+                        import traceback
+                        logger.debug(traceback.format_exc())
+        
+        logger.info(f"Discovered {len(discovered_notebooks)} notebook(s): {', '.join(sorted(discovered_notebooks))}")
     
     def _discover_spark_jobs(self) -> None:
         """Discover Spark job definitions"""

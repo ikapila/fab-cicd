@@ -531,13 +531,19 @@ class FabricDeployer:
                     if existing_notebook:
                         logger.info(f"  ✓ Notebook '{name}' already exists (ID: {existing_notebook['id']})")
                     elif create_if_not_exists:
-                        # Create basic notebook structure
+                        # Create basic notebook structure in Fabric Git format
                         notebook_definition = self._create_notebook_template(name, description, template, notebook_def)
                         result = self.client.create_notebook(self.workspace_id, name, notebook_definition)
                         logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
                         # Save to local file in Fabric Git format
-                        notebook_definition["id"] = result['id']  # Add the ID for .platform file
-                        self._save_artifact_to_file("Notebooks", name, notebook_definition, "fabric-notebook")
+                        # Wrap definition for saving (includes id and definition structure)
+                        save_data = {
+                            "id": result['id'],
+                            "displayName": name,
+                            "description": description,
+                            "definition": notebook_definition
+                        }
+                        self._save_artifact_to_file("Notebooks", name, save_data, "fabric-notebook")
                     else:
                         logger.warning(f"  ⚠ Notebook '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -894,122 +900,123 @@ class FabricDeployer:
             logger.warning(f"  ⚠ Failed to save artifact to file: {str(e)}")
     
     def _create_notebook_template(self, name, description, template, notebook_def):
-        """Create notebook definition from template."""
-        # Base notebook structure
-        notebook = {
-            "displayName": name,
-            "description": description or f"Notebook: {name}",
-            "definition": {
-                "format": "ipynb",
-                "parts": [
-                    {
-                        "path": "notebook-content.py",
-                        "payload": self._get_notebook_content(template, notebook_def),
-                        "payloadType": "InlineBase64"
-                    }
-                ]
-            }
+        """Create notebook definition from template in Fabric Git format."""
+        # Generate Fabric notebook content (Python format)
+        notebook_content = self._get_fabric_notebook_content(template, notebook_def)
+        
+        # Encode as base64
+        content_bytes = notebook_content.encode('utf-8')
+        content_base64 = base64.b64encode(content_bytes).decode('utf-8')
+        
+        # Construct definition for Fabric Git format
+        # Format field omitted = fabricGitSource (default)
+        definition = {
+            "parts": [
+                {
+                    "path": "notebook-content.py",
+                    "payload": content_base64,
+                    "payloadType": "InlineBase64"
+                }
+            ]
         }
         
         # Add default lakehouse if specified
         if notebook_def.get("default_lakehouse"):
-            notebook["definition"]["defaultLakehouse"] = {
+            definition["defaultLakehouse"] = {
                 "name": notebook_def["default_lakehouse"],
                 "workspaceId": self.workspace_id
             }
         
-        return notebook
+        return definition
     
-    def _get_notebook_content(self, template, notebook_def):
-        """Generate notebook content based on template."""
+    def _get_fabric_notebook_content(self, template, notebook_def):
+        """Generate Fabric notebook content in Python format."""
+        name = notebook_def.get('name', 'Untitled')
+        description = notebook_def.get('description', '')
+        
         if template == "basic_spark":
-            # Create basic PySpark notebook
-            notebook_content = {
-                "cells": [
-                    {
-                        "cell_type": "markdown",
-                        "metadata": {},
-                        "source": [f"# {notebook_def['name']}\n", f"\n{notebook_def.get('description', '')}"]
-                    },
-                    {
-                        "cell_type": "code",
-                        "execution_count": None,
-                        "metadata": {},
-                        "outputs": [],
-                        "source": [
-                            "# Import required libraries\n",
-                            "from pyspark.sql import SparkSession\n",
-                            "from pyspark.sql.functions import *\n",
-                            "\n",
-                            "print('Notebook initialized successfully')"
-                        ]
-                    },
-                    {
-                        "cell_type": "code",
-                        "execution_count": None,
-                        "metadata": {},
-                        "outputs": [],
-                        "source": [
-                            "# Your code here\n",
-                            "# This is a placeholder notebook\n"
-                        ]
-                    }
-                ],
-                "metadata": {
-                    "language_info": {
-                        "name": "python"
-                    },
-                    "kernelspec": {
-                        "display_name": "Synapse PySpark",
-                        "name": "synapse_pyspark"
-                    }
-                },
-                "nbformat": 4,
-                "nbformat_minor": 2
-            }
+            # Create basic PySpark notebook in Fabric format
+            content = f"""# Fabric notebook source
+
+# METADATA ********************
+
+# META {{
+#   "kernel_info": {{
+#     "name": "synapse_pyspark"
+#   }},
+#   "dependencies": {{
+#     "lakehouse": {{
+#       "default_lakehouse": "",
+#       "default_lakehouse_name": "",
+#       "default_lakehouse_workspace_id": ""
+#     }}
+#   }}
+# }}
+
+# MARKDOWN ********************
+
+# # {name}
+# {description}
+
+# CELL ********************
+
+# Import required libraries
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import *
+
+print('Notebook initialized successfully')
+
+# CELL ********************
+
+# Your code here
+# This is a placeholder notebook
+"""
         elif template == "sql":
-            # Create SQL notebook
-            notebook_content = {
-                "cells": [
-                    {
-                        "cell_type": "markdown",
-                        "metadata": {},
-                        "source": [f"# {notebook_def['name']}\n", f"\n{notebook_def.get('description', '')}"]
-                    },
-                    {
-                        "cell_type": "code",
-                        "execution_count": None,
-                        "metadata": {"language": "sql"},
-                        "outputs": [],
-                        "source": [
-                            "-- SQL query example\n",
-                            "-- SELECT * FROM table_name LIMIT 10;\n"
-                        ]
-                    }
-                ],
-                "metadata": {
-                    "language_info": {
-                        "name": "sql"
-                    }
-                },
-                "nbformat": 4,
-                "nbformat_minor": 2
-            }
+            # Create SQL notebook in Fabric format
+            content = f"""# Fabric notebook source
+
+# METADATA ********************
+
+# META {{
+#   "kernel_info": {{
+#     "name": "synapse_pyspark"
+#   }}
+# }}
+
+# MARKDOWN ********************
+
+# # {name}
+# {description}
+
+# CELL ********************
+
+# MAGIC %%sql
+# MAGIC -- SQL query example
+# MAGIC -- SELECT * FROM table_name LIMIT 10;
+"""
         else:
             # Default empty notebook
-            notebook_content = {
-                "cells": [],
-                "metadata": {},
-                "nbformat": 4,
-                "nbformat_minor": 2
-            }
+            content = f"""# Fabric notebook source
+
+# METADATA ********************
+
+# META {{
+#   "kernel_info": {{
+#     "name": "synapse_pyspark"
+#   }}
+# }}
+
+# MARKDOWN ********************
+
+# # {name}
+# {description}
+
+# CELL ********************
+
+print('Notebook initialized')
+"""
         
-        # Convert to base64
-        content_str = json.dumps(notebook_content)
-        content_bytes = content_str.encode('utf-8')
-        content_base64 = base64.b64encode(content_bytes).decode('utf-8')
-        
-        return content_base64
+        return content
     
     def _create_spark_job_template(self, name, description, job_def):
         """Create Spark job definition."""

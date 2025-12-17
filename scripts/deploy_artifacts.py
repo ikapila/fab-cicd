@@ -1313,20 +1313,39 @@ print('Notebook initialized')
         
         # Parse based on format and construct API payload
         if notebook_format == "ipynb":
-            # For .ipynb files, parse the JSON notebook
-            notebook_json = json.loads(notebook_content)
-            # The API expects the notebook definition, not the raw ipynb
-            # We need to extract or convert it appropriately
-            notebook_definition = notebook_json
-        else:  # fabric format (notebook-content.py)
-            # For Fabric format, encode the notebook-content.py as base64
+            # For .ipynb files, encode the JSON notebook content as base64
             import base64
             content_bytes = notebook_content.encode('utf-8')
             content_base64 = base64.b64encode(content_bytes).decode('utf-8')
             
+            # Construct definition for ipynb format
+            notebook_definition = {
+                "format": "ipynb",
+                "parts": [
+                    {
+                        "path": "notebook-content.ipynb",
+                        "payload": content_base64,
+                        "payloadType": "InlineBase64"
+                    }
+                ]
+            }
+        else:  # fabric format (notebook-content.py)
+            # For Fabric format, encode the notebook-content.py as base64
+            import base64
+            
+            # Validate content is not empty
+            if not notebook_content or not notebook_content.strip():
+                raise ValueError(f"Notebook content is empty for '{name}'")
+            
+            content_bytes = notebook_content.encode('utf-8')
+            content_base64 = base64.b64encode(content_bytes).decode('utf-8')
+            
+            # Validate base64 encoding succeeded
+            if not content_base64:
+                raise ValueError(f"Failed to encode notebook content for '{name}'")
+            
             # Construct the definition that matches Fabric API expectations
-            # According to API docs: format should be "fabricGitSource" for .py files
-            # If format is omitted, fabricGitSource is used as default
+            # Format field omitted = fabricGitSource (default)
             notebook_definition = {
                 "parts": [
                     {
@@ -1336,6 +1355,8 @@ print('Notebook initialized')
                     }
                 ]
             }
+            
+            logger.debug(f"  Notebook definition created with {len(content_base64)} byte payload")
         
         # Check if notebook exists
         existing = self.client.list_notebooks(self.workspace_id)
@@ -1352,11 +1373,7 @@ print('Notebook initialized')
             logger.info(f"  ✓ Updated notebook '{name}' (ID: {existing_notebook['id']})")
         else:
             # For creation, we need the full structure with displayName
-            create_payload = {
-                "displayName": name,
-                "definition": notebook_definition
-            }
-            result = self.client.create_notebook(self.workspace_id, name, create_payload)
+            result = self.client.create_notebook(self.workspace_id, name, notebook_definition)
             logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
     
     def _deploy_spark_job(self, name: str) -> None:

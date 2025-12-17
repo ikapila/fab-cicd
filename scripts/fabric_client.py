@@ -57,27 +57,34 @@ class FabricClient:
         url = f"{self.BASE_URL}/{endpoint.lstrip('/')}"
         headers = self.auth.get_auth_headers()
         
-        # Debug logging for notebook creation
+        # Debug logging for notebook operations
         if "notebooks" in endpoint and method == "POST":
-            logger.info(f"Creating notebook - URL: {url}")
             if json_data:
                 import json
                 # Log structure without exposing full base64 payload
                 debug_data = json_data.copy()
-                if "definition" in debug_data and "parts" in debug_data["definition"]:
-                    parts_summary = []
-                    for part in debug_data["definition"]["parts"]:
-                        parts_summary.append({
-                            "path": part.get("path"),
-                            "payloadType": part.get("payloadType"),
-                            "payload_length": len(part.get("payload", ""))
-                        })
-                    debug_copy = debug_data.copy()
-                    debug_copy["definition"] = {
-                        "format": debug_data["definition"].get("format"),
-                        "parts": parts_summary
-                    }
-                    logger.info(f"Payload structure: {json.dumps(debug_copy, indent=2)}")
+                if "definition" in debug_data:
+                    definition = debug_data["definition"]
+                    if "parts" in definition:
+                        parts_summary = []
+                        for part in definition["parts"]:
+                            part_info = {
+                                "path": part.get("path"),
+                                "payloadType": part.get("payloadType"),
+                                "payload_length": len(part.get("payload", ""))
+                            }
+                            parts_summary.append(part_info)
+                        debug_copy = debug_data.copy()
+                        debug_copy["definition"] = {
+                            "format": definition.get("format"),
+                            "parts": parts_summary
+                        }
+                        if "updateDefinition" in endpoint:
+                            logger.info(f"Updating notebook - URL: {url}")
+                        else:
+                            logger.info(f"Creating notebook - URL: {url}")
+                        logger.info(f"Payload structure: {json.dumps(debug_copy, indent=2)}")
+
         
         try:
             response = requests.request(

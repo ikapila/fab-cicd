@@ -161,6 +161,72 @@ class FabricClient:
         
         return self._make_request("POST", "/workspaces", json_data=payload)
     
+    # ==================== Workspace Folder Operations ====================
+    
+    def list_workspace_folders(self, workspace_id: str) -> List[Dict]:
+        """
+        List all folders in a workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of folder dictionaries
+        """
+        logger.info(f"Listing folders in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/folders")
+        return response.get("value", [])
+    
+    def create_workspace_folder(self, workspace_id: str, folder_name: str) -> Dict:
+        """
+        Create a folder in workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            folder_name: Name for the folder
+            
+        Returns:
+            Created folder details
+        """
+        logger.info(f"Creating workspace folder: {folder_name}")
+        payload = {"displayName": folder_name}
+        return self._make_request("POST", f"/workspaces/{workspace_id}/folders", json_data=payload)
+    
+    def get_or_create_workspace_folder(self, workspace_id: str, folder_name: str) -> str:
+        """
+        Get existing folder or create if it doesn't exist
+        
+        Args:
+            workspace_id: Workspace GUID
+            folder_name: Name of the folder
+            
+        Returns:
+            Folder ID (GUID)
+        """
+        existing_folders = self.list_workspace_folders(workspace_id)
+        existing_folder = next((f for f in existing_folders if f.get("displayName") == folder_name), None)
+        
+        if existing_folder:
+            logger.debug(f"  Using existing folder '{folder_name}' (ID: {existing_folder['id']})")
+            return existing_folder['id']
+        else:
+            result = self.create_workspace_folder(workspace_id, folder_name)
+            logger.info(f"  ✓ Created workspace folder '{folder_name}' (ID: {result['id']})")
+            return result['id']
+    
+    def move_item_to_folder(self, workspace_id: str, item_id: str, folder_id: str) -> None:
+        """
+        Move an item to a workspace folder
+        
+        Args:
+            workspace_id: Workspace GUID
+            item_id: Item GUID to move
+            folder_id: Target folder GUID
+        """
+        logger.debug(f"  Moving item {item_id} to folder {folder_id}")
+        payload = {"workspaceId": workspace_id, "folderId": folder_id}
+        self._make_request("POST", f"/workspaces/{workspace_id}/items/{item_id}/move", json_data=payload)
+    
     # ==================== Lakehouse Operations ====================
     
     def list_lakehouses(self, workspace_id: str) -> List[Dict]:
@@ -240,7 +306,7 @@ class FabricClient:
         logger.info(f"Getting notebook: {notebook_id}")
         return self._make_request("GET", f"/workspaces/{workspace_id}/notebooks/{notebook_id}")
     
-    def create_notebook(self, workspace_id: str, notebook_name: str, definition: Dict, description: str = None) -> Dict:
+    def create_notebook(self, workspace_id: str, notebook_name: str, definition: Dict, description: str = None, folder_id: str = None) -> Dict:
         """
         Create or update a notebook
         
@@ -249,6 +315,7 @@ class FabricClient:
             notebook_name: Name for the notebook
             definition: Notebook definition (content)
             description: Optional notebook description
+            folder_id: Optional workspace folder ID to place notebook in
             
         Returns:
             Created notebook details
@@ -260,6 +327,8 @@ class FabricClient:
         }
         if description:
             payload["description"] = description
+        if folder_id:
+            payload["folderId"] = folder_id
         return self._make_request("POST", f"/workspaces/{workspace_id}/notebooks", json_data=payload)
     
     def update_notebook_definition(self, workspace_id: str, notebook_id: str, definition: Dict) -> Dict:
@@ -294,7 +363,7 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/sparkJobDefinitions")
         return response.get("value", [])
     
-    def create_spark_job_definition(self, workspace_id: str, job_name: str, definition: Dict) -> Dict:
+    def create_spark_job_definition(self, workspace_id: str, job_name: str, definition: Dict, folder_id: str = None) -> Dict:
         """
         Create a Spark job definition
         
@@ -302,6 +371,7 @@ class FabricClient:
             workspace_id: Workspace GUID
             job_name: Name for the Spark job
             definition: Job definition
+            folder_id: Optional workspace folder ID to place job in
             
         Returns:
             Created job details
@@ -311,6 +381,8 @@ class FabricClient:
             "displayName": job_name,
             "definition": definition
         }
+        if folder_id:
+            payload["folderId"] = folder_id
         return self._make_request("POST", f"/workspaces/{workspace_id}/sparkJobDefinitions", json_data=payload)
     
     def update_spark_job_definition(self, workspace_id: str, job_id: str, definition: Dict) -> Dict:
@@ -345,7 +417,7 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/dataPipelines")
         return response.get("value", [])
     
-    def create_data_pipeline(self, workspace_id: str, pipeline_name: str, definition: Dict) -> Dict:
+    def create_data_pipeline(self, workspace_id: str, pipeline_name: str, definition: Dict, folder_id: str = None) -> Dict:
         """
         Create a data pipeline
         
@@ -353,6 +425,7 @@ class FabricClient:
             workspace_id: Workspace GUID
             pipeline_name: Name for the pipeline
             definition: Pipeline definition
+            folder_id: Optional workspace folder ID to place pipeline in
             
         Returns:
             Created pipeline details
@@ -362,6 +435,8 @@ class FabricClient:
             "displayName": pipeline_name,
             "definition": definition
         }
+        if folder_id:
+            payload["folderId"] = folder_id
         return self._make_request("POST", f"/workspaces/{workspace_id}/dataPipelines", json_data=payload)
     
     def update_data_pipeline(self, workspace_id: str, pipeline_id: str, definition: Dict) -> Dict:
@@ -463,7 +538,7 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/semanticModels")
         return response.get("value", [])
     
-    def create_semantic_model(self, workspace_id: str, model_name: str, definition: Dict) -> Dict:
+    def create_semantic_model(self, workspace_id: str, model_name: str, definition: Dict, folder_id: str = None) -> Dict:
         """
         Create a semantic model
         
@@ -471,6 +546,7 @@ class FabricClient:
             workspace_id: Workspace GUID
             model_name: Name for the semantic model
             definition: Model definition
+            folder_id: Optional workspace folder ID to place model in
             
         Returns:
             Created model details
@@ -480,6 +556,8 @@ class FabricClient:
             "displayName": model_name,
             "definition": definition
         }
+        if folder_id:
+            payload["folderId"] = folder_id
         return self._make_request("POST", f"/workspaces/{workspace_id}/semanticModels", json_data=payload)
     
     def update_semantic_model(self, workspace_id: str, model_id: str, definition: Dict) -> Dict:
@@ -514,7 +592,7 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/reports")
         return response.get("value", [])
     
-    def create_report(self, workspace_id: str, report_name: str, definition: Dict) -> Dict:
+    def create_report(self, workspace_id: str, report_name: str, definition: Dict, folder_id: str = None) -> Dict:
         """
         Create a Power BI report
         
@@ -522,6 +600,7 @@ class FabricClient:
             workspace_id: Workspace GUID
             report_name: Name for the report
             definition: Report definition
+            folder_id: Optional workspace folder ID to place report in
             
         Returns:
             Created report details
@@ -531,6 +610,8 @@ class FabricClient:
             "displayName": report_name,
             "definition": definition
         }
+        if folder_id:
+            payload["folderId"] = folder_id
         return self._make_request("POST", f"/workspaces/{workspace_id}/reports", json_data=payload)
     
     def update_report(self, workspace_id: str, report_id: str, definition: Dict) -> Dict:

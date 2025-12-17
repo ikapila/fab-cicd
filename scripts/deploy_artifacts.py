@@ -75,6 +75,26 @@ class FabricDeployer:
         
         self.workspace_id = self.config.get_workspace_id()
         logger.info(f"Target workspace: {self.config.get_workspace_name()} ({self.workspace_id})")
+        
+        # Cache for workspace folder IDs
+        self._folder_cache = {}
+    
+    def _get_or_create_folder(self, folder_name: str) -> str:
+        """
+        Get or create a workspace folder and cache the ID
+        
+        Args:
+            folder_name: Name of the folder
+            
+        Returns:
+            Folder ID (GUID)
+        """
+        if folder_name not in self._folder_cache:
+            self._folder_cache[folder_name] = self.client.get_or_create_workspace_folder(
+                self.workspace_id, 
+                folder_name
+            )
+        return self._folder_cache[folder_name]
     
     def discover_artifacts(self) -> None:
         """
@@ -538,10 +558,19 @@ class FabricDeployer:
                     if existing_notebook:
                         logger.info(f"  ✓ Notebook '{name}' already exists (ID: {existing_notebook['id']})")
                     elif create_if_not_exists:
+                        # Get or create folder for notebooks
+                        folder_id = self._get_or_create_folder("Notebooks")
+                        
                         # Create basic notebook structure in Fabric Git format
                         notebook_definition = self._create_notebook_template(name, description, template, notebook_def)
-                        result = self.client.create_notebook(self.workspace_id, name, notebook_definition, description)
-                        logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
+                        result = self.client.create_notebook(
+                            self.workspace_id, 
+                            name, 
+                            notebook_definition, 
+                            description, 
+                            folder_id=folder_id
+                        )
+                        logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (ID: {result['id']})")
                         # Save to local file in Fabric Git format
                         # Wrap definition for saving (includes id and definition structure)
                         save_data = {
@@ -577,10 +606,18 @@ class FabricDeployer:
                     if existing_job:
                         logger.info(f"  ✓ Spark job '{name}' already exists (ID: {existing_job['id']})")
                     elif create_if_not_exists:
+                        # Get or create folder for Spark jobs
+                        folder_id = self._get_or_create_folder("Sparkjobdefinitions")
+                        
                         # Create basic Spark job definition
                         job_definition = self._create_spark_job_template(name, description, job_def)
-                        result = self.client.create_spark_job_definition(self.workspace_id, name, job_definition)
-                        logger.info(f"  ✓ Created Spark job '{name}' (ID: {result['id']})")
+                        result = self.client.create_spark_job_definition(
+                            self.workspace_id, 
+                            name, 
+                            job_definition, 
+                            folder_id=folder_id
+                        )
+                        logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (ID: {result['id']})")
                         # Save to local file
                         self._save_artifact_to_file("Sparkjobdefinitions", name, job_definition)
                     else:
@@ -610,10 +647,18 @@ class FabricDeployer:
                     if existing_pipeline:
                         logger.info(f"  ✓ Pipeline '{name}' already exists (ID: {existing_pipeline['id']})")
                     elif create_if_not_exists:
+                        # Get or create folder for pipelines
+                        folder_id = self._get_or_create_folder("Datapipelines")
+                        
                         # Create basic pipeline definition
                         pipeline_definition = self._create_pipeline_template(name, description, pipeline_def)
-                        result = self.client.create_data_pipeline(self.workspace_id, name, pipeline_definition)
-                        logger.info(f"  ✓ Created pipeline '{name}' (ID: {result['id']})")
+                        result = self.client.create_data_pipeline(
+                            self.workspace_id, 
+                            name, 
+                            pipeline_definition, 
+                            folder_id=folder_id
+                        )
+                        logger.info(f"  ✓ Created pipeline '{name}' in 'Datapipelines' folder (ID: {result['id']})")
                         # Save to local file
                         self._save_artifact_to_file("Datapipelines", name, pipeline_definition)
                     else:
@@ -1281,8 +1326,16 @@ print('Notebook initialized')
             else:
                 logger.info(f"  Environment '{name}' already exists, no changes detected (ID: {existing_env['id']})")
         else:
-            result = self.client.create_environment(self.workspace_id, name, description)
-            logger.info(f"  Created environment (ID: {result['id']})")
+            # Get or create folder for environments
+            folder_id = self._get_or_create_folder("Environments")
+            
+            result = self.client.create_environment(
+                self.workspace_id, 
+                name, 
+                description, 
+                folder_id=folder_id
+            )
+            logger.info(f"  ✓ Created environment '{name}' in 'Environments' folder (ID: {result['id']})")
     
     def _deploy_notebook(self, name: str) -> None:
         """Deploy a notebook (supports both .ipynb and Fabric Git folder format)"""
@@ -1437,14 +1490,19 @@ print('Notebook initialized')
         else:
             logger.info(f"  Notebook '{name}' not found, creating new...")
             logger.debug(f"  Existing notebook names: {[nb.get('displayName') for nb in existing]}")
+            
+            # Get or create folder for notebooks
+            folder_id = self._get_or_create_folder("Notebooks")
+            
             # For creation, we need the full structure with displayName and optional description
             result = self.client.create_notebook(
                 self.workspace_id, 
                 name, 
                 notebook_definition, 
-                description=description
+                description=description,
+                folder_id=folder_id
             )
-            logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
+            logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (ID: {result['id']})")
     
     def _deploy_spark_job(self, name: str) -> None:
         """Deploy a Spark job definition"""
@@ -1485,9 +1543,17 @@ print('Notebook initialized')
             )
             logger.info(f"  ✓ Updated Spark job '{name}' (ID: {existing_job['id']})")
         else:
+            # Get or create folder for Spark jobs
+            folder_id = self._get_or_create_folder("Sparkjobdefinitions")
+            
             # For creation, client.create_spark_job_definition handles displayName + definition wrapping
-            result = self.client.create_spark_job_definition(self.workspace_id, name, definition)
-            logger.info(f"  ✓ Created Spark job '{name}' (ID: {result['id']})")
+            result = self.client.create_spark_job_definition(
+                self.workspace_id, 
+                name, 
+                definition, 
+                folder_id=folder_id
+            )
+            logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (ID: {result['id']})")
     
     def _deploy_pipeline(self, name: str) -> None:
         """Deploy a data pipeline"""
@@ -1527,9 +1593,17 @@ print('Notebook initialized')
             )
             logger.info(f"  ✓ Updated pipeline '{name}' (ID: {existing_pipeline['id']})")
         else:
+            # Get or create folder for pipelines
+            folder_id = self._get_or_create_folder("Datapipelines")
+            
             # For creation, client.create_data_pipeline handles displayName + definition wrapping
-            result = self.client.create_data_pipeline(self.workspace_id, name, definition)
-            logger.info(f"  ✓ Created pipeline '{name}' (ID: {result['id']})")
+            result = self.client.create_data_pipeline(
+                self.workspace_id, 
+                name, 
+                definition, 
+                folder_id=folder_id
+            )
+            logger.info(f"  ✓ Created data pipeline '{name}' in 'Datapipelines' folder (ID: {result['id']})")
     
     def _deploy_semantic_model(self, name: str) -> None:
         """Deploy a semantic model"""
@@ -1555,8 +1629,16 @@ print('Notebook initialized')
             )
             logger.info(f"  Updated semantic model (ID: {existing_model['id']})")
         else:
-            result = self.client.create_semantic_model(self.workspace_id, name, definition)
-            logger.info(f"  Created semantic model (ID: {result['id']})")
+            # Get or create folder for semantic models
+            folder_id = self._get_or_create_folder("Semanticmodels")
+            
+            result = self.client.create_semantic_model(
+                self.workspace_id, 
+                name, 
+                definition, 
+                folder_id=folder_id
+            )
+            logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {result['id']})")
     
     def _deploy_report(self, name: str) -> None:
         """Deploy a Power BI report"""
@@ -1582,8 +1664,16 @@ print('Notebook initialized')
             )
             logger.info(f"  Updated report (ID: {existing_report['id']})")
         else:
-            result = self.client.create_report(self.workspace_id, name, definition)
-            logger.info(f"  Created report (ID: {result['id']})")
+            # Get or create folder for reports
+            folder_id = self._get_or_create_folder("Reports")
+            
+            result = self.client.create_report(
+                self.workspace_id, 
+                name, 
+                definition, 
+                folder_id=folder_id
+            )
+            logger.info(f"  ✓ Created report '{name}' in 'Reports' folder (ID: {result['id']})")
     
     def _deploy_paginated_report(self, name: str) -> None:
         """Deploy a paginated report"""

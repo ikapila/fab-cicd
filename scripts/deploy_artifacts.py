@@ -622,12 +622,18 @@ class FabricDeployer:
                                 description, 
                                 folder_id=folder_id
                             )
-                            logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (ID: {result['id']})")
+                            
+                            # Handle async response (202) or sync response with id
+                            notebook_id = result.get('id') if result else None
+                            if notebook_id:
+                                logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (ID: {notebook_id})")
+                            else:
+                                logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (async operation)")
                             
                             # Save to local file in Fabric Git format
                             logger.info(f"  Saving to local file system...")
                             save_data = {
-                                "id": result['id'],
+                                "id": notebook_id or "",
                                 "displayName": name,
                                 "description": description,
                                 "definition": notebook_definition
@@ -686,7 +692,12 @@ class FabricDeployer:
                             job_definition, 
                             folder_id=folder_id
                         )
-                        logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (ID: {result['id']})")
+                        
+                        job_id = result.get('id') if result else None
+                        if job_id:
+                            logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (ID: {job_id})")
+                        else:
+                            logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (async operation)")
                         # Save to local file
                         self._save_artifact_to_file("Sparkjobdefinitions", name, job_definition)
                     else:
@@ -727,7 +738,12 @@ class FabricDeployer:
                             pipeline_definition, 
                             folder_id=folder_id
                         )
-                        logger.info(f"  ✓ Created pipeline '{name}' in 'Datapipelines' folder (ID: {result['id']})")
+                        
+                        pipeline_id = result.get('id') if result else None
+                        if pipeline_id:
+                            logger.info(f"  ✓ Created pipeline '{name}' in 'Datapipelines' folder (ID: {pipeline_id})")
+                        else:
+                            logger.info(f"  ✓ Created pipeline '{name}' in 'Datapipelines' folder (async operation)")
                         # Save to local file
                         self._save_artifact_to_file("Datapipelines", name, pipeline_definition)
                     else:
@@ -1371,7 +1387,8 @@ print('Notebook initialized')
                 logger.info(f"  Lakehouse '{name}' already exists, no changes detected (ID: {existing_lakehouse['id']})")
         else:
             result = self.client.create_lakehouse(self.workspace_id, name, description)
-            logger.info(f"  Created lakehouse (ID: {result['id']})")
+            lakehouse_id = result.get('id') if result else 'unknown'
+            logger.info(f"  Created lakehouse (ID: {lakehouse_id})")
     
     def _deploy_environment(self, name: str) -> None:
         """Deploy an environment"""
@@ -1404,7 +1421,8 @@ print('Notebook initialized')
                 description, 
                 folder_id=folder_id
             )
-            logger.info(f"  ✓ Created environment '{name}' in 'Environments' folder (ID: {result['id']})")
+            env_id = result.get('id') if result else 'unknown'
+            logger.info(f"  ✓ Created environment '{name}' in 'Environments' folder (ID: {env_id})")
     
     def _deploy_notebook(self, name: str) -> None:
         """Deploy a notebook (supports both .ipynb and Fabric Git folder format)"""
@@ -1571,7 +1589,8 @@ print('Notebook initialized')
                 description=description,
                 folder_id=folder_id
             )
-            logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (ID: {result['id']})")
+            notebook_id = result.get('id') if result else 'unknown'
+            logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (ID: {notebook_id})")
     
     def _deploy_spark_job(self, name: str) -> None:
         """Deploy a Spark job definition"""
@@ -1622,7 +1641,8 @@ print('Notebook initialized')
                 definition, 
                 folder_id=folder_id
             )
-            logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (ID: {result['id']})")
+            job_id = result.get('id') if result else 'unknown'
+            logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (ID: {job_id})")
     
     def _deploy_pipeline(self, name: str) -> None:
         """Deploy a data pipeline"""
@@ -1672,7 +1692,8 @@ print('Notebook initialized')
                 definition, 
                 folder_id=folder_id
             )
-            logger.info(f"  ✓ Created data pipeline '{name}' in 'Datapipelines' folder (ID: {result['id']})")
+            pipeline_id = result.get('id') if result else 'unknown'
+            logger.info(f"  ✓ Created data pipeline '{name}' in 'Datapipelines' folder (ID: {pipeline_id})")
     
     def _deploy_semantic_model(self, name: str) -> None:
         """Deploy a semantic model"""
@@ -1707,7 +1728,8 @@ print('Notebook initialized')
                 definition, 
                 folder_id=folder_id
             )
-            logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {result['id']})")
+            model_id = result.get('id') if result else 'unknown'
+            logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {model_id})")
     
     def _deploy_report(self, name: str) -> None:
         """Deploy a Power BI report"""
@@ -1742,7 +1764,8 @@ print('Notebook initialized')
                 definition, 
                 folder_id=folder_id
             )
-            logger.info(f"  ✓ Created report '{name}' in 'Reports' folder (ID: {result['id']})")
+            report_id = result.get('id') if result else 'unknown'
+            logger.info(f"  ✓ Created report '{name}' in 'Reports' folder (ID: {report_id})")
     
     def _deploy_paginated_report(self, name: str) -> None:
         """Deploy a paginated report"""
@@ -1769,7 +1792,8 @@ print('Notebook initialized')
             logger.info(f"  Updated paginated report (ID: {existing_report['id']})")
         else:
             result = self.client.create_paginated_report(self.workspace_id, name, definition)
-            logger.info(f"  Created paginated report (ID: {result['id']})")
+            report_id = result.get('id') if result else 'unknown'
+            logger.info(f"  Created paginated report (ID: {report_id})")
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""
@@ -1810,12 +1834,12 @@ print('Notebook initialized')
                 name,
                 description
             )
-            library_id = result["id"]
+            library_id = result.get('id') if result else 'unknown'
             logger.info(f"  Created Variable Library (ID: {library_id})")
             
             # Set initial variables
             variables = definition.get("variables", [])
-            if variables:
+            if variables and library_id and library_id != 'unknown':
                 logger.info(f"  Setting {len(variables)} initial variables...")
                 update_payload = {
                     "variables": variables

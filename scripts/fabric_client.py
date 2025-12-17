@@ -57,6 +57,28 @@ class FabricClient:
         url = f"{self.BASE_URL}/{endpoint.lstrip('/')}"
         headers = self.auth.get_auth_headers()
         
+        # Debug logging for notebook creation
+        if "notebooks" in endpoint and method == "POST":
+            logger.info(f"Creating notebook - URL: {url}")
+            if json_data:
+                import json
+                # Log structure without exposing full base64 payload
+                debug_data = json_data.copy()
+                if "definition" in debug_data and "parts" in debug_data["definition"]:
+                    parts_summary = []
+                    for part in debug_data["definition"]["parts"]:
+                        parts_summary.append({
+                            "path": part.get("path"),
+                            "payloadType": part.get("payloadType"),
+                            "payload_length": len(part.get("payload", ""))
+                        })
+                    debug_copy = debug_data.copy()
+                    debug_copy["definition"] = {
+                        "format": debug_data["definition"].get("format"),
+                        "parts": parts_summary
+                    }
+                    logger.info(f"Payload structure: {json.dumps(debug_copy, indent=2)}")
+        
         try:
             response = requests.request(
                 method=method,
@@ -77,6 +99,12 @@ class FabricClient:
             
         except requests.exceptions.HTTPError as e:
             logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
+            # Try to parse error response for more details
+            try:
+                error_detail = e.response.json()
+                logger.error(f"Error details: {json.dumps(error_detail, indent=2)}")
+            except:
+                pass
             raise
         except Exception as e:
             logger.error(f"Request failed: {str(e)}")
@@ -205,7 +233,7 @@ class FabricClient:
         logger.info(f"Getting notebook: {notebook_id}")
         return self._make_request("GET", f"/workspaces/{workspace_id}/notebooks/{notebook_id}")
     
-    def create_notebook(self, workspace_id: str, notebook_name: str, definition: Dict) -> Dict:
+    def create_notebook(self, workspace_id: str, notebook_name: str, definition: Dict, description: str = None) -> Dict:
         """
         Create or update a notebook
         
@@ -213,6 +241,7 @@ class FabricClient:
             workspace_id: Workspace GUID
             notebook_name: Name for the notebook
             definition: Notebook definition (content)
+            description: Optional notebook description
             
         Returns:
             Created notebook details
@@ -222,6 +251,8 @@ class FabricClient:
             "displayName": notebook_name,
             "definition": definition
         }
+        if description:
+            payload["description"] = description
         return self._make_request("POST", f"/workspaces/{workspace_id}/notebooks", json_data=payload)
     
     def update_notebook_definition(self, workspace_id: str, notebook_id: str, definition: Dict) -> Dict:

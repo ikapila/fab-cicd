@@ -533,7 +533,7 @@ class FabricDeployer:
                     elif create_if_not_exists:
                         # Create basic notebook structure in Fabric Git format
                         notebook_definition = self._create_notebook_template(name, description, template, notebook_def)
-                        result = self.client.create_notebook(self.workspace_id, name, notebook_definition)
+                        result = self.client.create_notebook(self.workspace_id, name, notebook_definition, description)
                         logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
                         # Save to local file in Fabric Git format
                         # Wrap definition for saving (includes id and definition structure)

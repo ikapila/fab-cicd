@@ -330,6 +330,9 @@ class FabricClient:
             payload["description"] = description
         if folder_id:
             payload["folderId"] = folder_id
+            logger.info(f"  Including folderId in payload: {folder_id}")
+        else:
+            logger.warning(f"  No folderId provided - notebook will be created at workspace root")
         return self._make_request("POST", f"/workspaces/{workspace_id}/notebooks", json_data=payload)
     
     def update_notebook_definition(self, workspace_id: str, notebook_id: str, definition: Dict) -> Dict:

@@ -81,12 +81,6 @@ class FabricDeployer:
         
         # Track artifacts created in this run to avoid immediate update attempts
         self._created_in_this_run = set()
-        
-        # Track artifacts created in this run to avoid immediate update attempts
-        self._created_in_this_run = set()
-        
-        # Track artifacts created in this run to avoid immediate update attempts
-        self._created_in_this_run = set()
     
     def _get_or_create_folder(self, folder_name: str) -> str:
         """
@@ -638,12 +632,26 @@ class FabricDeployer:
                                 logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (ID: {notebook_id})")
                             else:
                                 logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (async operation)")
+                                logger.info(f"  Note: Async creation - notebook may take a moment to appear in workspace")
                             
                             # Track this notebook as created in this run
                             self._created_in_this_run.add(('notebook', name))
                             
-                            # Track this notebook as created in this run
-                            self._created_in_this_run.add((ArtifactType.NOTEBOOK, name))
+                            # Verify notebook was created
+                            import time
+                            time.sleep(2)  # Brief delay for async operations
+                            logger.info(f"  Verifying notebook creation...")
+                            existing = self.client.list_notebooks(self.workspace_id)
+                            created_notebook = next((nb for nb in existing if nb["displayName"] == name), None)
+                            if created_notebook:
+                                logger.info(f"  ✓ Verified: Notebook '{name}' found in workspace (ID: {created_notebook['id']})")
+                                if 'parentFolder' in created_notebook:
+                                    logger.info(f"     Located in folder: {created_notebook.get('parentFolder', {}).get('displayName', 'N/A')}")
+                                else:
+                                    logger.warning(f"     Warning: Notebook is at workspace root (no folder assignment)")
+                            else:
+                                logger.error(f"  ✗ Verification failed: Notebook '{name}' not found in workspace")
+                                logger.error(f"     This could indicate an API issue or permission problem")
                             
                             # Save to local file in Fabric Git format
                             logger.info(f"  Saving to local file system...")

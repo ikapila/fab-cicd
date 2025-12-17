@@ -573,6 +573,7 @@ class FabricDeployer:
         
         # Create notebooks
         for notebook_def in artifacts_config.get("notebooks", []):
+            name = None
             try:
                 name = notebook_def["name"]
                 description = notebook_def.get("description", "")
@@ -580,44 +581,82 @@ class FabricDeployer:
                 template = notebook_def.get("template", "basic_spark")
                 
                 logger.info(f"\nProcessing notebook: {name}")
+                logger.info(f"  Template: {template}")
+                logger.info(f"  Description: {description}")
                 
                 if not dry_run:
+                    # Check if notebook already exists
+                    logger.info(f"  Checking if notebook '{name}' exists...")
                     existing = self.client.list_notebooks(self.workspace_id)
                     existing_notebook = next((nb for nb in existing if nb["displayName"] == name), None)
                     
                     if existing_notebook:
                         logger.info(f"  ✓ Notebook '{name}' already exists (ID: {existing_notebook['id']})")
                     elif create_if_not_exists:
-                        # Get or create folder for notebooks
-                        folder_id = self._get_or_create_folder("Notebooks")
-                        
-                        # Create basic notebook structure in Fabric Git format
-                        notebook_definition = self._create_notebook_template(name, description, template, notebook_def)
-                        result = self.client.create_notebook(
-                            self.workspace_id, 
-                            name, 
-                            notebook_definition, 
-                            description, 
-                            folder_id=folder_id
-                        )
-                        logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (ID: {result['id']})")
-                        # Save to local file in Fabric Git format
-                        # Wrap definition for saving (includes id and definition structure)
-                        save_data = {
-                            "id": result['id'],
-                            "displayName": name,
-                            "description": description,
-                            "definition": notebook_definition
-                        }
-                        self._save_artifact_to_file("Notebooks", name, save_data, "fabric-notebook")
+                        try:
+                            # Get or create folder for notebooks
+                            logger.info(f"  Getting/creating 'Notebooks' folder...")
+                            folder_id = self._get_or_create_folder("Notebooks")
+                            logger.info(f"  Folder ID: {folder_id}")
+                            
+                            # Create basic notebook structure in Fabric Git format
+                            logger.info(f"  Creating notebook definition from template '{template}'...")
+                            notebook_definition = self._create_notebook_template(name, description, template, notebook_def)
+                            
+                            # Validate definition
+                            if not notebook_definition:
+                                raise ValueError("Notebook definition is empty")
+                            if "parts" not in notebook_definition:
+                                raise ValueError("Notebook definition missing 'parts'")
+                            if not notebook_definition["parts"]:
+                                raise ValueError("Notebook definition has empty 'parts' array")
+                            
+                            logger.info(f"  Definition created successfully with {len(notebook_definition['parts'])} part(s)")
+                            
+                            # Create notebook via API
+                            logger.info(f"  Calling Fabric API to create notebook...")
+                            result = self.client.create_notebook(
+                                self.workspace_id, 
+                                name, 
+                                notebook_definition, 
+                                description, 
+                                folder_id=folder_id
+                            )
+                            logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (ID: {result['id']})")
+                            
+                            # Save to local file in Fabric Git format
+                            logger.info(f"  Saving to local file system...")
+                            save_data = {
+                                "id": result['id'],
+                                "displayName": name,
+                                "description": description,
+                                "definition": notebook_definition
+                            }
+                            self._save_artifact_to_file("Notebooks", name, save_data, "fabric-notebook")
+                            
+                        except Exception as create_error:
+                            logger.error(f"  ✗ Error during notebook creation:")
+                            logger.error(f"     {str(create_error)}")
+                            import traceback
+                            logger.error(f"     Traceback:\n{traceback.format_exc()}")
+                            raise
                     else:
                         logger.warning(f"  ⚠ Notebook '{name}' does not exist and create_if_not_exists is false")
                 else:
                     logger.info(f"  [DRY RUN] Would create notebook: {name}")
                     logger.info(f"    Template: {template}")
                     
+            except KeyError as ke:
+                logger.error(f"  ✗ Missing required field in notebook configuration: {str(ke)}")
+                logger.error(f"     Configuration: {notebook_def}")
+                success = False
             except Exception as e:
-                logger.error(f"  ✗ Failed to create notebook '{name}': {str(e)}")
+                import traceback
+                notebook_name = name if name else "Unknown"
+                logger.error(f"  ✗ Failed to create notebook '{notebook_name}'")
+                logger.error(f"     Error: {str(e)}")
+                logger.error(f"     Type: {type(e).__name__}")
+                logger.error(f"     Full traceback:\n{traceback.format_exc()}")
                 success = False
         
         # Create Spark job definitions

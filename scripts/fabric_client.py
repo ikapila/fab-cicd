@@ -166,7 +166,7 @@ class FabricClient:
         """
         return self._make_request("GET", f"/operations/{operation_id}/result")
     
-    def wait_for_operation_completion(self, operation_id: str, retry_after: int = 5, max_attempts: int = 60) -> Dict:
+    def wait_for_operation_completion(self, operation_id: str, retry_after: int = 5, max_attempts: int = 10) -> Dict:
         """
         Wait for a long running operation to complete and return the result
         

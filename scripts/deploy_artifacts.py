@@ -908,35 +908,14 @@ class FabricDeployer:
         content_bytes = notebook_content.encode('utf-8')
         content_base64 = base64.b64encode(content_bytes).decode('utf-8')
         
-        # Generate .platform file content
-        platform_content = {
-            "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
-            "metadata": {
-                "type": "Notebook",
-                "displayName": name,
-                "description": description or ""
-            },
-            "config": {
-                "version": "2.0",
-                "logicalId": ""
-            }
-        }
-        platform_json = json.dumps(platform_content)
-        platform_base64 = base64.b64encode(platform_json.encode('utf-8')).decode('utf-8')
-        
         # Construct definition for Fabric Git format
-        # For CREATE, format field must be explicitly specified
+        # Platform file is optional for creation
         definition = {
             "format": "fabricGitSource",
             "parts": [
                 {
                     "path": "notebook-content.py",
                     "payload": content_base64,
-                    "payloadType": "InlineBase64"
-                },
-                {
-                    "path": ".platform",
-                    "payload": platform_base64,
                     "payloadType": "InlineBase64"
                 }
             ]
@@ -958,84 +937,60 @@ class FabricDeployer:
         
         if template == "basic_spark":
             # Create basic PySpark notebook in Fabric format
-            content = f"""# Fabric notebook source
-
-# METADATA ********************
-
-# META {{
-#   "kernel_info": {{
-#     "name": "synapse_pyspark"
-#   }},
-#   "dependencies": {{
-#     "lakehouse": {{
-#       "default_lakehouse": "",
-#       "default_lakehouse_name": "",
-#       "default_lakehouse_workspace_id": ""
-#     }}
-#   }}
-# }}
-
-# MARKDOWN ********************
-
-# # {name}
-# {description}
-
-# CELL ********************
-
-# Import required libraries
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import *
-
-print('Notebook initialized successfully')
-
-# CELL ********************
-
-# Your code here
-# This is a placeholder notebook
+            content = f"""# Fabric notebook source 
+# METADATA ******************** 
+# META {{ 
+# META   "kernel_info": {{ 
+# META     "name": "synapse_pyspark" 
+# META   }}, 
+# META   "dependencies": {{}} 
+# META }} 
+# CELL ******************** 
+# Welcome to your new notebook 
+# Type here in the cell editor to add code! 
+# METADATA ******************** 
+# META {{ 
+# META   "language": "python", 
+# META   "language_group": "synapse_pyspark" 
+# META }} 
 """
         elif template == "sql":
             # Create SQL notebook in Fabric format
-            content = f"""# Fabric notebook source
-
-# METADATA ********************
-
-# META {{
-#   "kernel_info": {{
-#     "name": "synapse_pyspark"
-#   }}
-# }}
-
-# MARKDOWN ********************
-
-# # {name}
-# {description}
-
-# CELL ********************
-
+            content = f"""# Fabric notebook source 
+# METADATA ******************** 
+# META {{ 
+# META   "kernel_info": {{ 
+# META     "name": "synapse_pyspark" 
+# META   }}, 
+# META   "dependencies": {{}} 
+# META }} 
+# CELL ******************** 
 # MAGIC %%sql
 # MAGIC -- SQL query example
 # MAGIC -- SELECT * FROM table_name LIMIT 10;
+# METADATA ******************** 
+# META {{ 
+# META   "language": "sql", 
+# META   "language_group": "synapse_pyspark" 
+# META }} 
 """
         else:
             # Default empty notebook
-            content = f"""# Fabric notebook source
-
-# METADATA ********************
-
-# META {{
-#   "kernel_info": {{
-#     "name": "synapse_pyspark"
-#   }}
-# }}
-
-# MARKDOWN ********************
-
-# # {name}
-# {description}
-
-# CELL ********************
-
+            content = f"""# Fabric notebook source 
+# METADATA ******************** 
+# META {{ 
+# META   "kernel_info": {{ 
+# META     "name": "synapse_pyspark" 
+# META   }}, 
+# META   "dependencies": {{}} 
+# META }} 
+# CELL ******************** 
 print('Notebook initialized')
+# METADATA ******************** 
+# META {{ 
+# META   "language": "python", 
+# META   "language_group": "synapse_pyspark" 
+# META }} 
 """
         
         return content

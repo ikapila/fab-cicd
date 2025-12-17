@@ -78,6 +78,15 @@ class FabricDeployer:
         
         # Cache for workspace folder IDs
         self._folder_cache = {}
+        
+        # Track artifacts created in this run to avoid immediate update attempts
+        self._created_in_this_run = set()
+        
+        # Track artifacts created in this run to avoid immediate update attempts
+        self._created_in_this_run = set()
+        
+        # Track artifacts created in this run to avoid immediate update attempts
+        self._created_in_this_run = set()
     
     def _get_or_create_folder(self, folder_name: str) -> str:
         """
@@ -630,6 +639,12 @@ class FabricDeployer:
                             else:
                                 logger.info(f"  ✓ Created notebook '{name}' in 'Notebooks' folder (async operation)")
                             
+                            # Track this notebook as created in this run
+                            self._created_in_this_run.add(('notebook', name))
+                            
+                            # Track this notebook as created in this run
+                            self._created_in_this_run.add((ArtifactType.NOTEBOOK, name))
+                            
                             # Save to local file in Fabric Git format
                             logger.info(f"  Saving to local file system...")
                             save_data = {
@@ -698,6 +713,10 @@ class FabricDeployer:
                             logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (ID: {job_id})")
                         else:
                             logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (async operation)")
+                        
+                        # Track this Spark job as created in this run
+                        self._created_in_this_run.add(('spark_job_definition', name))
+                        
                         # Save to local file
                         self._save_artifact_to_file("Sparkjobdefinitions", name, job_definition)
                     else:
@@ -1426,6 +1445,11 @@ print('Notebook initialized')
     
     def _deploy_notebook(self, name: str) -> None:
         """Deploy a notebook (supports both .ipynb and Fabric Git folder format)"""
+        # Skip if this notebook was created in the current run
+        if ('notebook', name) in self._created_in_this_run:
+            logger.info(f"  ⏭ Skipping notebook '{name}' - created in this run")
+            return
+        
         notebooks_dir = self.artifacts_dir / self.artifacts_root_folder / "Notebooks"
         notebook_file = notebooks_dir / f"{name}.ipynb"
         
@@ -1594,6 +1618,11 @@ print('Notebook initialized')
     
     def _deploy_spark_job(self, name: str) -> None:
         """Deploy a Spark job definition"""
+        # Skip if this Spark job was created in the current run
+        if ('spark_job_definition', name) in self._created_in_this_run:
+            logger.info(f"  ⏭ Skipping Spark job '{name}' - created in this run")
+            return
+        
         job_file = self.artifacts_dir / self.artifacts_root_folder / "Sparkjobdefinitions" / f"{name}.json"
         with open(job_file, 'r') as f:
             job_content = f.read()

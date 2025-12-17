@@ -101,7 +101,21 @@ class FabricClient:
             
             # Some endpoints return 202 Accepted or 204 No Content
             if response.status_code in [202, 204]:
-                return {"status": "success", "status_code": response.status_code}
+                result = {"status": "success", "status_code": response.status_code}
+                # For 202 responses, check for Location header with operation URL
+                if response.status_code == 202 and "Location" in response.headers:
+                    result["location"] = response.headers["Location"]
+                    logger.info(f"  Async operation started - Location: {response.headers['Location']}")
+                # Try to parse response body if present
+                if response.text:
+                    try:
+                        body = response.json()
+                        result.update(body)
+                        if 'id' in body:
+                            logger.info(f"  Resource ID from response: {body['id']}")
+                    except:
+                        pass
+                return result
             
             return response.json()
             

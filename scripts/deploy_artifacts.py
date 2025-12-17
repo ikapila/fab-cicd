@@ -1051,7 +1051,7 @@ class FabricDeployer:
             logger.warning(f"  ⚠ Failed to save artifact to file: {str(e)}")
     
     def _create_notebook_template(self, name, description, template, notebook_def):
-        """Create notebook definition from template in Fabric Git format."""
+        """Create notebook definition in Fabric Git format."""
         # Generate Fabric notebook content (Python format)
         notebook_content = self._get_fabric_notebook_content(template, notebook_def)
         
@@ -1060,8 +1060,7 @@ class FabricDeployer:
         content_base64 = base64.b64encode(content_bytes).decode('utf-8')
         
         # Construct definition for Fabric Git format
-        # For CREATE operations, format field should be omitted (defaults to fabricGitSource)
-        # Or explicitly set to "ipynb" only when creating ipynb format notebooks
+        # Do not include format field - let API infer from the path
         definition = {
             "parts": [
                 {
@@ -1088,60 +1087,89 @@ class FabricDeployer:
         
         if template == "basic_spark":
             # Create basic PySpark notebook in Fabric format
-            content = f"""# Fabric notebook source 
-# METADATA ******************** 
-# META {{ 
-# META   "kernel_info": {{ 
-# META     "name": "synapse_pyspark" 
-# META   }}, 
-# META   "dependencies": {{}} 
-# META }} 
-# CELL ******************** 
-# Welcome to your new notebook 
-# Type here in the cell editor to add code! 
-# METADATA ******************** 
-# META {{ 
-# META   "language": "python", 
-# META   "language_group": "synapse_pyspark" 
-# META }} 
+            # Use proper Fabric notebook format
+            content = """# Fabric notebook source
+
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# CELL ********************
+
+# Welcome to your new notebook
+# Type here in the cell editor to add code!
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "azdata_cell_guid": "00000000-0000-0000-0000-000000000000"
+# META }
+
+# CELL ********************
+
+print('Hello from Fabric notebook!')
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "azdata_cell_guid": "00000000-0000-0000-0000-000000000001"
+# META }
 """
         elif template == "sql":
-            # Create SQL notebook in Fabric format
-            content = f"""# Fabric notebook source 
-# METADATA ******************** 
-# META {{ 
-# META   "kernel_info": {{ 
-# META     "name": "synapse_pyspark" 
-# META   }}, 
-# META   "dependencies": {{}} 
-# META }} 
-# CELL ******************** 
+            content = """# Fabric notebook source
+
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# CELL ********************
+
 # MAGIC %%sql
 # MAGIC -- SQL query example
-# MAGIC -- SELECT * FROM table_name LIMIT 10;
-# METADATA ******************** 
-# META {{ 
-# META   "language": "sql", 
-# META   "language_group": "synapse_pyspark" 
-# META }} 
+# MAGIC SELECT 1 as test
+
+# METADATA ********************
+
+# META {
+# META   "language": "sql",
+# META   "azdata_cell_guid": "00000000-0000-0000-0000-000000000000"
+# META }
 """
         else:
-            # Default empty notebook
-            content = f"""# Fabric notebook source 
-# METADATA ******************** 
-# META {{ 
-# META   "kernel_info": {{ 
-# META     "name": "synapse_pyspark" 
-# META   }}, 
-# META   "dependencies": {{}} 
-# META }} 
-# CELL ******************** 
+            # Default notebook
+            content = """# Fabric notebook source
+
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# CELL ********************
+
 print('Notebook initialized')
-# METADATA ******************** 
-# META {{ 
-# META   "language": "python", 
-# META   "language_group": "synapse_pyspark" 
-# META }} 
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "azdata_cell_guid": "00000000-0000-0000-0000-000000000000"
+# META }
 """
         
         return content

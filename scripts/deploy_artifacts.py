@@ -1046,9 +1046,9 @@ class FabricDeployer:
         content_base64 = base64.b64encode(content_bytes).decode('utf-8')
         
         # Construct definition for Fabric Git format
-        # Platform file is optional for creation
+        # For CREATE operations, format field should be omitted (defaults to fabricGitSource)
+        # Or explicitly set to "ipynb" only when creating ipynb format notebooks
         definition = {
-            "format": "fabricGitSource",
             "parts": [
                 {
                     "path": "notebook-content.py",

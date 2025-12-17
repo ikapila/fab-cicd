@@ -1302,29 +1302,30 @@ print('Notebook initialized')
         else:
             # Try Fabric Git folder format - need to search by displayName in .platform files
             found = False
-            for item in notebooks_dir.iterdir():
-                if item.is_dir():
-                    platform_file = item / ".platform"
-                    content_file = item / "notebook-content.py"
-                    
-                    if platform_file.exists() and content_file.exists():
-                        try:
-                            with open(platform_file, 'r') as f:
-                                platform_data = json.load(f)
-                            display_name = platform_data.get("metadata", {}).get("displayName", item.name)
-                            
-                            if display_name == name:
-                                logger.debug(f"  Found notebook as Fabric Git folder: {item.name} (displayName: {name})")
-                                # Read the notebook content from notebook-content.py
-                                with open(content_file, 'r', encoding='utf-8') as f:
-                                    notebook_content = f.read()
-                                notebook_format = "fabric"
-                                notebook_folder_path = item
-                                found = True
-                                break
-                        except Exception as e:
-                            logger.debug(f"  Skipping folder {item.name}: {e}")
-                            continue
+            if notebooks_dir.exists():
+                for item in notebooks_dir.iterdir():
+                    if item.is_dir():
+                        platform_file = item / ".platform"
+                        content_file = item / "notebook-content.py"
+                        
+                        if platform_file.exists() and content_file.exists():
+                            try:
+                                with open(platform_file, 'r') as f:
+                                    platform_data = json.load(f)
+                                display_name = platform_data.get("metadata", {}).get("displayName", item.name)
+                                
+                                if display_name == name:
+                                    logger.debug(f"  Found notebook as Fabric Git folder: {item.name} (displayName: {name})")
+                                    # Read the notebook content from notebook-content.py
+                                    with open(content_file, 'r', encoding='utf-8') as f:
+                                        notebook_content = f.read()
+                                    notebook_format = "fabric"
+                                    notebook_folder_path = item
+                                    found = True
+                                    break
+                            except Exception as e:
+                                logger.debug(f"  Skipping folder {item.name}: {e}")
+                                continue
             
             if not found:
                 # Fallback: try using name as folder name directly
@@ -1342,7 +1343,18 @@ print('Notebook initialized')
                         found = True
             
             if not found:
-                raise FileNotFoundError(f"Notebook '{name}' not found as .ipynb file or Fabric folder")
+                # Check if notebook exists in Fabric workspace
+                # If it exists remotely but not locally, it was likely created via config
+                # In this case, skip the deployment (no local changes to deploy)
+                existing = self.client.list_notebooks(self.workspace_id)
+                existing_notebook = next((nb for nb in existing if nb["displayName"] == name), None)
+                
+                if existing_notebook:
+                    logger.info(f"  ⊙ Notebook '{name}' exists in workspace but not found locally - skipping deployment")
+                    logger.debug(f"    Notebook may have been created via config without local files")
+                    return
+                else:
+                    raise FileNotFoundError(f"Notebook '{name}' not found locally or in workspace")
         
         # Substitute environment-specific parameters
         notebook_content = self.config.substitute_parameters(notebook_content)

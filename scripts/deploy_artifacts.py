@@ -186,7 +186,14 @@ class FabricDeployer:
                 
                 # Check if it's a valid Fabric notebook folder
                 if platform_file.exists() and content_file.exists():
-                    notebook_name = item.name
+                    # Read displayName from .platform file
+                    try:
+                        with open(platform_file, 'r') as f:
+                            platform_data = json.load(f)
+                        notebook_name = platform_data.get("metadata", {}).get("displayName", item.name)
+                    except Exception as e:
+                        logger.warning(f"Could not read displayName from {platform_file}, using folder name: {e}")
+                        notebook_name = item.name
                     
                     # Skip if already discovered as .ipynb
                     if notebook_name in discovered_notebooks:
@@ -1281,10 +1288,10 @@ print('Notebook initialized')
         """Deploy a notebook (supports both .ipynb and Fabric Git folder format)"""
         notebooks_dir = self.artifacts_dir / self.artifacts_root_folder / "Notebooks"
         notebook_file = notebooks_dir / f"{name}.ipynb"
-        notebook_folder = notebooks_dir / name
         
         notebook_content = None
         notebook_format = None
+        notebook_folder_path = None
         
         # Try .ipynb file first (legacy format)
         if notebook_file.exists():
@@ -1292,24 +1299,65 @@ print('Notebook initialized')
             with open(notebook_file, 'r') as f:
                 notebook_content = f.read()
             notebook_format = "ipynb"
-        # Try Fabric Git folder format
-        elif notebook_folder.exists() and notebook_folder.is_dir():
-            platform_file = notebook_folder / ".platform"
-            content_file = notebook_folder / "notebook-content.py"
-            
-            if platform_file.exists() and content_file.exists():
-                logger.debug(f"  Found notebook as Fabric Git folder: {name}")
-                # Read the notebook content from notebook-content.py
-                with open(content_file, 'r', encoding='utf-8') as f:
-                    notebook_content = f.read()
-                notebook_format = "fabric"
-            else:
-                raise FileNotFoundError(f"Notebook folder '{name}' missing required files (.platform or notebook-content.py)")
         else:
-            raise FileNotFoundError(f"Notebook '{name}' not found as .ipynb file or Fabric folder")
+            # Try Fabric Git folder format - need to search by displayName in .platform files
+            found = False
+            for item in notebooks_dir.iterdir():
+                if item.is_dir():
+                    platform_file = item / ".platform"
+                    content_file = item / "notebook-content.py"
+                    
+                    if platform_file.exists() and content_file.exists():
+                        try:
+                            with open(platform_file, 'r') as f:
+                                platform_data = json.load(f)
+                            display_name = platform_data.get("metadata", {}).get("displayName", item.name)
+                            
+                            if display_name == name:
+                                logger.debug(f"  Found notebook as Fabric Git folder: {item.name} (displayName: {name})")
+                                # Read the notebook content from notebook-content.py
+                                with open(content_file, 'r', encoding='utf-8') as f:
+                                    notebook_content = f.read()
+                                notebook_format = "fabric"
+                                notebook_folder_path = item
+                                found = True
+                                break
+                        except Exception as e:
+                            logger.debug(f"  Skipping folder {item.name}: {e}")
+                            continue
+            
+            if not found:
+                # Fallback: try using name as folder name directly
+                notebook_folder = notebooks_dir / name
+                if notebook_folder.exists() and notebook_folder.is_dir():
+                    platform_file = notebook_folder / ".platform"
+                    content_file = notebook_folder / "notebook-content.py"
+                    
+                    if platform_file.exists() and content_file.exists():
+                        logger.debug(f"  Found notebook as Fabric Git folder (by folder name): {name}")
+                        with open(content_file, 'r', encoding='utf-8') as f:
+                            notebook_content = f.read()
+                        notebook_format = "fabric"
+                        notebook_folder_path = notebook_folder
+                        found = True
+            
+            if not found:
+                raise FileNotFoundError(f"Notebook '{name}' not found as .ipynb file or Fabric folder")
         
         # Substitute environment-specific parameters
         notebook_content = self.config.substitute_parameters(notebook_content)
+        
+        # Read description from .platform file if Fabric format
+        description = None
+        if notebook_format == "fabric" and notebook_folder_path:
+            platform_file = notebook_folder_path / ".platform"
+            try:
+                with open(platform_file, 'r') as f:
+                    platform_data = json.load(f)
+                description = platform_data.get("metadata", {}).get("description", "")
+                logger.debug(f"  Read description from .platform: {description[:50] if description else 'None'}...")
+            except Exception as e:
+                logger.debug(f"  Could not read description from .platform: {e}")
         
         # Parse based on format and construct API payload
         if notebook_format == "ipynb":
@@ -1360,10 +1408,13 @@ print('Notebook initialized')
         
         # Check if notebook exists
         existing = self.client.list_notebooks(self.workspace_id)
+        logger.debug(f"  Found {len(existing)} existing notebooks in workspace")
+        
         existing_notebook = next((nb for nb in existing if nb["displayName"] == name), None)
         
         if existing_notebook:
             logger.info(f"  Notebook '{name}' already exists, updating...")
+            logger.debug(f"  Existing notebook ID: {existing_notebook['id']}")
             # For updates, send only the definition part
             self.client.update_notebook_definition(
                 self.workspace_id,
@@ -1372,8 +1423,15 @@ print('Notebook initialized')
             )
             logger.info(f"  ✓ Updated notebook '{name}' (ID: {existing_notebook['id']})")
         else:
-            # For creation, we need the full structure with displayName
-            result = self.client.create_notebook(self.workspace_id, name, notebook_definition)
+            logger.info(f"  Notebook '{name}' not found, creating new...")
+            logger.debug(f"  Existing notebook names: {[nb.get('displayName') for nb in existing]}")
+            # For creation, we need the full structure with displayName and optional description
+            result = self.client.create_notebook(
+                self.workspace_id, 
+                name, 
+                notebook_definition, 
+                description=description
+            )
             logger.info(f"  ✓ Created notebook '{name}' (ID: {result['id']})")
     
     def _deploy_spark_job(self, name: str) -> None:

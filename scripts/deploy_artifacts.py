@@ -623,63 +623,21 @@ class FabricDeployer:
                                 name, 
                                 notebook_definition, 
                                 description, 
-                                folder_id=folder_id
+                                folder_id=folder_id,
+                                wait_for_completion=True  # Wait for LRO to complete
                             )
                             
-                            # Log the full API response for debugging
-                            logger.debug(f"  API Response: {result}")
-                            
-                            # Handle async response (202) or sync response with id
+                            # Result now contains the created notebook details
                             notebook_id = result.get('id') if result else None
-                            status_code = result.get('status_code') if result else None
                             
                             if notebook_id:
-                                logger.info(f"  ✓ API returned notebook ID: {notebook_id}")
-                            elif status_code == 202:
-                                logger.info(f"  ✓ API accepted request (202) - async operation in progress")
-                                if 'location' in result:
-                                    logger.info(f"     Operation URL: {result['location']}")
+                                logger.info(f"  ✓ Notebook created successfully (ID: {notebook_id})")
                             else:
-                                logger.warning(f"  ⚠ Unexpected API response - no ID returned")
-                                logger.warning(f"     Response: {result}")
+                                logger.warning(f"  ⚠ Notebook created but no ID returned")
+                                logger.debug(f"  API Response: {result}")
                             
                             # Track this notebook as created in this run
                             self._created_in_this_run.add(('notebook', name))
-                            
-                            # Verify notebook was created with retry logic
-                            import time
-                            max_attempts = 5
-                            wait_time = 3
-                            created_notebook = None
-                            
-                            logger.info(f"  Verifying notebook creation (will retry up to {max_attempts} times)...")
-                            for attempt in range(1, max_attempts + 1):
-                                if attempt > 1:
-                                    logger.info(f"  Retry attempt {attempt}/{max_attempts}...")
-                                    time.sleep(wait_time)
-                                else:
-                                    time.sleep(wait_time)  # Initial wait
-                                
-                                existing = self.client.list_notebooks(self.workspace_id)
-                                logger.debug(f"  Found {len(existing)} notebooks in workspace")
-                                created_notebook = next((nb for nb in existing if nb["displayName"] == name), None)
-                                
-                                if created_notebook:
-                                    logger.info(f"  ✓ Verified: Notebook '{name}' found in workspace (ID: {created_notebook['id']})")
-                                    if 'parentFolder' in created_notebook and created_notebook['parentFolder']:
-                                        folder_info = created_notebook['parentFolder']
-                                        logger.info(f"     Located in folder: {folder_info.get('displayName', 'Unknown')} (ID: {folder_info.get('id', 'N/A')})")
-                                    else:
-                                        logger.warning(f"     Warning: Notebook is at workspace root (no folder assignment)")
-                                        logger.warning(f"     Expected folder ID: {folder_id}")
-                                    break
-                                else:
-                                    if attempt < max_attempts:
-                                        logger.warning(f"  Notebook not found yet, waiting {wait_time} seconds...")
-                                    else:
-                                        logger.error(f"  ✗ Verification failed: Notebook '{name}' not found after {max_attempts} attempts")
-                                        logger.error(f"     API may have accepted the request but creation failed")
-                                        logger.error(f"     Check workspace permissions and Fabric capacity status")
                             
                             # Save to local file in Fabric Git format
                             logger.info(f"  Saving to local file system...")
@@ -741,14 +699,15 @@ class FabricDeployer:
                             self.workspace_id, 
                             name, 
                             job_definition, 
-                            folder_id=folder_id
+                            folder_id=folder_id,
+                            wait_for_completion=True  # Wait for LRO to complete
                         )
                         
                         job_id = result.get('id') if result else None
                         if job_id:
-                            logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (ID: {job_id})")
+                            logger.info(f"  ✓ Spark job created successfully (ID: {job_id})")
                         else:
-                            logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (async operation)")
+                            logger.warning(f"  ⚠ Spark job created but no ID returned")
                         
                         # Track this Spark job as created in this run
                         self._created_in_this_run.add(('spark_job_definition', name))

@@ -102,19 +102,29 @@ class FabricClient:
             # Some endpoints return 202 Accepted or 204 No Content
             if response.status_code in [202, 204]:
                 result = {"status": "success", "status_code": response.status_code}
-                # For 202 responses, check for Location header with operation URL
-                if response.status_code == 202 and "Location" in response.headers:
-                    result["location"] = response.headers["Location"]
-                    logger.info(f"  Async operation started - Location: {response.headers['Location']}")
+                
+                # For 202 responses, capture LRO headers
+                if response.status_code == 202:
+                    if "Location" in response.headers:
+                        result["location"] = response.headers["Location"]
+                        logger.info(f"  LRO Location header: {response.headers['Location']}")
+                    
+                    if "x-ms-operation-id" in response.headers:
+                        result["operation_id"] = response.headers["x-ms-operation-id"]
+                        logger.info(f"  LRO Operation ID: {response.headers['x-ms-operation-id']}")
+                    
+                    if "Retry-After" in response.headers:
+                        result["retry_after"] = int(response.headers["Retry-After"])
+                        logger.info(f"  Retry-After: {response.headers['Retry-After']} seconds")
+                
                 # Try to parse response body if present
                 if response.text:
                     try:
                         body = response.json()
                         result.update(body)
-                        if 'id' in body:
-                            logger.info(f"  Resource ID from response: {body['id']}")
                     except:
                         pass
+                
                 return result
             
             return response.json()
@@ -131,6 +141,73 @@ class FabricClient:
         except Exception as e:
             logger.error(f"Request failed: {str(e)}")
             raise
+    
+    def poll_operation_state(self, operation_id: str) -> Dict:
+        """
+        Poll the state of a long running operation
+        
+        Args:
+            operation_id: The operation ID from x-ms-operation-id header
+            
+        Returns:
+            Operation state dictionary with status, percentComplete, etc.
+        """
+        return self._make_request("GET", f"/operations/{operation_id}")
+    
+    def get_operation_result(self, operation_id: str) -> Dict:
+        """
+        Get the result of a completed long running operation
+        
+        Args:
+            operation_id: The operation ID from x-ms-operation-id header
+            
+        Returns:
+            The created resource details
+        """
+        return self._make_request("GET", f"/operations/{operation_id}/result")
+    
+    def wait_for_operation_completion(self, operation_id: str, retry_after: int = 5, max_attempts: int = 60) -> Dict:
+        """
+        Wait for a long running operation to complete and return the result
+        
+        Args:
+            operation_id: The operation ID to poll
+            retry_after: Seconds to wait between polls (default from Retry-After header)
+            max_attempts: Maximum number of polling attempts
+            
+        Returns:
+            The created resource details
+            
+        Raises:
+            RuntimeError: If operation fails or times out
+        """
+        import time
+        
+        logger.info(f"  Polling operation {operation_id} (retry every {retry_after}s, max {max_attempts} attempts)")
+        
+        for attempt in range(1, max_attempts + 1):
+            time.sleep(retry_after)
+            
+            state = self.poll_operation_state(operation_id)
+            status = state.get("status")
+            percent = state.get("percentComplete", 0)
+            
+            logger.info(f"    Attempt {attempt}/{max_attempts}: {status} ({percent}% complete)")
+            
+            if status == "Succeeded":
+                logger.info(f"  ✓ Operation completed successfully")
+                # Get the actual result
+                result = self.get_operation_result(operation_id)
+                return result
+            elif status == "Failed":
+                error = state.get("error", {})
+                error_msg = error.get("message", "Unknown error")
+                logger.error(f"  ✗ Operation failed: {error_msg}")
+                raise RuntimeError(f"Operation {operation_id} failed: {error_msg}")
+            elif status not in ["NotStarted", "Running"]:
+                logger.warning(f"  Unexpected operation status: {status}")
+        
+        raise RuntimeError(f"Operation {operation_id} timed out after {max_attempts} attempts")
     
     # ==================== Workspace Operations ====================
     
@@ -321,9 +398,9 @@ class FabricClient:
         logger.info(f"Getting notebook: {notebook_id}")
         return self._make_request("GET", f"/workspaces/{workspace_id}/notebooks/{notebook_id}")
     
-    def create_notebook(self, workspace_id: str, notebook_name: str, definition: Dict, description: str = None, folder_id: str = None) -> Dict:
+    def create_notebook(self, workspace_id: str, notebook_name: str, definition: Dict, description: str = None, folder_id: str = None, wait_for_completion: bool = True) -> Dict:
         """
-        Create or update a notebook
+        Create a notebook (handles long running operations)
         
         Args:
             workspace_id: Workspace GUID
@@ -331,9 +408,10 @@ class FabricClient:
             definition: Notebook definition (content)
             description: Optional notebook description
             folder_id: Optional workspace folder ID to place notebook in
+            wait_for_completion: If True, wait for LRO to complete and return notebook details
             
         Returns:
-            Created notebook details
+            Created notebook details (if wait_for_completion=True) or LRO response
         """
         logger.info(f"Creating notebook: {notebook_name}")
         payload = {
@@ -347,7 +425,23 @@ class FabricClient:
             logger.info(f"  Including folderId in payload: {folder_id}")
         else:
             logger.warning(f"  No folderId provided - notebook will be created at workspace root")
-        return self._make_request("POST", f"/workspaces/{workspace_id}/notebooks", json_data=payload)
+        
+        result = self._make_request("POST", f"/workspaces/{workspace_id}/notebooks", json_data=payload)
+        
+        # Handle long running operation (202 Accepted)
+        if result.get("status_code") == 202 and wait_for_completion:
+            operation_id = result.get("operation_id")
+            retry_after = result.get("retry_after", 5)
+            
+            if operation_id:
+                logger.info(f"  Notebook creation is a long running operation")
+                notebook_result = self.wait_for_operation_completion(operation_id, retry_after)
+                return notebook_result
+            else:
+                logger.warning(f"  202 response but no operation_id - cannot poll for completion")
+                return result
+        
+        return result
     
     def update_notebook_definition(self, workspace_id: str, notebook_id: str, definition: Dict) -> Dict:
         """
@@ -381,15 +475,16 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/sparkJobDefinitions")
         return response.get("value", [])
     
-    def create_spark_job_definition(self, workspace_id: str, job_name: str, definition: Dict, folder_id: str = None) -> Dict:
+    def create_spark_job_definition(self, workspace_id: str, job_name: str, definition: Dict, folder_id: str = None, wait_for_completion: bool = True) -> Dict:
         """
-        Create a Spark job definition
+        Create a Spark job definition (handles long running operations)
         
         Args:
             workspace_id: Workspace GUID
             job_name: Name for the Spark job
             definition: Job definition
             folder_id: Optional workspace folder ID to place job in
+            wait_for_completion: If True, wait for LRO to complete
             
         Returns:
             Created job details
@@ -401,7 +496,23 @@ class FabricClient:
         }
         if folder_id:
             payload["folderId"] = folder_id
-        return self._make_request("POST", f"/workspaces/{workspace_id}/sparkJobDefinitions", json_data=payload)
+        
+        result = self._make_request("POST", f"/workspaces/{workspace_id}/sparkJobDefinitions", json_data=payload)
+        
+        # Handle long running operation (202 Accepted)
+        if result.get("status_code") == 202 and wait_for_completion:
+            operation_id = result.get("operation_id")
+            retry_after = result.get("retry_after", 5)
+            
+            if operation_id:
+                logger.info(f"  Spark job creation is a long running operation")
+                job_result = self.wait_for_operation_completion(operation_id, retry_after)
+                return job_result
+            else:
+                logger.warning(f"  202 response but no operation_id - cannot poll for completion")
+                return result
+        
+        return result
     
     def update_spark_job_definition(self, workspace_id: str, job_id: str, definition: Dict) -> Dict:
         """

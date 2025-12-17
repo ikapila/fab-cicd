@@ -75,10 +75,11 @@ class FabricClient:
                             }
                             parts_summary.append(part_info)
                         debug_copy = debug_data.copy()
-                        debug_copy["definition"] = {
-                            "format": definition.get("format"),
-                            "parts": parts_summary
-                        }
+                        debug_definition = {"parts": parts_summary}
+                        # Only include format if it exists in the definition
+                        if "format" in definition:
+                            debug_definition["format"] = definition["format"]
+                        debug_copy["definition"] = debug_definition
                         if "updateDefinition" in endpoint:
                             logger.info(f"Updating notebook - URL: {url}")
                         else:

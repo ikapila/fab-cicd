@@ -189,13 +189,6 @@ stages:
 
                 - script: |
                     cd $(Pipeline.Workspace)/fabric-artifacts
-                    echo "Creating backup of current production state..."
-                    python scripts/backup_workspace.py --environment prod
-                  displayName: 'Backup current production'
-                  continueOnError: true
-
-                - script: |
-                    cd $(Pipeline.Workspace)/fabric-artifacts
                     
                     # Create artifacts first (if needed)
                     python scripts/deploy_artifacts.py prod \

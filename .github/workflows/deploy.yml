@@ -241,16 +241,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
 
-      - name: Backup current production
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        run: |
-          echo "Creating backup of current production state..."
-          python scripts/backup_workspace.py --environment prod
-        continue-on-error: true
-
       - name: Deploy to Production workspace
         env:
           AZURE_CLIENT_SECRET_PROD: ${{ secrets.AZURE_CLIENT_SECRET_PROD }}

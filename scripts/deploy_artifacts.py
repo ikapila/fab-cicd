@@ -615,8 +615,11 @@ class FabricDeployer:
                         # Track as created to skip deployment
                         self._created_in_this_run.add(('environment', name))
                     elif create_if_not_exists:
-                        result = self.client.create_environment(self.workspace_id, name, description)
-                        logger.info(f"  ✓ Created environment '{name}' (ID: {result['id']})")
+                        # Get or create folder for environments
+                        folder_id = self._get_or_create_folder("Environments")
+                        
+                        result = self.client.create_environment(self.workspace_id, name, description, folder_id=folder_id)
+                        logger.info(f"  ✓ Created environment '{name}' in 'Environments' folder (ID: {result['id']})")
                         # Track as created to skip deployment
                         self._created_in_this_run.add(('environment', name))
                         # Save to local file

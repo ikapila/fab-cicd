@@ -1474,7 +1474,18 @@ print('Notebook initialized')
             return
         
         notebooks_dir = self.artifacts_dir / self.artifacts_root_folder / "Notebooks"
+        
+        # Check if notebook exists locally before attempting to deploy
         notebook_file = notebooks_dir / f"{name}.ipynb"
+        notebook_folder = notebooks_dir / name
+        
+        has_ipynb = notebook_file.exists()
+        has_fabric_format = notebook_folder.exists() and (notebook_folder / ".platform").exists() and (notebook_folder / "notebook-content.py").exists()
+        
+        if not has_ipynb and not has_fabric_format:
+            logger.info(f"  ⊙ Notebook '{name}' not found locally - skipping deployment")
+            logger.debug(f"    Notebook may exist in workspace but has no local source files")
+            return
         
         notebook_content = None
         notebook_format = None

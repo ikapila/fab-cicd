@@ -1570,35 +1570,12 @@ print('Notebook initialized')
         
         notebooks_dir = self.artifacts_dir / self.artifacts_root_folder / "Notebooks"
         
-        # Check if notebook exists locally before attempting to deploy
-        notebook_file = notebooks_dir / f"{name}.ipynb"
-        notebook_folder = notebooks_dir / name
-        
-        has_ipynb = notebook_file.exists()
-        has_fabric_format = notebook_folder.exists() and (notebook_folder / ".platform").exists() and (notebook_folder / "notebook-content.py").exists()
-        
-        if not has_ipynb and not has_fabric_format:
-            # No local files - check if notebook exists in workspace
-            logger.debug(f"  No local files found for notebook '{name}', checking workspace...")
-            try:
-                existing_notebooks = self.client.list_notebooks(self.workspace_id)
-                workspace_notebook = next((nb for nb in existing_notebooks if nb["displayName"] == name), None)
-                
-                if workspace_notebook:
-                    logger.info(f"  ✓ Notebook '{name}' already exists in workspace (ID: {workspace_notebook['id']})")
-                    logger.info(f"    Skipping deployment - no local source files to update from")
-                else:
-                    logger.warning(f"  ⚠ Notebook '{name}' not found locally or in workspace")
-                    logger.info(f"    This notebook may need to be created via config first")
-            except Exception as e:
-                logger.error(f"  ✗ Error checking workspace for notebook '{name}': {str(e)}")
-            return
-        
         notebook_content = None
         notebook_format = None
         notebook_folder_path = None
         
         # Try .ipynb file first (legacy format)
+        notebook_file = notebooks_dir / f"{name}.ipynb"
         if notebook_file.exists():
             logger.debug(f"  Found notebook as .ipynb file: {name}")
             with open(notebook_file, 'r') as f:
@@ -1648,18 +1625,8 @@ print('Notebook initialized')
                         found = True
             
             if not found:
-                # Check if notebook exists in Fabric workspace
-                # If it exists remotely but not locally, it was likely created via config
-                # In this case, skip the deployment (no local changes to deploy)
-                existing = self.client.list_notebooks(self.workspace_id)
-                existing_notebook = next((nb for nb in existing if nb["displayName"] == name), None)
-                
-                if existing_notebook:
-                    logger.info(f"  ⊙ Notebook '{name}' exists in workspace but not found locally - skipping deployment")
-                    logger.debug(f"    Notebook may have been created via config without local files")
-                    return
-                else:
-                    raise FileNotFoundError(f"Notebook '{name}' not found locally or in workspace")
+                # No local files found - this shouldn't happen since we discovered it
+                raise FileNotFoundError(f"Notebook '{name}' was discovered but local files not found")
         
         # Substitute environment-specific parameters
         notebook_content = self.config.substitute_parameters(notebook_content)
@@ -1768,21 +1735,7 @@ print('Notebook initialized')
         
         # Check if file exists locally
         if not job_file.exists():
-            # No local file - check if job exists in workspace
-            logger.debug(f"  No local file found for Spark job '{name}', checking workspace...")
-            try:
-                existing_jobs = self.client.list_spark_job_definitions(self.workspace_id)
-                workspace_job = next((job for job in existing_jobs if job["displayName"] == name), None)
-                
-                if workspace_job:
-                    logger.info(f"  ✓ Spark job '{name}' already exists in workspace (ID: {workspace_job['id']})")
-                    logger.info(f"    Skipping deployment - no local source file to update from")
-                else:
-                    logger.warning(f"  ⚠ Spark job '{name}' not found locally or in workspace")
-                    logger.info(f"    This job may need to be created via config first")
-            except Exception as e:
-                logger.error(f"  ✗ Error checking workspace for Spark job '{name}': {str(e)}")
-            return
+            raise FileNotFoundError(f"Spark job '{name}' was discovered but file not found: {job_file}")
         
         with open(job_file, 'r') as f:
             job_content = f.read()

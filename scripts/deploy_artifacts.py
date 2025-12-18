@@ -81,6 +81,63 @@ class FabricDeployer:
         
         # Track artifacts created in this run to avoid immediate update attempts
         self._created_in_this_run = set()
+        
+        # Build set of config-managed artifact names (config is source of truth for these)
+        self._config_managed_artifacts = self._get_config_managed_artifacts()
+    
+    def _get_config_managed_artifacts(self) -> dict:
+        """
+        Get set of artifact names that are managed by config file.
+        These artifacts should NOT be deployed from wsartifacts folders.
+        Config is the source of truth for these artifacts.
+        
+        Returns:
+            Dictionary with artifact type as key and set of names as values
+        """
+        config_managed = {
+            'notebooks': set(),
+            'spark_job_definitions': set(),
+            'lakehouses': set(),
+            'environments': set()
+        }
+        
+        artifacts_config = self.config.get_artifacts_to_create()
+        if not artifacts_config:
+            return config_managed
+        
+        # Collect notebook names from config
+        for notebook_def in artifacts_config.get("notebooks", []):
+            name = notebook_def.get("name")
+            if name:
+                config_managed['notebooks'].add(name)
+        
+        # Collect spark job names from config
+        for job_def in artifacts_config.get("spark_job_definitions", []):
+            name = job_def.get("name")
+            if name:
+                config_managed['spark_job_definitions'].add(name)
+        
+        # Collect lakehouse names from config
+        for lh_def in artifacts_config.get("lakehouses", []):
+            name = lh_def.get("name")
+            if name:
+                config_managed['lakehouses'].add(name)
+        
+        # Collect environment names from config
+        for env_def in artifacts_config.get("environments", []):
+            name = env_def.get("name")
+            if name:
+                config_managed['environments'].add(name)
+        
+        # Log what's being managed by config
+        total_managed = sum(len(names) for names in config_managed.values())
+        if total_managed > 0:
+            logger.info(f"Config-managed artifacts (will not be deployed from wsartifacts folders):")
+            for artifact_type, names in config_managed.items():
+                if names:
+                    logger.info(f"  {artifact_type}: {', '.join(sorted(names))}")
+        
+        return config_managed
     
     def _get_or_create_folder(self, folder_name: str) -> str:
         """
@@ -145,11 +202,19 @@ class FabricDeployer:
             return
         
         discovered = []
+        skipped = []
         for lakehouse_file in lakehouse_dir.glob("*.json"):
             with open(lakehouse_file, 'r') as f:
                 definition = json.load(f)
             
             lakehouse_name = definition.get("name", lakehouse_file.stem)
+            
+            # Skip if managed by config
+            if lakehouse_name in self._config_managed_artifacts['lakehouses']:
+                skipped.append(lakehouse_name)
+                logger.debug(f"Skipping lakehouse '{lakehouse_name}' - managed by config")
+                continue
+            
             discovered.append(lakehouse_name)
             lakehouse_id = definition.get("id", f"lakehouse-{lakehouse_name}")
             
@@ -164,6 +229,8 @@ class FabricDeployer:
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} lakehouse(s): {', '.join(sorted(discovered))}")
+        if skipped:
+            logger.info(f"Skipped {len(skipped)} config-managed lakehouse(s): {', '.join(sorted(skipped))}")
     
     def _discover_environments(self) -> None:
         """Discover environment definitions"""
@@ -173,11 +240,19 @@ class FabricDeployer:
             return
         
         discovered = []
+        skipped = []
         for env_file in env_dir.glob("*.json"):
             with open(env_file, 'r') as f:
                 definition = json.load(f)
             
             env_name = definition.get("name", env_file.stem)
+            
+            # Skip if managed by config
+            if env_name in self._config_managed_artifacts['environments']:
+                skipped.append(env_name)
+                logger.debug(f"Skipping environment '{env_name}' - managed by config")
+                continue
+            
             discovered.append(env_name)
             env_id = definition.get("id", f"environment-{env_name}")
             
@@ -192,6 +267,8 @@ class FabricDeployer:
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} environment(s): {', '.join(sorted(discovered))}")
+        if skipped:
+            logger.info(f"Skipped {len(skipped)} config-managed environment(s): {', '.join(sorted(skipped))}")
     
     def _discover_notebooks(self) -> None:
         """Discover notebook definitions (both .ipynb files and Fabric Git folder format)"""
@@ -202,6 +279,7 @@ class FabricDeployer:
         
         logger.debug(f"Scanning for notebooks in: {notebook_dir}")
         discovered_notebooks = set()
+        skipped_notebooks = set()
         
         # Discover .ipynb files (legacy format)
         ipynb_files = list(notebook_dir.glob("*.ipynb"))
@@ -210,6 +288,13 @@ class FabricDeployer:
         for notebook_file in ipynb_files:
             try:
                 notebook_name = notebook_file.stem
+                
+                # Skip if managed by config
+                if notebook_name in self._config_managed_artifacts['notebooks']:
+                    skipped_notebooks.add(notebook_name)
+                    logger.debug(f"Skipping notebook '{notebook_name}' - managed by config")
+                    continue
+                
                 discovered_notebooks.add(notebook_name)
                 notebook_id = f"notebook-{notebook_name}"
                 
@@ -250,6 +335,12 @@ class FabricDeployer:
                             logger.warning(f"Could not read displayName from {platform_file}, using folder name: {e}")
                             notebook_name = item.name
                         
+                        # Skip if managed by config
+                        if notebook_name in self._config_managed_artifacts['notebooks']:
+                            skipped_notebooks.add(notebook_name)
+                            logger.debug(f"Skipping notebook '{notebook_name}' - managed by config")
+                            continue
+                        
                         # Skip if already discovered as .ipynb
                         if notebook_name in discovered_notebooks:
                             logger.debug(f"Skipping duplicate notebook (already found as .ipynb): {notebook_name}")
@@ -274,7 +365,10 @@ class FabricDeployer:
                         import traceback
                         logger.debug(traceback.format_exc())
         
-        logger.info(f"Discovered {len(discovered_notebooks)} notebook(s): {', '.join(sorted(discovered_notebooks))}")
+        if discovered_notebooks:
+            logger.info(f"Discovered {len(discovered_notebooks)} notebook(s): {', '.join(sorted(discovered_notebooks))}")
+        if skipped_notebooks:
+            logger.info(f"Skipped {len(skipped_notebooks)} config-managed notebook(s): {', '.join(sorted(skipped_notebooks))}")
     
     def _discover_spark_jobs(self) -> None:
         """Discover Spark job definitions"""
@@ -283,11 +377,21 @@ class FabricDeployer:
             logger.debug("No Spark job definitions directory found")
             return
         
+        discovered = []
+        skipped = []
         for job_file in job_dir.glob("*.json"):
             with open(job_file, 'r') as f:
                 definition = json.load(f)
             
             job_name = definition.get("name", job_file.stem)
+            
+            # Skip if managed by config
+            if job_name in self._config_managed_artifacts['spark_job_definitions']:
+                skipped.append(job_name)
+                logger.debug(f"Skipping Spark job '{job_name}' - managed by config")
+                continue
+            
+            discovered.append(job_name)
             job_id = definition.get("id", f"sparkjob-{job_name}")
             dependencies = definition.get("dependencies", [])
             
@@ -299,6 +403,11 @@ class FabricDeployer:
             )
             
             logger.debug(f"Discovered Spark job: {job_name}")
+        
+        if discovered:
+            logger.info(f"Discovered {len(discovered)} Spark job(s): {', '.join(sorted(discovered))}")
+        if skipped:
+            logger.info(f"Skipped {len(skipped)} config-managed Spark job(s): {', '.join(sorted(skipped))}")
     
     def _discover_pipelines(self) -> None:
         """Discover data pipeline definitions"""

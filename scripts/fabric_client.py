@@ -784,7 +784,7 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/paginatedReports")
         return response.get("value", [])
     
-    def create_paginated_report(self, workspace_id: str, report_name: str, definition: Dict) -> Dict:
+    def create_paginated_report(self, workspace_id: str, report_name: str, definition: Dict, folder_id: str = None) -> Dict:
         """
         Create a paginated report
         
@@ -792,6 +792,7 @@ class FabricClient:
             workspace_id: Workspace GUID
             report_name: Name for the report
             definition: Report definition (.rdl file)
+            folder_id: Optional workspace folder ID to place report in
             
         Returns:
             Created report details
@@ -801,6 +802,9 @@ class FabricClient:
             "displayName": report_name,
             "definition": definition
         }
+        if folder_id:
+            payload["folderId"] = folder_id
+            logger.info(f"  Including folderId in payload: {folder_id}")
         return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports", json_data=payload)
     
     def update_paginated_report(self, workspace_id: str, report_id: str, definition: Dict) -> Dict:
@@ -835,7 +839,7 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/items", params={"type": "VariableLibrary"})
         return response.get("value", [])
     
-    def create_variable_library(self, workspace_id: str, name: str, description: str = "") -> Dict:
+    def create_variable_library(self, workspace_id: str, name: str, description: str = "", folder_id: str = None) -> Dict:
         """
         Create a Variable Library
         
@@ -843,6 +847,7 @@ class FabricClient:
             workspace_id: Workspace GUID
             name: Variable Library name
             description: Variable Library description
+            folder_id: Optional workspace folder ID to place library in
             
         Returns:
             Created Variable Library
@@ -853,6 +858,9 @@ class FabricClient:
             "type": "VariableLibrary",
             "description": description
         }
+        if folder_id:
+            payload["folderId"] = folder_id
+            logger.info(f"  Including folderId in payload: {folder_id}")
         return self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
     
     def get_variable_library(self, workspace_id: str, library_id: str) -> Dict:

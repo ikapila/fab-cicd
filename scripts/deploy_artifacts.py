@@ -1939,9 +1939,12 @@ print('Notebook initialized')
             )
             logger.info(f"  Updated paginated report (ID: {existing_report['id']})")
         else:
-            result = self.client.create_paginated_report(self.workspace_id, name, definition)
+            # Get or create folder for paginated reports
+            folder_id = self._get_or_create_folder("Paginatedreports")
+            
+            result = self.client.create_paginated_report(self.workspace_id, name, definition, folder_id=folder_id)
             report_id = result.get('id') if result else 'unknown'
-            logger.info(f"  Created paginated report (ID: {report_id})")
+            logger.info(f"  ✓ Created paginated report '{name}' in 'Paginatedreports' folder (ID: {report_id})")
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""
@@ -1977,13 +1980,18 @@ print('Notebook initialized')
         else:
             logger.info(f"  Creating Variable Library: {name}")
             description = definition.get("description", "")
+            
+            # Get or create folder for variable libraries
+            folder_id = self._get_or_create_folder("Variablelibraries")
+            
             result = self.client.create_variable_library(
                 self.workspace_id,
                 name,
-                description
+                description,
+                folder_id=folder_id
             )
             library_id = result.get('id') if result else 'unknown'
-            logger.info(f"  Created Variable Library (ID: {library_id})")
+            logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder (ID: {library_id})")
             
             # Set initial variables
             variables = definition.get("variables", [])

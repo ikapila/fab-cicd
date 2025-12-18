@@ -198,19 +198,13 @@ class FabricDeployer:
             return
         
         discovered = []
-        skipped = []
         for lakehouse_file in lakehouse_dir.glob("*.json"):
             with open(lakehouse_file, 'r') as f:
                 definition = json.load(f)
             
             lakehouse_name = definition.get("name", lakehouse_file.stem)
             
-            # Skip if managed by config
-            if lakehouse_name in self._config_managed_artifacts['lakehouses']:
-                skipped.append(lakehouse_name)
-                logger.debug(f"Skipping lakehouse '{lakehouse_name}' - managed by config")
-                continue
-            
+            # Always discover - will check config-managed status during deployment
             discovered.append(lakehouse_name)
             lakehouse_id = definition.get("id", f"lakehouse-{lakehouse_name}")
             
@@ -225,8 +219,6 @@ class FabricDeployer:
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} lakehouse(s): {', '.join(sorted(discovered))}")
-        if skipped:
-            logger.info(f"Skipped {len(skipped)} config-managed lakehouse(s): {', '.join(sorted(skipped))}")
     
     def _discover_environments(self) -> None:
         """Discover environment definitions"""
@@ -236,19 +228,13 @@ class FabricDeployer:
             return
         
         discovered = []
-        skipped = []
         for env_file in env_dir.glob("*.json"):
             with open(env_file, 'r') as f:
                 definition = json.load(f)
             
             env_name = definition.get("name", env_file.stem)
             
-            # Skip if managed by config
-            if env_name in self._config_managed_artifacts['environments']:
-                skipped.append(env_name)
-                logger.debug(f"Skipping environment '{env_name}' - managed by config")
-                continue
-            
+            # Always discover - will check config-managed status during deployment
             discovered.append(env_name)
             env_id = definition.get("id", f"environment-{env_name}")
             
@@ -263,8 +249,6 @@ class FabricDeployer:
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} environment(s): {', '.join(sorted(discovered))}")
-        if skipped:
-            logger.info(f"Skipped {len(skipped)} config-managed environment(s): {', '.join(sorted(skipped))}")
     
     def _discover_notebooks(self) -> None:
         """Discover notebook definitions (both .ipynb files and Fabric Git folder format)"""
@@ -275,7 +259,6 @@ class FabricDeployer:
         
         logger.debug(f"Scanning for notebooks in: {notebook_dir}")
         discovered_notebooks = set()
-        skipped_notebooks = set()
         
         # Discover .ipynb files (legacy format)
         ipynb_files = list(notebook_dir.glob("*.ipynb"))
@@ -285,12 +268,7 @@ class FabricDeployer:
             try:
                 notebook_name = notebook_file.stem
                 
-                # Skip if managed by config
-                if notebook_name in self._config_managed_artifacts['notebooks']:
-                    skipped_notebooks.add(notebook_name)
-                    logger.debug(f"Skipping notebook '{notebook_name}' - managed by config")
-                    continue
-                
+                # Always discover - will check config-managed status during deployment
                 discovered_notebooks.add(notebook_name)
                 notebook_id = f"notebook-{notebook_name}"
                 
@@ -331,17 +309,12 @@ class FabricDeployer:
                             logger.warning(f"Could not read displayName from {platform_file}, using folder name: {e}")
                             notebook_name = item.name
                         
-                        # Skip if managed by config
-                        if notebook_name in self._config_managed_artifacts['notebooks']:
-                            skipped_notebooks.add(notebook_name)
-                            logger.debug(f"Skipping notebook '{notebook_name}' - managed by config")
-                            continue
-                        
                         # Skip if already discovered as .ipynb
                         if notebook_name in discovered_notebooks:
                             logger.debug(f"Skipping duplicate notebook (already found as .ipynb): {notebook_name}")
                             continue
                         
+                        # Always discover - will check config-managed status during deployment
                         discovered_notebooks.add(notebook_name)
                         notebook_id = f"notebook-{notebook_name}"
                         
@@ -363,8 +336,6 @@ class FabricDeployer:
         
         if discovered_notebooks:
             logger.info(f"Discovered {len(discovered_notebooks)} notebook(s): {', '.join(sorted(discovered_notebooks))}")
-        if skipped_notebooks:
-            logger.info(f"Skipped {len(skipped_notebooks)} config-managed notebook(s): {', '.join(sorted(skipped_notebooks))}")
     
     def _discover_spark_jobs(self) -> None:
         """Discover Spark job definitions"""
@@ -374,19 +345,13 @@ class FabricDeployer:
             return
         
         discovered = []
-        skipped = []
         for job_file in job_dir.glob("*.json"):
             with open(job_file, 'r') as f:
                 definition = json.load(f)
             
             job_name = definition.get("name", job_file.stem)
             
-            # Skip if managed by config
-            if job_name in self._config_managed_artifacts['spark_job_definitions']:
-                skipped.append(job_name)
-                logger.debug(f"Skipping Spark job '{job_name}' - managed by config")
-                continue
-            
+            # Always discover - will check config-managed status during deployment
             discovered.append(job_name)
             job_id = definition.get("id", f"sparkjob-{job_name}")
             dependencies = definition.get("dependencies", [])
@@ -402,8 +367,6 @@ class FabricDeployer:
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} Spark job(s): {', '.join(sorted(discovered))}")
-        if skipped:
-            logger.info(f"Skipped {len(skipped)} config-managed Spark job(s): {', '.join(sorted(skipped))}")
     
     def _discover_pipelines(self) -> None:
         """Discover data pipeline definitions"""

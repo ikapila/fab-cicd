@@ -101,7 +101,7 @@ class FabricDeployer:
     
     def discover_artifacts(self) -> None:
         """
-        Discover artifacts from file system and build dependency graph
+        Discover artifacts from file system and config file, then build dependency graph
         """
         logger.info("Discovering artifacts from file system...")
         
@@ -125,6 +125,10 @@ class FabricDeployer:
         
         # Discover SQL views
         self._discover_sql_views()
+        
+        # Also discover artifacts from config file (for artifacts that exist in workspace but not locally)
+        logger.info("Discovering artifacts from config file...")
+        self._discover_from_config()
         
         logger.info(f"Discovered {len(self.resolver.artifacts)} artifacts")
     
@@ -453,6 +457,87 @@ class FabricDeployer:
         except Exception as e:
             logger.warning(f"Could not extract dependencies from {notebook_folder}: {str(e)}")
             return []
+    
+    def _discover_from_config(self) -> None:
+        """
+        Discover artifacts from config file that may not have local files yet.
+        This ensures artifacts created via config (and exist in workspace) can be deployed
+        even when local files don't exist.
+        """
+        artifacts_config = self.config.get_artifacts_to_create()
+        
+        if not artifacts_config:
+            logger.debug("No artifacts configured for creation in config file")
+            return
+        
+        discovered_from_config = []
+        
+        # Discover notebooks from config
+        for notebook_def in artifacts_config.get("notebooks", []):
+            name = notebook_def.get("name")
+            if name:
+                notebook_id = f"notebook-{name}"
+                # Only add if not already discovered from filesystem
+                if notebook_id not in self.resolver.artifacts:
+                    self.resolver.add_artifact(
+                        notebook_id,
+                        ArtifactType.NOTEBOOK,
+                        name,
+                        dependencies=[]
+                    )
+                    discovered_from_config.append(f"notebook:{name}")
+                    logger.debug(f"Discovered notebook from config: {name}")
+        
+        # Discover spark jobs from config
+        for job_def in artifacts_config.get("spark_job_definitions", []):
+            name = job_def.get("name")
+            if name:
+                job_id = f"spark_job-{name}"
+                # Only add if not already discovered from filesystem
+                if job_id not in self.resolver.artifacts:
+                    self.resolver.add_artifact(
+                        job_id,
+                        ArtifactType.SPARK_JOB_DEFINITION,
+                        name,
+                        dependencies=[]
+                    )
+                    discovered_from_config.append(f"spark_job:{name}")
+                    logger.debug(f"Discovered spark job from config: {name}")
+        
+        # Discover lakehouses from config
+        for lh_def in artifacts_config.get("lakehouses", []):
+            name = lh_def.get("name")
+            if name:
+                lh_id = f"lakehouse-{name}"
+                # Only add if not already discovered from filesystem
+                if lh_id not in self.resolver.artifacts:
+                    self.resolver.add_artifact(
+                        lh_id,
+                        ArtifactType.LAKEHOUSE,
+                        name,
+                        dependencies=[]
+                    )
+                    discovered_from_config.append(f"lakehouse:{name}")
+                    logger.debug(f"Discovered lakehouse from config: {name}")
+        
+        # Discover environments from config
+        for env_def in artifacts_config.get("environments", []):
+            name = env_def.get("name")
+            if name:
+                env_id = f"environment-{name}"
+                # Only add if not already discovered from filesystem
+                if env_id not in self.resolver.artifacts:
+                    self.resolver.add_artifact(
+                        env_id,
+                        ArtifactType.ENVIRONMENT,
+                        name,
+                        dependencies=[]
+                    )
+                    discovered_from_config.append(f"environment:{name}")
+                    logger.debug(f"Discovered environment from config: {name}")
+        
+        if discovered_from_config:
+            logger.info(f"Discovered {len(discovered_from_config)} artifact(s) from config: {', '.join(discovered_from_config)}")
     
     def create_artifacts_from_config(self, dry_run: bool = False) -> bool:
         """
@@ -1483,8 +1568,20 @@ print('Notebook initialized')
         has_fabric_format = notebook_folder.exists() and (notebook_folder / ".platform").exists() and (notebook_folder / "notebook-content.py").exists()
         
         if not has_ipynb and not has_fabric_format:
-            logger.info(f"  ⊙ Notebook '{name}' not found locally - skipping deployment")
-            logger.debug(f"    Notebook may exist in workspace but has no local source files")
+            # No local files - check if notebook exists in workspace
+            logger.debug(f"  No local files found for notebook '{name}', checking workspace...")
+            try:
+                existing_notebooks = self.client.list_notebooks(self.workspace_id)
+                workspace_notebook = next((nb for nb in existing_notebooks if nb["displayName"] == name), None)
+                
+                if workspace_notebook:
+                    logger.info(f"  ✓ Notebook '{name}' already exists in workspace (ID: {workspace_notebook['id']})")
+                    logger.info(f"    Skipping deployment - no local source files to update from")
+                else:
+                    logger.warning(f"  ⚠ Notebook '{name}' not found locally or in workspace")
+                    logger.info(f"    This notebook may need to be created via config first")
+            except Exception as e:
+                logger.error(f"  ✗ Error checking workspace for notebook '{name}': {str(e)}")
             return
         
         notebook_content = None
@@ -1658,6 +1755,25 @@ print('Notebook initialized')
             return
         
         job_file = self.artifacts_dir / self.artifacts_root_folder / "Sparkjobdefinitions" / f"{name}.json"
+        
+        # Check if file exists locally
+        if not job_file.exists():
+            # No local file - check if job exists in workspace
+            logger.debug(f"  No local file found for Spark job '{name}', checking workspace...")
+            try:
+                existing_jobs = self.client.list_spark_job_definitions(self.workspace_id)
+                workspace_job = next((job for job in existing_jobs if job["displayName"] == name), None)
+                
+                if workspace_job:
+                    logger.info(f"  ✓ Spark job '{name}' already exists in workspace (ID: {workspace_job['id']})")
+                    logger.info(f"    Skipping deployment - no local source file to update from")
+                else:
+                    logger.warning(f"  ⚠ Spark job '{name}' not found locally or in workspace")
+                    logger.info(f"    This job may need to be created via config first")
+            except Exception as e:
+                logger.error(f"  ✗ Error checking workspace for Spark job '{name}': {str(e)}")
+            return
+        
         with open(job_file, 'r') as f:
             job_content = f.read()
         

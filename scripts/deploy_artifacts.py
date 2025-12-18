@@ -186,10 +186,6 @@ class FabricDeployer:
         # Discover SQL views
         self._discover_sql_views()
         
-        # Also discover artifacts from config file (for artifacts that exist in workspace but not locally)
-        logger.info("\nDiscovering artifacts from config file...")
-        self._discover_from_config()
-        
         logger.info("="*60)
         logger.info(f"DISCOVERY COMPLETE: Found {len(self.resolver.artifacts)} total artifacts")
         logger.info("="*60)
@@ -572,89 +568,6 @@ class FabricDeployer:
             logger.warning(f"Could not extract dependencies from {notebook_folder}: {str(e)}")
             return []
     
-    def _discover_from_config(self) -> None:
-        """
-        Discover artifacts from config file that may not have local files yet.
-        This ensures artifacts created via config (and exist in workspace) can be deployed
-        even when local files don't exist.
-        """
-        artifacts_config = self.config.get_artifacts_to_create()
-        
-        if not artifacts_config:
-            logger.debug("No artifacts configured for creation in config file")
-            return
-        
-        discovered_from_config = []
-        
-        # Discover notebooks from config
-        for notebook_def in artifacts_config.get("notebooks", []):
-            name = notebook_def.get("name")
-            if name:
-                notebook_id = f"notebook-{name}"
-                # Only add if not already discovered from filesystem
-                if notebook_id not in self.resolver.artifacts:
-                    self.resolver.add_artifact(
-                        notebook_id,
-                        ArtifactType.NOTEBOOK,
-                        name,
-                        dependencies=[]
-                    )
-                    discovered_from_config.append(f"notebook:{name}")
-                    logger.debug(f"Discovered notebook from config: {name}")
-        
-        # Discover spark jobs from config
-        for job_def in artifacts_config.get("spark_job_definitions", []):
-            name = job_def.get("name")
-            if name:
-                job_id = f"spark_job-{name}"
-                # Only add if not already discovered from filesystem
-                if job_id not in self.resolver.artifacts:
-                    self.resolver.add_artifact(
-                        job_id,
-                        ArtifactType.SPARK_JOB_DEFINITION,
-                        name,
-                        dependencies=[]
-                    )
-                    discovered_from_config.append(f"spark_job:{name}")
-                    logger.debug(f"Discovered spark job from config: {name}")
-        
-        # Discover lakehouses from config
-        for lh_def in artifacts_config.get("lakehouses", []):
-            name = lh_def.get("name")
-            if name:
-                lh_id = f"lakehouse-{name}"
-                # Only add if not already discovered from filesystem
-                if lh_id not in self.resolver.artifacts:
-                    self.resolver.add_artifact(
-                        lh_id,
-                        ArtifactType.LAKEHOUSE,
-                        name,
-                        dependencies=[]
-                    )
-                    discovered_from_config.append(f"lakehouse:{name}")
-                    logger.debug(f"Discovered lakehouse from config: {name}")
-        
-        # Discover environments from config
-        for env_def in artifacts_config.get("environments", []):
-            name = env_def.get("name")
-            if name:
-                env_id = f"environment-{name}"
-                # Only add if not already discovered from filesystem
-                if env_id not in self.resolver.artifacts:
-                    self.resolver.add_artifact(
-                        env_id,
-                        ArtifactType.ENVIRONMENT,
-                        name,
-                        dependencies=[]
-                    )
-                    discovered_from_config.append(f"environment:{name}")
-                    logger.debug(f"Discovered environment from config: {name}")
-        
-        if discovered_from_config:
-            logger.info(f"  From config file: {len(discovered_from_config)} artifact(s) - {', '.join(discovered_from_config)}")
-        else:
-            logger.info(f"  From config file: 0 artifacts (all config artifacts already discovered from filesystem)")
-    
     def create_artifacts_from_config(self, dry_run: bool = False) -> bool:
         """
         Create artifacts defined in configuration file
@@ -695,9 +608,13 @@ class FabricDeployer:
                     
                     if existing_lakehouse:
                         logger.info(f"  ✓ Lakehouse '{name}' already exists (ID: {existing_lakehouse['id']})")
+                        # Track as created to skip deployment
+                        self._created_in_this_run.add(('lakehouse', name))
                     elif create_if_not_exists:
                         result = self.client.create_lakehouse(self.workspace_id, name, description)
                         logger.info(f"  ✓ Created lakehouse '{name}' (ID: {result['id']})")
+                        # Track as created to skip deployment
+                        self._created_in_this_run.add(('lakehouse', name))
                         # Save to local file
                         lakehouse_definition = {
                             "name": name,
@@ -729,9 +646,13 @@ class FabricDeployer:
                     
                     if existing_env:
                         logger.info(f"  ✓ Environment '{name}' already exists (ID: {existing_env['id']})")
+                        # Track as created to skip deployment
+                        self._created_in_this_run.add(('environment', name))
                     elif create_if_not_exists:
                         result = self.client.create_environment(self.workspace_id, name, description)
                         logger.info(f"  ✓ Created environment '{name}' (ID: {result['id']})")
+                        # Track as created to skip deployment
+                        self._created_in_this_run.add(('environment', name))
                         # Save to local file
                         env_definition = {
                             "name": name,
@@ -1609,6 +1530,11 @@ print('Notebook initialized')
     
     def _deploy_lakehouse(self, name: str) -> None:
         """Deploy a lakehouse"""
+        # Skip if this lakehouse was created in the current run
+        if ('lakehouse', name) in self._created_in_this_run:
+            logger.info(f"  ⏭ Skipping lakehouse '{name}' - created in this run")
+            return
+        
         lakehouse_file = self.artifacts_dir / self.artifacts_root_folder / "Lakehouses" / f"{name}.json"
         with open(lakehouse_file, 'r') as f:
             definition = json.load(f)
@@ -1635,6 +1561,11 @@ print('Notebook initialized')
     
     def _deploy_environment(self, name: str) -> None:
         """Deploy an environment"""
+        # Skip if this environment was created in the current run
+        if ('environment', name) in self._created_in_this_run:
+            logger.info(f"  ⏭ Skipping environment '{name}' - created in this run")
+            return
+        
         env_file = self.artifacts_dir / self.artifacts_root_folder / "Environments" / f"{name}.json"
         with open(env_file, 'r') as f:
             definition = json.load(f)

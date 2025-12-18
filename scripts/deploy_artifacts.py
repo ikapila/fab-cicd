@@ -103,6 +103,9 @@ class FabricDeployer:
         """
         Discover artifacts from file system and config file, then build dependency graph
         """
+        logger.info("="*60)
+        logger.info("ARTIFACT DISCOVERY PHASE")
+        logger.info("="*60)
         logger.info("Discovering artifacts from file system...")
         
         # Discover lakehouses
@@ -127,10 +130,12 @@ class FabricDeployer:
         self._discover_sql_views()
         
         # Also discover artifacts from config file (for artifacts that exist in workspace but not locally)
-        logger.info("Discovering artifacts from config file...")
+        logger.info("\nDiscovering artifacts from config file...")
         self._discover_from_config()
         
-        logger.info(f"Discovered {len(self.resolver.artifacts)} artifacts")
+        logger.info("="*60)
+        logger.info(f"DISCOVERY COMPLETE: Found {len(self.resolver.artifacts)} total artifacts")
+        logger.info("="*60)
     
     def _discover_lakehouses(self) -> None:
         """Discover lakehouse definitions"""
@@ -537,7 +542,9 @@ class FabricDeployer:
                     logger.debug(f"Discovered environment from config: {name}")
         
         if discovered_from_config:
-            logger.info(f"Discovered {len(discovered_from_config)} artifact(s) from config: {', '.join(discovered_from_config)}")
+            logger.info(f"  From config file: {len(discovered_from_config)} artifact(s) - {', '.join(discovered_from_config)}")
+        else:
+            logger.info(f"  From config file: 0 artifacts (all config artifacts already discovered from filesystem)")
     
     def create_artifacts_from_config(self, dry_run: bool = False) -> bool:
         """

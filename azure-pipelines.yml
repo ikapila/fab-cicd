@@ -106,11 +106,20 @@ stages:
                 - script: |
                     cd $(Pipeline.Workspace)/fabric-artifacts
                     
-                    # Create artifacts first (if needed)
+                    echo "========================================"
+                    echo "Deploying to Dev Environment"
+                    echo "This will:"
+                    echo "1. Create artifacts from config file"
+                    echo "2. Discover all artifacts in wsartifacts/ folders"
+                    echo "3. Deploy all discovered artifacts (new and updated)"
+                    echo "========================================"
+                    
                     python scripts/deploy_artifacts.py dev \
                       --config-dir config \
                       --artifacts-dir . \
                       --create-artifacts
+                    
+                    echo "✓ Dev deployment completed successfully"
                   displayName: 'Deploy to Dev Workspace'
                   env:
                     AZURE_TENANT_ID: $(AZURE_TENANT_ID)
@@ -148,11 +157,20 @@ stages:
                 - script: |
                     cd $(Pipeline.Workspace)/fabric-artifacts
                     
-                    # Create artifacts first (if needed)
+                    echo "========================================"
+                    echo "Deploying to UAT Environment"
+                    echo "This will:"
+                    echo "1. Create artifacts from config file"
+                    echo "2. Discover all artifacts in wsartifacts/ folders"
+                    echo "3. Deploy all discovered artifacts (new and updated)"
+                    echo "========================================"
+                    
                     python scripts/deploy_artifacts.py uat \
                       --config-dir config \
                       --artifacts-dir . \
                       --create-artifacts
+                    
+                    echo "✓ UAT deployment completed successfully"
                   displayName: 'Deploy to UAT Workspace'
                   env:
                     AZURE_TENANT_ID: $(AZURE_TENANT_ID)
@@ -190,11 +208,20 @@ stages:
                 - script: |
                     cd $(Pipeline.Workspace)/fabric-artifacts
                     
-                    # Create artifacts first (if needed)
+                    echo "========================================"
+                    echo "Deploying to Production Environment"
+                    echo "This will:"
+                    echo "1. Create artifacts from config file"
+                    echo "2. Discover all artifacts in wsartifacts/ folders"
+                    echo "3. Deploy all discovered artifacts (new and updated)"
+                    echo "========================================"
+                    
                     python scripts/deploy_artifacts.py prod \
                       --config-dir config \
                       --artifacts-dir . \
                       --create-artifacts
+                    
+                    echo "✓ Production deployment completed successfully"
                   displayName: 'Deploy to Production Workspace'
                   env:
                     AZURE_TENANT_ID: $(AZURE_TENANT_ID)

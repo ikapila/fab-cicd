@@ -349,7 +349,7 @@ class FabricClient:
         logger.info(f"Getting lakehouse: {lakehouse_id}")
         return self._make_request("GET", f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}")
     
-    def create_lakehouse(self, workspace_id: str, lakehouse_name: str, description: str = "") -> Dict:
+    def create_lakehouse(self, workspace_id: str, lakehouse_name: str, description: str = "", folder_id: str = None) -> Dict:
         """
         Create a new lakehouse
         
@@ -357,6 +357,7 @@ class FabricClient:
             workspace_id: Workspace GUID
             lakehouse_name: Name for the new lakehouse
             description: Optional description
+            folder_id: Optional workspace folder ID to place lakehouse in
             
         Returns:
             Created lakehouse details
@@ -366,6 +367,9 @@ class FabricClient:
             "displayName": lakehouse_name,
             "description": description
         }
+        if folder_id:
+            payload["folderId"] = folder_id
+            logger.info(f"  Including folderId in payload: {folder_id}")
         return self._make_request("POST", f"/workspaces/{workspace_id}/lakehouses", json_data=payload)
     
     # ==================== Notebook Operations ====================
@@ -600,7 +604,7 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/environments")
         return response.get("value", [])
     
-    def create_environment(self, workspace_id: str, environment_name: str, description: str = "") -> Dict:
+    def create_environment(self, workspace_id: str, environment_name: str, description: str = "", folder_id: str = None) -> Dict:
         """
         Create an environment
         
@@ -608,6 +612,7 @@ class FabricClient:
             workspace_id: Workspace GUID
             environment_name: Name for the environment
             description: Optional description
+            folder_id: Optional workspace folder ID to place environment in
             
         Returns:
             Created environment details
@@ -617,6 +622,9 @@ class FabricClient:
             "displayName": environment_name,
             "description": description
         }
+        if folder_id:
+            payload["folderId"] = folder_id
+            logger.info(f"  Including folderId in payload: {folder_id}")
         return self._make_request("POST", f"/workspaces/{workspace_id}/environments", json_data=payload)
     
     # ==================== Item Operations (Generic) ====================

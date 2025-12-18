@@ -574,8 +574,11 @@ class FabricDeployer:
                         # Track as created to skip deployment
                         self._created_in_this_run.add(('lakehouse', name))
                     elif create_if_not_exists:
-                        result = self.client.create_lakehouse(self.workspace_id, name, description)
-                        logger.info(f"  ✓ Created lakehouse '{name}' (ID: {result['id']})")
+                        # Get or create folder for lakehouses
+                        folder_id = self._get_or_create_folder("Lakehouses")
+                        
+                        result = self.client.create_lakehouse(self.workspace_id, name, description, folder_id=folder_id)
+                        logger.info(f"  ✓ Created lakehouse '{name}' in 'Lakehouses' folder (ID: {result['id']})")
                         # Track as created to skip deployment
                         self._created_in_this_run.add(('lakehouse', name))
                         # Save to local file
@@ -1518,9 +1521,12 @@ print('Notebook initialized')
             else:
                 logger.info(f"  Lakehouse '{name}' already exists, no changes detected (ID: {existing_lakehouse['id']})")
         else:
-            result = self.client.create_lakehouse(self.workspace_id, name, description)
+            # Get or create folder for lakehouses
+            folder_id = self._get_or_create_folder("Lakehouses")
+            
+            result = self.client.create_lakehouse(self.workspace_id, name, description, folder_id=folder_id)
             lakehouse_id = result.get('id') if result else 'unknown'
-            logger.info(f"  Created lakehouse (ID: {lakehouse_id})")
+            logger.info(f"  ✓ Created lakehouse '{name}' in 'Lakehouses' folder (ID: {lakehouse_id})")
     
     def _deploy_environment(self, name: str) -> None:
         """Deploy an environment"""

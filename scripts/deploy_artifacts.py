@@ -977,9 +977,12 @@ class FabricDeployer:
                             )
                             logger.info(f"  ✓ Updated {len(variables)} variables in '{name}'")
                     elif create_if_not_exists:
+                        # Get or create folder for Variable Libraries
+                        folder_id = self._get_or_create_folder("Variablelibraries")
+                        
                         library_def = self._create_variable_library_template(library_config)
                         result = self.client.create_variable_library(
-                            self.workspace_id, name, library_def.get("description", "")
+                            self.workspace_id, name, library_def.get("description", ""), folder_id=folder_id
                         )
                         # Set initial variables
                         variables = library_def.get("variables", [])
@@ -988,7 +991,7 @@ class FabricDeployer:
                             self.client.update_variable_library_definition(
                                 self.workspace_id, result["id"], update_payload
                             )
-                        logger.info(f"  ✓ Created Variable Library '{name}' with {len(variables)} variables (ID: {result['id']})")
+                        logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder with {len(variables)} variables (ID: {result['id']})")
                         # Save to local file
                         library_definition = {
                             "name": name,

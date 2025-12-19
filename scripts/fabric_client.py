@@ -349,7 +349,7 @@ class FabricClient:
         logger.info(f"Getting lakehouse: {lakehouse_id}")
         return self._make_request("GET", f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}")
     
-    def create_lakehouse(self, workspace_id: str, lakehouse_name: str, description: str = "", folder_id: str = None) -> Dict:
+    def create_lakehouse(self, workspace_id: str, lakehouse_name: str, description: str = "", folder_id: str = None, enable_schemas: bool = None) -> Dict:
         """
         Create a new lakehouse
         
@@ -358,6 +358,7 @@ class FabricClient:
             lakehouse_name: Name for the new lakehouse
             description: Optional description
             folder_id: Optional workspace folder ID to place lakehouse in
+            enable_schemas: Optional - Enable schemas (multi-level namespace) for the lakehouse
             
         Returns:
             Created lakehouse details
@@ -370,6 +371,11 @@ class FabricClient:
         if folder_id:
             payload["folderId"] = folder_id
             logger.info(f"  Including folderId in payload: {folder_id}")
+        if enable_schemas is not None:
+            payload["creationPayload"] = {
+                "enableSchemas": enable_schemas
+            }
+            logger.info(f"  Including creationPayload with enableSchemas: {enable_schemas}")
         return self._make_request("POST", f"/workspaces/{workspace_id}/lakehouses", json_data=payload)
     
     # ==================== Notebook Operations ====================

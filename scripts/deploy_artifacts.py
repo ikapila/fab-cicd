@@ -577,7 +577,18 @@ class FabricDeployer:
                         # Get or create folder for lakehouses
                         folder_id = self._get_or_create_folder("Lakehouses")
                         
-                        result = self.client.create_lakehouse(self.workspace_id, name, description, folder_id=folder_id)
+                        # Get enableSchemas setting if provided
+                        enable_schemas = lakehouse_def.get("enable_schemas")
+                        if enable_schemas is not None:
+                            logger.info(f"  Creating lakehouse with enableSchemas: {enable_schemas}")
+                        
+                        result = self.client.create_lakehouse(
+                            self.workspace_id, 
+                            name, 
+                            description, 
+                            folder_id=folder_id, 
+                            enable_schemas=enable_schemas
+                        )
                         logger.info(f"  ✓ Created lakehouse '{name}' in 'Lakehouses' folder (ID: {result['id']})")
                         # Track as created to skip deployment
                         self._created_in_this_run.add(('lakehouse', name))
@@ -1530,7 +1541,18 @@ print('Notebook initialized')
             # Get or create folder for lakehouses
             folder_id = self._get_or_create_folder("Lakehouses")
             
-            result = self.client.create_lakehouse(self.workspace_id, name, description, folder_id=folder_id)
+            # Get enableSchemas setting if provided in definition
+            enable_schemas = definition.get("enable_schemas")
+            if enable_schemas is not None:
+                logger.info(f"  Creating lakehouse with enableSchemas: {enable_schemas}")
+            
+            result = self.client.create_lakehouse(
+                self.workspace_id, 
+                name, 
+                description, 
+                folder_id=folder_id, 
+                enable_schemas=enable_schemas
+            )
             lakehouse_id = result.get('id') if result else 'unknown'
             logger.info(f"  ✓ Created lakehouse '{name}' in 'Lakehouses' folder (ID: {lakehouse_id})")
     

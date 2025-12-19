@@ -577,8 +577,11 @@ class FabricDeployer:
                         # Get or create folder for lakehouses
                         folder_id = self._get_or_create_folder("Lakehouses")
                         
-                        # Get enableSchemas setting if provided
+                        # Get enableSchemas setting - check both simple and native formats
                         enable_schemas = lakehouse_def.get("enable_schemas")
+                        if enable_schemas is None and "creationPayload" in lakehouse_def:
+                            enable_schemas = lakehouse_def["creationPayload"].get("enableSchemas")
+                        
                         if enable_schemas is not None:
                             logger.info(f"  Creating lakehouse with enableSchemas: {enable_schemas}")
                         
@@ -1541,8 +1544,11 @@ print('Notebook initialized')
             # Get or create folder for lakehouses
             folder_id = self._get_or_create_folder("Lakehouses")
             
-            # Get enableSchemas setting if provided in definition
+            # Get enableSchemas setting - check both simple and native formats
             enable_schemas = definition.get("enable_schemas")
+            if enable_schemas is None and "creationPayload" in definition:
+                enable_schemas = definition["creationPayload"].get("enableSchemas")
+            
             if enable_schemas is not None:
                 logger.info(f"  Creating lakehouse with enableSchemas: {enable_schemas}")
             

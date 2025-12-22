@@ -399,6 +399,7 @@ class FabricDeployer:
             logger.debug("No variable libraries directory found")
             return
         
+        discovered = []
         for library_file in library_dir.glob("*.json"):
             with open(library_file, 'r') as f:
                 definition = json.load(f)
@@ -406,6 +407,8 @@ class FabricDeployer:
             library_name = definition.get("name", library_file.stem)
             library_id = definition.get("id", f"varlib-{library_name}")
             dependencies = definition.get("dependencies", [])
+            
+            discovered.append(library_name)
             
             self.resolver.add_artifact(
                 library_id,
@@ -415,6 +418,9 @@ class FabricDeployer:
             )
             
             logger.debug(f"Discovered Variable Library: {library_name}")
+        
+        if discovered:
+            logger.info(f"Discovered {len(discovered)} Variable Librar{'y' if len(discovered) == 1 else 'ies'}: {', '.join(sorted(discovered))}")
     
     def _discover_sql_views(self) -> None:
         """Discover SQL view definitions from {artifacts_root_folder}/Views/{lakehouse}/ directories"""
@@ -1516,12 +1522,13 @@ print('Notebook initialized')
     
     def _deploy_lakehouse(self, name: str) -> None:
         """Deploy a lakehouse"""
-        # Skip if this lakehouse was created in the current run
-        if ('lakehouse', name) in self._created_in_this_run:
-            logger.info(f"  ⏭ Skipping lakehouse '{name}' - created in this run")
+        lakehouse_file = self.artifacts_dir / self.artifacts_root_folder / "Lakehouses" / f"{name}.json"
+        
+        # Skip if this lakehouse was just created in the current run AND no local file exists
+        if ('lakehouse', name) in self._created_in_this_run and not lakehouse_file.exists():
+            logger.info(f"  ⏭ Skipping lakehouse '{name}' - created in this run with no file to deploy")
             return
         
-        lakehouse_file = self.artifacts_dir / self.artifacts_root_folder / "Lakehouses" / f"{name}.json"
         with open(lakehouse_file, 'r') as f:
             definition = json.load(f)
         
@@ -1996,21 +2003,38 @@ print('Notebook initialized')
         existing_library = next((lib for lib in existing if lib["displayName"] == name), None)
         
         if existing_library:
-            logger.info(f"  Variable Library '{name}' already exists, updating variables...")
+            logger.info(f"  Variable Library '{name}' already exists, updating...")
             library_id = existing_library["id"]
             
             # Get the variables from definition
             variables = definition.get("variables", [])
-            update_payload = {
-                "variables": variables
-            }
             
-            self.client.update_variable_library_definition(
-                self.workspace_id,
-                library_id,
-                update_payload
-            )
-            logger.info(f"  Updated Variable Library '{name}' with {len(variables)} variables")
+            # Check if using environment-specific sets
+            sets = definition.get("sets")
+            active_set = definition.get("active_set")
+            
+            if sets:
+                # Multiple value sets defined - select based on environment or active_set
+                env_set_name = active_set or self.environment
+                if env_set_name in sets:
+                    logger.info(f"  Using variable set: '{env_set_name}' for environment '{self.environment}'")
+                    variables = sets[env_set_name]
+                else:
+                    logger.warning(f"  No set found for '{env_set_name}', using 'variables' if present")
+            
+            if variables:
+                update_payload = {
+                    "variables": variables
+                }
+                
+                self.client.update_variable_library_definition(
+                    self.workspace_id,
+                    library_id,
+                    update_payload
+                )
+                logger.info(f"  Updated Variable Library '{name}' with {len(variables)} variables")
+            else:
+                logger.warning(f"  No variables found to update for '{name}'")
         else:
             logger.info(f"  Creating Variable Library: {name}")
             description = definition.get("description", "")
@@ -2029,6 +2053,20 @@ print('Notebook initialized')
             
             # Set initial variables
             variables = definition.get("variables", [])
+            
+            # Check if using environment-specific sets
+            sets = definition.get("sets")
+            active_set = definition.get("active_set")
+            
+            if sets:
+                # Multiple value sets defined - select based on environment or active_set
+                env_set_name = active_set or self.environment
+                if env_set_name in sets:
+                    logger.info(f"  Using variable set: '{env_set_name}' for environment '{self.environment}'")
+                    variables = sets[env_set_name]
+                else:
+                    logger.warning(f"  No set found for '{env_set_name}', using 'variables' if present")
+            
             if variables and library_id and library_id != 'unknown':
                 logger.info(f"  Setting {len(variables)} initial variables...")
                 update_payload = {

@@ -34,20 +34,20 @@ class DependencyResolver:
     
     # Define dependency hierarchy (artifacts that should be deployed first)
     DEPENDENCY_PRIORITY = {
-        ArtifactType.LAKEHOUSE: 1,           # Lakehouses first (data storage)
+        ArtifactType.VARIABLE_LIBRARY: 1,    # Variable libraries FIRST (config values used by other artifacts)
         ArtifactType.ENVIRONMENT: 2,         # Environments second (runtime configs)
-        ArtifactType.KQL_DATABASE: 3,        # KQL Databases third
-        ArtifactType.SHORTCUT: 4,            # Shortcuts fourth (after lakehouses)
-        ArtifactType.VARIABLE_LIBRARY: 4,    # Variable libraries (same as shortcuts - no dependencies)
-        ArtifactType.SQL_VIEW: 5,            # SQL views fifth (after lakehouses, may depend on other views)
-        ArtifactType.SEMANTIC_MODEL: 6,      # Semantic models sixth (data models)
-        ArtifactType.NOTEBOOK: 7,            # Notebooks seventh
-        ArtifactType.SPARK_JOB_DEFINITION: 8,  # Spark jobs eighth
-        ArtifactType.KQL_QUERYSET: 9,        # KQL Querysets ninth
-        ArtifactType.POWER_BI_REPORT: 10,    # Power BI reports tenth (depend on semantic models)
-        ArtifactType.PAGINATED_REPORT: 11,   # Paginated reports eleventh
-        ArtifactType.EVENTSTREAM: 12,        # Eventstreams twelfth
-        ArtifactType.DATA_PIPELINE: 13,      # Pipelines last (orchestration)
+        ArtifactType.LAKEHOUSE: 3,           # Lakehouses third (data storage, may reference variables)
+        ArtifactType.KQL_DATABASE: 4,        # KQL Databases fourth
+        ArtifactType.SHORTCUT: 5,            # Shortcuts fifth (after lakehouses, may reference variables)
+        ArtifactType.SQL_VIEW: 6,            # SQL views sixth (after lakehouses, may depend on other views)
+        ArtifactType.SEMANTIC_MODEL: 7,      # Semantic models seventh (data models)
+        ArtifactType.NOTEBOOK: 8,            # Notebooks eighth
+        ArtifactType.SPARK_JOB_DEFINITION: 9,  # Spark jobs ninth
+        ArtifactType.KQL_QUERYSET: 10,       # KQL Querysets tenth
+        ArtifactType.POWER_BI_REPORT: 11,    # Power BI reports eleventh (depend on semantic models)
+        ArtifactType.PAGINATED_REPORT: 12,   # Paginated reports twelfth
+        ArtifactType.EVENTSTREAM: 13,        # Eventstreams thirteenth
+        ArtifactType.DATA_PIPELINE: 14,      # Pipelines last (orchestration)
     }
     
     def __init__(self):

@@ -27,51 +27,51 @@ Used with `--create-artifacts` flag to create variable libraries owned by servic
     "variable_libraries": [
       {
         "name": "DevVariables",
-        "description": "Development environment runtime variables",
+        "note": "Development environment runtime variables",
         "create_if_not_exists": true,
         "variables": [
           {
             "name": "storage_account",
             "value": "devstorageaccount",
             "type": "String",
-            "description": "Azure Storage Account name"
+            "note": "Azure Storage Account name"
           },
           {
             "name": "api_endpoint",
             "value": "https://dev-api.contoso.com",
             "type": "String",
-            "description": "API endpoint URL"
+            "note": "API endpoint URL"
           },
           {
             "name": "batch_size",
             "value": "1000",
             "type": "Int",
-            "description": "Batch size for processing"
+            "note": "Batch size for processing"
           },
           {
             "name": "enable_logging",
             "value": "true",
             "type": "Bool",
-            "description": "Enable debug logging"
+            "note": "Enable debug logging"
           }
         ]
       },
       {
         "name": "ConnectionStrings",
-        "description": "Database and service connection strings",
+        "note": "Database and service connection strings",
         "create_if_not_exists": true,
         "variables": [
           {
             "name": "sql_connection",
             "value": "Server=dev-sql.database.windows.net;Database=DevDB;",
             "type": "String",
-            "description": "SQL Server connection string"
+            "note": "SQL Server connection string",
           },
           {
             "name": "cosmos_connection",
             "value": "AccountEndpoint=https://dev-cosmos.documents.azure.com:443/;",
             "type": "String",
-            "description": "Cosmos DB connection string"
+            "note": "Cosmos DB connection string",
           }
         ]
       }
@@ -105,31 +105,31 @@ Single JSON file with all variables inline.
 ```json
 {
   "name": "DevVariables",
-  "description": "Development environment variables",
+  "note": "Development environment variables",
   "variables": [
     {
       "name": "storage_account",
       "value": "devstorageaccount",
       "type": "String",
-      "description": "Azure Storage Account name"
+      "note": "Azure Storage Account name",
     },
     {
       "name": "api_endpoint",
       "value": "https://dev-api.contoso.com",
       "type": "String",
-      "description": "API endpoint URL"
+      "note": "API endpoint URL",
     },
     {
       "name": "batch_size",
       "value": "1000",
       "type": "Int",
-      "description": "Batch size for processing"
+      "note": "Batch size for processing",
     },
     {
       "name": "enable_logging",
       "value": "true",
       "type": "Bool",
-      "description": "Enable debug logging"
+      "note": "Enable debug logging",
     }
   ]
 }
@@ -175,7 +175,7 @@ wsartifacts/
   "metadata": {
     "type": "VariableLibrary",
     "displayName": "MyVariableLibrary",
-    "description": "Environment-specific runtime variables"
+    "note": "Environment-specific runtime variables",
   }
 }
 ```
@@ -187,25 +187,25 @@ wsartifacts/
     "name": "storage_account",
     "value": "devstorageaccount",
     "type": "String",
-    "description": "DEV: Azure Storage Account"
+    "note": "DEV: Azure Storage Account",
   },
   {
     "name": "api_endpoint",
     "value": "https://dev-api.contoso.com",
     "type": "String",
-    "description": "DEV: API endpoint URL"
+    "note": "DEV: API endpoint URL",
   },
   {
     "name": "batch_size",
     "value": "500",
     "type": "Int",
-    "description": "DEV: Batch size (smaller for testing)"
+    "note": "DEV: Batch size (smaller for testing)",
   },
   {
     "name": "enable_logging",
     "value": "true",
     "type": "Bool",
-    "description": "DEV: Debug logging enabled"
+    "note": "DEV: Debug logging enabled",
   }
 ]
 ```
@@ -217,25 +217,25 @@ wsartifacts/
     "name": "storage_account",
     "value": "uatstorageaccount",
     "type": "String",
-    "description": "UAT: Azure Storage Account"
+    "note": "UAT: Azure Storage Account",
   },
   {
     "name": "api_endpoint",
     "value": "https://uat-api.contoso.com",
     "type": "String",
-    "description": "UAT: API endpoint URL"
+    "note": "UAT: API endpoint URL",
   },
   {
     "name": "batch_size",
     "value": "1000",
     "type": "Int",
-    "description": "UAT: Batch size"
+    "note": "UAT: Batch size",
   },
   {
     "name": "enable_logging",
     "value": "true",
     "type": "Bool",
-    "description": "UAT: Debug logging enabled"
+    "note": "UAT: Debug logging enabled",
   }
 ]
 ```
@@ -247,25 +247,25 @@ wsartifacts/
     "name": "storage_account",
     "value": "prodstorageaccount",
     "type": "String",
-    "description": "PROD: Azure Storage Account"
+    "note": "PROD: Azure Storage Account",
   },
   {
     "name": "api_endpoint",
     "value": "https://api.contoso.com",
     "type": "String",
-    "description": "PROD: API endpoint URL"
+    "note": "PROD: API endpoint URL",
   },
   {
     "name": "batch_size",
     "value": "5000",
     "type": "Int",
-    "description": "PROD: Batch size (optimized)"
+    "note": "PROD: Batch size (optimized)",
   },
   {
     "name": "enable_logging",
     "value": "false",
     "type": "Bool",
-    "description": "PROD: Debug logging disabled"
+    "note": "PROD: Debug logging disabled",
   }
 ]
 ```
@@ -294,7 +294,7 @@ python scripts/deploy_artifacts.py prod --artifacts-dir .
     "variable_libraries": [
       {
         "name": "CommonVariables",
-        "description": "Shared variables across all environments",
+        "note": "Shared variables across all environments",
         "create_if_not_exists": true,
         "variables": [
           {
@@ -345,6 +345,27 @@ python scripts/deploy_artifacts.py dev --artifacts-dir .
 
 ## Best Practices
 
+### 0. Field Names (Important!)
+**Variables use the `note` field for descriptions**, not `description`:
+```json
+✅ CORRECT:
+{
+  "name": "storage_account",
+  "type": "String",
+  "value": "mystorageaccount",
+  "note": "Azure Storage Account name"
+}
+
+❌ WRONG:
+{
+  "name": "storage_account",
+  "type": "String", 
+  "value": "mystorageaccount",
+  "description": "Azure Storage Account name"  // This field is ignored!
+}
+```
+**Note:** Variable libraries themselves use `description` at the root level, but individual variables use `note` for their descriptions. This matches the official [Microsoft Fabric Variable Library API specification](https://learn.microsoft.com/en-us/rest/api/fabric/articles/item-management/definitions/variable-library-definition).
+
 ### 1. Environment-Specific Values
 Use Git format with `valueSets/` for different environment values:
 - `dev.json` - Development settings (verbose logging, smaller batches)
@@ -381,7 +402,7 @@ Always include descriptions:
   "name": "batch_size",
   "value": "1000",
   "type": "Int",
-  "description": "Number of records to process per batch - optimized for memory usage"
+  "note": "Number of records to process per batch - optimized for memory usage",
 }
 ```
 

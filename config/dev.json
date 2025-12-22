@@ -143,25 +143,25 @@
             "name": "storage_account",
             "value": "devstorageaccount",
             "type": "String",
-            "description": "Azure Storage Account name for development"
+            "note": "Azure Storage Account name for development"
           },
           {
             "name": "api_endpoint",
             "value": "https://dev-api.contoso.com",
             "type": "String",
-            "description": "Development API endpoint URL"
+            "note": "Development API endpoint URL"
           },
           {
             "name": "log_level",
             "value": "DEBUG",
             "type": "String",
-            "description": "Logging level for development"
+            "note": "Logging level for development"
           },
           {
             "name": "batch_size",
             "value": "1000",
             "type": "Int",
-            "description": "Batch size for data processing"
+            "note": "Batch size for data processing"
           }
         ]
       }

@@ -975,6 +975,24 @@ class FabricClient:
         payload = {"definition": definition}
         return self._make_request("POST", f"/workspaces/{workspace_id}/items/{library_id}/updateDefinition", json_data=payload)
     
+    def set_active_value_set(self, workspace_id: str, library_id: str, value_set_name: str) -> Dict:
+        """
+        Set the active value set for a Variable Library
+        
+        Args:
+            workspace_id: Workspace GUID
+            library_id: Variable Library GUID
+            value_set_name: Name of the value set to activate (e.g., 'dev', 'uat', 'prod')
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Setting active value set to '{value_set_name}' for Variable Library: {library_id}")
+        payload = {
+            "activeValueSetName": value_set_name
+        }
+        return self._make_request("PATCH", f"/workspaces/{workspace_id}/variableLibraries/{library_id}", json_data=payload)
+    
     # ==================== Shortcut Operations ====================
     
     def list_shortcuts(self, workspace_id: str, lakehouse_id: str, path: str = "Tables") -> List[Dict]:

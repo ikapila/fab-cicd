@@ -2386,16 +2386,30 @@ print('Notebook initialized')
             library_id = existing_library["id"]
             
             if variables:
+                # Wrap variables in proper parts structure
+                variables_json = json.dumps({"variables": variables})
+                variables_base64 = base64.b64encode(variables_json.encode('utf-8')).decode('utf-8')
+                
                 update_payload = {
-                    "variables": variables
+                    "parts": [
+                        {
+                            "path": "variableLibrary.json",
+                            "payload": variables_base64,
+                            "payloadType": "InlineBase64"
+                        }
+                    ]
                 }
                 
-                self.client.update_variable_library_definition(
-                    self.workspace_id,
-                    library_id,
-                    update_payload
-                )
-                logger.info(f"  ✓ Updated Variable Library '{name}' with {len(variables)} variables")
+                try:
+                    self.client.update_variable_library_definition(
+                        self.workspace_id,
+                        library_id,
+                        update_payload
+                    )
+                    logger.info(f"  ✓ Updated Variable Library '{name}' with {len(variables)} variables")
+                except Exception as e:
+                    logger.error(f"  ❌ Failed to update Variable Library '{name}': {str(e)}")
+                    raise
             else:
                 logger.warning(f"  ⚠ No variables found to update for '{name}'")
         else:
@@ -2404,26 +2418,47 @@ print('Notebook initialized')
             # Get or create folder for variable libraries
             folder_id = self._get_or_create_folder("Variablelibraries")
             
-            result = self.client.create_variable_library(
-                self.workspace_id,
-                name,
-                description,
-                folder_id=folder_id
-            )
-            library_id = result.get('id') if result else 'unknown'
-            logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder (ID: {library_id})")
-            
-            if variables and library_id and library_id != 'unknown':
-                logger.info(f"  Setting {len(variables)} initial variables...")
-                update_payload = {
-                    "variables": variables
-                }
-                self.client.update_variable_library_definition(
+            try:
+                result = self.client.create_variable_library(
                     self.workspace_id,
-                    library_id,
-                    update_payload
+                    name,
+                    description,
+                    folder_id=folder_id
                 )
-                logger.info(f"  ✓ Initialized variables for '{name}'")
+                library_id = result.get('id') if result else None
+                
+                if not library_id:
+                    logger.error(f"  ❌ Failed to create Variable Library '{name}': No ID returned")
+                    raise ValueError(f"Failed to create Variable Library '{name}': No ID in response")
+                
+                logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder (ID: {library_id})")
+                
+                if variables:
+                    logger.info(f"  Setting {len(variables)} initial variables...")
+                    
+                    # Wrap variables in proper parts structure
+                    variables_json = json.dumps({"variables": variables})
+                    variables_base64 = base64.b64encode(variables_json.encode('utf-8')).decode('utf-8')
+                    
+                    update_payload = {
+                        "parts": [
+                            {
+                                "path": "variableLibrary.json",
+                                "payload": variables_base64,
+                                "payloadType": "InlineBase64"
+                            }
+                        ]
+                    }
+                    
+                    self.client.update_variable_library_definition(
+                        self.workspace_id,
+                        library_id,
+                        update_payload
+                    )
+                    logger.info(f"  ✓ Initialized variables for '{name}'")
+            except Exception as e:
+                logger.error(f"  ❌ Failed to deploy Variable Library '{name}': {str(e)}")
+                raise
     
     def _deploy_sql_view(self, name: str) -> None:
         """Deploy a SQL view to lakehouse SQL endpoint"""

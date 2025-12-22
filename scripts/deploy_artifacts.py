@@ -198,6 +198,8 @@ class FabricDeployer:
             return
         
         discovered = []
+        
+        # Discover JSON files (simple format)
         for lakehouse_file in lakehouse_dir.glob("*.json"):
             with open(lakehouse_file, 'r') as f:
                 definition = json.load(f)
@@ -215,7 +217,37 @@ class FabricDeployer:
                 dependencies=[]
             )
             
-            logger.debug(f"Discovered lakehouse: {lakehouse_name}")
+            logger.debug(f"Discovered lakehouse (JSON): {lakehouse_name}")
+        
+        # Discover Fabric Git format folders
+        for item in lakehouse_dir.iterdir():
+            if not item.is_dir():
+                continue
+            
+            # Check if it has item.metadata.json (Fabric Git format)
+            metadata_file = item / "item.metadata.json"
+            if metadata_file.exists():
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+                
+                lakehouse_name = metadata.get("displayName", item.name)
+                
+                # Skip if already discovered from JSON file
+                if lakehouse_name in discovered:
+                    logger.debug(f"Skipping duplicate lakehouse folder: {lakehouse_name}")
+                    continue
+                
+                discovered.append(lakehouse_name)
+                lakehouse_id = metadata.get("id", f"lakehouse-{lakehouse_name}")
+                
+                self.resolver.add_artifact(
+                    lakehouse_id,
+                    ArtifactType.LAKEHOUSE,
+                    lakehouse_name,
+                    dependencies=[]
+                )
+                
+                logger.debug(f"Discovered lakehouse (Fabric Git): {lakehouse_name}")
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} lakehouse(s): {', '.join(sorted(discovered))}")
@@ -400,6 +432,8 @@ class FabricDeployer:
             return
         
         discovered = []
+        
+        # Discover JSON files (simple format)
         for library_file in library_dir.glob("*.json"):
             with open(library_file, 'r') as f:
                 definition = json.load(f)
@@ -417,7 +451,41 @@ class FabricDeployer:
                 dependencies=dependencies
             )
             
-            logger.debug(f"Discovered Variable Library: {library_name}")
+            logger.debug(f"Discovered Variable Library (JSON): {library_name}")
+        
+        # Discover Fabric Git format folders
+        for item in library_dir.iterdir():
+            if not item.is_dir():
+                continue
+            
+            # Check if it has valueSets folder (Fabric Git format)
+            value_sets_dir = item / "valueSets"
+            metadata_file = item / "item.metadata.json"
+            
+            if value_sets_dir.exists() or metadata_file.exists():
+                # Get name from metadata or folder name
+                library_name = item.name
+                if metadata_file.exists():
+                    with open(metadata_file, 'r') as f:
+                        metadata = json.load(f)
+                    library_name = metadata.get("displayName", item.name)
+                
+                # Skip if already discovered from JSON file
+                if library_name in discovered:
+                    logger.debug(f"Skipping duplicate variable library folder: {library_name}")
+                    continue
+                
+                discovered.append(library_name)
+                library_id = f"varlib-{library_name}"
+                
+                self.resolver.add_artifact(
+                    library_id,
+                    ArtifactType.VARIABLE_LIBRARY,
+                    library_name,
+                    dependencies=[]
+                )
+                
+                logger.debug(f"Discovered Variable Library (Fabric Git): {library_name}")
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} Variable Librar{'y' if len(discovered) == 1 else 'ies'}: {', '.join(sorted(discovered))}")
@@ -1522,20 +1590,47 @@ print('Notebook initialized')
     
     def _deploy_lakehouse(self, name: str) -> None:
         """Deploy a lakehouse"""
-        lakehouse_file = self.artifacts_dir / self.artifacts_root_folder / "Lakehouses" / f"{name}.json"
+        lakehouse_dir = self.artifacts_dir / self.artifacts_root_folder / "Lakehouses"
+        lakehouse_file = lakehouse_dir / f"{name}.json"
+        lakehouse_folder = lakehouse_dir / name  # Fabric Git format folder
         
         # Skip if this lakehouse was just created in the current run AND no local file exists
-        if ('lakehouse', name) in self._created_in_this_run and not lakehouse_file.exists():
+        if ('lakehouse', name) in self._created_in_this_run and not lakehouse_file.exists() and not lakehouse_folder.exists():
             logger.info(f"  ⏭ Skipping lakehouse '{name}' - created in this run with no file to deploy")
             return
         
-        if not lakehouse_file.exists():
-            logger.error(f"  ❌ Lakehouse file not found: {lakehouse_file}")
-            raise FileNotFoundError(f"Lakehouse file not found: {lakehouse_file}")
+        # Try to read from JSON file first, then Fabric Git folder format
+        definition = None
+        shortcuts = []
         
-        logger.info(f"  Reading lakehouse definition from: {lakehouse_file.name}")
-        with open(lakehouse_file, 'r') as f:
-            definition = json.load(f)
+        if lakehouse_file.exists():
+            logger.info(f"  Reading lakehouse definition from: {lakehouse_file.name}")
+            with open(lakehouse_file, 'r') as f:
+                definition = json.load(f)
+            # Shortcuts might be in the JSON file directly
+            shortcuts = definition.get("shortcuts", [])
+        elif lakehouse_folder.exists():
+            logger.info(f"  Reading lakehouse definition from Fabric Git folder: {name}/")
+            # Read from Fabric Git format
+            item_metadata_file = lakehouse_folder / "item.metadata.json"
+            if item_metadata_file.exists():
+                with open(item_metadata_file, 'r') as f:
+                    definition = json.load(f)
+            else:
+                # Create minimal definition
+                definition = {"name": name, "description": ""}
+            
+            # Read shortcuts from shortcuts.metadata.json
+            shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
+            if shortcuts_file.exists():
+                logger.info(f"  Reading shortcuts from: shortcuts.metadata.json")
+                with open(shortcuts_file, 'r') as f:
+                    shortcuts_data = json.load(f)
+                    shortcuts = shortcuts_data.get("shortcuts", [])
+                    logger.info(f"  Found {len(shortcuts)} shortcut(s) in metadata file")
+        else:
+            logger.error(f"  ❌ Lakehouse file or folder not found: {lakehouse_file} or {lakehouse_folder}")
+            raise FileNotFoundError(f"Lakehouse file or folder not found: {lakehouse_file} or {lakehouse_folder}")
         
         description = definition.get("description", "")
         
@@ -1555,7 +1650,6 @@ print('Notebook initialized')
                 logger.info(f"    New: {description}")
             
             # Handle shortcuts if defined
-            shortcuts = definition.get("shortcuts", [])
             if shortcuts:
                 logger.info(f"  Processing {len(shortcuts)} shortcut(s) for lakehouse '{name}'...")
                 for shortcut_def in shortcuts:
@@ -1606,7 +1700,6 @@ print('Notebook initialized')
             logger.info(f"  ✓ Created lakehouse '{name}' in 'Lakehouses' folder (ID: {lakehouse_id})")
             
             # Handle shortcuts after creation
-            shortcuts = definition.get("shortcuts", [])
             if shortcuts and lakehouse_id and lakehouse_id != 'unknown':
                 logger.info(f"  Processing {len(shortcuts)} shortcut(s) for new lakehouse...")
                 for shortcut_def in shortcuts:
@@ -2046,30 +2139,25 @@ print('Notebook initialized')
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""
-        library_file = self.artifacts_dir / self.artifacts_root_folder / "Variablelibraries" / f"{name}.json"
+        library_dir = self.artifacts_dir / self.artifacts_root_folder / "Variablelibraries"
+        library_file = library_dir / f"{name}.json"
+        library_folder = library_dir / name  # Fabric Git format folder
         
-        if not library_file.exists():
-            logger.error(f"  ❌ Variable Library file not found: {library_file}")
-            raise FileNotFoundError(f"Variable Library file not found: {library_file}")
+        # Try to read from JSON file first, then Fabric Git folder format
+        definition = None
+        variables = []
         
-        logger.info(f"  Reading variable library definition from: {library_file.name}")
-        with open(library_file, 'r') as f:
-            definition = json.load(f)
-        
-        # Substitute parameters in variable values
-        definition_str = json.dumps(definition)
-        definition_str = self.config.substitute_parameters(definition_str)
-        definition = json.loads(definition_str)
-        
-        # Check if Variable Library exists
-        existing = self.client.list_variable_libraries(self.workspace_id)
-        existing_library = next((lib for lib in existing if lib["displayName"] == name), None)
-        
-        if existing_library:
-            logger.info(f"  Variable Library '{name}' already exists, updating...")
-            library_id = existing_library["id"]
+        if library_file.exists():
+            logger.info(f"  Reading variable library definition from: {library_file.name}")
+            with open(library_file, 'r') as f:
+                definition = json.load(f)
             
-            # Get the variables from definition
+            # Substitute parameters in variable values
+            definition_str = json.dumps(definition)
+            definition_str = self.config.substitute_parameters(definition_str)
+            definition = json.loads(definition_str)
+            
+            # Get variables from definition
             variables = definition.get("variables", [])
             
             # Check if using environment-specific sets
@@ -2088,6 +2176,80 @@ print('Notebook initialized')
                 else:
                     logger.warning(f"  ⚠ No set found for '{env_set_name}', using 'variables' if present")
                     logger.warning(f"  Available sets: {', '.join(sets.keys())}")
+        
+        elif library_folder.exists():
+            logger.info(f"  Reading variable library definition from Fabric Git folder: {name}/")
+            
+            # Read from Fabric Git format
+            item_metadata_file = library_folder / "item.metadata.json"
+            if item_metadata_file.exists():
+                with open(item_metadata_file, 'r') as f:
+                    definition = json.load(f)
+            else:
+                # Create minimal definition
+                definition = {"name": name, "description": ""}
+            
+            # Read variables from valueSets folder based on environment
+            value_sets_dir = library_folder / "valueSets"
+            if value_sets_dir.exists():
+                logger.info(f"  Found valueSets folder for environment-specific variables")
+                logger.info(f"  Deployment environment: '{self.environment}'")
+                
+                # Map environment to file name
+                env_file_map = {
+                    "dev": "dev.json",
+                    "uat": "uat.json",
+                    "prod": "prod.json"
+                }
+                
+                env_file = env_file_map.get(self.environment.lower(), f"{self.environment}.json")
+                env_file_path = value_sets_dir / env_file
+                
+                if env_file_path.exists():
+                    logger.info(f"  Reading variables from: valueSets/{env_file}")
+                    with open(env_file_path, 'r') as f:
+                        env_data = json.load(f)
+                        variables = env_data.get("variables", [])
+                    
+                    # Substitute parameters in variables
+                    variables_str = json.dumps(variables)
+                    variables_str = self.config.substitute_parameters(variables_str)
+                    variables = json.loads(variables_str)
+                    
+                    logger.info(f"  Found {len(variables)} variable(s) for environment '{self.environment}'")
+                else:
+                    logger.warning(f"  Variable set file not found: valueSets/{env_file}")
+                    # Try to find any available file as fallback
+                    available_files = list(value_sets_dir.glob("*.json"))
+                    if available_files:
+                        fallback_file = available_files[0]
+                        logger.info(f"  Using fallback file: valueSets/{fallback_file.name}")
+                        with open(fallback_file, 'r') as f:
+                            env_data = json.load(f)
+                            variables = env_data.get("variables", [])
+                        
+                        # Substitute parameters
+                        variables_str = json.dumps(variables)
+                        variables_str = self.config.substitute_parameters(variables_str)
+                        variables = json.loads(variables_str)
+                        
+                        logger.info(f"  Found {len(variables)} variable(s) in fallback set")
+            else:
+                logger.warning(f"  No valueSets folder found in {name}/")
+        
+        else:
+            logger.error(f"  ❌ Variable library file or folder not found: {library_file} or {library_folder}")
+            raise FileNotFoundError(f"Variable library file or folder not found: {library_file} or {library_folder}")
+        
+        description = definition.get("description", "")
+        
+        # Check if Variable Library exists
+        existing = self.client.list_variable_libraries(self.workspace_id)
+        existing_library = next((lib for lib in existing if lib["displayName"] == name), None)
+        
+        if existing_library:
+            logger.info(f"  Variable Library '{name}' already exists, updating...")
+            library_id = existing_library["id"]
             
             if variables:
                 update_payload = {
@@ -2104,7 +2266,6 @@ print('Notebook initialized')
                 logger.warning(f"  ⚠ No variables found to update for '{name}'")
         else:
             logger.info(f"  Creating Variable Library: {name}")
-            description = definition.get("description", "")
             
             # Get or create folder for variable libraries
             folder_id = self._get_or_create_folder("Variablelibraries")
@@ -2117,26 +2278,6 @@ print('Notebook initialized')
             )
             library_id = result.get('id') if result else 'unknown'
             logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder (ID: {library_id})")
-            
-            # Set initial variables
-            variables = definition.get("variables", [])
-            
-            # Check if using environment-specific sets
-            sets = definition.get("sets")
-            active_set = definition.get("active_set")
-            
-            if sets:
-                # Multiple value sets defined - select based on environment or active_set
-                env_set_name = active_set or self.environment
-                logger.info(f"  Found {len(sets)} variable set(s): {', '.join(sets.keys())}")
-                logger.info(f"  Selecting set: '{env_set_name}' (active_set={active_set}, environment={self.environment})")
-                
-                if env_set_name in sets:
-                    variables = sets[env_set_name]
-                    logger.info(f"  ✓ Using variable set '{env_set_name}' with {len(variables)} variable(s)")
-                else:
-                    logger.warning(f"  ⚠ No set found for '{env_set_name}', using 'variables' if present")
-                    logger.warning(f"  Available sets: {', '.join(sets.keys())}")
             
             if variables and library_id and library_id != 'unknown':
                 logger.info(f"  Setting {len(variables)} initial variables...")

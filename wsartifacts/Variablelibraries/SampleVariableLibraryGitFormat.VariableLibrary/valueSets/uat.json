@@ -1,0 +1,26 @@
+[
+  {
+    "name": "ApiEndpoint",
+    "type": "String",
+    "value": "https://uat-api.example.com/v1",
+    "description": "UAT API endpoint URL"
+  },
+  {
+    "name": "MaxRetries",
+    "type": "Int",
+    "value": "4",
+    "description": "Maximum number of retry attempts"
+  },
+  {
+    "name": "EnableDebugLogging",
+    "type": "Bool",
+    "value": "true",
+    "description": "Enable debug logging in UAT"
+  },
+  {
+    "name": "ConnectionString",
+    "type": "String",
+    "value": "Server=uat-server;Database=uat-db",
+    "description": "UAT database connection string"
+  }
+]

@@ -1,0 +1,30 @@
+{
+  "name": "SampleVariableLibrary",
+  "description": "Sample variable library with different variable types",
+  "variables": [
+    {
+      "name": "ApiEndpoint",
+      "type": "String",
+      "value": "https://api.example.com/v1",
+      "description": "API endpoint URL"
+    },
+    {
+      "name": "MaxRetries",
+      "type": "Int",
+      "value": "3",
+      "description": "Maximum number of retry attempts"
+    },
+    {
+      "name": "EnableDebugLogging",
+      "type": "Bool",
+      "value": "false",
+      "description": "Enable debug logging"
+    },
+    {
+      "name": "ConnectionString",
+      "type": "String",
+      "value": "Server=myserver;Database=mydb",
+      "description": "Database connection string"
+    }
+  ]
+}

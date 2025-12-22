@@ -1,0 +1,38 @@
+{
+  "name": "SampleLakehouseWithSchemas",
+  "description": "Sample lakehouse with schemas enabled and shortcuts",
+  "enable_schemas": true,
+  "shortcuts": [
+    {
+      "name": "ExternalData",
+      "path": "Tables",
+      "target": {
+        "adlsGen2": {
+          "connectionId": "your-connection-id-guid",
+          "location": "https://yourstorageaccount.dfs.core.windows.net/container/path/to/data"
+        }
+      }
+    },
+    {
+      "name": "ArchiveFiles",
+      "path": "Files",
+      "target": {
+        "adlsGen2": {
+          "connectionId": "your-connection-id-guid",
+          "location": "https://yourstorageaccount.dfs.core.windows.net/archive/files"
+        }
+      }
+    },
+    {
+      "name": "OneLakeShortcut",
+      "path": "Tables",
+      "target": {
+        "oneLake": {
+          "workspaceId": "target-workspace-id-guid",
+          "itemId": "target-lakehouse-id-guid",
+          "path": "Tables/SourceTable"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "ApiEndpoint",
+    "type": "String",
+    "value": "https://dev-api.example.com/v1",
+    "description": "DEV API endpoint URL"
+  },
+  {
+    "name": "MaxRetries",
+    "type": "Int",
+    "value": "5",
+    "description": "Maximum number of retry attempts"
+  },
+  {
+    "name": "EnableDebugLogging",
+    "type": "Bool",
+    "value": "true",
+    "description": "Enable debug logging in DEV"
+  },
+  {
+    "name": "ConnectionString",
+    "type": "String",
+    "value": "Server=dev-server;Database=dev-db",
+    "description": "DEV database connection string"
+  }
+]

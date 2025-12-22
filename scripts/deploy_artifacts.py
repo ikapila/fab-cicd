@@ -2016,11 +2016,15 @@ print('Notebook initialized')
             if sets:
                 # Multiple value sets defined - select based on environment or active_set
                 env_set_name = active_set or self.environment
+                logger.info(f"  Found {len(sets)} variable set(s): {', '.join(sets.keys())}")
+                logger.info(f"  Selecting set: '{env_set_name}' (active_set={active_set}, environment={self.environment})")
+                
                 if env_set_name in sets:
-                    logger.info(f"  Using variable set: '{env_set_name}' for environment '{self.environment}'")
                     variables = sets[env_set_name]
+                    logger.info(f"  ✓ Using variable set '{env_set_name}' with {len(variables)} variable(s)")
                 else:
-                    logger.warning(f"  No set found for '{env_set_name}', using 'variables' if present")
+                    logger.warning(f"  ⚠ No set found for '{env_set_name}', using 'variables' if present")
+                    logger.warning(f"  Available sets: {', '.join(sets.keys())}")
             
             if variables:
                 update_payload = {
@@ -2032,9 +2036,9 @@ print('Notebook initialized')
                     library_id,
                     update_payload
                 )
-                logger.info(f"  Updated Variable Library '{name}' with {len(variables)} variables")
+                logger.info(f"  ✓ Updated Variable Library '{name}' with {len(variables)} variables")
             else:
-                logger.warning(f"  No variables found to update for '{name}'")
+                logger.warning(f"  ⚠ No variables found to update for '{name}'")
         else:
             logger.info(f"  Creating Variable Library: {name}")
             description = definition.get("description", "")
@@ -2061,11 +2065,15 @@ print('Notebook initialized')
             if sets:
                 # Multiple value sets defined - select based on environment or active_set
                 env_set_name = active_set or self.environment
+                logger.info(f"  Found {len(sets)} variable set(s): {', '.join(sets.keys())}")
+                logger.info(f"  Selecting set: '{env_set_name}' (active_set={active_set}, environment={self.environment})")
+                
                 if env_set_name in sets:
-                    logger.info(f"  Using variable set: '{env_set_name}' for environment '{self.environment}'")
                     variables = sets[env_set_name]
+                    logger.info(f"  ✓ Using variable set '{env_set_name}' with {len(variables)} variable(s)")
                 else:
-                    logger.warning(f"  No set found for '{env_set_name}', using 'variables' if present")
+                    logger.warning(f"  ⚠ No set found for '{env_set_name}', using 'variables' if present")
+                    logger.warning(f"  Available sets: {', '.join(sets.keys())}")
             
             if variables and library_id and library_id != 'unknown':
                 logger.info(f"  Setting {len(variables)} initial variables...")
@@ -2077,7 +2085,7 @@ print('Notebook initialized')
                     library_id,
                     update_payload
                 )
-                logger.info(f"  Initialized variables for '{name}'")
+                logger.info(f"  ✓ Initialized variables for '{name}'")
     
     def _deploy_sql_view(self, name: str) -> None:
         """Deploy a SQL view to lakehouse SQL endpoint"""

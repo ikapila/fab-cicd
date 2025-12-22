@@ -2579,11 +2579,12 @@ print('Notebook initialized')
                     logger.info(f"  Reading variables from: valueSets/{env_file}")
                     with open(env_file_path, 'r') as f:
                         env_data = json.load(f)
-                        # Handle both direct array and object with 'variables' key
+                        # Handle both direct array and object with 'variables' or 'variableOverrides' key
                         if isinstance(env_data, list):
                             variables = env_data
                         elif isinstance(env_data, dict):
-                            variables = env_data.get("variables", [])
+                            # Fabric Git format uses 'variableOverrides', fallback to 'variables'
+                            variables = env_data.get("variableOverrides", env_data.get("variables", []))
                         else:
                             variables = []
                     

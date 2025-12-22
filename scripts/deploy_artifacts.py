@@ -1692,7 +1692,13 @@ print('Notebook initialized')
                 logger.info(f"  Reading shortcuts from: shortcuts.metadata.json")
                 with open(shortcuts_file, 'r') as f:
                     shortcuts_data = json.load(f)
-                    shortcuts = shortcuts_data.get("shortcuts", [])
+                    # Handle both direct array and object with 'shortcuts' key
+                    if isinstance(shortcuts_data, list):
+                        shortcuts = shortcuts_data
+                    elif isinstance(shortcuts_data, dict):
+                        shortcuts = shortcuts_data.get("shortcuts", [])
+                    else:
+                        shortcuts = []
                     logger.info(f"  Found {len(shortcuts)} shortcut(s) in metadata file")
         elif lakehouse_folder_v1.exists():
             logger.info(f"  Reading lakehouse definition from Fabric Git folder (v1): {name}/")
@@ -1721,7 +1727,13 @@ print('Notebook initialized')
                 logger.info(f"  Reading shortcuts from: shortcuts.metadata.json")
                 with open(shortcuts_file, 'r') as f:
                     shortcuts_data = json.load(f)
-                    shortcuts = shortcuts_data.get("shortcuts", [])
+                    # Handle both direct array and object with 'shortcuts' key
+                    if isinstance(shortcuts_data, list):
+                        shortcuts = shortcuts_data
+                    elif isinstance(shortcuts_data, dict):
+                        shortcuts = shortcuts_data.get("shortcuts", [])
+                    else:
+                        shortcuts = []
                     logger.info(f"  Found {len(shortcuts)} shortcut(s) in metadata file")
         else:
             logger.error(f"  ❌ Lakehouse file or folder not found: {lakehouse_file}, {lakehouse_folder_v2}, or {lakehouse_folder_v1}")
@@ -2319,7 +2331,13 @@ print('Notebook initialized')
                     logger.info(f"  Reading variables from: valueSets/{env_file}")
                     with open(env_file_path, 'r') as f:
                         env_data = json.load(f)
-                        variables = env_data.get("variables", [])
+                        # Handle both direct array and object with 'variables' key
+                        if isinstance(env_data, list):
+                            variables = env_data
+                        elif isinstance(env_data, dict):
+                            variables = env_data.get("variables", [])
+                        else:
+                            variables = []
                     
                     # Substitute parameters in variables
                     variables_str = json.dumps(variables)
@@ -2336,7 +2354,13 @@ print('Notebook initialized')
                         logger.info(f"  Using fallback file: valueSets/{fallback_file.name}")
                         with open(fallback_file, 'r') as f:
                             env_data = json.load(f)
-                            variables = env_data.get("variables", [])
+                            # Handle both direct array and object with 'variables' key
+                            if isinstance(env_data, list):
+                                variables = env_data
+                            elif isinstance(env_data, dict):
+                                variables = env_data.get("variables", [])
+                            else:
+                                variables = []
                         
                         # Substitute parameters
                         variables_str = json.dumps(variables)

@@ -2559,6 +2559,10 @@ print('Notebook initialized')
                 logger.info(f"  Found valueSets folder for environment-specific variables")
                 logger.info(f"  Deployment environment: '{self.environment}'")
                 
+                # Show available files in valueSets
+                available_files = list(value_sets_dir.glob("*.json"))
+                logger.info(f"  Available value sets: {', '.join([f.name for f in available_files])}")
+                
                 # Map environment to file name
                 env_file_map = {
                     "dev": "dev.json",
@@ -2568,6 +2572,8 @@ print('Notebook initialized')
                 
                 env_file = env_file_map.get(self.environment.lower(), f"{self.environment}.json")
                 env_file_path = value_sets_dir / env_file
+                
+                logger.info(f"  Looking for: {env_file_path}")
                 
                 if env_file_path.exists():
                     logger.info(f"  Reading variables from: valueSets/{env_file}")
@@ -2588,30 +2594,13 @@ print('Notebook initialized')
                     
                     logger.info(f"  Found {len(variables)} variable(s) for environment '{self.environment}'")
                 else:
-                    logger.warning(f"  Variable set file not found: valueSets/{env_file}")
-                    # Try to find any available file as fallback
-                    available_files = list(value_sets_dir.glob("*.json"))
-                    if available_files:
-                        fallback_file = available_files[0]
-                        logger.info(f"  Using fallback file: valueSets/{fallback_file.name}")
-                        with open(fallback_file, 'r') as f:
-                            env_data = json.load(f)
-                            # Handle both direct array and object with 'variables' key
-                            if isinstance(env_data, list):
-                                variables = env_data
-                            elif isinstance(env_data, dict):
-                                variables = env_data.get("variables", [])
-                            else:
-                                variables = []
-                        
-                        # Substitute parameters
-                        variables_str = json.dumps(variables)
-                        variables_str = self.config.substitute_parameters(variables_str)
-                        variables = json.loads(variables_str)
-                        
-                        logger.info(f"  Found {len(variables)} variable(s) in fallback set")
+                    logger.warning(f"  ⚠ Variable set file not found: valueSets/{env_file}")
+                    logger.error(f"  ❌ Required file does not exist: {env_file_path}")
+                    logger.error(f"  Available files in valueSets/: {', '.join([f.name for f in available_files]) if available_files else 'None'}")
+                    raise FileNotFoundError(f"Variable set file not found for environment '{self.environment}': {env_file_path}")
             else:
-                logger.warning(f"  No valueSets folder found in {name}/")
+                logger.error(f"  ❌ No valueSets folder found in {library_folder.name}/")
+                raise FileNotFoundError(f"No valueSets folder found in variable library: {library_folder}")
         
         else:
             logger.error(f"  ❌ Variable library file or folder not found: {library_file} or {library_folder}")
@@ -2626,6 +2615,11 @@ print('Notebook initialized')
         if existing_library:
             logger.info(f"  Variable Library '{name}' already exists, updating...")
             library_id = existing_library["id"]
+            
+            # Debug: Show what we have
+            logger.info(f"  DEBUG: variables type={type(variables)}, len={len(variables) if variables else 0}")
+            if variables:
+                logger.info(f"  DEBUG: First few variables: {variables[:2] if len(variables) > 0 else 'none'}")
             
             if variables:
                 # Wrap variables in proper parts structure
@@ -2653,7 +2647,9 @@ print('Notebook initialized')
                     logger.error(f"  ❌ Failed to update Variable Library '{name}': {str(e)}")
                     raise
             else:
-                logger.warning(f"  ⚠ No variables found to update for '{name}'")
+                logger.error(f"  ❌ No variables found to update for '{name}'")
+                logger.error(f"  This usually means the valueSets/{self.environment}.json file was not found or is empty")
+                raise ValueError(f"No variables found for Variable Library '{name}' in environment '{self.environment}'")
         else:
             logger.info(f"  Creating Variable Library: {name}")
             

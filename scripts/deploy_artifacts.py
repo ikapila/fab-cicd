@@ -2624,7 +2624,12 @@ print('Notebook initialized')
             
             if variables:
                 # Wrap variables in proper parts structure
+                # Log the variables structure before encoding
+                logger.info(f"  DEBUG: Variables structure: {json.dumps(variables[:1], indent=2) if variables else 'none'}")
+                
                 variables_json = json.dumps({"variables": variables})
+                logger.info(f"  DEBUG: Wrapped JSON length: {len(variables_json)} bytes")
+                
                 variables_base64 = base64.b64encode(variables_json.encode('utf-8')).decode('utf-8')
                 
                 update_payload = {
@@ -2638,11 +2643,12 @@ print('Notebook initialized')
                 }
                 
                 try:
-                    self.client.update_variable_library_definition(
+                    result = self.client.update_variable_library_definition(
                         self.workspace_id,
                         library_id,
                         update_payload
                     )
+                    logger.info(f"  DEBUG: API response: {json.dumps(result, indent=2) if result else 'No response'}")
                     logger.info(f"  ✓ Updated Variable Library '{name}' with {len(variables)} variables")
                 except Exception as e:
                     logger.error(f"  ❌ Failed to update Variable Library '{name}': {str(e)}")

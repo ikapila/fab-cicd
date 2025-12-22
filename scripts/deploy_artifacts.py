@@ -1529,6 +1529,11 @@ print('Notebook initialized')
             logger.info(f"  ⏭ Skipping lakehouse '{name}' - created in this run with no file to deploy")
             return
         
+        if not lakehouse_file.exists():
+            logger.error(f"  ❌ Lakehouse file not found: {lakehouse_file}")
+            raise FileNotFoundError(f"Lakehouse file not found: {lakehouse_file}")
+        
+        logger.info(f"  Reading lakehouse definition from: {lakehouse_file.name}")
         with open(lakehouse_file, 'r') as f:
             definition = json.load(f)
         
@@ -1539,15 +1544,46 @@ print('Notebook initialized')
         existing_lakehouse = next((lh for lh in existing if lh["displayName"] == name), None)
         
         if existing_lakehouse:
+            lakehouse_id = existing_lakehouse['id']
+            logger.info(f"  Lakehouse '{name}' already exists (ID: {lakehouse_id})")
+            
             # Check if description changed
             existing_desc = existing_lakehouse.get("description", "")
             if existing_desc != description:
-                logger.info(f"  Lakehouse '{name}' exists, description differs - consider manual update")
+                logger.info(f"  Description differs - consider manual update")
                 logger.info(f"    Current: {existing_desc}")
                 logger.info(f"    New: {description}")
-            else:
-                logger.info(f"  Lakehouse '{name}' already exists, no changes detected (ID: {existing_lakehouse['id']})")
+            
+            # Handle shortcuts if defined
+            shortcuts = definition.get("shortcuts", [])
+            if shortcuts:
+                logger.info(f"  Processing {len(shortcuts)} shortcut(s) for lakehouse '{name}'...")
+                for shortcut_def in shortcuts:
+                    try:
+                        shortcut_name = shortcut_def["name"]
+                        target = shortcut_def["target"]
+                        path = shortcut_def.get("path", "Tables")
+                        
+                        # Check if shortcut already exists
+                        existing_shortcuts = self.client.list_shortcuts(self.workspace_id, lakehouse_id, path)
+                        shortcut_exists = any(sc.get("name") == shortcut_name for sc in existing_shortcuts)
+                        
+                        if shortcut_exists:
+                            logger.info(f"    ⏭ Shortcut '{shortcut_name}' already exists in {path}")
+                        else:
+                            self.client.create_shortcut(
+                                self.workspace_id,
+                                lakehouse_id,
+                                shortcut_name,
+                                path,
+                                target
+                            )
+                            logger.info(f"    ✓ Created shortcut '{shortcut_name}' in {path}")
+                    except Exception as e:
+                        logger.error(f"    ❌ Failed to create shortcut '{shortcut_def.get('name', 'unknown')}': {str(e)}")
         else:
+            logger.info(f"  Lakehouse '{name}' not found, creating...")
+            
             # Get or create folder for lakehouses
             folder_id = self._get_or_create_folder("Lakehouses")
             
@@ -1568,6 +1604,27 @@ print('Notebook initialized')
             )
             lakehouse_id = result.get('id') if result else 'unknown'
             logger.info(f"  ✓ Created lakehouse '{name}' in 'Lakehouses' folder (ID: {lakehouse_id})")
+            
+            # Handle shortcuts after creation
+            shortcuts = definition.get("shortcuts", [])
+            if shortcuts and lakehouse_id and lakehouse_id != 'unknown':
+                logger.info(f"  Processing {len(shortcuts)} shortcut(s) for new lakehouse...")
+                for shortcut_def in shortcuts:
+                    try:
+                        shortcut_name = shortcut_def["name"]
+                        target = shortcut_def["target"]
+                        path = shortcut_def.get("path", "Tables")
+                        
+                        self.client.create_shortcut(
+                            self.workspace_id,
+                            lakehouse_id,
+                            shortcut_name,
+                            path,
+                            target
+                        )
+                        logger.info(f"    ✓ Created shortcut '{shortcut_name}' in {path}")
+                    except Exception as e:
+                        logger.error(f"    ❌ Failed to create shortcut '{shortcut_def.get('name', 'unknown')}': {str(e)}")
     
     def _deploy_environment(self, name: str) -> None:
         """Deploy an environment"""
@@ -1990,6 +2047,12 @@ print('Notebook initialized')
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""
         library_file = self.artifacts_dir / self.artifacts_root_folder / "Variablelibraries" / f"{name}.json"
+        
+        if not library_file.exists():
+            logger.error(f"  ❌ Variable Library file not found: {library_file}")
+            raise FileNotFoundError(f"Variable Library file not found: {library_file}")
+        
+        logger.info(f"  Reading variable library definition from: {library_file.name}")
         with open(library_file, 'r') as f:
             definition = json.load(f)
         

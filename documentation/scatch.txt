@@ -1,0 +1,19 @@
+
+        "path": "valueSets/dev.json",
+        "payloadType": "InlineBase64",
+        "payload_length": 480
+      },
+      {
+        "path": "settings.json",
+        "payloadType": "InlineBase64",
+        "payload_length": 56
+      }
+    ],
+    "format": "VariableLibraryV1"
+  }
+}
+INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/f804ca1f-8d1c-407e-81e1-c9baaa454821
+INFO:fabric_client:  LRO Operation ID: f804ca1f-8d1c-407e-81e1-c9baaa454821
+INFO:fabric_client:  Retry-After: 20 seconds
+INFO:__main__:  ✓ Initialized variables for 'ReportingVariables'
+INFO:__main__:✅ Successfully deployed: ReportingVariables

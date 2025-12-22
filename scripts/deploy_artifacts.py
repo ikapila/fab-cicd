@@ -2553,52 +2553,49 @@ print('Notebook initialized')
                     # Create minimal definition
                     definition = {"name": name, "description": ""}
             
-            # Read variables from valueSets folder based on environment
+            # Read variables from valueSets folder - deploy ALL value sets
             value_sets_dir = library_folder / "valueSets"
             if value_sets_dir.exists():
-                logger.info(f"  Found valueSets folder for environment-specific variables")
-                logger.info(f"  Deployment environment: '{self.environment}'")
+                logger.info(f"  Found valueSets folder - deploying all value sets")
                 
                 # Show available files in valueSets
                 available_files = list(value_sets_dir.glob("*.json"))
                 logger.info(f"  Available value sets: {', '.join([f.name for f in available_files])}")
                 
-                # Map environment to file name
-                env_file_map = {
-                    "dev": "dev.json",
-                    "uat": "uat.json",
-                    "prod": "prod.json"
-                }
-                
-                env_file = env_file_map.get(self.environment.lower(), f"{self.environment}.json")
-                env_file_path = value_sets_dir / env_file
-                
-                logger.info(f"  Looking for: {env_file_path}")
-                
-                if env_file_path.exists():
-                    logger.info(f"  Reading variables from: valueSets/{env_file}")
-                    with open(env_file_path, 'r') as f:
-                        env_data = json.load(f)
-                        # Handle both direct array and object with 'variables' or 'variableOverrides' key
-                        if isinstance(env_data, list):
-                            variables = env_data
-                        elif isinstance(env_data, dict):
+                # Read ALL value sets and build the complete structure
+                value_sets = {}
+                for set_file in available_files:
+                    set_name = set_file.stem  # e.g., 'dev', 'uat', 'prod'
+                    logger.info(f"  Reading value set: {set_file.name}")
+                    
+                    with open(set_file, 'r') as f:
+                        set_data = json.load(f)
+                        # Handle both direct array and object with 'variableOverrides' key
+                        if isinstance(set_data, list):
+                            value_sets[set_name] = set_data
+                        elif isinstance(set_data, dict):
                             # Fabric Git format uses 'variableOverrides', fallback to 'variables'
-                            variables = env_data.get("variableOverrides", env_data.get("variables", []))
+                            value_sets[set_name] = set_data.get("variableOverrides", set_data.get("variables", []))
                         else:
-                            variables = []
+                            value_sets[set_name] = []
                     
-                    # Substitute parameters in variables
-                    variables_str = json.dumps(variables)
-                    variables_str = self.config.substitute_parameters(variables_str)
-                    variables = json.loads(variables_str)
+                    # Substitute parameters in this value set
+                    set_str = json.dumps(value_sets[set_name])
+                    set_str = self.config.substitute_parameters(set_str)
+                    value_sets[set_name] = json.loads(set_str)
                     
-                    logger.info(f"  Found {len(variables)} variable(s) for environment '{self.environment}'")
-                else:
-                    logger.warning(f"  ⚠ Variable set file not found: valueSets/{env_file}")
-                    logger.error(f"  ❌ Required file does not exist: {env_file_path}")
-                    logger.error(f"  Available files in valueSets/: {', '.join([f.name for f in available_files]) if available_files else 'None'}")
-                    raise FileNotFoundError(f"Variable set file not found for environment '{self.environment}': {env_file_path}")
+                    logger.info(f"    ✓ Loaded {len(value_sets[set_name])} variable(s) from '{set_name}' set")
+                
+                if not value_sets:
+                    logger.error(f"  ❌ No valid value sets found in valueSets folder")
+                    raise ValueError(f"No value sets found in {value_sets_dir}")
+                
+                logger.info(f"  Total value sets to deploy: {len(value_sets)}")
+                logger.info(f"  NOTE: After deployment, you must manually set the active value set to '{self.environment}' in the Fabric UI")
+                
+                # The variables list will be built from all value sets
+                # We'll create the full definition structure expected by Fabric
+                variables = value_sets  # This will be a dict of {set_name: [variables]}
             else:
                 logger.error(f"  ❌ No valueSets folder found in {library_folder.name}/")
                 raise FileNotFoundError(f"No valueSets folder found in variable library: {library_folder}")
@@ -2617,26 +2614,42 @@ print('Notebook initialized')
             logger.info(f"  Variable Library '{name}' already exists, updating...")
             library_id = existing_library["id"]
             
-            # Debug: Show what we have
-            logger.info(f"  DEBUG: variables type={type(variables)}, len={len(variables) if variables else 0}")
-            if variables:
-                logger.info(f"  DEBUG: First few variables: {variables[:2] if len(variables) > 0 else 'none'}")
+            # Check if we have value sets (dict) or just variables (list)
+            is_value_sets = isinstance(variables, dict)
+            
+            if is_value_sets:
+                logger.info(f"  DEBUG: Deploying {len(variables)} value sets")
+                for set_name, set_vars in variables.items():
+                    logger.info(f"    - {set_name}: {len(set_vars)} variables")
+            else:
+                logger.info(f"  DEBUG: Deploying {len(variables) if variables else 0} variables (no value sets)")
             
             if variables:
-                # Wrap variables in proper parts structure
-                # Log the variables structure before encoding
-                logger.info(f"  DEBUG: Variables structure: {json.dumps(variables[:1], indent=2) if variables else 'none'}")
+                # Build the proper Fabric format
+                if is_value_sets:
+                    # Deploy all value sets - Fabric format with valueSets structure
+                    definition_data = {
+                        "valueSets": variables  # Dict of {set_name: [variables]}
+                    }
+                else:
+                    # Single set of variables
+                    definition_data = {
+                        "variables": variables
+                    }
                 
-                variables_json = json.dumps({"variables": variables})
-                logger.info(f"  DEBUG: Wrapped JSON length: {len(variables_json)} bytes")
+                # Log the structure before encoding
+                logger.info(f"  DEBUG: Definition structure keys: {list(definition_data.keys())}")
                 
-                variables_base64 = base64.b64encode(variables_json.encode('utf-8')).decode('utf-8')
+                definition_json = json.dumps(definition_data)
+                logger.info(f"  DEBUG: JSON payload size: {len(definition_json)} bytes")
+                
+                definition_base64 = base64.b64encode(definition_json.encode('utf-8')).decode('utf-8')
                 
                 update_payload = {
                     "parts": [
                         {
                             "path": "variables.json",
-                            "payload": variables_base64,
+                            "payload": definition_base64,
                             "payloadType": "InlineBase64"
                         }
                     ]
@@ -2649,7 +2662,11 @@ print('Notebook initialized')
                         update_payload
                     )
                     logger.info(f"  DEBUG: API response: {json.dumps(result, indent=2) if result else 'No response'}")
-                    logger.info(f"  ✓ Updated Variable Library '{name}' with {len(variables)} variables")
+                    if is_value_sets:
+                        total_vars = sum(len(v) for v in variables.values())
+                        logger.info(f"  ✓ Updated Variable Library '{name}' with {len(variables)} value sets ({total_vars} total variables)")
+                    else:
+                        logger.info(f"  ✓ Updated Variable Library '{name}' with {len(variables)} variables")
                 except Exception as e:
                     logger.error(f"  ❌ Failed to update Variable Library '{name}': {str(e)}")
                     raise
@@ -2679,17 +2696,26 @@ print('Notebook initialized')
                 logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder (ID: {library_id})")
                 
                 if variables:
-                    logger.info(f"  Setting {len(variables)} initial variables...")
+                    # Check if we have value sets or just variables
+                    is_value_sets = isinstance(variables, dict)
                     
-                    # Wrap variables in proper parts structure
-                    variables_json = json.dumps({"variables": variables})
-                    variables_base64 = base64.b64encode(variables_json.encode('utf-8')).decode('utf-8')
+                    if is_value_sets:
+                        total_vars = sum(len(v) for v in variables.values())
+                        logger.info(f"  Setting {len(variables)} value sets with {total_vars} total variables...")
+                        definition_data = {"valueSets": variables}
+                    else:
+                        logger.info(f"  Setting {len(variables)} initial variables...")
+                        definition_data = {"variables": variables}
+                    
+                    # Wrap in proper parts structure
+                    definition_json = json.dumps(definition_data)
+                    definition_base64 = base64.b64encode(definition_json.encode('utf-8')).decode('utf-8')
                     
                     update_payload = {
                         "parts": [
                             {
                                 "path": "variables.json",
-                                "payload": variables_base64,
+                                "payload": definition_base64,
                                 "payloadType": "InlineBase64"
                             }
                         ]

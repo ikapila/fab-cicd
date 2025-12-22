@@ -2627,17 +2627,73 @@ print('Notebook initialized')
             if variables:
                 # Build the proper Fabric API format with separate parts for each value set
                 if is_value_sets:
-                    # Multiple value sets - create separate part for each
+                    # Multiple value sets - need base variables.json + value set overrides
                     parts = []
+                    
+                    # First, create base variables.json from the first value set as template
+                    # Use all variable names from all sets to build complete base
+                    all_var_names = set()
+                    for set_vars in variables.values():
+                        for var in set_vars:
+                            all_var_names.add(var.get('name'))
+                    
+                    # Build base variables from first available set (use as template)
+                    first_set = next(iter(variables.values()))
+                    base_variables = []
+                    for var in first_set:
+                        base_variables.append({
+                            "name": var.get("name"),
+                            "type": var.get("type", "String"),
+                            "value": var.get("value"),
+                            "note": var.get("note", "")
+                        })
+                    
+                    # Add variables.json part (required)
+                    base_json = json.dumps({"variables": base_variables})
+                    base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "variables.json",
+                        "payload": base_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                    logger.info(f"    Added part: variables.json (base definitions, {len(base_variables)} variables)")
+                    
+                    # Then add value sets as overrides
                     for set_name, set_vars in variables.items():
-                        set_json = json.dumps({"variableOverrides": set_vars})
+                        # Convert to override format (only name and value)
+                        overrides = []
+                        for var in set_vars:
+                            overrides.append({
+                                "name": var.get("name"),
+                                "value": var.get("value")
+                            })
+                        
+                        set_data = {
+                            "name": set_name,
+                            "description": f"{set_name.upper()} environment value set",
+                            "variableOverrides": overrides
+                        }
+                        set_json = json.dumps(set_data)
                         set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
                         parts.append({
                             "path": f"valueSets/{set_name}.json",
                             "payload": set_base64,
                             "payloadType": "InlineBase64"
                         })
-                        logger.info(f"    Added part: valueSets/{set_name}.json ({len(set_vars)} variables)")
+                        logger.info(f"    Added part: valueSets/{set_name}.json ({len(overrides)} overrides)")
+                    
+                    # Add settings.json to control value set order
+                    settings = {
+                        "valueSetsOrder": list(variables.keys())
+                    }
+                    settings_json = json.dumps(settings)
+                    settings_base64 = base64.b64encode(settings_json.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "settings.json",
+                        "payload": settings_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                    logger.info(f"    Added part: settings.json")
                     
                     update_payload = {
                         "parts": parts
@@ -2668,7 +2724,8 @@ print('Notebook initialized')
                     logger.info(f"  DEBUG: API response: {json.dumps(result, indent=2) if result else 'No response'}")
                     if is_value_sets:
                         total_vars = sum(len(v) for v in variables.values())
-                        logger.info(f"  ✓ Updated Variable Library '{name}' with {len(variables)} value sets ({total_vars} total variables)")
+                        logger.info(f"  ✓ Updated Variable Library '{name}' with base variables + {len(variables)} value sets")
+                        logger.info(f"  NOTE: You can now select the active value set '{self.environment}' in the Fabric UI")
                     else:
                         logger.info(f"  ✓ Updated Variable Library '{name}' with {len(variables)} variables")
                 except Exception as e:
@@ -2704,10 +2761,38 @@ print('Notebook initialized')
                     is_value_sets = isinstance(variables, dict)
                     
                     if is_value_sets:
-                        # Multiple value sets - create separate part for each
+                        # Multiple value sets - need base variables.json + value set overrides
                         parts = []
+                        
+                        # Create base variables from first set
+                        first_set = next(iter(variables.values()))
+                        base_variables = []
+                        for var in first_set:
+                            base_variables.append({
+                                "name": var.get("name"),
+                                "type": var.get("type", "String"),
+                                "value": var.get("value"),
+                                "note": var.get("note", "")
+                            })
+                        
+                        # Add variables.json (required)
+                        base_json = json.dumps({"variables": base_variables})
+                        base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
+                        parts.append({
+                            "path": "variables.json",
+                            "payload": base_base64,
+                            "payloadType": "InlineBase64"
+                        })
+                        
+                        # Add value sets
                         for set_name, set_vars in variables.items():
-                            set_json = json.dumps({"variableOverrides": set_vars})
+                            overrides = [{"name": var.get("name"), "value": var.get("value")} for var in set_vars]
+                            set_data = {
+                                "name": set_name,
+                                "description": f"{set_name.upper()} environment value set",
+                                "variableOverrides": overrides
+                            }
+                            set_json = json.dumps(set_data)
                             set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
                             parts.append({
                                 "path": f"valueSets/{set_name}.json",
@@ -2715,8 +2800,18 @@ print('Notebook initialized')
                                 "payloadType": "InlineBase64"
                             })
                         
+                        # Add settings.json
+                        settings = {"valueSetsOrder": list(variables.keys())}
+                        settings_json = json.dumps(settings)
+                        settings_base64 = base64.b64encode(settings_json.encode('utf-8')).decode('utf-8')
+                        parts.append({
+                            "path": "settings.json",
+                            "payload": settings_base64,
+                            "payloadType": "InlineBase64"
+                        })
+                        
                         total_vars = sum(len(v) for v in variables.values())
-                        logger.info(f"  Setting {len(variables)} value sets with {total_vars} total variables...")
+                        logger.info(f"  Setting base variables + {len(variables)} value sets...")
                         
                         update_payload = {
                             "parts": parts

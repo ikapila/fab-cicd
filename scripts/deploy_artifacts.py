@@ -850,6 +850,20 @@ class FabricDeployer:
                     
                     if existing_notebook:
                         logger.info(f"  ✓ Notebook '{name}' already exists (ID: {existing_notebook['id']})")
+                        
+                        # Check if we should update the notebook
+                        if notebook_def.get("update_if_exists", False):
+                            logger.info(f"  Updating notebook '{name}'...")
+                            try:
+                                notebook_definition = self._create_notebook_template(name, description, template, notebook_def)
+                                self.client.update_notebook_definition(
+                                    self.workspace_id,
+                                    existing_notebook['id'],
+                                    notebook_definition
+                                )
+                                logger.info(f"  ✓ Updated notebook '{name}'")
+                            except Exception as e:
+                                logger.warning(f"  ⚠ Could not update notebook: {str(e)}")
                     elif create_if_not_exists:
                         try:
                             # Get or create folder for notebooks
@@ -944,6 +958,20 @@ class FabricDeployer:
                     
                     if existing_job:
                         logger.info(f"  ✓ Spark job '{name}' already exists (ID: {existing_job['id']})")
+                        
+                        # Check if we should update the spark job
+                        if job_def.get("update_if_exists", False):
+                            logger.info(f"  Updating Spark job '{name}'...")
+                            try:
+                                job_definition = self._create_spark_job_template(name, description, job_def)
+                                self.client.update_spark_job_definition(
+                                    self.workspace_id,
+                                    existing_job['id'],
+                                    job_definition
+                                )
+                                logger.info(f"  ✓ Updated Spark job '{name}'")
+                            except Exception as e:
+                                logger.warning(f"  ⚠ Could not update Spark job: {str(e)}")
                     elif create_if_not_exists:
                         # Get or create folder for Spark jobs
                         folder_id = self._get_or_create_folder("Sparkjobdefinitions")
@@ -995,6 +1023,20 @@ class FabricDeployer:
                     
                     if existing_pipeline:
                         logger.info(f"  ✓ Pipeline '{name}' already exists (ID: {existing_pipeline['id']})")
+                        
+                        # Check if we should update the pipeline
+                        if pipeline_def.get("update_if_exists", False):
+                            logger.info(f"  Updating pipeline '{name}'...")
+                            try:
+                                pipeline_definition = self._create_pipeline_template(name, description, pipeline_def)
+                                self.client.update_data_pipeline(
+                                    self.workspace_id,
+                                    existing_pipeline['id'],
+                                    pipeline_definition
+                                )
+                                logger.info(f"  ✓ Updated pipeline '{name}'")
+                            except Exception as e:
+                                logger.warning(f"  ⚠ Could not update pipeline: {str(e)}")
                     elif create_if_not_exists:
                         # Get or create folder for pipelines
                         folder_id = self._get_or_create_folder("Datapipelines")
@@ -1132,14 +1174,32 @@ class FabricDeployer:
                     
                     if existing_library:
                         logger.info(f"  ✓ Variable Library '{name}' already exists (ID: {existing_library['id']})")
+                        
                         # Update variables if provided
                         variables = library_config.get("variables", [])
                         if variables:
-                            update_payload = {"variables": variables}
-                            self.client.update_variable_library_definition(
-                                self.workspace_id, existing_library["id"], update_payload
-                            )
-                            logger.info(f"  ✓ Updated {len(variables)} variables in '{name}'")
+                            # Wrap variables in proper parts structure
+                            variables_json = json.dumps({"variables": variables})
+                            variables_base64 = base64.b64encode(variables_json.encode('utf-8')).decode('utf-8')
+                            
+                            update_payload = {
+                                "parts": [
+                                    {
+                                        "path": "variableLibrary.json",
+                                        "payload": variables_base64,
+                                        "payloadType": "InlineBase64"
+                                    }
+                                ]
+                            }
+                            
+                            try:
+                                self.client.update_variable_library_definition(
+                                    self.workspace_id, existing_library["id"], update_payload
+                                )
+                                logger.info(f"  ✓ Updated {len(variables)} variables in '{name}'")
+                            except Exception as e:
+                                logger.error(f"  ✗ Failed to update variables: {str(e)}")
+                                raise
                     elif create_if_not_exists:
                         # Get or create folder for Variable Libraries
                         folder_id = self._get_or_create_folder("Variablelibraries")
@@ -1148,14 +1208,29 @@ class FabricDeployer:
                         result = self.client.create_variable_library(
                             self.workspace_id, name, library_def.get("description", ""), folder_id=folder_id
                         )
-                        # Set initial variables
+                        
+                        # Set initial variables using proper parts structure
                         variables = library_def.get("variables", [])
                         if variables:
-                            update_payload = {"variables": variables}
+                            variables_json = json.dumps({"variables": variables})
+                            variables_base64 = base64.b64encode(variables_json.encode('utf-8')).decode('utf-8')
+                            
+                            update_payload = {
+                                "parts": [
+                                    {
+                                        "path": "variableLibrary.json",
+                                        "payload": variables_base64,
+                                        "payloadType": "InlineBase64"
+                                    }
+                                ]
+                            }
+                            
                             self.client.update_variable_library_definition(
                                 self.workspace_id, result["id"], update_payload
                             )
+                        
                         logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder with {len(variables)} variables (ID: {result['id']})")
+                        
                         # Save to local file
                         library_definition = {
                             "name": name,

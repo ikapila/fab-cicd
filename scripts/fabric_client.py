@@ -86,7 +86,29 @@ class FabricClient:
                             logger.info(f"Creating notebook - URL: {url}")
                         logger.info(f"Payload structure: {json.dumps(debug_copy, indent=2)}")
 
-        
+        # Debug logging for variable library operations
+        if "updateDefinition" in endpoint and json_data:
+            import json
+            debug_data = json_data.copy()
+            if "definition" in debug_data:
+                definition = debug_data["definition"]
+                if "parts" in definition:
+                    parts_summary = []
+                    for part in definition["parts"]:
+                        part_info = {
+                            "path": part.get("path"),
+                            "payloadType": part.get("payloadType"),
+                            "payload_length": len(part.get("payload", ""))
+                        }
+                        parts_summary.append(part_info)
+                    debug_copy = debug_data.copy()
+                    debug_definition = {"parts": parts_summary}
+                    if "format" in definition:
+                        debug_definition["format"] = definition["format"]
+                    debug_copy["definition"] = debug_definition
+                    logger.info(f"Variable Library Update - URL: {url}")
+                    logger.info(f"Payload structure: {json.dumps(debug_copy, indent=2)}")
+
         try:
             response = requests.request(
                 method=method,

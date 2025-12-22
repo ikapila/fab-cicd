@@ -2650,6 +2650,7 @@ print('Notebook initialized')
                     
                     # Add variables.json part (required)
                     base_json = json.dumps({"variables": base_variables})
+                    logger.info(f"    DEBUG base_json sample: {base_json[:200]}...")
                     base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "variables.json",
@@ -2674,6 +2675,7 @@ print('Notebook initialized')
                             "variableOverrides": overrides
                         }
                         set_json = json.dumps(set_data)
+                        logger.info(f"    DEBUG {set_name} sample: {set_json[:200]}...")
                         set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
                         parts.append({
                             "path": f"valueSets/{set_name}.json",
@@ -2696,7 +2698,8 @@ print('Notebook initialized')
                     logger.info(f"    Added part: settings.json")
                     
                     update_payload = {
-                        "parts": parts
+                        "parts": parts,
+                        "format": "VariableLibraryV1"
                     }
                 else:
                     # Single set of variables
@@ -2814,7 +2817,8 @@ print('Notebook initialized')
                         logger.info(f"  Setting base variables + {len(variables)} value sets...")
                         
                         update_payload = {
-                            "parts": parts
+                            "parts": parts,
+                            "format": "VariableLibraryV1"
                         }
                     else:
                         # Single set of variables

@@ -276,9 +276,13 @@ class FabricDeployer:
         else:
             logger.warning("Could not save deployment state (Git not available)")
     
-    def discover_artifacts(self) -> None:
+    def discover_artifacts(self, force_all: bool = False, specific_artifacts: List[str] = None) -> None:
         """
         Discover artifacts from file system and config file, then build dependency graph
+        
+        Args:
+            force_all: If True, skip change detection and deploy all artifacts
+            specific_artifacts: List of specific artifact names to deploy (overrides change detection)
         """
         logger.info("="*60)
         logger.info("ARTIFACT DISCOVERY PHASE")

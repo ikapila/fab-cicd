@@ -119,6 +119,7 @@ stages:
                   displayName: 'Install dependencies'
 
                 - script: |
+                    set -e  # Exit immediately if any command fails
                     cd $(Pipeline.Workspace)/fabric-artifacts
                     
                     echo "========================================"
@@ -194,6 +195,7 @@ stages:
                   displayName: 'Install dependencies'
 
                 - script: |
+                    set -e  # Exit immediately if any command fails
                     cd $(Pipeline.Workspace)/fabric-artifacts
                     
                     echo "========================================"
@@ -269,6 +271,7 @@ stages:
                   displayName: 'Install dependencies'
 
                 - script: |
+                    set -e  # Exit immediately if any command fails
                     cd $(Pipeline.Workspace)/fabric-artifacts
                     
                     echo "========================================"
@@ -299,7 +302,6 @@ stages:
                     AZURE_TENANT_ID: $(AZURE_TENANT_ID)
                     AZURE_CLIENT_ID: $(AZURE_CLIENT_ID_PROD)
                     AZURE_CLIENT_SECRET_PROD: $(AZURE_CLIENT_SECRET_PROD)
-                  condition: always()
 
                 - script: |
                     cd $(Pipeline.Workspace)/fabric-artifacts

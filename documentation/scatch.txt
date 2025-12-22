@@ -1,19 +1,28 @@
-
-        "path": "valueSets/dev.json",
-        "payloadType": "InlineBase64",
-        "payload_length": 480
-      },
+Deploying: ReportingVariables (VariableLibrary)
+INFO:__main__:  Reading variable library definition from folder: ReportingVariables.VariableLibrary/
+INFO:__main__:  Using .platform file (Git format v2)
+INFO:__main__:  Found valueSets folder - deploying all value sets
+INFO:__main__:  Available value sets: uat.json, prod.json, dev.json
+INFO:__main__:  Reading value set: uat.json
+INFO:__main__:    ✓ Loaded 4 variable(s) from 'uat' set
+INFO:__main__:  Reading value set: prod.json
+INFO:__main__:    ✓ Loaded 4 variable(s) from 'prod' set
+INFO:__main__:  Reading value set: dev.json
+INFO:__main__:    ✓ Loaded 4 variable(s) from 'dev' set
+INFO:__main__:  Total value sets to deploy: 3
+INFO:__main__:  NOTE: After deployment, you must manually set the active value set to 'prod' in the Fabric UI
+INFO:fabric_client:Listing Variable Libraries in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+INFO:__main__:  Creating Variable Library: ReportingVariables
+INFO:fabric_client:Listing folders in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+INFO:fabric_client:Creating Variable Library: ReportingVariables
+INFO:fabric_client:  Including folderId in payload: c243ca2b-9610-40f2-93d4-da7281553645
+INFO:__main__:  ✓ Created Variable Library 'ReportingVariables' in 'Variablelibraries' folder (ID: 06d2018e-dfc1-48e4-a0b2-7998b6ab05e5)
+INFO:__main__:  Setting base variables + 3 value sets...
+INFO:fabric_client:Updating Variable Library definition: 06d2018e-dfc1-48e4-a0b2-7998b6ab05e5
+INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/items/06d2018e-dfc1-48e4-a0b2-7998b6ab05e5/updateDefinition
+INFO:fabric_client:Payload structure: {
+  "definition": {
+    "parts": [
       {
-        "path": "settings.json",
-        "payloadType": "InlineBase64",
-        "payload_length": 56
-      }
-    ],
-    "format": "VariableLibraryV1"
-  }
-}
-INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/f804ca1f-8d1c-407e-81e1-c9baaa454821
-INFO:fabric_client:  LRO Operation ID: f804ca1f-8d1c-407e-81e1-c9baaa454821
-INFO:fabric_client:  Retry-After: 20 seconds
-INFO:__main__:  ✓ Initialized variables for 'ReportingVariables'
-INFO:__main__:✅ Successfully deployed: ReportingVariables
+        "path": "variables.json",
+

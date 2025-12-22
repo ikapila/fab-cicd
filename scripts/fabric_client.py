@@ -378,6 +378,24 @@ class FabricClient:
             logger.info(f"  Including creationPayload with enableSchemas: {enable_schemas}")
         return self._make_request("POST", f"/workspaces/{workspace_id}/lakehouses", json_data=payload)
     
+    def update_lakehouse(self, workspace_id: str, lakehouse_id: str, description: str) -> Dict:
+        """
+        Update lakehouse properties
+        
+        Args:
+            workspace_id: Workspace GUID
+            lakehouse_id: Lakehouse GUID
+            description: New description
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating lakehouse: {lakehouse_id}")
+        payload = {
+            "description": description
+        }
+        return self._make_request("PATCH", f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}", json_data=payload)
+    
     # ==================== Notebook Operations ====================
     
     def list_notebooks(self, workspace_id: str) -> List[Dict]:
@@ -632,6 +650,24 @@ class FabricClient:
             payload["folderId"] = folder_id
             logger.info(f"  Including folderId in payload: {folder_id}")
         return self._make_request("POST", f"/workspaces/{workspace_id}/environments", json_data=payload)
+    
+    def update_environment(self, workspace_id: str, environment_id: str, description: str) -> Dict:
+        """
+        Update environment properties
+        
+        Args:
+            workspace_id: Workspace GUID
+            environment_id: Environment GUID
+            description: New description
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating environment: {environment_id}")
+        payload = {
+            "description": description
+        }
+        return self._make_request("PATCH", f"/workspaces/{workspace_id}/environments/{environment_id}", json_data=payload)
     
     # ==================== Item Operations (Generic) ====================
     

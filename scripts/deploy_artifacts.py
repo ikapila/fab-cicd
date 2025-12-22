@@ -699,8 +699,19 @@ class FabricDeployer:
                     
                     if existing_lakehouse:
                         logger.info(f"  ✓ Lakehouse '{name}' already exists (ID: {existing_lakehouse['id']})")
-                        # Track as created to skip deployment
-                        self._created_in_this_run.add(('lakehouse', name))
+                        
+                        # Check if description changed and update if needed
+                        existing_desc = existing_lakehouse.get("description", "")
+                        if existing_desc != description:
+                            logger.info(f"  Updating description for lakehouse '{name}'")
+                            try:
+                                self.client.update_lakehouse(self.workspace_id, existing_lakehouse['id'], description)
+                                logger.info(f"  ✓ Updated lakehouse description")
+                            except Exception as e:
+                                logger.warning(f"  ⚠ Could not update description: {str(e)}")
+                        
+                        # Don't skip deployment - wsartifacts may have additional config
+                        # self._created_in_this_run.add(('lakehouse', name))
                     elif create_if_not_exists:
                         # Get or create folder for lakehouses
                         folder_id = self._get_or_create_folder("Lakehouses")
@@ -754,8 +765,19 @@ class FabricDeployer:
                     
                     if existing_env:
                         logger.info(f"  ✓ Environment '{name}' already exists (ID: {existing_env['id']})")
-                        # Track as created to skip deployment
-                        self._created_in_this_run.add(('environment', name))
+                        
+                        # Check if description changed and update if needed
+                        existing_desc = existing_env.get("description", "")
+                        if existing_desc != description:
+                            logger.info(f"  Updating description for environment '{name}'")
+                            try:
+                                self.client.update_environment(self.workspace_id, existing_env['id'], description)
+                                logger.info(f"  ✓ Updated environment description")
+                            except Exception as e:
+                                logger.warning(f"  ⚠ Could not update description: {str(e)}")
+                        
+                        # Don't skip deployment - wsartifacts may have additional config
+                        # self._created_in_this_run.add(('environment', name))
                     elif create_if_not_exists:
                         # Get or create folder for environments
                         folder_id = self._get_or_create_folder("Environments")
@@ -1828,12 +1850,18 @@ print('Notebook initialized')
     
     def _deploy_environment(self, name: str) -> None:
         """Deploy an environment"""
-        # Skip if this environment was created in the current run
-        if ('environment', name) in self._created_in_this_run:
-            logger.info(f"  ⏭ Skipping environment '{name}' - created in this run")
-            return
-        
+        # Note: We no longer skip config-created environments to allow wsartifacts updates
         env_file = self.artifacts_dir / self.artifacts_root_folder / "Environments" / f"{name}.json"
+        
+        # Check if environment definition exists
+        if not env_file.exists():
+            if ('environment', name) in self._created_in_this_run:
+                logger.info(f"  ⏭ Skipping environment '{name}' - created from config, no wsartifacts definition")
+                return
+            else:
+                logger.error(f"  ❌ Environment file not found: {env_file}")
+                raise FileNotFoundError(f"Environment definition not found: {name}")
+        
         with open(env_file, 'r') as f:
             definition = json.load(f)
         
@@ -1844,12 +1872,17 @@ print('Notebook initialized')
         existing_env = next((env for env in existing if env["displayName"] == name), None)
         
         if existing_env:
-            # Check if description changed
+            # Check if description changed and update
             existing_desc = existing_env.get("description", "")
             if existing_desc != description:
-                logger.info(f"  Environment '{name}' exists, description differs - consider manual update")
+                logger.info(f"  Updating description for environment '{name}'")
                 logger.info(f"    Current: {existing_desc}")
                 logger.info(f"    New: {description}")
+                try:
+                    self.client.update_environment(self.workspace_id, existing_env['id'], description)
+                    logger.info(f"  ✓ Updated environment description")
+                except Exception as e:
+                    logger.warning(f"  ⚠ Could not update description: {str(e)}")
             else:
                 logger.info(f"  Environment '{name}' already exists, no changes detected (ID: {existing_env['id']})")
         else:
@@ -1867,11 +1900,7 @@ print('Notebook initialized')
     
     def _deploy_notebook(self, name: str) -> None:
         """Deploy a notebook (supports both .ipynb and Fabric Git folder format)"""
-        # Skip if this notebook was created in the current run
-        if ('notebook', name) in self._created_in_this_run:
-            logger.info(f"  ⏭ Skipping notebook '{name}' - created in this run")
-            return
-        
+        # Note: We no longer skip config-created notebooks to allow wsartifacts updates
         notebooks_dir = self.artifacts_dir / self.artifacts_root_folder / "Notebooks"
         
         notebook_content = None
@@ -2030,16 +2059,16 @@ print('Notebook initialized')
     
     def _deploy_spark_job(self, name: str) -> None:
         """Deploy a Spark job definition"""
-        # Skip if this Spark job was created in the current run
-        if ('spark_job_definition', name) in self._created_in_this_run:
-            logger.info(f"  ⏭ Skipping Spark job '{name}' - created in this run")
-            return
-        
+        # Note: We no longer skip config-created spark jobs to allow wsartifacts updates
         job_file = self.artifacts_dir / self.artifacts_root_folder / "Sparkjobdefinitions" / f"{name}.json"
         
         # Check if file exists locally
         if not job_file.exists():
-            raise FileNotFoundError(f"Spark job '{name}' was discovered but file not found: {job_file}")
+            if ('spark_job_definition', name) in self._created_in_this_run:
+                logger.info(f"  ⏭ Skipping Spark job '{name}' - created from config, no wsartifacts definition")
+                return
+            else:
+                raise FileNotFoundError(f"Spark job '{name}' definition not found: {job_file}")
         
         with open(job_file, 'r') as f:
             job_content = f.read()

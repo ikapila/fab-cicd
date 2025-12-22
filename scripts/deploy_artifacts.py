@@ -16,6 +16,7 @@ from fabric_auth import FabricAuthenticator
 from fabric_client import FabricClient
 from config_manager import ConfigManager
 from dependency_resolver import DependencyResolver, ArtifactType
+from change_detector import ChangeDetector
 
 logging.basicConfig(
     level=logging.INFO,
@@ -84,6 +85,13 @@ class FabricDeployer:
         
         # Build set of config-managed artifact names (config is source of truth for these)
         self._config_managed_artifacts = self._get_config_managed_artifacts()
+        
+        # Initialize change detector
+        self.change_detector = ChangeDetector(
+            environment=environment,
+            artifacts_dir=self.artifacts_dir,
+            repo_root=self.artifacts_dir
+        )
     
     def _get_config_managed_artifacts(self) -> dict:
         """
@@ -156,6 +164,118 @@ class FabricDeployer:
             )
         return self._folder_cache[folder_name]
     
+    def _apply_change_detection(self) -> None:
+        """
+        Apply change detection to filter artifacts
+        Only artifacts that have changed will be deployed
+        """
+        logger.info("\n" + "="*60)
+        logger.info("CHANGE DETECTION")
+        logger.info("="*60)
+        
+        # Get changed artifacts
+        changed_artifacts = self.change_detector.get_changed_artifacts(force_all=False)
+        
+        if changed_artifacts is None:
+            # Deploy all (first deployment, config changed, or git not available)
+            logger.info("Deploying all discovered artifacts")
+            return
+        
+        if not changed_artifacts:
+            # No changes detected
+            logger.info("No changes detected since last deployment")
+            logger.info("Skipping deployment (use --force-all to override)")
+            self.resolver.artifacts = []
+            return
+        
+        # Get all discovered artifacts organized by type
+        all_discovered = {}
+        for artifact in self.resolver.artifacts:
+            artifact_type = artifact["type"].value
+            if artifact_type not in all_discovered:
+                all_discovered[artifact_type] = set()
+            all_discovered[artifact_type].add(artifact["name"])
+        
+        # Add dependent artifacts (e.g., SQL views when lakehouse changes)
+        dependent_artifacts = self.change_detector.get_dependent_artifacts(
+            changed_artifacts,
+            all_discovered
+        )
+        
+        # Merge changed and dependent artifacts
+        for artifact_type, names in dependent_artifacts.items():
+            if artifact_type in changed_artifacts:
+                changed_artifacts[artifact_type].update(names)
+            else:
+                changed_artifacts[artifact_type] = names
+        
+        # Filter artifacts to only include changed ones
+        filtered_artifacts = []
+        skipped_count = 0
+        
+        for artifact in self.resolver.artifacts:
+            artifact_type = artifact["type"].value
+            artifact_name = artifact["name"]
+            
+            if artifact_type in changed_artifacts and artifact_name in changed_artifacts[artifact_type]:
+                filtered_artifacts.append(artifact)
+            else:
+                skipped_count += 1
+        
+        # Update resolver with filtered artifacts
+        self.resolver.artifacts = filtered_artifacts
+        
+        # Log summary
+        total_changed = sum(len(names) for names in changed_artifacts.values())
+        logger.info(f"Changed artifacts: {total_changed}")
+        for artifact_type, names in sorted(changed_artifacts.items()):
+            logger.info(f"  {artifact_type}: {', '.join(sorted(names))}")
+        logger.info(f"Skipped (unchanged): {skipped_count}")
+        logger.info("="*60)
+    
+    def _filter_specific_artifacts(self, specific_artifacts: List[str]) -> None:
+        """
+        Filter to only deploy specific named artifacts
+        
+        Args:
+            specific_artifacts: List of artifact names to deploy
+        """
+        logger.info("\n" + "="*60)
+        logger.info("SPECIFIC ARTIFACT DEPLOYMENT")
+        logger.info("="*60)
+        logger.info(f"Requested artifacts: {', '.join(specific_artifacts)}")
+        
+        specific_set = set(specific_artifacts)
+        filtered_artifacts = []
+        
+        for artifact in self.resolver.artifacts:
+            if artifact["name"] in specific_set:
+                filtered_artifacts.append(artifact)
+        
+        # Check if all requested artifacts were found
+        found_names = {a["name"] for a in filtered_artifacts}
+        missing = specific_set - found_names
+        
+        if missing:
+            logger.warning(f"Requested artifacts not found: {', '.join(missing)}")
+        
+        # Update resolver with filtered artifacts
+        self.resolver.artifacts = filtered_artifacts
+        
+        logger.info(f"Found {len(filtered_artifacts)} artifact(s) to deploy")
+        logger.info("="*60)
+    
+    def _save_deployment_state(self) -> None:
+        """
+        Save the current deployment state (commit hash)
+        """
+        current_commit = self.change_detector.get_current_commit()
+        if current_commit:
+            self.change_detector.save_deployment_commit(current_commit)
+            logger.info(f"Saved deployment state: {current_commit[:8]}")
+        else:
+            logger.warning("Could not save deployment state (Git not available)")
+    
     def discover_artifacts(self) -> None:
         """
         Discover artifacts from file system and config file, then build dependency graph
@@ -189,6 +309,12 @@ class FabricDeployer:
         logger.info("="*60)
         logger.info(f"DISCOVERY COMPLETE: Found {len(self.resolver.artifacts)} total artifacts")
         logger.info("="*60)
+        
+        # Apply change detection if enabled
+        if not force_all and not specific_artifacts:
+            self._apply_change_detection()
+        elif specific_artifacts:
+            self._filter_specific_artifacts(specific_artifacts)
     
     def _discover_lakehouses(self) -> None:
         """Discover lakehouse definitions"""
@@ -1708,6 +1834,10 @@ print('Notebook initialized')
         logger.info(f"Failed: {failure_count}")
         logger.info("="*60)
         
+        # Save deployment commit if successful
+        if failure_count == 0:
+            self._save_deployment_state()
+        
         return failure_count == 0
     
     def _deploy_artifact(self, artifact: Dict) -> None:
@@ -2691,6 +2821,15 @@ def main():
         action="store_true",
         help="Skip artifact discovery (useful with --create-artifacts)"
     )
+    parser.add_argument(
+        "--force-all",
+        action="store_true",
+        help="Deploy all artifacts, ignoring change detection"
+    )
+    parser.add_argument(
+        "--artifacts",
+        help="Comma-separated list of specific artifacts to deploy (e.g., 'Notebook1,Lakehouse2')"
+    )
     
     args = parser.parse_args()
     
@@ -2716,7 +2855,16 @@ def main():
         
         # Discover and deploy artifacts
         if not args.skip_discovery:
-            deployer.discover_artifacts()
+            # Parse specific artifacts if provided
+            specific_artifacts = None
+            if args.artifacts:
+                specific_artifacts = [a.strip() for a in args.artifacts.split(',')]
+                logger.info(f"Deploying specific artifacts: {', '.join(specific_artifacts)}")
+            
+            deployer.discover_artifacts(
+                force_all=args.force_all,
+                specific_artifacts=specific_artifacts
+            )
             success = deployer.deploy_all(dry_run=args.dry_run)
             sys.exit(0 if success else 1)
         else:

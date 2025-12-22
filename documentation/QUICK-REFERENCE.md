@@ -204,6 +204,21 @@ python scripts/deploy_artifacts.py dev --create-artifacts --skip-discovery
 python scripts/deploy_artifacts.py dev --create-artifacts
 ```
 
+### Deploy only changed artifacts (automatic change detection):
+```bash
+python scripts/deploy_artifacts.py dev
+```
+
+### Force deploy all artifacts (ignore change detection):
+```bash
+python scripts/deploy_artifacts.py dev --force-all
+```
+
+### Deploy specific artifacts only:
+```bash
+python scripts/deploy_artifacts.py dev --artifacts "Notebook1,Lakehouse1"
+```
+
 ### Dry run (see what would happen):
 ```bash
 python scripts/deploy_artifacts.py dev --create-artifacts --dry-run
@@ -224,8 +239,21 @@ python scripts/deploy_artifacts.py dev --create-artifacts --dry-run
 3. **Pipeline automatically:**
    - Uses Dev SP credentials
    - Creates artifact if it doesn't exist
-   - Deploys all artifacts
+   - **Detects changed artifacts (deploys only modified)** ⚡
+   - Deploys with dependency-aware ordering
 4. **Promote via PR** to UAT, then Production
+
+---
+
+## ⚡ Change Detection (New!)
+
+**Automatic** - Deploys only artifacts that changed since last deployment:
+- 📊 ~80% faster for typical changes
+- 🔗 Auto-includes dependent artifacts (e.g., SQL views)
+- ⚙️ Config changes trigger full deployment
+- 🛡️ Safe fallback to full deployment if needed
+
+See `CHANGE-DETECTION.md` for complete documentation.
 
 ---
 

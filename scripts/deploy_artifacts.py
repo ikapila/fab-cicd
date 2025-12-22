@@ -224,13 +224,49 @@ class FabricDeployer:
             if not item.is_dir():
                 continue
             
-            # Check if it has item.metadata.json (Fabric Git format)
+            # Determine lakehouse name from folder name
+            # Official format: {name}.Lakehouse or legacy: {name}
+            folder_name = item.name
+            if folder_name.endswith('.Lakehouse'):
+                base_name = folder_name[:-10]  # Remove .Lakehouse suffix
+                format_type = "Git v2"
+            else:
+                base_name = folder_name
+                format_type = "Git v1/legacy"
+            
+            # Check for .platform file (Version 2 - official format)
+            platform_file = item / ".platform"
             metadata_file = item / "item.metadata.json"
-            if metadata_file.exists():
+            
+            if platform_file.exists():
+                with open(platform_file, 'r') as f:
+                    platform_data = json.load(f)
+                
+                lakehouse_name = platform_data["metadata"].get("displayName", base_name)
+                lakehouse_id = platform_data["config"].get("logicalId", f"lakehouse-{lakehouse_name}")
+                
+                # Skip if already discovered from JSON file
+                if lakehouse_name in discovered:
+                    logger.debug(f"Skipping duplicate lakehouse folder: {lakehouse_name}")
+                    continue
+                
+                discovered.append(lakehouse_name)
+                
+                self.resolver.add_artifact(
+                    lakehouse_id,
+                    ArtifactType.LAKEHOUSE,
+                    lakehouse_name,
+                    dependencies=[]
+                )
+                
+                logger.debug(f"Discovered lakehouse ({format_type}): {lakehouse_name}")
+                
+            elif metadata_file.exists():
+                # Fall back to Version 1 format (item.metadata.json)
                 with open(metadata_file, 'r') as f:
                     metadata = json.load(f)
                 
-                lakehouse_name = metadata.get("displayName", item.name)
+                lakehouse_name = metadata.get("displayName", base_name)
                 
                 # Skip if already discovered from JSON file
                 if lakehouse_name in discovered:
@@ -247,7 +283,7 @@ class FabricDeployer:
                     dependencies=[]
                 )
                 
-                logger.debug(f"Discovered lakehouse (Fabric Git): {lakehouse_name}")
+                logger.debug(f"Discovered lakehouse ({format_type}): {lakehouse_name}")
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} lakehouse(s): {', '.join(sorted(discovered))}")
@@ -453,39 +489,57 @@ class FabricDeployer:
             
             logger.debug(f"Discovered Variable Library (JSON): {library_name}")
         
-        # Discover Fabric Git format folders
+        # Discover Fabric Git format folders (custom format for variable libraries)
         for item in library_dir.iterdir():
             if not item.is_dir():
                 continue
             
-            # Check if it has valueSets folder (Fabric Git format)
+            # Determine library name from folder name
+            folder_name = item.name
+            if folder_name.endswith('.VariableLibrary'):
+                base_name = folder_name[:-16]  # Remove .VariableLibrary suffix
+                format_type = "Git v2"
+            else:
+                base_name = folder_name
+                format_type = "Git v1/custom"
+            
+            # Check for .platform file, valueSets folder, or item.metadata.json
+            platform_file = item / ".platform"
             value_sets_dir = item / "valueSets"
             metadata_file = item / "item.metadata.json"
             
-            if value_sets_dir.exists() or metadata_file.exists():
-                # Get name from metadata or folder name
-                library_name = item.name
-                if metadata_file.exists():
-                    with open(metadata_file, 'r') as f:
-                        metadata = json.load(f)
-                    library_name = metadata.get("displayName", item.name)
-                
-                # Skip if already discovered from JSON file
-                if library_name in discovered:
-                    logger.debug(f"Skipping duplicate variable library folder: {library_name}")
-                    continue
-                
-                discovered.append(library_name)
-                library_id = f"varlib-{library_name}"
-                
-                self.resolver.add_artifact(
-                    library_id,
-                    ArtifactType.VARIABLE_LIBRARY,
-                    library_name,
-                    dependencies=[]
-                )
-                
-                logger.debug(f"Discovered Variable Library (Fabric Git): {library_name}")
+            # Get name from .platform file if available
+            if platform_file.exists():
+                with open(platform_file, 'r') as f:
+                    platform_data = json.load(f)
+                library_name = platform_data["metadata"].get("displayName", base_name)
+            elif metadata_file.exists():
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+                library_name = metadata.get("displayName", base_name)
+            elif value_sets_dir.exists():
+                # valueSets folder exists - assume it's a custom format library
+                library_name = base_name
+            else:
+                # No recognizable files, skip
+                continue
+            
+            # Skip if already discovered from JSON file
+            if library_name in discovered:
+                logger.debug(f"Skipping duplicate variable library folder: {library_name}")
+                continue
+            
+            discovered.append(library_name)
+            library_id = f"varlib-{library_name}"
+            
+            self.resolver.add_artifact(
+                library_id,
+                ArtifactType.VARIABLE_LIBRARY,
+                library_name,
+                dependencies=[]
+            )
+            
+            logger.debug(f"Discovered Variable Library ({format_type}): {library_name}")
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} Variable Librar{'y' if len(discovered) == 1 else 'ies'}: {', '.join(sorted(discovered))}")
@@ -1592,10 +1646,12 @@ print('Notebook initialized')
         """Deploy a lakehouse"""
         lakehouse_dir = self.artifacts_dir / self.artifacts_root_folder / "Lakehouses"
         lakehouse_file = lakehouse_dir / f"{name}.json"
-        lakehouse_folder = lakehouse_dir / name  # Fabric Git format folder
+        # Check both official Git format and legacy folder names
+        lakehouse_folder_v2 = lakehouse_dir / f"{name}.Lakehouse"  # Official Git format
+        lakehouse_folder_v1 = lakehouse_dir / name  # Legacy format
         
         # Skip if this lakehouse was just created in the current run AND no local file exists
-        if ('lakehouse', name) in self._created_in_this_run and not lakehouse_file.exists() and not lakehouse_folder.exists():
+        if ('lakehouse', name) in self._created_in_this_run and not lakehouse_file.exists() and not lakehouse_folder_v2.exists() and not lakehouse_folder_v1.exists():
             logger.info(f"  ⏭ Skipping lakehouse '{name}' - created in this run with no file to deploy")
             return
         
@@ -1609,19 +1665,58 @@ print('Notebook initialized')
                 definition = json.load(f)
             # Shortcuts might be in the JSON file directly
             shortcuts = definition.get("shortcuts", [])
-        elif lakehouse_folder.exists():
-            logger.info(f"  Reading lakehouse definition from Fabric Git folder: {name}/")
-            # Read from Fabric Git format
-            item_metadata_file = lakehouse_folder / "item.metadata.json"
-            if item_metadata_file.exists():
-                with open(item_metadata_file, 'r') as f:
-                    definition = json.load(f)
+        elif lakehouse_folder_v2.exists():
+            logger.info(f"  Reading lakehouse definition from Fabric Git folder (v2): {name}.Lakehouse/")
+            # Try .platform file first (Version 2 - official format)
+            platform_file = lakehouse_folder_v2 / ".platform"
+            if platform_file.exists():
+                with open(platform_file, 'r') as f:
+                    platform_data = json.load(f)
+                definition = {
+                    "name": platform_data["metadata"].get("displayName", name),
+                    "description": platform_data["metadata"].get("description", "")
+                }
+                logger.info(f"  Using .platform file (Git format v2)")
             else:
-                # Create minimal definition
-                definition = {"name": name, "description": ""}
+                # Fall back to item.metadata.json
+                item_metadata_file = lakehouse_folder_v2 / "item.metadata.json"
+                if item_metadata_file.exists():
+                    with open(item_metadata_file, 'r') as f:
+                        definition = json.load(f)
+                else:
+                    definition = {"name": name, "description": ""}
             
             # Read shortcuts from shortcuts.metadata.json
-            shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
+            shortcuts_file = lakehouse_folder_v2 / "shortcuts.metadata.json"
+            if shortcuts_file.exists():
+                logger.info(f"  Reading shortcuts from: shortcuts.metadata.json")
+                with open(shortcuts_file, 'r') as f:
+                    shortcuts_data = json.load(f)
+                    shortcuts = shortcuts_data.get("shortcuts", [])
+                    logger.info(f"  Found {len(shortcuts)} shortcut(s) in metadata file")
+        elif lakehouse_folder_v1.exists():
+            logger.info(f"  Reading lakehouse definition from Fabric Git folder (v1): {name}/")
+            # Try .platform file first
+            platform_file = lakehouse_folder_v1 / ".platform"
+            if platform_file.exists():
+                with open(platform_file, 'r') as f:
+                    platform_data = json.load(f)
+                definition = {
+                    "name": platform_data["metadata"].get("displayName", name),
+                    "description": platform_data["metadata"].get("description", "")
+                }
+                logger.info(f"  Using .platform file (Git format v2)")
+            else:
+                # Fall back to item.metadata.json
+                item_metadata_file = lakehouse_folder_v1 / "item.metadata.json"
+                if item_metadata_file.exists():
+                    with open(item_metadata_file, 'r') as f:
+                        definition = json.load(f)
+                else:
+                    definition = {"name": name, "description": ""}
+            
+            # Read shortcuts from shortcuts.metadata.json
+            shortcuts_file = lakehouse_folder_v1 / "shortcuts.metadata.json"
             if shortcuts_file.exists():
                 logger.info(f"  Reading shortcuts from: shortcuts.metadata.json")
                 with open(shortcuts_file, 'r') as f:
@@ -1629,8 +1724,8 @@ print('Notebook initialized')
                     shortcuts = shortcuts_data.get("shortcuts", [])
                     logger.info(f"  Found {len(shortcuts)} shortcut(s) in metadata file")
         else:
-            logger.error(f"  ❌ Lakehouse file or folder not found: {lakehouse_file} or {lakehouse_folder}")
-            raise FileNotFoundError(f"Lakehouse file or folder not found: {lakehouse_file} or {lakehouse_folder}")
+            logger.error(f"  ❌ Lakehouse file or folder not found: {lakehouse_file}, {lakehouse_folder_v2}, or {lakehouse_folder_v1}")
+            raise FileNotFoundError(f"Lakehouse file or folder not found: {lakehouse_file} or {lakehouse_folder_v2} or {lakehouse_folder_v1}")
         
         description = definition.get("description", "")
         
@@ -2141,7 +2236,8 @@ print('Notebook initialized')
         """Deploy a Variable Library"""
         library_dir = self.artifacts_dir / self.artifacts_root_folder / "Variablelibraries"
         library_file = library_dir / f"{name}.json"
-        library_folder = library_dir / name  # Fabric Git format folder
+        library_folder_v2 = library_dir / f"{name}.VariableLibrary"  # Potential Git format
+        library_folder_v1 = library_dir / name  # Legacy/custom format
         
         # Try to read from JSON file first, then Fabric Git folder format
         definition = None
@@ -2177,17 +2273,31 @@ print('Notebook initialized')
                     logger.warning(f"  ⚠ No set found for '{env_set_name}', using 'variables' if present")
                     logger.warning(f"  Available sets: {', '.join(sets.keys())}")
         
-        elif library_folder.exists():
-            logger.info(f"  Reading variable library definition from Fabric Git folder: {name}/")
+        elif library_folder_v2.exists() or library_folder_v1.exists():
+            # Use whichever folder exists
+            library_folder = library_folder_v2 if library_folder_v2.exists() else library_folder_v1
+            folder_suffix = ".VariableLibrary" if library_folder_v2.exists() else ""
+            logger.info(f"  Reading variable library definition from folder: {name}{folder_suffix}/")
             
-            # Read from Fabric Git format
-            item_metadata_file = library_folder / "item.metadata.json"
-            if item_metadata_file.exists():
-                with open(item_metadata_file, 'r') as f:
-                    definition = json.load(f)
+            # Try .platform file first (Version 2 - official format)
+            platform_file = library_folder / ".platform"
+            if platform_file.exists():
+                with open(platform_file, 'r') as f:
+                    platform_data = json.load(f)
+                definition = {
+                    "name": platform_data["metadata"].get("displayName", name),
+                    "description": platform_data["metadata"].get("description", "")
+                }
+                logger.info(f"  Using .platform file (Git format v2)")
             else:
-                # Create minimal definition
-                definition = {"name": name, "description": ""}
+                # Fall back to item.metadata.json
+                item_metadata_file = library_folder / "item.metadata.json"
+                if item_metadata_file.exists():
+                    with open(item_metadata_file, 'r') as f:
+                        definition = json.load(f)
+                else:
+                    # Create minimal definition
+                    definition = {"name": name, "description": ""}
             
             # Read variables from valueSets folder based on environment
             value_sets_dir = library_folder / "valueSets"

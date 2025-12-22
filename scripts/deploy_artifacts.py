@@ -2625,35 +2625,39 @@ print('Notebook initialized')
                 logger.info(f"  DEBUG: Deploying {len(variables) if variables else 0} variables (no value sets)")
             
             if variables:
-                # Build the proper Fabric format
+                # Build the proper Fabric API format with separate parts for each value set
                 if is_value_sets:
-                    # Deploy all value sets - Fabric format with valueSets structure
-                    definition_data = {
-                        "valueSets": variables  # Dict of {set_name: [variables]}
+                    # Multiple value sets - create separate part for each
+                    parts = []
+                    for set_name, set_vars in variables.items():
+                        set_json = json.dumps({"variableOverrides": set_vars})
+                        set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
+                        parts.append({
+                            "path": f"valueSets/{set_name}.json",
+                            "payload": set_base64,
+                            "payloadType": "InlineBase64"
+                        })
+                        logger.info(f"    Added part: valueSets/{set_name}.json ({len(set_vars)} variables)")
+                    
+                    update_payload = {
+                        "parts": parts
                     }
                 else:
                     # Single set of variables
-                    definition_data = {
-                        "variables": variables
+                    definition_json = json.dumps({"variables": variables})
+                    definition_base64 = base64.b64encode(definition_json.encode('utf-8')).decode('utf-8')
+                    
+                    update_payload = {
+                        "parts": [
+                            {
+                                "path": "variables.json",
+                                "payload": definition_base64,
+                                "payloadType": "InlineBase64"
+                            }
+                        ]
                     }
                 
-                # Log the structure before encoding
-                logger.info(f"  DEBUG: Definition structure keys: {list(definition_data.keys())}")
-                
-                definition_json = json.dumps(definition_data)
-                logger.info(f"  DEBUG: JSON payload size: {len(definition_json)} bytes")
-                
-                definition_base64 = base64.b64encode(definition_json.encode('utf-8')).decode('utf-8')
-                
-                update_payload = {
-                    "parts": [
-                        {
-                            "path": "variables.json",
-                            "payload": definition_base64,
-                            "payloadType": "InlineBase64"
-                        }
-                    ]
-                }
+                logger.info(f"  DEBUG: Payload has {len(update_payload['parts'])} part(s)")
                 
                 try:
                     result = self.client.update_variable_library_definition(
@@ -2700,23 +2704,36 @@ print('Notebook initialized')
                     is_value_sets = isinstance(variables, dict)
                     
                     if is_value_sets:
+                        # Multiple value sets - create separate part for each
+                        parts = []
+                        for set_name, set_vars in variables.items():
+                            set_json = json.dumps({"variableOverrides": set_vars})
+                            set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
+                            parts.append({
+                                "path": f"valueSets/{set_name}.json",
+                                "payload": set_base64,
+                                "payloadType": "InlineBase64"
+                            })
+                        
                         total_vars = sum(len(v) for v in variables.values())
                         logger.info(f"  Setting {len(variables)} value sets with {total_vars} total variables...")
-                        definition_data = {"valueSets": variables}
+                        
+                        update_payload = {
+                            "parts": parts
+                        }
                     else:
+                        # Single set of variables
                         logger.info(f"  Setting {len(variables)} initial variables...")
-                        definition_data = {"variables": variables}
-                    
-                    # Wrap in proper parts structure
-                    definition_json = json.dumps(definition_data)
-                    definition_base64 = base64.b64encode(definition_json.encode('utf-8')).decode('utf-8')
-                    
-                    update_payload = {
-                        "parts": [
-                            {
-                                "path": "variables.json",
-                                "payload": definition_base64,
-                                "payloadType": "InlineBase64"
+                        
+                        definition_json = json.dumps({"variables": variables})
+                        definition_base64 = base64.b64encode(definition_json.encode('utf-8')).decode('utf-8')
+                        
+                        update_payload = {
+                            "parts": [
+                                {
+                                    "path": "variables.json",
+                                    "payload": definition_base64,
+                                    "payloadType": "InlineBase64"
                             }
                         ]
                     }

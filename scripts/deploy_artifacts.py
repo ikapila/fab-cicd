@@ -1185,7 +1185,7 @@ class FabricDeployer:
                             update_payload = {
                                 "parts": [
                                     {
-                                        "path": "variableLibrary.json",
+                                        "path": "variables.json",
                                         "payload": variables_base64,
                                         "payloadType": "InlineBase64"
                                     }
@@ -1205,29 +1205,33 @@ class FabricDeployer:
                         folder_id = self._get_or_create_folder("Variablelibraries")
                         
                         library_def = self._create_variable_library_template(library_config)
-                        result = self.client.create_variable_library(
-                            self.workspace_id, name, library_def.get("description", ""), folder_id=folder_id
-                        )
-                        
-                        # Set initial variables using proper parts structure
                         variables = library_def.get("variables", [])
+                        
+                        # Prepare definition with variables for creation
+                        definition = None
                         if variables:
                             variables_json = json.dumps({"variables": variables})
                             variables_base64 = base64.b64encode(variables_json.encode('utf-8')).decode('utf-8')
                             
-                            update_payload = {
+                            definition = {
+                                "format": "VariableLibraryV1",
                                 "parts": [
                                     {
-                                        "path": "variableLibrary.json",
+                                        "path": "variables.json",
                                         "payload": variables_base64,
                                         "payloadType": "InlineBase64"
                                     }
                                 ]
                             }
-                            
-                            self.client.update_variable_library_definition(
-                                self.workspace_id, result["id"], update_payload
-                            )
+                        
+                        # Create variable library with initial variables
+                        result = self.client.create_variable_library(
+                            self.workspace_id, 
+                            name, 
+                            library_def.get("description", ""), 
+                            folder_id=folder_id,
+                            definition=definition
+                        )
                         
                         logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder with {len(variables)} variables (ID: {result['id']})")
                         
@@ -2497,7 +2501,7 @@ print('Notebook initialized')
                 update_payload = {
                     "parts": [
                         {
-                            "path": "variableLibrary.json",
+                            "path": "variables.json",
                             "payload": variables_base64,
                             "payloadType": "InlineBase64"
                         }
@@ -2547,7 +2551,7 @@ print('Notebook initialized')
                     update_payload = {
                         "parts": [
                             {
-                                "path": "variableLibrary.json",
+                                "path": "variables.json",
                                 "payload": variables_base64,
                                 "payloadType": "InlineBase64"
                             }

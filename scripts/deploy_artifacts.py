@@ -2696,6 +2696,13 @@ print('Notebook initialized')
                     logger.info(f"  DEBUG: API response: {json.dumps(result, indent=2) if result else 'No response'}")
                     logger.info(f"  ✓ Updated Variable Library definition for '{name}'")
                     
+                    # Wait for LRO to complete if operation_id is present
+                    if result.get("operation_id"):
+                        operation_id = result["operation_id"]
+                        retry_after = result.get("retry_after", 5)
+                        logger.info(f"  Waiting for definition update to complete...")
+                        self.client.wait_for_operation_completion(operation_id, retry_after=retry_after, max_attempts=12)
+                    
                     # Second API call: Set the active value set for this environment (only for value sets)
                     if is_value_sets and self.environment in variables:
                         logger.info(f"  Setting active value set to '{self.environment}'...")
@@ -2804,12 +2811,19 @@ print('Notebook initialized')
                         }
                     
                     # First API call: Update the definition with all parts
-                    self.client.update_variable_library_definition(
+                    result = self.client.update_variable_library_definition(
                         self.workspace_id,
                         library_id,
                         update_payload
                     )
                     logger.info(f"  ✓ Initialized variable definition for '{name}'")
+                    
+                    # Wait for LRO to complete if operation_id is present
+                    if result.get("operation_id"):
+                        operation_id = result["operation_id"]
+                        retry_after = result.get("retry_after", 5)
+                        logger.info(f"  Waiting for definition initialization to complete...")
+                        self.client.wait_for_operation_completion(operation_id, retry_after=retry_after, max_attempts=12)
                     
                     # Second API call: Set the active value set for this environment (only for value sets)
                     if is_value_sets and self.environment in variables:

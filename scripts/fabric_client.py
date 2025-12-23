@@ -991,7 +991,7 @@ class FabricClient:
         payload = {
             "activeValueSetName": value_set_name
         }
-        return self._make_request("PATCH", f"/workspaces/{workspace_id}/variableLibraries/{library_id}", json_data=payload)
+        return self._make_request("PATCH", f"/workspaces/{workspace_id}/items/{library_id}", json_data=payload)
     
     # ==================== Shortcut Operations ====================
     

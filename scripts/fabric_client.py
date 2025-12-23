@@ -1045,7 +1045,7 @@ class FabricClient:
         Returns:
             Operation result or status
         """
-        endpoint = f"{self.base_url}/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/updateDefinition"
+        endpoint = f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/updateDefinition"
         params = {"updateMetadata": "true" if update_metadata else "false"}
         
         payload = {
@@ -1055,27 +1055,25 @@ class FabricClient:
             }
         }
         
-        response = self._make_request('POST', endpoint, json=payload, params=params)
+        logger.info(f"Updating lakehouse definition - workspace: {workspace_id}, lakehouse: {lakehouse_id}")
+        logger.info(f"  Including {len(parts)} definition part(s)")
         
-        if response.status_code == 200:
-            logger.info("Lakehouse definition updated successfully (200)")
-            return response.json()
-        elif response.status_code == 202:
-            # Long running operation
-            location = response.headers.get('Location')
-            operation_id = response.headers.get('x-ms-operation-id')
-            retry_after = int(response.headers.get('Retry-After', 30))
+        result = self._make_request('POST', endpoint, json_data=payload, params=params)
+        
+        # _make_request returns a dict with status info for 202/204, or parsed JSON for 200
+        if result.get('status_code') == 202:
+            logger.info("Lakehouse definition update accepted (202) - LRO started")
+            # The result already contains location, operation_id, retry_after from _make_request
+            operation_id = result.get('operation_id')
+            location = result.get('location')
+            retry_after = result.get('retry_after', 30)
             
-            logger.info(f"Lakehouse definition update accepted (202) - LRO started")
-            logger.info(f"  Operation ID: {operation_id}")
-            logger.info(f"  Polling every {retry_after}s...")
-            
-            # Poll the operation status
-            return self._poll_operation(location, retry_after)
-        else:
-            logger.error(f"Failed to update lakehouse definition: {response.status_code} - {response.text}")
-            response.raise_for_status()
-            return {}
+            if operation_id:
+                logger.info(f"  Polling operation: {operation_id}")
+                return self._poll_operation(location, retry_after)
+        
+        logger.info("Lakehouse definition updated successfully")
+        return result
     
     def get_lakehouse_definition(self, workspace_id: str, lakehouse_id: str, format: str = "LakehouseDefinitionV1") -> dict:
         """Get lakehouse definition
@@ -1088,25 +1086,19 @@ class FabricClient:
         Returns:
             Definition data with parts
         """
-        endpoint = f"{self.base_url}/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/getDefinition"
+        endpoint = f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/getDefinition"
         params = {"format": format}
         
-        response = self._make_request('POST', endpoint, params=params)
+        result = self._make_request('POST', endpoint, params=params)
         
-        if response.status_code == 200:
-            data = response.json()
-            logger.info(f"Retrieved lakehouse definition: format={data.get('definition', {}).get('format')}")
-            return data
-        elif response.status_code == 202:
-            # Long running operation
-            location = response.headers.get('Location')
-            retry_after = int(response.headers.get('Retry-After', 30))
-            logger.info(f"Get definition operation accepted (202) - polling...")
+        if result.get('status_code') == 202:
+            logger.info("Get lakehouse definition - LRO started")
+            location = result.get('location')
+            retry_after = result.get('retry_after', 30)
             return self._poll_operation(location, retry_after)
-        else:
-            logger.error(f"Failed to get lakehouse definition: {response.status_code} - {response.text}")
-            response.raise_for_status()
-            return {}
+        
+        logger.info(f"Retrieved lakehouse definition: format={result.get('definition', {}).get('format')}")
+        return result
     
     # ==================== Shortcut Operations ====================
     

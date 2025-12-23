@@ -1949,15 +1949,22 @@ print('Notebook initialized')
                 
                 # Add lakehouse.metadata.json - REQUIRED by API
                 # This file contains schema settings (e.g., {"enableSchemas": true})
-                lakehouse_json_file = lakehouse_folder / "lakehouse.json"
-                if lakehouse_json_file.exists():
-                    logger.info(f"  Including lakehouse.json as lakehouse.metadata.json (required)")
-                    with open(lakehouse_json_file, 'r') as f:
+                lakehouse_metadata_file = lakehouse_folder / "lakehouse.metadata.json"
+                if lakehouse_metadata_file.exists():
+                    logger.info(f"  Including lakehouse.metadata.json (required)")
+                    with open(lakehouse_metadata_file, 'r') as f:
                         lakehouse_content = f.read()
                 else:
-                    # If no lakehouse.json, create minimal metadata
-                    logger.info(f"  Creating minimal lakehouse.metadata.json (required by API)")
-                    lakehouse_content = "{}"
+                    # Fallback: try lakehouse.json (alternative name)
+                    lakehouse_json_file = lakehouse_folder / "lakehouse.json"
+                    if lakehouse_json_file.exists():
+                        logger.info(f"  Including lakehouse.json as lakehouse.metadata.json (required)")
+                        with open(lakehouse_json_file, 'r') as f:
+                            lakehouse_content = f.read()
+                    else:
+                        # If neither exists, create minimal metadata
+                        logger.info(f"  Creating minimal lakehouse.metadata.json (required by API)")
+                        lakehouse_content = "{}"
                 
                 lakehouse_base64 = base64.b64encode(lakehouse_content.encode('utf-8')).decode('utf-8')
                 parts.append({
@@ -1976,6 +1983,19 @@ print('Notebook initialized')
                     parts.append({
                         "path": "shortcuts.metadata.json",
                         "payload": shortcuts_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                
+                # Add alm.settings.json if it exists
+                alm_settings_file = lakehouse_folder / "alm.settings.json"
+                if alm_settings_file.exists():
+                    logger.info(f"  Including alm.settings.json in definition")
+                    with open(alm_settings_file, 'r') as f:
+                        alm_content = f.read()
+                    alm_base64 = base64.b64encode(alm_content.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "alm.settings.json",
+                        "payload": alm_base64,
                         "payloadType": "InlineBase64"
                     })
                 
@@ -2053,14 +2073,21 @@ print('Notebook initialized')
                 parts = []
                 
                 # Add lakehouse.metadata.json - REQUIRED by API
-                lakehouse_json_file = lakehouse_folder / "lakehouse.json"
-                if lakehouse_json_file.exists():
-                    logger.info(f"  Including lakehouse.json as lakehouse.metadata.json (required)")
-                    with open(lakehouse_json_file, 'r') as f:
+                lakehouse_metadata_file = lakehouse_folder / "lakehouse.metadata.json"
+                if lakehouse_metadata_file.exists():
+                    logger.info(f"  Including lakehouse.metadata.json (required)")
+                    with open(lakehouse_metadata_file, 'r') as f:
                         lakehouse_content = f.read()
                 else:
-                    logger.info(f"  Creating minimal lakehouse.metadata.json (required by API)")
-                    lakehouse_content = "{}"
+                    # Fallback: try lakehouse.json (alternative name)
+                    lakehouse_json_file = lakehouse_folder / "lakehouse.json"
+                    if lakehouse_json_file.exists():
+                        logger.info(f"  Including lakehouse.json as lakehouse.metadata.json (required)")
+                        with open(lakehouse_json_file, 'r') as f:
+                            lakehouse_content = f.read()
+                    else:
+                        logger.info(f"  Creating minimal lakehouse.metadata.json (required by API)")
+                        lakehouse_content = "{}"
                 
                 lakehouse_base64 = base64.b64encode(lakehouse_content.encode('utf-8')).decode('utf-8')
                 parts.append({
@@ -2079,6 +2106,19 @@ print('Notebook initialized')
                     parts.append({
                         "path": "shortcuts.metadata.json",
                         "payload": shortcuts_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                
+                # Add alm.settings.json if it exists
+                alm_settings_file = lakehouse_folder / "alm.settings.json"
+                if alm_settings_file.exists():
+                    logger.info(f"  Including alm.settings.json")
+                    with open(alm_settings_file, 'r') as f:
+                        alm_content = f.read()
+                    alm_base64 = base64.b64encode(alm_content.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "alm.settings.json",
+                        "payload": alm_base64,
                         "payloadType": "InlineBase64"
                     })
                 

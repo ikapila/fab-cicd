@@ -1,26 +1,23 @@
-[
-  {
-    "name": "ApiEndpoint",
-    "type": "String",
-    "value": "https://api.example.com/v1",
-    "description": "PROD API endpoint URL"
-  },
-  {
-    "name": "MaxRetries",
-    "type": "Int",
-    "value": "3",
-    "description": "Maximum number of retry attempts"
-  },
-  {
-    "name": "EnableDebugLogging",
-    "type": "Bool",
-    "value": "false",
-    "description": "Debug logging disabled in PROD"
-  },
-  {
-    "name": "ConnectionString",
-    "type": "String",
-    "value": "Server=prod-server;Database=prod-db",
-    "description": "PROD database connection string"
-  }
-]
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
+  "name": "prod",
+  "description": "Production environment settings",
+  "variableOverrides": [
+    {
+      "name": "ApiEndpoint",
+      "value": "https://api.example.com/v1"
+    },
+    {
+      "name": "MaxRetries",
+      "value": "3"
+    },
+    {
+      "name": "EnableDebugLogging",
+      "value": "false"
+    },
+    {
+      "name": "ConnectionString",
+      "value": "Server=prod-server;Database=prod-db"
+    }
+  ]
+}

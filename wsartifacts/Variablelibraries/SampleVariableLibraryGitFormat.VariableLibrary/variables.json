@@ -1,0 +1,29 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/variables/1.0.0/schema.json",
+  "variables": [
+    {
+      "name": "ApiEndpoint",
+      "type": "String",
+      "value": "https://default-api.example.com/v1",
+      "note": "API endpoint URL"
+    },
+    {
+      "name": "MaxRetries",
+      "type": "Integer",
+      "value": 3,
+      "note": "Maximum number of retry attempts"
+    },
+    {
+      "name": "EnableDebugLogging",
+      "type": "Boolean",
+      "value": false,
+      "note": "Enable debug logging"
+    },
+    {
+      "name": "ConnectionString",
+      "type": "String",
+      "value": "Server=default-server;Database=default-db",
+      "note": "Database connection string"
+    }
+  ]
+}

@@ -2553,16 +2553,35 @@ print('Notebook initialized')
                     # Create minimal definition
                     definition = {"name": name, "description": ""}
             
-            # Read variables from valueSets folder - deploy ALL value sets
+            # Read variables from Git format structure
             value_sets_dir = library_folder / "valueSets"
             if value_sets_dir.exists():
-                logger.info(f"  Found valueSets folder - deploying all value sets")
+                logger.info(f"  Found valueSets folder - reading Git format structure")
                 
-                # Show available value set files
+                # Read base variables.json (REQUIRED per Fabric Git format)
+                base_variables_file = library_folder / "variables.json"
+                base_variables = []
+                if base_variables_file.exists():
+                    logger.info(f"  Reading variables.json...")
+                    with open(base_variables_file, 'r') as f:
+                        base_data = json.load(f)
+                        base_variables = base_data.get("variables", [])
+                        logger.info(f"    ✓ Loaded {len(base_variables)} base variable definitions")
+                
+                # Read settings.json (REQUIRED per Fabric Git format)
+                settings_file = library_folder / "settings.json"
+                value_sets_order = []
+                if settings_file.exists():
+                    logger.info(f"  Reading settings.json...")
+                    with open(settings_file, 'r') as f:
+                        settings_data = json.load(f)
+                        value_sets_order = settings_data.get("valueSetsOrder", [])
+                        logger.info(f"    ✓ Loaded valueSetsOrder: {value_sets_order}")
+                
+                # Read all value sets from valueSets/ folder
                 available_files = list(value_sets_dir.glob("*.json"))
                 logger.info(f"  Available value sets: {', '.join([f.name for f in available_files])}")
                 
-                # Read ALL value sets - each contains FULL variable definitions (not just overrides)
                 value_sets = {}
                 for set_file in available_files:
                     set_name = set_file.stem  # e.g., 'dev', 'uat', 'prod'
@@ -2570,52 +2589,58 @@ print('Notebook initialized')
                     
                     with open(set_file, 'r') as f:
                         set_data = json.load(f)
-                        # Handle both direct array and object with 'variableOverrides' key
-                        if isinstance(set_data, list):
-                            value_sets[set_name] = set_data
-                        elif isinstance(set_data, dict):
-                            # Fabric Git format uses 'variableOverrides', fallback to 'variables'
-                            value_sets[set_name] = set_data.get("variableOverrides", set_data.get("variables", []))
+                        
+                        # Check if this is proper Git format (with variableOverrides) or legacy format (full definitions)
+                        if isinstance(set_data, dict) and "variableOverrides" in set_data:
+                            # Proper Git format: has name, description, variableOverrides
+                            value_sets[set_name] = set_data.get("variableOverrides", [])
+                        elif isinstance(set_data, list):
+                            # Legacy format: list of full variable definitions - convert to overrides
+                            logger.info(f"    Converting legacy format to overrides for '{set_name}'")
+                            value_sets[set_name] = [
+                                {"name": var["name"], "value": var["value"]}
+                                for var in set_data
+                            ]
+                            # If base_variables is empty, create it from first set
+                            if not base_variables and set_name == next(iter([f.stem for f in available_files])):
+                                logger.info(f"    Creating base variables from '{set_name}' (legacy format)")
+                                base_variables = [
+                                    {
+                                        "name": var["name"],
+                                        "type": var.get("type", "String"),
+                                        "value": var["value"],
+                                        "note": var.get("description", "")
+                                    }
+                                    for var in set_data
+                                ]
                         else:
                             value_sets[set_name] = []
                     
-                    # Substitute parameters in this value set
+                    # Substitute parameters in value set overrides
                     set_str = json.dumps(value_sets[set_name])
                     set_str = self.config.substitute_parameters(set_str)
                     value_sets[set_name] = json.loads(set_str)
                     
-                    logger.info(f"    ✓ Loaded {len(value_sets[set_name])} variable(s) from '{set_name}' set")
+                    logger.info(f"    ✓ Loaded {len(value_sets[set_name])} variable override(s) from '{set_name}' set")
                 
                 if not value_sets:
                     logger.error(f"  ❌ No valid value sets found in valueSets folder")
                     raise ValueError(f"No value sets found in {value_sets_dir}")
                 
+                # Create settings if missing
+                if not value_sets_order:
+                    value_sets_order = sorted(value_sets.keys())  # Alphabetical order
+                    logger.info(f"  Generated valueSetsOrder: {value_sets_order}")
+                
                 logger.info(f"  Total value sets to deploy: {len(value_sets)}")
                 logger.info(f"  NOTE: All value sets will be deployed. You can switch between them in the Fabric UI.")
                 
-                # Create base variables from first value set (use type, description)
-                # and convert all value sets to overrides (name, value only)
-                first_set_name = next(iter(value_sets.keys()))
-                base_variables = [
-                    {
-                        "name": var["name"],
-                        "type": var.get("type", "String"),
-                        "value": var["value"],
-                        "description": var.get("description", "")
-                    }
-                    for var in value_sets[first_set_name]
-                ]
-                
-                # Convert value sets to overrides format (name, value only)
-                value_set_overrides = {}
-                for set_name, set_vars in value_sets.items():
-                    value_set_overrides[set_name] = [
-                        {"name": var["name"], "value": var["value"]}
-                        for var in set_vars
-                    ]
-                
-                # Store both base variables and value set overrides for deployment
-                variables = {"base_variables": base_variables, "value_sets": value_set_overrides}
+                # Store all components for deployment
+                variables = {
+                    "base_variables": base_variables,
+                    "value_sets": value_sets,
+                    "value_sets_order": value_sets_order
+                }
             else:
                 logger.error(f"  ❌ No valueSets folder found in {library_folder.name}/")
                 raise FileNotFoundError(f"No valueSets folder found in variable library: {library_folder}")
@@ -2639,14 +2664,15 @@ print('Notebook initialized')
             
             if variables:
                 if is_value_sets:
-                    # Git format: deploy base variables + all value sets
+                    # Git format: deploy base variables + all value sets + settings
                     base_vars = variables["base_variables"]
                     value_sets = variables["value_sets"]
-                    logger.info(f"  Deploying base variables ({len(base_vars)}) + {len(value_sets)} value sets...")
+                    value_sets_order = variables["value_sets_order"]
+                    logger.info(f"  Deploying base variables ({len(base_vars)}) + {len(value_sets)} value sets + settings...")
                     
                     parts = []
                     
-                    # Add base variables.json (required)
+                    # Add base variables.json (REQUIRED)
                     base_json = json.dumps({"variables": base_vars}, indent=2)
                     logger.debug(f"  Base variables structure sample:\n{base_json[:300]}...")
                     base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
@@ -2670,6 +2696,16 @@ print('Notebook initialized')
                             "payload": set_base64,
                             "payloadType": "InlineBase64"
                         })
+                    
+                    # Add settings.json (REQUIRED)
+                    settings_json = json.dumps({"valueSetsOrder": value_sets_order}, indent=2)
+                    logger.debug(f"  Settings structure: {settings_json}")
+                    settings_base64 = base64.b64encode(settings_json.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "settings.json",
+                        "payload": settings_base64,
+                        "payloadType": "InlineBase64"
+                    })
                     
                     update_payload = {
                         "parts": parts,
@@ -2756,14 +2792,15 @@ print('Notebook initialized')
                     is_value_sets = isinstance(variables, dict) and "value_sets" in variables
                     
                     if is_value_sets:
-                        # Git format: deploy base variables + all value sets
+                        # Git format: deploy base variables + all value sets + settings
                         base_vars = variables["base_variables"]
                         value_sets = variables["value_sets"]
-                        logger.info(f"  Setting base variables ({len(base_vars)}) + {len(value_sets)} value sets...")
+                        value_sets_order = variables["value_sets_order"]
+                        logger.info(f"  Setting base variables ({len(base_vars)}) + {len(value_sets)} value sets + settings...")
                         
                         parts = []
                         
-                        # Add base variables.json (required)
+                        # Add base variables.json (REQUIRED)
                         base_json = json.dumps({"variables": base_vars}, indent=2)
                         logger.debug(f"  Base variables structure sample:\n{base_json[:300]}...")
                         base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
@@ -2787,6 +2824,16 @@ print('Notebook initialized')
                                 "payload": set_base64,
                                 "payloadType": "InlineBase64"
                             })
+                        
+                        # Add settings.json (REQUIRED)
+                        settings_json = json.dumps({"valueSetsOrder": value_sets_order}, indent=2)
+                        logger.debug(f"  Settings structure: {settings_json}")
+                        settings_base64 = base64.b64encode(settings_json.encode('utf-8')).decode('utf-8')
+                        parts.append({
+                            "path": "settings.json",
+                            "payload": settings_base64,
+                            "payloadType": "InlineBase64"
+                        })
                         
                         update_payload = {
                             "parts": parts,

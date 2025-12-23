@@ -2558,27 +2558,6 @@ print('Notebook initialized')
             if value_sets_dir.exists():
                 logger.info(f"  Found valueSets folder - reading Git format structure")
                 
-                # Helper functions for type normalization
-                def normalize_variable_type(var_type):
-                    """Normalize type names to Fabric API standard"""
-                    type_map = {
-                        "Int": "String",
-                        "Bool": "String", 
-                        "Boolean": "String",
-                        "Integer": "String",
-                        "bool": "String",
-                        "int": "String",
-                        "Number": "String",
-                        "number": "String",
-                        "DateTime": "String",
-                        "datetime": "String"
-                    }
-                    return type_map.get(var_type, "String")
-                
-                def convert_value_to_type(value, var_type):
-                    """Convert all values to strings"""
-                    return str(value) if value is not None else ""
-                
                 # Read base variables.json (REQUIRED per Fabric Git format)
                 base_variables_file = library_folder / "variables.json"
                 base_variables = []
@@ -2586,21 +2565,8 @@ print('Notebook initialized')
                     logger.info(f"  Reading variables.json...")
                     with open(base_variables_file, 'r') as f:
                         base_data = json.load(f)
-                        raw_variables = base_data.get("variables", [])
-                        # Normalize types and convert values
-                        for var in raw_variables:
-                            var_type = normalize_variable_type(var.get("type", "String"))
-                            var_value = convert_value_to_type(var.get("value"), var_type)
-                            var_def = {
-                                "name": var["name"],
-                                "type": var_type,
-                                "value": var_value
-                            }
-                            # Only include note if it's not empty (optional field)
-                            note = var.get("note", "")
-                            if note:
-                                var_def["note"] = note
-                            base_variables.append(var_def)
+                        base_variables = base_data.get("variables", [])
+                        # Use variables AS-IS without modification
                         logger.info(f"    ✓ Loaded {len(base_variables)} base variable definitions")
                 
                 # Read settings.json (REQUIRED per Fabric Git format)
@@ -2653,20 +2619,15 @@ print('Notebook initialized')
                             # If base_variables is empty, create it from first set (legacy format)
                             if not base_variables and not first_set_processed:
                                 logger.info(f"    Creating base variables from '{set_name}' (legacy format)")
-                                base_variables = []
-                                for var in set_data:
-                                    var_type = normalize_variable_type(var.get("type", "String"))
-                                    var_value = convert_value_to_type(var["value"], var_type)
-                                    var_def = {
+                                # Use AS-IS from source files without any type conversion
+                                base_variables = [
+                                    {
                                         "name": var["name"],
-                                        "type": var_type,
-                                        "value": var_value
+                                        "type": var.get("type", "String"),
+                                        "value": var["value"]
                                     }
-                                    # Only include note if it's not empty (optional field)
-                                    note = var.get("description", "")
-                                    if note:
-                                        var_def["note"] = note
-                                    base_variables.append(var_def)
+                                    for var in set_data
+                                ]
                                 first_set_processed = True
                         else:
                             value_sets[set_name] = {"name": set_name, "variableOverrides": []}
@@ -2887,10 +2848,8 @@ print('Notebook initialized')
                         })
                         
                         # Add each value set as valueSets/{name}.json with overrides
-                        for set_name, set_vars in value_sets.items():
-                            set_data = {
-                                "variableOverrides": set_vars  # Already in correct format: [{name, value}, ...]
-                            }
+                        for set_name, set_data in value_sets.items():
+                            # set_data already has proper structure: {name, variableOverrides, [description]}
                             set_json = json.dumps(set_data, indent=2)
                             logger.debug(f"  Value set '{set_name}' structure sample:\n{set_json[:300]}...")
                             

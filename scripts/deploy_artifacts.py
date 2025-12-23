@@ -1987,29 +1987,26 @@ print('Notebook initialized')
                 
                 # Deploy definition if we have parts
                 if parts:
-                    try:
-                        result = self.client.update_lakehouse_definition(
-                            self.workspace_id,
-                            lakehouse_id,
-                            parts,
-                            update_metadata=True
-                        )
-                        logger.info(f"  ✓ Lakehouse definition updated successfully")
-                        
-                        # Check result for any error details
-                        if isinstance(result, dict) and result.get("status") == "Failed":
-                            logger.error(f"  ❌ Definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
-                    except Exception as e:
-                        logger.error(f"  ❌ Failed to update lakehouse definition: {e}")
-                        # Fall back to legacy shortcut creation if needed
-                        logger.info(f"  Falling back to individual shortcut creation...")
-                        self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, lakehouse_folder)
+                    result = self.client.update_lakehouse_definition(
+                        self.workspace_id,
+                        lakehouse_id,
+                        parts,
+                        update_metadata=True
+                    )
+                    logger.info(f"  ✓ Lakehouse definition updated successfully")
+                    
+                    # Check result for any error details
+                    if isinstance(result, dict) and result.get("status") == "Failed":
+                        logger.error(f"  ❌ Definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
+                        raise Exception(f"Lakehouse definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
                 else:
                     logger.info(f"  No definition parts to deploy (no shortcuts or lakehouse.json)")
             else:
-                # Legacy approach: read shortcuts from JSON and create individually
+                # Legacy JSON-based format: read shortcuts from JSON and create individually
+                logger.info(f"  Using legacy JSON-based format (not Git format folder)")
                 shortcuts = definition.get("shortcuts", [])
                 if shortcuts:
+                    logger.warning(f"  ⚠️  Using legacy shortcut API (consider migrating to Git format)")
                     self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, None, shortcuts)
         else:
             logger.info(f"  Lakehouse '{name}' not found, creating...")
@@ -2077,20 +2074,24 @@ print('Notebook initialized')
                     })
                 
                 if parts:
-                    try:
-                        result = self.client.update_lakehouse_definition(
-                            self.workspace_id,
-                            lakehouse_id,
-                            parts,
-                            update_metadata=False  # Don't update metadata for new lakehouse
-                        )
-                        logger.info(f"  ✓ Lakehouse definition deployed successfully")
-                    except Exception as e:
-                        logger.error(f"  ❌ Failed to deploy lakehouse definition: {e}")
+                    result = self.client.update_lakehouse_definition(
+                        self.workspace_id,
+                        lakehouse_id,
+                        parts,
+                        update_metadata=False  # Don't update metadata for new lakehouse
+                    )
+                    logger.info(f"  ✓ Lakehouse definition deployed successfully")
+                    
+                    # Check result for any error details
+                    if isinstance(result, dict) and result.get("status") == "Failed":
+                        logger.error(f"  ❌ Definition deployment failed: {result.get('error', {}).get('message', 'Unknown error')}")
+                        raise Exception(f"Lakehouse definition deployment failed: {result.get('error', {}).get('message', 'Unknown error')}")
             elif not use_definition_api:
                 # Legacy JSON-based shortcuts
+                logger.info(f"  Using legacy JSON-based format (not Git format folder)")
                 shortcuts = definition.get("shortcuts", [])
                 if shortcuts:
+                    logger.warning(f"  ⚠️  Using legacy shortcut API (consider migrating to Git format)")
                     self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, None, shortcuts)
     
     def _deploy_lakehouse_shortcuts_legacy(self, lakehouse_name: str, lakehouse_id: str, 

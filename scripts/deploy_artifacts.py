@@ -93,6 +93,40 @@ class FabricDeployer:
             repo_root=self.artifacts_dir
         )
     
+    def _substitute_parameters(self, content: str) -> str:
+        """
+        Substitute ${parameter_name} placeholders with values from config parameters.
+        
+        Args:
+            content: String content that may contain ${parameter_name} placeholders
+            
+        Returns:
+            String with all ${parameter_name} replaced with actual values from config
+        """
+        import re
+        
+        # Get parameters from config
+        parameters = self.config.config.get("parameters", {})
+        
+        if not parameters:
+            return content
+        
+        # Find all ${parameter_name} patterns
+        pattern = r'\$\{([^}]+)\}'
+        
+        def replace_match(match):
+            param_name = match.group(1)
+            if param_name in parameters:
+                param_value = parameters[param_name]
+                logger.debug(f"  Substituting ${{{param_name}}} with {param_value}")
+                return str(param_value)
+            else:
+                logger.warning(f"  Parameter ${{{param_name}}} not found in config, leaving unchanged")
+                return match.group(0)
+        
+        result = re.sub(pattern, replace_match, content)
+        return result
+    
     def _get_config_managed_artifacts(self) -> dict:
         """
         Get set of artifact names that are managed by config file.
@@ -1979,6 +2013,10 @@ print('Notebook initialized')
                     logger.info(f"  Including shortcuts.metadata.json in definition")
                     with open(shortcuts_file, 'r') as f:
                         shortcuts_content = f.read()
+                    
+                    # Substitute parameters (e.g., ${storage_account}, ${connection_id})
+                    shortcuts_content = self._substitute_parameters(shortcuts_content)
+                    
                     shortcuts_base64 = base64.b64encode(shortcuts_content.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "shortcuts.metadata.json",
@@ -2102,6 +2140,10 @@ print('Notebook initialized')
                     logger.info(f"  Including shortcuts.metadata.json")
                     with open(shortcuts_file, 'r') as f:
                         shortcuts_content = f.read()
+                    
+                    # Substitute parameters (e.g., ${storage_account}, ${connection_id})
+                    shortcuts_content = self._substitute_parameters(shortcuts_content)
+                    
                     shortcuts_base64 = base64.b64encode(shortcuts_content.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "shortcuts.metadata.json",

@@ -964,6 +964,8 @@ class FabricClient:
     def get_variable_library_definition(self, workspace_id: str, library_id: str) -> Dict:
         """
         Get Variable Library definition (variables)
+        Per Microsoft docs: POST /workspaces/{workspaceId}/VariableLibraries/{variableLibraryId}/getDefinition
+        https://learn.microsoft.com/en-us/rest/api/fabric/variablelibrary/items/get-variable-library-definition
         
         Args:
             workspace_id: Workspace GUID
@@ -973,11 +975,13 @@ class FabricClient:
             Variable Library definition with variables
         """
         logger.info(f"Getting Variable Library definition: {library_id}")
-        return self._make_request("POST", f"/workspaces/{workspace_id}/items/{library_id}/getDefinition")
+        return self._make_request("POST", f"/workspaces/{workspace_id}/VariableLibraries/{library_id}/getDefinition")
     
     def update_variable_library_definition(self, workspace_id: str, library_id: str, definition: Dict) -> Dict:
         """
         Update Variable Library definition (variables)
+        Per Microsoft docs: POST /workspaces/{workspaceId}/VariableLibraries/{variableLibraryId}/updateDefinition
+        https://learn.microsoft.com/en-us/rest/api/fabric/variablelibrary/items/update-variable-library-definition
         
         Args:
             workspace_id: Workspace GUID
@@ -989,7 +993,7 @@ class FabricClient:
         """
         logger.info(f"Updating Variable Library definition: {library_id}")
         payload = {"definition": definition}
-        return self._make_request("POST", f"/workspaces/{workspace_id}/items/{library_id}/updateDefinition", json_data=payload)
+        return self._make_request("POST", f"/workspaces/{workspace_id}/VariableLibraries/{library_id}/updateDefinition", json_data=payload)
     
     def delete_variable_library(self, workspace_id: str, library_id: str) -> Dict:
         """

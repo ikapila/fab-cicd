@@ -2558,7 +2558,17 @@ print('Notebook initialized')
             if value_sets_dir.exists():
                 logger.info(f"  Found valueSets folder - deploying all value sets")
                 
-                # Show available files in valueSets
+                # First, read base variables.json if it exists (Git format)
+                base_variables_file = library_folder / "variables.json"
+                base_variables = None
+                if base_variables_file.exists():
+                    logger.info(f"  Reading base variables.json...")
+                    with open(base_variables_file, 'r') as f:
+                        base_data = json.load(f)
+                        base_variables = base_data.get("variables", [])
+                        logger.info(f"    ✓ Loaded {len(base_variables)} base variable definitions")
+                
+                # Show available value set files
                 available_files = list(value_sets_dir.glob("*.json"))
                 logger.info(f"  Available value sets: {', '.join([f.name for f in available_files])}")
                 
@@ -2593,8 +2603,8 @@ print('Notebook initialized')
                 logger.info(f"  Total value sets to deploy: {len(value_sets)}")
                 logger.info(f"  NOTE: All value sets will be deployed. You can switch between them in the Fabric UI.")
                 
-                # Deploy ALL value sets - this is the proper Fabric Git format behavior
-                variables = value_sets
+                # Store both base variables and value sets for deployment
+                variables = {"base_variables": base_variables, "value_sets": value_sets}
             else:
                 logger.error(f"  ❌ No valueSets folder found in {library_folder.name}/")
                 raise FileNotFoundError(f"No valueSets folder found in variable library: {library_folder}")
@@ -2613,27 +2623,35 @@ print('Notebook initialized')
             logger.info(f"  Variable Library '{name}' already exists, updating...")
             library_id = existing_library["id"]
             
-            # Check if we have value sets (dict) or just variables (list)
-            is_value_sets = isinstance(variables, dict) and len(variables) > 0
+            # Check if we have value sets (dict with base_variables and value_sets) or just variables (list)
+            is_value_sets = isinstance(variables, dict) and "value_sets" in variables
             
             if variables:
                 if is_value_sets:
                     # Git format: deploy base variables + all value sets
-                    logger.info(f"  Deploying base variables + {len(variables)} value sets...")
+                    base_vars = variables["base_variables"]
+                    value_sets = variables["value_sets"]
+                    logger.info(f"  Deploying base variables + {len(value_sets)} value sets...")
                     
                     parts = []
                     
-                    # Add base variables.json (required) - use first value set as base
-                    first_set = next(iter(variables.values()))
-                    base_vars = [
-                        {
-                            "name": var["name"],
-                            "type": var.get("type", "String"),
-                            "value": var["value"],
-                            "description": var.get("description", "")
-                        }
-                        for var in first_set
-                    ]
+                    # Add base variables.json (required) - use from Git structure if available
+                    if base_vars:
+                        logger.info(f"  Using base variables from variables.json ({len(base_vars)} variables)")
+                    else:
+                        # Fallback: create base from first value set
+                        logger.info(f"  No base variables.json found, creating from first value set")
+                        first_set = next(iter(value_sets.values()))
+                        base_vars = [
+                            {
+                                "name": var["name"],
+                                "type": var.get("type", "String"),
+                                "value": var["value"],
+                                "description": var.get("description", "")
+                            }
+                            for var in first_set
+                        ]
+                    
                     base_json = json.dumps({"variables": base_vars}, indent=2)
                     logger.debug(f"  Base variables structure sample:\n{base_json[:300]}...")
                     base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
@@ -2644,7 +2662,7 @@ print('Notebook initialized')
                     })
                     
                     # Add each value set as valueSets/{name}.json
-                    for set_name, set_vars in variables.items():
+                    for set_name, set_vars in value_sets.items():
                         set_data = {
                             "variableOverrides": [
                                 {"name": var["name"], "value": var["value"]} 
@@ -2704,14 +2722,16 @@ print('Notebook initialized')
                         self.client.wait_for_operation_completion(operation_id, retry_after=retry_after, max_attempts=12)
                     
                     # Second API call: Set the active value set for this environment (only for value sets)
-                    if is_value_sets and self.environment in variables:
-                        logger.info(f"  Setting active value set to '{self.environment}'...")
-                        self.client.set_active_value_set(
-                            self.workspace_id,
-                            library_id,
-                            self.environment
-                        )
-                        logger.info(f"  ✓ Set active value set to '{self.environment}' for Variable Library '{name}'")
+                    if is_value_sets:
+                        value_sets = variables["value_sets"]
+                        if self.environment in value_sets:
+                            logger.info(f"  Setting active value set to '{self.environment}'...")
+                            self.client.set_active_value_set(
+                                self.workspace_id,
+                                library_id,
+                                self.environment
+                            )
+                            logger.info(f"  ✓ Set active value set to '{self.environment}' for Variable Library '{name}'")
                 except Exception as e:
                     logger.error(f"  ❌ Failed to update Variable Library '{name}': {str(e)}")
                     raise
@@ -2740,26 +2760,34 @@ print('Notebook initialized')
                 logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder (ID: {library_id})")
                 
                 if variables:
-                    # Check if we have value sets (dict) or just a list of variables
-                    is_value_sets = isinstance(variables, dict) and len(variables) > 0
+                    # Check if we have value sets (dict with base_variables and value_sets) or just a list of variables
+                    is_value_sets = isinstance(variables, dict) and "value_sets" in variables
                     
                     if is_value_sets:
                         # Git format: deploy base variables + all value sets
-                        logger.info(f"  Setting base variables + {len(variables)} value sets...")
+                        base_vars = variables["base_variables"]
+                        value_sets = variables["value_sets"]
+                        logger.info(f"  Setting base variables + {len(value_sets)} value sets...")
                         
                         parts = []
                         
-                        # Add base variables.json (required) - use first value set as base
-                        first_set = next(iter(variables.values()))
-                        base_vars = [
-                            {
-                                "name": var["name"],
-                                "type": var.get("type", "String"),
-                                "value": var["value"],
-                                "description": var.get("description", "")
-                            }
-                            for var in first_set
-                        ]
+                        # Add base variables.json (required) - use from Git structure if available
+                        if base_vars:
+                            logger.info(f"  Using base variables from variables.json ({len(base_vars)} variables)")
+                        else:
+                            # Fallback: create base from first value set
+                            logger.info(f"  No base variables.json found, creating from first value set")
+                            first_set = next(iter(value_sets.values()))
+                            base_vars = [
+                                {
+                                    "name": var["name"],
+                                    "type": var.get("type", "String"),
+                                    "value": var["value"],
+                                    "description": var.get("description", "")
+                                }
+                                for var in first_set
+                            ]
+                        
                         base_json = json.dumps({"variables": base_vars}, indent=2)
                         logger.debug(f"  Base variables structure sample:\n{base_json[:300]}...")
                         base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
@@ -2770,7 +2798,7 @@ print('Notebook initialized')
                         })
                         
                         # Add each value set as valueSets/{name}.json
-                        for set_name, set_vars in variables.items():
+                        for set_name, set_vars in value_sets.items():
                             set_data = {
                                 "variableOverrides": [
                                     {"name": var["name"], "value": var["value"]} 
@@ -2826,14 +2854,16 @@ print('Notebook initialized')
                         self.client.wait_for_operation_completion(operation_id, retry_after=retry_after, max_attempts=12)
                     
                     # Second API call: Set the active value set for this environment (only for value sets)
-                    if is_value_sets and self.environment in variables:
-                        logger.info(f"  Setting active value set to '{self.environment}'...")
-                        self.client.set_active_value_set(
-                            self.workspace_id,
-                            library_id,
-                            self.environment
-                        )
-                        logger.info(f"  ✓ Set active value set to '{self.environment}' for Variable Library '{name}'")
+                    if is_value_sets:
+                        value_sets = variables["value_sets"]
+                        if self.environment in value_sets:
+                            logger.info(f"  Setting active value set to '{self.environment}'...")
+                            self.client.set_active_value_set(
+                                self.workspace_id,
+                                library_id,
+                                self.environment
+                            )
+                            logger.info(f"  ✓ Set active value set to '{self.environment}' for Variable Library '{name}'")
             except Exception as e:
                 logger.error(f"  ❌ Failed to deploy Variable Library '{name}': {str(e)}")
                 raise

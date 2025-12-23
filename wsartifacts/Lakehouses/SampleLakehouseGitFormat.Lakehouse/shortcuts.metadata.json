@@ -4,8 +4,8 @@
     "path": "Tables",
     "target": {
       "adlsGen2": {
-        "connectionId": "your-connection-id-guid",
-        "location": "https://yourstorageaccount.dfs.core.windows.net/container/path/to/data"
+        "connectionId": "${connection_id}",
+        "location": "https://${storage_account}.dfs.core.windows.net/${container_name}/path/to/data"
       }
     }
   },
@@ -14,8 +14,8 @@
     "path": "Files",
     "target": {
       "adlsGen2": {
-        "connectionId": "your-connection-id-guid",
-        "location": "https://yourstorageaccount.dfs.core.windows.net/archive/files"
+        "connectionId": "${connection_id}",
+        "location": "https://${storage_account}.dfs.core.windows.net/archive/files"
       }
     }
   },
@@ -24,8 +24,8 @@
     "path": "Tables",
     "target": {
       "oneLake": {
-        "workspaceId": "target-workspace-id-guid",
-        "itemId": "target-lakehouse-id-guid",
+        "workspaceId": "${source_workspace_id}",
+        "itemId": "${source_lakehouse_id}",
         "path": "Tables/SourceTable"
       }
     }

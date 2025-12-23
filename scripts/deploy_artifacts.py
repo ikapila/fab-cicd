@@ -2493,6 +2493,9 @@ print('Notebook initialized')
         library_folder_v2 = library_dir / f"{name}.VariableLibrary"  # Potential Git format
         library_folder_v1 = library_dir / name  # Legacy/custom format
         
+        # Determine which format exists
+        library_folder = library_folder_v2 if library_folder_v2.exists() else library_folder_v1
+        
         # Try to read from JSON file first, then Fabric Git folder format
         definition = None
         variables = []
@@ -2528,8 +2531,7 @@ print('Notebook initialized')
                     logger.warning(f"  Available sets: {', '.join(sets.keys())}")
         
         elif library_folder_v2.exists() or library_folder_v1.exists():
-            # Use whichever folder exists
-            library_folder = library_folder_v2 if library_folder_v2.exists() else library_folder_v1
+            # Use whichever folder exists (already set at top of method)
             folder_suffix = ".VariableLibrary" if library_folder_v2.exists() else ""
             logger.info(f"  Reading variable library definition from folder: {name}{folder_suffix}/")
             

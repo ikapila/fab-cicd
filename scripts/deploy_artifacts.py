@@ -1878,7 +1878,7 @@ print('Notebook initialized')
             logger.warning(f"Unsupported artifact type: {artifact_type}")
     
     def _deploy_lakehouse(self, name: str) -> None:
-        """Deploy a lakehouse"""
+        """Deploy a lakehouse using updateDefinition API"""
         lakehouse_dir = self.artifacts_dir / self.artifacts_root_folder / "Lakehouses"
         lakehouse_file = lakehouse_dir / f"{name}.json"
         # Check both official Git format and legacy folder names
@@ -1890,89 +1890,45 @@ print('Notebook initialized')
             logger.info(f"  ⏭ Skipping lakehouse '{name}' - created in this run with no file to deploy")
             return
         
-        # Try to read from JSON file first, then Fabric Git folder format
+        # Determine which format we're using and collect definition files
         definition = None
-        shortcuts = []
+        lakehouse_folder = None
+        use_definition_api = False
         
-        if lakehouse_file.exists():
-            logger.info(f"  Reading lakehouse definition from: {lakehouse_file.name}")
+        if lakehouse_folder_v2.exists():
+            logger.info(f"  Reading lakehouse definition from Fabric Git folder: {name}.Lakehouse/")
+            lakehouse_folder = lakehouse_folder_v2
+            use_definition_api = True
+        elif lakehouse_folder_v1.exists():
+            logger.info(f"  Reading lakehouse definition from legacy folder: {name}/")
+            lakehouse_folder = lakehouse_folder_v1
+            use_definition_api = True
+        elif lakehouse_file.exists():
+            logger.info(f"  Reading lakehouse definition from JSON file: {lakehouse_file.name}")
             with open(lakehouse_file, 'r') as f:
                 definition = json.load(f)
-            # Shortcuts might be in the JSON file directly
-            shortcuts = definition.get("shortcuts", [])
-        elif lakehouse_folder_v2.exists():
-            logger.info(f"  Reading lakehouse definition from Fabric Git folder (v2): {name}.Lakehouse/")
-            # Try .platform file first (Version 2 - official format)
-            platform_file = lakehouse_folder_v2 / ".platform"
-            if platform_file.exists():
-                with open(platform_file, 'r') as f:
-                    platform_data = json.load(f)
-                definition = {
-                    "name": platform_data["metadata"].get("displayName", name),
-                    "description": platform_data["metadata"].get("description", "")
-                }
-                logger.info(f"  Using .platform file (Git format v2)")
-            else:
-                # Fall back to item.metadata.json
-                item_metadata_file = lakehouse_folder_v2 / "item.metadata.json"
-                if item_metadata_file.exists():
-                    with open(item_metadata_file, 'r') as f:
-                        definition = json.load(f)
-                else:
-                    definition = {"name": name, "description": ""}
-            
-            # Read shortcuts from shortcuts.metadata.json
-            shortcuts_file = lakehouse_folder_v2 / "shortcuts.metadata.json"
-            if shortcuts_file.exists():
-                logger.info(f"  Reading shortcuts from: shortcuts.metadata.json")
-                with open(shortcuts_file, 'r') as f:
-                    shortcuts_data = json.load(f)
-                    # Handle both direct array and object with 'shortcuts' key
-                    if isinstance(shortcuts_data, list):
-                        shortcuts = shortcuts_data
-                    elif isinstance(shortcuts_data, dict):
-                        shortcuts = shortcuts_data.get("shortcuts", [])
-                    else:
-                        shortcuts = []
-                    logger.info(f"  Found {len(shortcuts)} shortcut(s) in metadata file")
-        elif lakehouse_folder_v1.exists():
-            logger.info(f"  Reading lakehouse definition from Fabric Git folder (v1): {name}/")
-            # Try .platform file first
-            platform_file = lakehouse_folder_v1 / ".platform"
-            if platform_file.exists():
-                with open(platform_file, 'r') as f:
-                    platform_data = json.load(f)
-                definition = {
-                    "name": platform_data["metadata"].get("displayName", name),
-                    "description": platform_data["metadata"].get("description", "")
-                }
-                logger.info(f"  Using .platform file (Git format v2)")
-            else:
-                # Fall back to item.metadata.json
-                item_metadata_file = lakehouse_folder_v1 / "item.metadata.json"
-                if item_metadata_file.exists():
-                    with open(item_metadata_file, 'r') as f:
-                        definition = json.load(f)
-                else:
-                    definition = {"name": name, "description": ""}
-            
-            # Read shortcuts from shortcuts.metadata.json
-            shortcuts_file = lakehouse_folder_v1 / "shortcuts.metadata.json"
-            if shortcuts_file.exists():
-                logger.info(f"  Reading shortcuts from: shortcuts.metadata.json")
-                with open(shortcuts_file, 'r') as f:
-                    shortcuts_data = json.load(f)
-                    # Handle both direct array and object with 'shortcuts' key
-                    if isinstance(shortcuts_data, list):
-                        shortcuts = shortcuts_data
-                    elif isinstance(shortcuts_data, dict):
-                        shortcuts = shortcuts_data.get("shortcuts", [])
-                    else:
-                        shortcuts = []
-                    logger.info(f"  Found {len(shortcuts)} shortcut(s) in metadata file")
         else:
             logger.error(f"  ❌ Lakehouse file or folder not found: {lakehouse_file}, {lakehouse_folder_v2}, or {lakehouse_folder_v1}")
-            raise FileNotFoundError(f"Lakehouse file or folder not found: {lakehouse_file} or {lakehouse_folder_v2} or {lakehouse_folder_v1}")
+            raise FileNotFoundError(f"Lakehouse file or folder not found for: {name}")
+        
+        # For folder-based definitions, read metadata
+        if lakehouse_folder:
+            platform_file = lakehouse_folder / ".platform"
+            if platform_file.exists():
+                with open(platform_file, 'r') as f:
+                    platform_data = json.load(f)
+                definition = {
+                    "name": platform_data["metadata"].get("displayName", name),
+                    "description": platform_data["metadata"].get("description", "")
+                }
+                logger.info(f"  Using .platform file for metadata")
+            else:
+                item_metadata_file = lakehouse_folder / "item.metadata.json"
+                if item_metadata_file.exists():
+                    with open(item_metadata_file, 'r') as f:
+                        definition = json.load(f)
+                else:
+                    definition = {"name": name, "description": ""}
         
         description = definition.get("description", "")
         
@@ -1984,62 +1940,97 @@ print('Notebook initialized')
             lakehouse_id = existing_lakehouse['id']
             logger.info(f"  Lakehouse '{name}' already exists (ID: {lakehouse_id})")
             
-            # Check if description changed
-            existing_desc = existing_lakehouse.get("description", "")
-            if existing_desc != description:
-                logger.info(f"  Description differs - consider manual update")
-                logger.info(f"    Current: {existing_desc}")
-                logger.info(f"    New: {description}")
-            
-            # Handle shortcuts if defined
-            if shortcuts:
-                logger.info(f"  Processing {len(shortcuts)} shortcut(s) for lakehouse '{name}'...")
-                for shortcut_def in shortcuts:
+            # Use updateDefinition API if we have a folder structure
+            if use_definition_api and lakehouse_folder:
+                logger.info(f"  Deploying lakehouse definition using updateDefinition API...")
+                
+                # Prepare definition parts
+                parts = []
+                
+                # Add shortcuts.metadata.json if it exists
+                shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
+                if shortcuts_file.exists():
+                    logger.info(f"  Including shortcuts.metadata.json in definition")
+                    with open(shortcuts_file, 'r') as f:
+                        shortcuts_content = f.read()
+                    shortcuts_base64 = base64.b64encode(shortcuts_content.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "shortcuts.metadata.json",
+                        "payload": shortcuts_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                
+                # Add lakehouse.json if it exists (for schema settings)
+                lakehouse_json_file = lakehouse_folder / "lakehouse.json"
+                if lakehouse_json_file.exists():
+                    logger.info(f"  Including lakehouse.json in definition")
+                    with open(lakehouse_json_file, 'r') as f:
+                        lakehouse_content = f.read()
+                    lakehouse_base64 = base64.b64encode(lakehouse_content.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "lakehouse.metadata.json",
+                        "payload": lakehouse_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                
+                # Add .platform file if it exists
+                if platform_file and platform_file.exists():
+                    logger.info(f"  Including .platform file in definition")
+                    with open(platform_file, 'r') as f:
+                        platform_content = f.read()
+                    platform_base64 = base64.b64encode(platform_content.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": ".platform",
+                        "payload": platform_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                
+                # Deploy definition if we have parts
+                if parts:
                     try:
-                        shortcut_name = shortcut_def["name"]
-                        target = shortcut_def["target"]
-                        path = shortcut_def.get("path", "Tables")
+                        result = self.client.update_lakehouse_definition(
+                            self.workspace_id,
+                            lakehouse_id,
+                            parts,
+                            update_metadata=True
+                        )
+                        logger.info(f"  ✓ Lakehouse definition updated successfully")
                         
-                        # Remove leading slash if present (path should be "Tables/dbo" not "/Tables/dbo")
-                        if path.startswith("/"):
-                            path = path.lstrip("/")
-                            logger.debug(f"    Normalized path from '/{path}' to '{path}'")
-                        
-                        # Check if shortcut already exists
-                        existing_shortcuts = self.client.list_shortcuts(self.workspace_id, lakehouse_id, path)
-                        shortcut_exists = any(sc.get("name") == shortcut_name for sc in existing_shortcuts)
-                        
-                        if shortcut_exists:
-                            logger.info(f"    ⏭ Shortcut '{shortcut_name}' already exists in {path}")
-                        else:
-                            self.client.create_shortcut(
-                                self.workspace_id,
-                                lakehouse_id,
-                                shortcut_name,
-                                path,
-                                target
-                            )
-                            logger.info(f"    ✓ Created shortcut '{shortcut_name}' in {path}")
+                        # Check result for any error details
+                        if isinstance(result, dict) and result.get("status") == "Failed":
+                            logger.error(f"  ❌ Definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
                     except Exception as e:
-                        error_msg = str(e)
-                        logger.error(f"    ❌ Failed to create shortcut '{shortcut_def.get('name', 'unknown')}': {error_msg}")
-                        # Provide helpful hints for common errors
-                        if "404" in error_msg or "EntityNotFound" in error_msg:
-                            if "/" in path and path != "Tables" and path != "Files":
-                                logger.error(f"       Hint: Schema '{path.split('/', 1)[1]}' may not exist in the lakehouse yet.")
-                                logger.error(f"       For schema-enabled lakehouses, create the schema first before adding shortcuts.")
-                        # Continue with other shortcuts even if one fails
-                        continue
+                        logger.error(f"  ❌ Failed to update lakehouse definition: {e}")
+                        # Fall back to legacy shortcut creation if needed
+                        logger.info(f"  Falling back to individual shortcut creation...")
+                        self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, lakehouse_folder)
+                else:
+                    logger.info(f"  No definition parts to deploy (no shortcuts or lakehouse.json)")
+            else:
+                # Legacy approach: read shortcuts from JSON and create individually
+                shortcuts = definition.get("shortcuts", [])
+                if shortcuts:
+                    self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, None, shortcuts)
         else:
             logger.info(f"  Lakehouse '{name}' not found, creating...")
             
             # Get or create folder for lakehouses
             folder_id = self._get_or_create_folder("Lakehouses")
             
-            # Get enableSchemas setting - check both simple and native formats
+            # Get enableSchemas setting
             enable_schemas = definition.get("enable_schemas")
             if enable_schemas is None and "creationPayload" in definition:
                 enable_schemas = definition["creationPayload"].get("enableSchemas")
+            
+            # Check lakehouse.json for schema settings
+            if lakehouse_folder:
+                lakehouse_json_file = lakehouse_folder / "lakehouse.json"
+                if lakehouse_json_file.exists():
+                    with open(lakehouse_json_file, 'r') as f:
+                        lakehouse_config = json.load(f)
+                    if "enableSchemas" in lakehouse_config:
+                        enable_schemas = lakehouse_config["enableSchemas"]
+                        logger.info(f"  Found enableSchemas setting in lakehouse.json: {enable_schemas}")
             
             if enable_schemas is not None:
                 logger.info(f"  Creating lakehouse with enableSchemas: {enable_schemas}")
@@ -2052,38 +2043,118 @@ print('Notebook initialized')
                 enable_schemas=enable_schemas
             )
             lakehouse_id = result.get('id') if result else 'unknown'
-            logger.info(f"  ✓ Created lakehouse '{name}' in 'Lakehouses' folder (ID: {lakehouse_id})")
+            logger.info(f"  ✓ Created lakehouse '{name}' (ID: {lakehouse_id})")
             
-            # Handle shortcuts after creation
-            if shortcuts and lakehouse_id and lakehouse_id != 'unknown':
-                logger.info(f"  Processing {len(shortcuts)} shortcut(s) for new lakehouse...")
-                for shortcut_def in shortcuts:
+            # Deploy definition after creation
+            if use_definition_api and lakehouse_folder and lakehouse_id and lakehouse_id != 'unknown':
+                logger.info(f"  Deploying definition to new lakehouse...")
+                
+                # Prepare definition parts (same as update path)
+                parts = []
+                
+                shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
+                if shortcuts_file.exists():
+                    logger.info(f"  Including shortcuts.metadata.json")
+                    with open(shortcuts_file, 'r') as f:
+                        shortcuts_content = f.read()
+                    shortcuts_base64 = base64.b64encode(shortcuts_content.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "shortcuts.metadata.json",
+                        "payload": shortcuts_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                
+                lakehouse_json_file = lakehouse_folder / "lakehouse.json"
+                if lakehouse_json_file.exists():
+                    logger.info(f"  Including lakehouse.json")
+                    with open(lakehouse_json_file, 'r') as f:
+                        lakehouse_content = f.read()
+                    lakehouse_base64 = base64.b64encode(lakehouse_content.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "lakehouse.metadata.json",
+                        "payload": lakehouse_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                
+                if parts:
                     try:
-                        shortcut_name = shortcut_def["name"]
-                        target = shortcut_def["target"]
-                        path = shortcut_def.get("path", "Tables")
-                        
-                        # Remove leading slash if present
-                        if path.startswith("/"):
-                            path = path.lstrip("/")
-                            logger.debug(f"    Normalized path from '/{path}' to '{path}'")
-                        
-                        self.client.create_shortcut(
+                        result = self.client.update_lakehouse_definition(
                             self.workspace_id,
                             lakehouse_id,
-                            shortcut_name,
-                            path,
-                            target
+                            parts,
+                            update_metadata=False  # Don't update metadata for new lakehouse
                         )
-                        logger.info(f"    ✓ Created shortcut '{shortcut_name}' in {path}")
+                        logger.info(f"  ✓ Lakehouse definition deployed successfully")
                     except Exception as e:
-                        error_msg = str(e)
-                        logger.error(f"    ❌ Failed to create shortcut '{shortcut_def.get('name', 'unknown')}': {error_msg}")
-                        if "404" in error_msg or "EntityNotFound" in error_msg:
-                            if "/" in path and path != "Tables" and path != "Files":
-                                logger.error(f"       Hint: Schema '{path.split('/', 1)[1]}' may not exist in the lakehouse yet.")
-                                logger.error(f"       For schema-enabled lakehouses, create the schema first before adding shortcuts.")
-                        continue
+                        logger.error(f"  ❌ Failed to deploy lakehouse definition: {e}")
+            elif not use_definition_api:
+                # Legacy JSON-based shortcuts
+                shortcuts = definition.get("shortcuts", [])
+                if shortcuts:
+                    self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, None, shortcuts)
+    
+    def _deploy_lakehouse_shortcuts_legacy(self, lakehouse_name: str, lakehouse_id: str, 
+                                          lakehouse_folder, shortcuts_list=None) -> None:
+        """Legacy method to deploy shortcuts individually using the shortcuts API
+        
+        Args:
+            lakehouse_name: Name of the lakehouse
+            lakehouse_id: ID of the lakehouse
+            lakehouse_folder: Path to lakehouse folder (if using folder structure)
+            shortcuts_list: List of shortcuts (if using JSON definition)
+        """
+        shortcuts = shortcuts_list or []
+        
+        # Read shortcuts from folder if provided
+        if lakehouse_folder and not shortcuts:
+            shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
+            if shortcuts_file.exists():
+                logger.info(f"  Reading shortcuts from: shortcuts.metadata.json")
+                with open(shortcuts_file, 'r') as f:
+                    shortcuts_data = json.load(f)
+                    if isinstance(shortcuts_data, list):
+                        shortcuts = shortcuts_data
+                    elif isinstance(shortcuts_data, dict):
+                        shortcuts = shortcuts_data.get("shortcuts", [])
+        
+        if not shortcuts:
+            logger.info(f"  No shortcuts to deploy")
+            return
+        
+        logger.info(f"  Processing {len(shortcuts)} shortcut(s) using legacy API...")
+        for shortcut_def in shortcuts:
+            try:
+                shortcut_name = shortcut_def["name"]
+                target = shortcut_def["target"]
+                path = shortcut_def.get("path", "Tables")
+                
+                # Remove leading slash if present
+                if path.startswith("/"):
+                    path = path.lstrip("/")
+                
+                # Check if shortcut exists
+                existing_shortcuts = self.client.list_shortcuts(self.workspace_id, lakehouse_id, path)
+                shortcut_exists = any(sc.get("name") == shortcut_name for sc in existing_shortcuts)
+                
+                if shortcut_exists:
+                    logger.info(f"    ⏭ Shortcut '{shortcut_name}' already exists in {path}")
+                else:
+                    self.client.create_shortcut(
+                        self.workspace_id,
+                        lakehouse_id,
+                        shortcut_name,
+                        path,
+                        target
+                    )
+                    logger.info(f"    ✓ Created shortcut '{shortcut_name}' in {path}")
+            except Exception as e:
+                error_msg = str(e)
+                logger.error(f"    ❌ Failed to create shortcut '{shortcut_def.get('name', 'unknown')}': {error_msg}")
+                if "404" in error_msg or "EntityNotFound" in error_msg:
+                    if "/" in path and path != "Tables" and path != "Files":
+                        logger.error(f"       Hint: Schema '{path.split('/', 1)[1]}' may not exist in the lakehouse yet.")
+                        logger.error(f"       For schema-enabled lakehouses, create the schema first before adding shortcuts.")
+                continue
     
     def _deploy_environment(self, name: str) -> None:
         """Deploy an environment"""

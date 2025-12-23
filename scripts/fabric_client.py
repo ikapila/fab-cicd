@@ -1031,6 +1031,83 @@ class FabricClient:
         }
         return self._make_request("PATCH", f"/workspaces/{workspace_id}/VariableLibraries/{library_id}", json_data=payload)
     
+    # ==================== Lakehouse Definition Operations ====================
+    
+    def update_lakehouse_definition(self, workspace_id: str, lakehouse_id: str, parts: list, update_metadata: bool = True) -> dict:
+        """Update lakehouse definition (includes shortcuts and other configuration)
+        
+        Args:
+            workspace_id: The workspace ID
+            lakehouse_id: The lakehouse ID
+            parts: List of definition parts, each with path, payload (base64), and payloadType
+            update_metadata: Whether to update metadata from .platform file
+        
+        Returns:
+            Operation result or status
+        """
+        endpoint = f"{self.base_url}/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/updateDefinition"
+        params = {"updateMetadata": "true" if update_metadata else "false"}
+        
+        payload = {
+            "definition": {
+                "format": "LakehouseDefinitionV1",
+                "parts": parts
+            }
+        }
+        
+        response = self._make_request('POST', endpoint, json=payload, params=params)
+        
+        if response.status_code == 200:
+            logger.info("Lakehouse definition updated successfully (200)")
+            return response.json()
+        elif response.status_code == 202:
+            # Long running operation
+            location = response.headers.get('Location')
+            operation_id = response.headers.get('x-ms-operation-id')
+            retry_after = int(response.headers.get('Retry-After', 30))
+            
+            logger.info(f"Lakehouse definition update accepted (202) - LRO started")
+            logger.info(f"  Operation ID: {operation_id}")
+            logger.info(f"  Polling every {retry_after}s...")
+            
+            # Poll the operation status
+            return self._poll_operation(location, retry_after)
+        else:
+            logger.error(f"Failed to update lakehouse definition: {response.status_code} - {response.text}")
+            response.raise_for_status()
+            return {}
+    
+    def get_lakehouse_definition(self, workspace_id: str, lakehouse_id: str, format: str = "LakehouseDefinitionV1") -> dict:
+        """Get lakehouse definition
+        
+        Args:
+            workspace_id: The workspace ID
+            lakehouse_id: The lakehouse ID
+            format: Definition format (default: LakehouseDefinitionV1)
+        
+        Returns:
+            Definition data with parts
+        """
+        endpoint = f"{self.base_url}/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/getDefinition"
+        params = {"format": format}
+        
+        response = self._make_request('POST', endpoint, params=params)
+        
+        if response.status_code == 200:
+            data = response.json()
+            logger.info(f"Retrieved lakehouse definition: format={data.get('definition', {}).get('format')}")
+            return data
+        elif response.status_code == 202:
+            # Long running operation
+            location = response.headers.get('Location')
+            retry_after = int(response.headers.get('Retry-After', 30))
+            logger.info(f"Get definition operation accepted (202) - polling...")
+            return self._poll_operation(location, retry_after)
+        else:
+            logger.error(f"Failed to get lakehouse definition: {response.status_code} - {response.text}")
+            response.raise_for_status()
+            return {}
+    
     # ==================== Shortcut Operations ====================
     
     def list_shortcuts(self, workspace_id: str, lakehouse_id: str, path: str = "Tables") -> List[Dict]:

@@ -1065,12 +1065,11 @@ class FabricClient:
             logger.info("Lakehouse definition update accepted (202) - LRO started")
             # The result already contains location, operation_id, retry_after from _make_request
             operation_id = result.get('operation_id')
-            location = result.get('location')
             retry_after = result.get('retry_after', 30)
             
             if operation_id:
                 logger.info(f"  Polling operation: {operation_id}")
-                return self._poll_operation(location, retry_after)
+                return self.wait_for_operation_completion(operation_id, retry_after, max_attempts=12)
         
         logger.info("Lakehouse definition updated successfully")
         return result
@@ -1093,9 +1092,10 @@ class FabricClient:
         
         if result.get('status_code') == 202:
             logger.info("Get lakehouse definition - LRO started")
-            location = result.get('location')
+            operation_id = result.get('operation_id')
             retry_after = result.get('retry_after', 30)
-            return self._poll_operation(location, retry_after)
+            if operation_id:
+                return self.wait_for_operation_completion(operation_id, retry_after, max_attempts=12)
         
         logger.info(f"Retrieved lakehouse definition: format={result.get('definition', {}).get('format')}")
         return result

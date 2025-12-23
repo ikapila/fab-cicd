@@ -1947,6 +1947,25 @@ print('Notebook initialized')
                 # Prepare definition parts
                 parts = []
                 
+                # Add lakehouse.metadata.json - REQUIRED by API
+                # This file contains schema settings (e.g., {"enableSchemas": true})
+                lakehouse_json_file = lakehouse_folder / "lakehouse.json"
+                if lakehouse_json_file.exists():
+                    logger.info(f"  Including lakehouse.json as lakehouse.metadata.json (required)")
+                    with open(lakehouse_json_file, 'r') as f:
+                        lakehouse_content = f.read()
+                else:
+                    # If no lakehouse.json, create minimal metadata
+                    logger.info(f"  Creating minimal lakehouse.metadata.json (required by API)")
+                    lakehouse_content = "{}"
+                
+                lakehouse_base64 = base64.b64encode(lakehouse_content.encode('utf-8')).decode('utf-8')
+                parts.append({
+                    "path": "lakehouse.metadata.json",
+                    "payload": lakehouse_base64,
+                    "payloadType": "InlineBase64"
+                })
+                
                 # Add shortcuts.metadata.json if it exists
                 shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
                 if shortcuts_file.exists():
@@ -1957,19 +1976,6 @@ print('Notebook initialized')
                     parts.append({
                         "path": "shortcuts.metadata.json",
                         "payload": shortcuts_base64,
-                        "payloadType": "InlineBase64"
-                    })
-                
-                # Add lakehouse.json if it exists (for schema settings)
-                lakehouse_json_file = lakehouse_folder / "lakehouse.json"
-                if lakehouse_json_file.exists():
-                    logger.info(f"  Including lakehouse.json in definition")
-                    with open(lakehouse_json_file, 'r') as f:
-                        lakehouse_content = f.read()
-                    lakehouse_base64 = base64.b64encode(lakehouse_content.encode('utf-8')).decode('utf-8')
-                    parts.append({
-                        "path": "lakehouse.metadata.json",
-                        "payload": lakehouse_base64,
                         "payloadType": "InlineBase64"
                     })
                 
@@ -1985,22 +1991,19 @@ print('Notebook initialized')
                         "payloadType": "InlineBase64"
                     })
                 
-                # Deploy definition if we have parts
-                if parts:
-                    result = self.client.update_lakehouse_definition(
-                        self.workspace_id,
-                        lakehouse_id,
-                        parts,
-                        update_metadata=True
-                    )
-                    logger.info(f"  ✓ Lakehouse definition updated successfully")
-                    
-                    # Check result for any error details
-                    if isinstance(result, dict) and result.get("status") == "Failed":
-                        logger.error(f"  ❌ Definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
-                        raise Exception(f"Lakehouse definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
-                else:
-                    logger.info(f"  No definition parts to deploy (no shortcuts or lakehouse.json)")
+                # Deploy definition (lakehouse.metadata.json is always included)
+                result = self.client.update_lakehouse_definition(
+                    self.workspace_id,
+                    lakehouse_id,
+                    parts,
+                    update_metadata=True
+                )
+                logger.info(f"  ✓ Lakehouse definition updated successfully")
+                
+                # Check result for any error details
+                if isinstance(result, dict) and result.get("status") == "Failed":
+                    logger.error(f"  ❌ Definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
+                    raise Exception(f"Lakehouse definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
             else:
                 # Legacy JSON-based format: read shortcuts from JSON and create individually
                 logger.info(f"  Using legacy JSON-based format (not Git format folder)")
@@ -2049,6 +2052,24 @@ print('Notebook initialized')
                 # Prepare definition parts (same as update path)
                 parts = []
                 
+                # Add lakehouse.metadata.json - REQUIRED by API
+                lakehouse_json_file = lakehouse_folder / "lakehouse.json"
+                if lakehouse_json_file.exists():
+                    logger.info(f"  Including lakehouse.json as lakehouse.metadata.json (required)")
+                    with open(lakehouse_json_file, 'r') as f:
+                        lakehouse_content = f.read()
+                else:
+                    logger.info(f"  Creating minimal lakehouse.metadata.json (required by API)")
+                    lakehouse_content = "{}"
+                
+                lakehouse_base64 = base64.b64encode(lakehouse_content.encode('utf-8')).decode('utf-8')
+                parts.append({
+                    "path": "lakehouse.metadata.json",
+                    "payload": lakehouse_base64,
+                    "payloadType": "InlineBase64"
+                })
+                
+                # Add shortcuts.metadata.json if it exists
                 shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
                 if shortcuts_file.exists():
                     logger.info(f"  Including shortcuts.metadata.json")
@@ -2061,31 +2082,19 @@ print('Notebook initialized')
                         "payloadType": "InlineBase64"
                     })
                 
-                lakehouse_json_file = lakehouse_folder / "lakehouse.json"
-                if lakehouse_json_file.exists():
-                    logger.info(f"  Including lakehouse.json")
-                    with open(lakehouse_json_file, 'r') as f:
-                        lakehouse_content = f.read()
-                    lakehouse_base64 = base64.b64encode(lakehouse_content.encode('utf-8')).decode('utf-8')
-                    parts.append({
-                        "path": "lakehouse.metadata.json",
-                        "payload": lakehouse_base64,
-                        "payloadType": "InlineBase64"
-                    })
+                # Deploy definition (lakehouse.metadata.json is always included)
+                result = self.client.update_lakehouse_definition(
+                    self.workspace_id,
+                    lakehouse_id,
+                    parts,
+                    update_metadata=False  # Don't update metadata for new lakehouse
+                )
+                logger.info(f"  ✓ Lakehouse definition deployed successfully")
                 
-                if parts:
-                    result = self.client.update_lakehouse_definition(
-                        self.workspace_id,
-                        lakehouse_id,
-                        parts,
-                        update_metadata=False  # Don't update metadata for new lakehouse
-                    )
-                    logger.info(f"  ✓ Lakehouse definition deployed successfully")
-                    
-                    # Check result for any error details
-                    if isinstance(result, dict) and result.get("status") == "Failed":
-                        logger.error(f"  ❌ Definition deployment failed: {result.get('error', {}).get('message', 'Unknown error')}")
-                        raise Exception(f"Lakehouse definition deployment failed: {result.get('error', {}).get('message', 'Unknown error')}")
+                # Check result for any error details
+                if isinstance(result, dict) and result.get("status") == "Failed":
+                    logger.error(f"  ❌ Definition deployment failed: {result.get('error', {}).get('message', 'Unknown error')}")
+                    raise Exception(f"Lakehouse definition deployment failed: {result.get('error', {}).get('message', 'Unknown error')}")
             elif not use_definition_api:
                 # Legacy JSON-based shortcuts
                 logger.info(f"  Using legacy JSON-based format (not Git format folder)")

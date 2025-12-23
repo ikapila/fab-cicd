@@ -5,6 +5,7 @@ Provides wrapper functions for common Fabric API operations
 
 import requests
 import logging
+import json
 import struct
 from typing import Dict, List, Optional, Any
 from fabric_auth import FabricAuthenticator
@@ -216,6 +217,10 @@ class FabricClient:
             
             logger.info(f"    Attempt {attempt}/{max_attempts}: {status} ({percent}% complete)")
             
+            # Log full state response for debugging
+            if status == "Failed":
+                logger.info(f"    Full LRO state response: {json.dumps(state, indent=2)}")
+            
             if status == "Succeeded":
                 logger.info(f"  ✓ Operation completed successfully")
                 # Get the actual result
@@ -224,7 +229,18 @@ class FabricClient:
             elif status == "Failed":
                 error = state.get("error", {})
                 error_msg = error.get("message", "Unknown error")
+                error_code = error.get("errorCode", "")
+                more_details = error.get("moreDetails", [])
+                
                 logger.error(f"  ✗ Operation failed: {error_msg}")
+                logger.error(f"    Error code: {error_code}")
+                logger.error(f"    Full error object: {json.dumps(error, indent=2)}")
+                
+                if more_details:
+                    logger.error(f"    Additional details:")
+                    for detail in more_details:
+                        logger.error(f"      - {detail.get('errorCode', '')}: {detail.get('message', '')}")
+                
                 raise RuntimeError(f"Operation {operation_id} failed: {error_msg}")
             elif status not in ["NotStarted", "Running"]:
                 logger.warning(f"  Unexpected operation status: {status}")

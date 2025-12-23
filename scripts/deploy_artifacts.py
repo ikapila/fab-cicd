@@ -2732,7 +2732,7 @@ print('Notebook initialized')
                     
                     # Add base variables.json (REQUIRED)
                     base_json = json.dumps({"variables": base_vars}, indent=2)
-                    logger.debug(f"  Base variables structure sample:\n{base_json[:300]}...")
+                    logger.info(f"  DEBUG: variables.json content:\n{base_json}")
                     base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "variables.json",
@@ -2746,7 +2746,7 @@ print('Notebook initialized')
                             "variableOverrides": set_vars  # Already in correct format: [{name, value}, ...]
                         }
                         set_json = json.dumps(set_data, indent=2)
-                        logger.debug(f"  Value set '{set_name}' structure sample:\n{set_json[:300]}...")
+                        logger.info(f"  DEBUG: valueSets/{set_name}.json content:\n{set_json}")
                         
                         set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
                         parts.append({
@@ -2757,7 +2757,7 @@ print('Notebook initialized')
                     
                     # Add settings.json (REQUIRED)
                     settings_json = json.dumps({"valueSetsOrder": value_sets_order}, indent=2)
-                    logger.debug(f"  Settings structure: {settings_json}")
+                    logger.info(f"  DEBUG: settings.json content:\n{settings_json}")
                     settings_base64 = base64.b64encode(settings_json.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "settings.json",

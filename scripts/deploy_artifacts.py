@@ -2560,47 +2560,28 @@ print('Notebook initialized')
                 
                 # Helper functions for type normalization
                 def normalize_variable_type(var_type):
-                    """Normalize type names to Fabric API standard - use lowercase per example"""
+                    """Normalize type names to Fabric API standard - use proper case"""
                     type_map = {
-                        "Int": "integer",
-                        "Bool": "boolean", 
-                        "Boolean": "boolean",
-                        "Integer": "integer",
-                        "bool": "boolean",
-                        "int": "integer",
-                        "String": "string",
-                        "string": "string",
-                        "Number": "number",
-                        "number": "number",
-                        "DateTime": "datetime",
-                        "datetime": "datetime"
+                        "Int": "String",  # Treat all as String to test
+                        "Bool": "String", 
+                        "Boolean": "String",
+                        "Integer": "String",
+                        "bool": "String",
+                        "int": "String",
+                        "String": "String",
+                        "string": "String",
+                        "Number": "String",
+                        "number": "String",
+                        "DateTime": "String",
+                        "datetime": "String"
                     }
-                    normalized = type_map.get(var_type)
-                    if normalized:
-                        return normalized
-                    # Default: convert to lowercase
-                    return var_type.lower() if var_type else "string"
+                    # Force everything to String type temporarily to isolate the issue
+                    return "String"
                 
                 def convert_value_to_type(value, var_type):
-                    """Convert string values to proper JSON types"""
-                    # Use lowercase for comparison
-                    var_type_lower = var_type.lower() if var_type else "string"
-                    if var_type_lower == "boolean":
-                        if isinstance(value, bool):
-                            return value
-                        if isinstance(value, str):
-                            return value.lower() in ("true", "1", "yes")
-                        return bool(value)
-                    elif var_type_lower == "integer":
-                        if isinstance(value, int):
-                            return value
-                        return int(value) if value else 0
-                    elif var_type_lower == "number":
-                        if isinstance(value, (int, float)):
-                            return value
-                        return float(value) if value else 0.0
-                    # string and datetime remain as strings
-                    return value
+                    """Convert all values to strings temporarily to isolate the issue"""
+                    # Force everything to string to test
+                    return str(value) if value is not None else ""
                 
                 # Read base variables.json (REQUIRED per Fabric Git format)
                 base_variables_file = library_folder / "variables.json"

@@ -2000,6 +2000,11 @@ print('Notebook initialized')
                         target = shortcut_def["target"]
                         path = shortcut_def.get("path", "Tables")
                         
+                        # Remove leading slash if present (path should be "Tables/dbo" not "/Tables/dbo")
+                        if path.startswith("/"):
+                            path = path.lstrip("/")
+                            logger.debug(f"    Normalized path from '/{path}' to '{path}'")
+                        
                         # Check if shortcut already exists
                         existing_shortcuts = self.client.list_shortcuts(self.workspace_id, lakehouse_id, path)
                         shortcut_exists = any(sc.get("name") == shortcut_name for sc in existing_shortcuts)
@@ -2016,7 +2021,15 @@ print('Notebook initialized')
                             )
                             logger.info(f"    ✓ Created shortcut '{shortcut_name}' in {path}")
                     except Exception as e:
-                        logger.error(f"    ❌ Failed to create shortcut '{shortcut_def.get('name', 'unknown')}': {str(e)}")
+                        error_msg = str(e)
+                        logger.error(f"    ❌ Failed to create shortcut '{shortcut_def.get('name', 'unknown')}': {error_msg}")
+                        # Provide helpful hints for common errors
+                        if "404" in error_msg or "EntityNotFound" in error_msg:
+                            if "/" in path and path != "Tables" and path != "Files":
+                                logger.error(f"       Hint: Schema '{path.split('/', 1)[1]}' may not exist in the lakehouse yet.")
+                                logger.error(f"       For schema-enabled lakehouses, create the schema first before adding shortcuts.")
+                        # Continue with other shortcuts even if one fails
+                        continue
         else:
             logger.info(f"  Lakehouse '{name}' not found, creating...")
             
@@ -2050,6 +2063,11 @@ print('Notebook initialized')
                         target = shortcut_def["target"]
                         path = shortcut_def.get("path", "Tables")
                         
+                        # Remove leading slash if present
+                        if path.startswith("/"):
+                            path = path.lstrip("/")
+                            logger.debug(f"    Normalized path from '/{path}' to '{path}'")
+                        
                         self.client.create_shortcut(
                             self.workspace_id,
                             lakehouse_id,
@@ -2059,7 +2077,13 @@ print('Notebook initialized')
                         )
                         logger.info(f"    ✓ Created shortcut '{shortcut_name}' in {path}")
                     except Exception as e:
-                        logger.error(f"    ❌ Failed to create shortcut '{shortcut_def.get('name', 'unknown')}': {str(e)}")
+                        error_msg = str(e)
+                        logger.error(f"    ❌ Failed to create shortcut '{shortcut_def.get('name', 'unknown')}': {error_msg}")
+                        if "404" in error_msg or "EntityNotFound" in error_msg:
+                            if "/" in path and path != "Tables" and path != "Files":
+                                logger.error(f"       Hint: Schema '{path.split('/', 1)[1]}' may not exist in the lakehouse yet.")
+                                logger.error(f"       For schema-enabled lakehouses, create the schema first before adding shortcuts.")
+                        continue
     
     def _deploy_environment(self, name: str) -> None:
         """Deploy an environment"""

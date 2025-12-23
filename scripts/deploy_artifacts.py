@@ -1913,6 +1913,12 @@ print('Notebook initialized')
     
     def _deploy_lakehouse(self, name: str) -> None:
         """Deploy a lakehouse using updateDefinition API"""
+        
+        # Skip if lakehouse is managed by config (config is source of truth)
+        if name in self._config_managed_artifacts.get('lakehouses', set()):
+            logger.info(f"  ⏭ Skipping lakehouse '{name}' - managed by config file (not wsartifacts folder)")
+            return
+        
         lakehouse_dir = self.artifacts_dir / self.artifacts_root_folder / "Lakehouses"
         lakehouse_file = lakehouse_dir / f"{name}.json"
         # Check both official Git format and legacy folder names

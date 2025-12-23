@@ -4,6 +4,55 @@
 
 Lakehouse shortcuts can use parameters from the config file to enable environment-specific configurations. This allows you to use the same `shortcuts.metadata.json` file across DEV, UAT, and PROD environments with different values.
 
+## ⚠️ CRITICAL: Git Integration Compatibility
+
+**If your DEV workspace has Git integration enabled**, you MUST define parameterized lakehouses in the config file, NOT in `wsartifacts/` folders. Here's why:
+
+### The Problem with Git-Enabled Workspaces
+
+1. You deploy a lakehouse with `${storage_account}` to DEV
+2. Parameter gets substituted: `${storage_account}` → `devstorageaccount`
+3. Git sync writes the **resolved values** back to your repo
+4. Your `shortcuts.metadata.json` now has hardcoded DEV values
+5. When you deploy to UAT/PROD, parameters are gone - only DEV values remain!
+
+### The Solution: Config-Managed Lakehouses
+
+Define lakehouses that need parameter substitution in your config file:
+
+```json
+{
+  "artifacts_to_create": {
+    "lakehouses": [
+      {
+        "name": "ReportingLakehouse",
+        "description": "Lakehouse with parameterized shortcuts",
+        "enable_schemas": true
+      }
+    ]
+  }
+}
+```
+
+**Result**: The deployment script will **skip** lakehouses defined in config when reading from `wsartifacts/` folders. This prevents Git sync from overwriting your parameterized shortcuts with resolved values.
+
+### Workflow for Git-Enabled Workspaces
+
+1. **Define lakehouse in config** (all environments: dev.json, uat.json, prod.json)
+2. **Store shortcuts in separate location** (not in `wsartifacts/Lakehouses/`)
+3. **Deploy creates lakehouse** and applies parameterized shortcuts
+4. **Git sync is disabled** for config-managed lakehouses
+5. **Parameters work** across all environments
+
+### When to Use Config vs wsartifacts Folder
+
+| Scenario | Use Config File | Use wsartifacts Folder |
+|----------|----------------|----------------------|
+| Git integration enabled + need parameters | ✅ YES | ❌ NO |
+| Git integration disabled + need parameters | ✅ RECOMMENDED | ⚠️ WORKS BUT LESS CLEAN |
+| No parameter substitution needed | Either | Either |
+| Git sync should manage lakehouse | ❌ NO | ✅ YES |
+
 ## How It Works
 
 When deploying a lakehouse with shortcuts, the deployment script will:
@@ -30,7 +79,33 @@ Use `${parameter_name}` syntax in your `shortcuts.metadata.json` file:
 
 ## Config File Setup
 
-Define parameters in your environment config file (e.g., `config/dev.json`):
+### Step 1: Define Lakehouse in Config
+
+To prevent Git sync from overwriting parameterized shortcuts, define the lakehouse in your config file:
+
+```json
+{
+  "artifacts_to_create": {
+    "lakehouses": [
+      {
+        "name": "ReportingLakehouse",
+        "description": "Lakehouse with parameterized shortcuts",
+        "enable_schemas": true
+      }
+    ]
+  }
+}
+```
+
+This tells the deployment script:
+- ✅ Create the lakehouse if it doesn't exist
+- ✅ Deploy shortcuts with parameter substitution
+- ❌ DO NOT read from `wsartifacts/Lakehouses/ReportingLakehouse.Lakehouse/`
+- ❌ DO NOT let Git sync overwrite with resolved values
+
+### Step 2: Define Parameters
+
+Add parameters to your environment config files:
 
 ```json
 {
@@ -44,7 +119,66 @@ Define parameters in your environment config file (e.g., `config/dev.json`):
 }
 ```
 
-## Common Use Cases
+### Step 3: Store Shortcuts Separately
+
+For config-managed lakehouses, **do not store shortcuts in `wsartifacts/Lakehouses/`**. Instead:
+
+**Recommended Approach: Store in Separate Templates Folder**
+
+```
+shortcuts-templates/
+  ReportingLakehouse/
+    shortcuts.metadata.json   ← With ${parameters}
+```
+
+Then manually deploy shortcuts using the API or a custom script. The lakehouse itself is config-managed (won't be read from wsartifacts), preventing Git sync conflicts.
+
+### Complete Example: Config-Managed Lakehouse
+
+**config/dev.json:**
+```json
+{
+  "artifacts_to_create": {
+    "lakehouses": [
+      {
+        "name": "ReportingLakehouse",
+        "description": "Lakehouse with parameterized shortcuts",
+        "enable_schemas": true
+      }
+    ]
+  },
+  "parameters": {
+    "storage_account": "devstorageaccount",
+    "connection_id": "dev-connection-guid-123"
+  }
+}
+```
+
+**shortcuts-templates/ReportingLakehouse/shortcuts.metadata.json:**
+```json
+[
+  {
+    "name": "ExternalData",
+    "path": "Tables",
+    "target": {
+      "adlsGen2": {
+        "connectionId": "${connection_id}",
+        "location": "https://${storage_account}.dfs.core.windows.net/data"
+      }
+    }
+  }
+]
+```
+
+**Deployment behavior:**
+1. ✅ Lakehouse created from config definition
+2. ✅ Shortcuts deployed with parameter substitution
+3. ✅ NOT read from `wsartifacts/Lakehouses/ReportingLakehouse.Lakehouse/`
+4. ✅ Git sync won't overwrite (lakehouse is config-managed)
+
+## Alternative: Non-Git-Enabled Workspaces
+
+If your workspace does NOT have Git integration enabled, you can safely use parameter substitution with wsartifacts folders:
 
 ### 1. ADLS Gen2 Shortcuts with Environment-Specific Storage Accounts
 

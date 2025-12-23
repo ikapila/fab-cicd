@@ -2560,27 +2560,23 @@ print('Notebook initialized')
                 
                 # Helper functions for type normalization
                 def normalize_variable_type(var_type):
-                    """Normalize type names to Fabric API standard - use proper case"""
+                    """Normalize type names to Fabric API standard"""
                     type_map = {
-                        "Int": "String",  # Treat all as String to test
+                        "Int": "String",
                         "Bool": "String", 
                         "Boolean": "String",
                         "Integer": "String",
                         "bool": "String",
                         "int": "String",
-                        "String": "String",
-                        "string": "String",
                         "Number": "String",
                         "number": "String",
                         "DateTime": "String",
                         "datetime": "String"
                     }
-                    # Force everything to String type temporarily to isolate the issue
-                    return "String"
+                    return type_map.get(var_type, "String")
                 
                 def convert_value_to_type(value, var_type):
-                    """Convert all values to strings temporarily to isolate the issue"""
-                    # Force everything to string to test
+                    """Convert all values to strings"""
                     return str(value) if value is not None else ""
                 
                 # Read base variables.json (REQUIRED per Fabric Git format)
@@ -2724,8 +2720,22 @@ print('Notebook initialized')
         existing_library = next((lib for lib in existing if lib["displayName"] == name), None)
         
         if existing_library:
-            logger.info(f"  Variable Library '{name}' already exists, updating...")
+            logger.info(f"  Variable Library '{name}' already exists.")
+            logger.info(f"  WORKAROUND: Deleting and recreating to avoid UPDATE API validation issues...")
             library_id = existing_library["id"]
+            
+            # DELETE the existing variable library
+            try:
+                self.client.delete_item(self.workspace_id, library_id)
+                logger.info(f"  ✓ Deleted existing Variable Library '{name}'")
+                # Reset so we create a new one
+                existing_library = None
+                library_id = None
+            except Exception as e:
+                logger.error(f"  ❌ Failed to delete Variable Library '{name}': {str(e)}")
+                raise
+        
+        if existing_library:
             
             # Check if we have value sets (dict with base_variables and value_sets) or just variables (list)
             is_value_sets = isinstance(variables, dict) and "value_sets" in variables

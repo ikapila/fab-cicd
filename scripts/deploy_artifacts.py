@@ -2583,6 +2583,8 @@ print('Notebook initialized')
                 logger.info(f"  Available value sets: {', '.join([f.name for f in available_files])}")
                 
                 value_sets = {}
+                first_set_processed = False
+                
                 for set_file in available_files:
                     set_name = set_file.stem  # e.g., 'dev', 'uat', 'prod'
                     logger.info(f"  Reading value set: {set_file.name}")
@@ -2601,8 +2603,8 @@ print('Notebook initialized')
                                 {"name": var["name"], "value": var["value"]}
                                 for var in set_data
                             ]
-                            # If base_variables is empty, create it from first set
-                            if not base_variables and set_name == next(iter([f.stem for f in available_files])):
+                            # If base_variables is empty, create it from first set (legacy format)
+                            if not base_variables and not first_set_processed:
                                 logger.info(f"    Creating base variables from '{set_name}' (legacy format)")
                                 base_variables = [
                                     {
@@ -2613,6 +2615,7 @@ print('Notebook initialized')
                                     }
                                     for var in set_data
                                 ]
+                                first_set_processed = True
                         else:
                             value_sets[set_name] = []
                     
@@ -2632,7 +2635,15 @@ print('Notebook initialized')
                     value_sets_order = sorted(value_sets.keys())  # Alphabetical order
                     logger.info(f"  Generated valueSetsOrder: {value_sets_order}")
                 
+                # Ensure we have base variables
+                if not base_variables:
+                    logger.error(f"  ❌ No base variables found!")
+                    logger.error(f"  Git format requires variables.json with base variable definitions")
+                    logger.error(f"  Or valueSets must contain full variable definitions (legacy format)")
+                    raise ValueError(f"No base variables found for Variable Library '{name}'")
+                
                 logger.info(f"  Total value sets to deploy: {len(value_sets)}")
+                logger.info(f"  Total base variables: {len(base_variables)}")
                 logger.info(f"  NOTE: All value sets will be deployed. You can switch between them in the Fabric UI.")
                 
                 # Store all components for deployment

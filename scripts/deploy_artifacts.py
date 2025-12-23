@@ -2724,9 +2724,9 @@ print('Notebook initialized')
             logger.info(f"  WORKAROUND: Deleting and recreating to avoid UPDATE API validation issues...")
             library_id = existing_library["id"]
             
-            # DELETE the existing variable library
+            # DELETE the existing variable library using specific endpoint
             try:
-                self.client.delete_item(self.workspace_id, library_id)
+                self.client.delete_variable_library(self.workspace_id, library_id)
                 logger.info(f"  ✓ Deleted existing Variable Library '{name}'")
                 # Reset so we create a new one
                 existing_library = None

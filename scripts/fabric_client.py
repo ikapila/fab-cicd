@@ -991,6 +991,22 @@ class FabricClient:
         payload = {"definition": definition}
         return self._make_request("POST", f"/workspaces/{workspace_id}/items/{library_id}/updateDefinition", json_data=payload)
     
+    def delete_variable_library(self, workspace_id: str, library_id: str) -> Dict:
+        """
+        Delete a Variable Library from a workspace
+        Uses the specific Variable Library delete endpoint per Microsoft docs:
+        https://learn.microsoft.com/en-us/rest/api/fabric/variablelibrary/items/delete-variable-library
+        
+        Args:
+            workspace_id: Workspace GUID
+            library_id: Variable Library GUID
+            
+        Returns:
+            Deletion response
+        """
+        logger.info(f"Deleting Variable Library: {library_id}")
+        return self._make_request("DELETE", f"/workspaces/{workspace_id}/VariableLibraries/{library_id}")
+    
     def set_active_value_set(self, workspace_id: str, library_id: str, value_set_name: str) -> Dict:
         """
         Set the active value set for a Variable Library

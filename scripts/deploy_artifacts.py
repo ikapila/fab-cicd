@@ -2562,22 +2562,25 @@ print('Notebook initialized')
                 
                 # Read base variables.json (REQUIRED per Fabric Git format)
                 base_variables_file = library_folder / "variables.json"
+                base_variables_content = None
                 base_variables = []
                 if base_variables_file.exists():
                     logger.info(f"  Reading variables.json...")
                     with open(base_variables_file, 'r') as f:
-                        base_data = json.load(f)
+                        base_variables_content = f.read()  # Read entire file AS-IS
+                        base_data = json.loads(base_variables_content)
                         base_variables = base_data.get("variables", [])
-                        # Use variables AS-IS without modification
                         logger.info(f"    ✓ Loaded {len(base_variables)} base variable definitions")
                 
                 # Read settings.json (REQUIRED per Fabric Git format)
                 settings_file = library_folder / "settings.json"
+                settings_content = None
                 value_sets_order = []
                 if settings_file.exists():
                     logger.info(f"  Reading settings.json...")
                     with open(settings_file, 'r') as f:
-                        settings_data = json.load(f)
+                        settings_content = f.read()  # Read entire file AS-IS
+                        settings_data = json.loads(settings_content)
                         value_sets_order = settings_data.get("valueSetsOrder", [])
                         logger.info(f"    ✓ Loaded valueSetsOrder: {value_sets_order}")
                 
@@ -2586,6 +2589,7 @@ print('Notebook initialized')
                 logger.info(f"  Available value sets: {', '.join([f.name for f in available_files])}")
                 
                 value_sets = {}
+                value_sets_raw_content = {}  # Store raw file content
                 first_set_processed = False
                 
                 for set_file in available_files:
@@ -2593,18 +2597,14 @@ print('Notebook initialized')
                     logger.info(f"  Reading value set: {set_file.name}")
                     
                     with open(set_file, 'r') as f:
-                        set_data = json.load(f)
+                        raw_content = f.read()
+                        set_data = json.loads(raw_content)
                         
                         # Check if this is proper Git format (with variableOverrides) or legacy format (full definitions)
                         if isinstance(set_data, dict) and "variableOverrides" in set_data:
-                            # Proper Git format: has name, description, variableOverrides
-                            # Store complete valueSet structure (name is required per Microsoft docs)
-                            value_sets[set_name] = {
-                                "name": set_data.get("name", set_name),
-                                "variableOverrides": set_data.get("variableOverrides", [])
-                            }
-                            if "description" in set_data:
-                                value_sets[set_name]["description"] = set_data["description"]
+                            # Proper Git format: store raw content AS-IS to preserve $schema
+                            value_sets[set_name] = set_data  # Keep entire structure
+                            value_sets_raw_content[set_name] = raw_content  # Raw file content
                         elif isinstance(set_data, list):
                             # Legacy format: list of full variable definitions - convert to proper Git format
                             logger.info(f"    Converting legacy format to Git format for '{set_name}'")
@@ -2617,6 +2617,8 @@ print('Notebook initialized')
                                     for var in set_data
                                 ]
                             }
+                            # For legacy format, we'll rebuild JSON later (no raw content)
+                            value_sets_raw_content[set_name] = None
                             
                             # If base_variables is empty, create it from first set (legacy format)
                             if not base_variables and not first_set_processed:
@@ -2633,11 +2635,19 @@ print('Notebook initialized')
                                 first_set_processed = True
                         else:
                             value_sets[set_name] = {"name": set_name, "variableOverrides": []}
+                            value_sets_raw_content[set_name] = None
                     
-                    # Substitute parameters in value set overrides
-                    set_str = json.dumps(value_sets[set_name])
-                    set_str = self.config.substitute_parameters(set_str)
-                    value_sets[set_name] = json.loads(set_str)
+                    # Substitute parameters in value set overrides (only for converted/parsed data)
+                    if value_sets_raw_content[set_name] is None:
+                        # We modified the data, so rebuild JSON with substitutions
+                        set_str = json.dumps(value_sets[set_name])
+                        set_str = self.config.substitute_parameters(set_str)
+                        value_sets[set_name] = json.loads(set_str)
+                    else:
+                        # Raw content - substitute in raw string then re-parse
+                        raw_with_params = self.config.substitute_parameters(value_sets_raw_content[set_name])
+                        value_sets_raw_content[set_name] = raw_with_params
+                        value_sets[set_name] = json.loads(raw_with_params)
                     
                     override_count = len(value_sets[set_name].get("variableOverrides", []))
                     logger.info(f"    ✓ Loaded {override_count} variable override(s) from '{set_name}' set")
@@ -2662,11 +2672,14 @@ print('Notebook initialized')
                 logger.info(f"  Total base variables: {len(base_variables)}")
                 logger.info(f"  NOTE: All value sets will be deployed. You can switch between them in the Fabric UI.")
                 
-                # Store all components for deployment
+                # Store all components for deployment (use raw content to preserve $schema)
                 variables = {
                     "base_variables": base_variables,
+                    "base_variables_content": base_variables_content,  # Raw JSON string
                     "value_sets": value_sets,
-                    "value_sets_order": value_sets_order
+                    "value_sets_raw_content": value_sets_raw_content,  # Dict of raw JSON strings
+                    "value_sets_order": value_sets_order,
+                    "settings_content": settings_content  # Raw JSON string
                 }
             else:
                 logger.error(f"  ❌ No valueSets folder found in {library_folder.name}/")
@@ -2699,11 +2712,12 @@ print('Notebook initialized')
                     
                     parts = []
                     
-                    # Add base variables.json (REQUIRED)
-                    base_json = json.dumps({
-                        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/variables/1.0.0/schema.json",
-                        "variables": base_vars
-                    }, indent=2)
+                    # Add base variables.json (REQUIRED) - use raw content AS-IS
+                    if variables.get("base_variables_content"):
+                        base_json = variables["base_variables_content"]
+                    else:
+                        # Fallback: rebuild if raw content not available
+                        base_json = json.dumps({"variables": base_vars}, indent=2)
                     logger.info(f"  DEBUG: variables.json content:\n{base_json}")
                     base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
                     parts.append({
@@ -2713,14 +2727,14 @@ print('Notebook initialized')
                     })
                     
                     # Add each value set as valueSets/{name}.json with overrides
+                    value_sets_raw = variables.get("value_sets_raw_content", {})
                     for set_name, set_data in value_sets.items():
-                        # set_data already has proper structure: {name, variableOverrides, [description]}
-                        # Add $schema field per Microsoft docs
-                        set_data_with_schema = {
-                            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
-                            **set_data
-                        }
-                        set_json = json.dumps(set_data_with_schema, indent=2)
+                        # Use raw content if available (preserves $schema), otherwise rebuild
+                        if value_sets_raw.get(set_name):
+                            set_json = value_sets_raw[set_name]
+                        else:
+                            # Fallback: rebuild if raw content not available (legacy format conversion)
+                            set_json = json.dumps(set_data, indent=2)
                         logger.info(f"  DEBUG: valueSets/{set_name}.json content:\n{set_json}")
                         
                         set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
@@ -2730,11 +2744,12 @@ print('Notebook initialized')
                             "payloadType": "InlineBase64"
                         })
                     
-                    # Add settings.json (REQUIRED)
-                    settings_json = json.dumps({
-                        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/settings/1.0.0/schema.json",
-                        "valueSetsOrder": value_sets_order
-                    }, indent=2)
+                    # Add settings.json (REQUIRED) - use raw content AS-IS
+                    if variables.get("settings_content"):
+                        settings_json = variables["settings_content"]
+                    else:
+                        # Fallback: rebuild if raw content not available
+                        settings_json = json.dumps({"valueSetsOrder": value_sets_order}, indent=2)
                     logger.info(f"  DEBUG: settings.json content:\n{settings_json}")
                     settings_base64 = base64.b64encode(settings_json.encode('utf-8')).decode('utf-8')
                     parts.append({
@@ -2836,11 +2851,12 @@ print('Notebook initialized')
                         
                         parts = []
                         
-                        # Add base variables.json (REQUIRED)
-                        base_json = json.dumps({
-                            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/variables/1.0.0/schema.json",
-                            "variables": base_vars
-                        }, indent=2)
+                        # Add base variables.json (REQUIRED) - use raw content AS-IS
+                        if variables.get("base_variables_content"):
+                            base_json = variables["base_variables_content"]
+                        else:
+                            # Fallback: rebuild if raw content not available
+                            base_json = json.dumps({"variables": base_vars}, indent=2)
                         logger.debug(f"  Base variables structure sample:\n{base_json[:300]}...")
                         base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
                         parts.append({
@@ -2850,14 +2866,14 @@ print('Notebook initialized')
                         })
                         
                         # Add each value set as valueSets/{name}.json with overrides
+                        value_sets_raw = variables.get("value_sets_raw_content", {})
                         for set_name, set_data in value_sets.items():
-                            # set_data already has proper structure: {name, variableOverrides, [description]}
-                            # Add $schema field per Microsoft docs
-                            set_data_with_schema = {
-                                "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
-                                **set_data
-                            }
-                            set_json = json.dumps(set_data_with_schema, indent=2)
+                            # Use raw content if available (preserves $schema), otherwise rebuild
+                            if value_sets_raw.get(set_name):
+                                set_json = value_sets_raw[set_name]
+                            else:
+                                # Fallback: rebuild if raw content not available (legacy format conversion)
+                                set_json = json.dumps(set_data, indent=2)
                             logger.debug(f"  Value set '{set_name}' structure sample:\n{set_json[:300]}...")
                             
                             set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
@@ -2867,11 +2883,12 @@ print('Notebook initialized')
                                 "payloadType": "InlineBase64"
                             })
                         
-                        # Add settings.json (REQUIRED)
-                        settings_json = json.dumps({
-                            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/settings/1.0.0/schema.json",
-                            "valueSetsOrder": value_sets_order
-                        }, indent=2)
+                        # Add settings.json (REQUIRED) - use raw content AS-IS
+                        if variables.get("settings_content"):
+                            settings_json = variables["settings_content"]
+                        else:
+                            # Fallback: rebuild if raw content not available
+                            settings_json = json.dumps({"valueSetsOrder": value_sets_order}, indent=2)
                         logger.debug(f"  Settings structure: {settings_json}")
                         settings_base64 = base64.b64encode(settings_json.encode('utf-8')).decode('utf-8')
                         parts.append({

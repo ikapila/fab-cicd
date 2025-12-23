@@ -2558,21 +2558,11 @@ print('Notebook initialized')
             if value_sets_dir.exists():
                 logger.info(f"  Found valueSets folder - deploying all value sets")
                 
-                # First, read base variables.json if it exists (Git format)
-                base_variables_file = library_folder / "variables.json"
-                base_variables = None
-                if base_variables_file.exists():
-                    logger.info(f"  Reading base variables.json...")
-                    with open(base_variables_file, 'r') as f:
-                        base_data = json.load(f)
-                        base_variables = base_data.get("variables", [])
-                        logger.info(f"    ✓ Loaded {len(base_variables)} base variable definitions")
-                
                 # Show available value set files
                 available_files = list(value_sets_dir.glob("*.json"))
                 logger.info(f"  Available value sets: {', '.join([f.name for f in available_files])}")
                 
-                # Read ALL value sets and build the complete structure
+                # Read ALL value sets - each contains FULL variable definitions (not just overrides)
                 value_sets = {}
                 for set_file in available_files:
                     set_name = set_file.stem  # e.g., 'dev', 'uat', 'prod'
@@ -2603,8 +2593,29 @@ print('Notebook initialized')
                 logger.info(f"  Total value sets to deploy: {len(value_sets)}")
                 logger.info(f"  NOTE: All value sets will be deployed. You can switch between them in the Fabric UI.")
                 
-                # Store both base variables and value sets for deployment
-                variables = {"base_variables": base_variables, "value_sets": value_sets}
+                # Create base variables from first value set (use type, description)
+                # and convert all value sets to overrides (name, value only)
+                first_set_name = next(iter(value_sets.keys()))
+                base_variables = [
+                    {
+                        "name": var["name"],
+                        "type": var.get("type", "String"),
+                        "value": var["value"],
+                        "description": var.get("description", "")
+                    }
+                    for var in value_sets[first_set_name]
+                ]
+                
+                # Convert value sets to overrides format (name, value only)
+                value_set_overrides = {}
+                for set_name, set_vars in value_sets.items():
+                    value_set_overrides[set_name] = [
+                        {"name": var["name"], "value": var["value"]}
+                        for var in set_vars
+                    ]
+                
+                # Store both base variables and value set overrides for deployment
+                variables = {"base_variables": base_variables, "value_sets": value_set_overrides}
             else:
                 logger.error(f"  ❌ No valueSets folder found in {library_folder.name}/")
                 raise FileNotFoundError(f"No valueSets folder found in variable library: {library_folder}")
@@ -2631,27 +2642,11 @@ print('Notebook initialized')
                     # Git format: deploy base variables + all value sets
                     base_vars = variables["base_variables"]
                     value_sets = variables["value_sets"]
-                    logger.info(f"  Deploying base variables + {len(value_sets)} value sets...")
+                    logger.info(f"  Deploying base variables ({len(base_vars)}) + {len(value_sets)} value sets...")
                     
                     parts = []
                     
-                    # Add base variables.json (required) - use from Git structure if available
-                    if base_vars:
-                        logger.info(f"  Using base variables from variables.json ({len(base_vars)} variables)")
-                    else:
-                        # Fallback: create base from first value set
-                        logger.info(f"  No base variables.json found, creating from first value set")
-                        first_set = next(iter(value_sets.values()))
-                        base_vars = [
-                            {
-                                "name": var["name"],
-                                "type": var.get("type", "String"),
-                                "value": var["value"],
-                                "description": var.get("description", "")
-                            }
-                            for var in first_set
-                        ]
-                    
+                    # Add base variables.json (required)
                     base_json = json.dumps({"variables": base_vars}, indent=2)
                     logger.debug(f"  Base variables structure sample:\n{base_json[:300]}...")
                     base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
@@ -2661,13 +2656,10 @@ print('Notebook initialized')
                         "payloadType": "InlineBase64"
                     })
                     
-                    # Add each value set as valueSets/{name}.json
+                    # Add each value set as valueSets/{name}.json with overrides
                     for set_name, set_vars in value_sets.items():
                         set_data = {
-                            "variableOverrides": [
-                                {"name": var["name"], "value": var["value"]} 
-                                for var in set_vars
-                            ]
+                            "variableOverrides": set_vars  # Already in correct format: [{name, value}, ...]
                         }
                         set_json = json.dumps(set_data, indent=2)
                         logger.debug(f"  Value set '{set_name}' structure sample:\n{set_json[:300]}...")
@@ -2767,27 +2759,11 @@ print('Notebook initialized')
                         # Git format: deploy base variables + all value sets
                         base_vars = variables["base_variables"]
                         value_sets = variables["value_sets"]
-                        logger.info(f"  Setting base variables + {len(value_sets)} value sets...")
+                        logger.info(f"  Setting base variables ({len(base_vars)}) + {len(value_sets)} value sets...")
                         
                         parts = []
                         
-                        # Add base variables.json (required) - use from Git structure if available
-                        if base_vars:
-                            logger.info(f"  Using base variables from variables.json ({len(base_vars)} variables)")
-                        else:
-                            # Fallback: create base from first value set
-                            logger.info(f"  No base variables.json found, creating from first value set")
-                            first_set = next(iter(value_sets.values()))
-                            base_vars = [
-                                {
-                                    "name": var["name"],
-                                    "type": var.get("type", "String"),
-                                    "value": var["value"],
-                                    "description": var.get("description", "")
-                                }
-                                for var in first_set
-                            ]
-                        
+                        # Add base variables.json (required)
                         base_json = json.dumps({"variables": base_vars}, indent=2)
                         logger.debug(f"  Base variables structure sample:\n{base_json[:300]}...")
                         base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
@@ -2797,13 +2773,10 @@ print('Notebook initialized')
                             "payloadType": "InlineBase64"
                         })
                         
-                        # Add each value set as valueSets/{name}.json
+                        # Add each value set as valueSets/{name}.json with overrides
                         for set_name, set_vars in value_sets.items():
                             set_data = {
-                                "variableOverrides": [
-                                    {"name": var["name"], "value": var["value"]} 
-                                    for var in set_vars
-                                ]
+                                "variableOverrides": set_vars  # Already in correct format: [{name, value}, ...]
                             }
                             set_json = json.dumps(set_data, indent=2)
                             logger.debug(f"  Value set '{set_name}' structure sample:\n{set_json[:300]}...")

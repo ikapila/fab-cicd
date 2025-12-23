@@ -1,566 +1,568 @@
-2025-12-23T17:03:47.7438656Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2025-12-23T17:03:47.7444352Z ==============================================================================
-2025-12-23T17:03:47.7444468Z Task         : Command line
-2025-12-23T17:03:47.7444529Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2025-12-23T17:03:47.7444626Z Version      : 2.250.1
-2025-12-23T17:03:47.7444685Z Author       : Microsoft Corporation
-2025-12-23T17:03:47.7444757Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2025-12-23T17:03:47.7444842Z ==============================================================================
-2025-12-23T17:03:47.8712117Z Generating script.
-2025-12-23T17:03:47.8712496Z ========================== Starting Command Output ===========================
-2025-12-23T17:03:47.8712904Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/12c00e97-4594-4eb2-9ea5-cb4994176482.sh
-2025-12-23T17:03:47.8763535Z ========================================
-2025-12-23T17:03:47.8764806Z Deploying to Dev Environment
-2025-12-23T17:03:47.8766205Z ========================================
-2025-12-23T17:03:47.8766475Z Features:
-2025-12-23T17:03:47.8767038Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2025-12-23T17:03:47.8767449Z   📊 Dependency-aware deployment ordering
-2025-12-23T17:03:47.8767838Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2025-12-23T17:03:47.8767980Z 
-2025-12-23T17:03:47.8768221Z Deployment steps:
-2025-12-23T17:03:47.8768491Z   1. Create artifacts from config file
-2025-12-23T17:03:47.8768780Z   2. Detect changed artifacts using Git diff
-2025-12-23T17:03:47.8769084Z   3. Deploy only changed artifacts (use --force-all to override)
-2025-12-23T17:03:47.8769388Z ========================================
-2025-12-23T17:03:48.2582307Z INFO:__main__:Initializing deployment to dev environment
-2025-12-23T17:03:48.2593440Z INFO:config_manager:Loading configuration from: config/dev.json
-2025-12-23T17:03:48.2594325Z INFO:__main__:Using environment-specific service principal for dev
-2025-12-23T17:03:48.2594913Z INFO:fabric_auth:Using environment-specific secret from: AZURE_CLIENT_SECRET_DEV
-2025-12-23T17:03:48.2595439Z INFO:__main__:Using artifacts root folder: wsartifacts
-2025-12-23T17:03:48.2596080Z INFO:fabric_auth:Using Service Principal authentication (Client ID: 0c296168-ffc5-447a-83bc-bdaf8979d8da)
-2025-12-23T17:03:48.2596757Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/v2.0/.well-known/openid-configuration'
-2025-12-23T17:03:48.2597308Z Request method: 'GET'
-2025-12-23T17:03:48.2597743Z Request headers:
-2025-12-23T17:03:48.2598305Z     'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2025-12-23T17:03:48.2598863Z No body was attached to the request
-2025-12-23T17:03:48.3564879Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2025-12-23T17:03:48.3565232Z Response headers:
-2025-12-23T17:03:48.3565525Z     'Cache-Control': 'max-age=86400, private'
-2025-12-23T17:03:48.3565820Z     'Content-Type': 'application/json; charset=utf-8'
-2025-12-23T17:03:48.3566110Z     'Strict-Transport-Security': 'REDACTED'
-2025-12-23T17:03:48.3566387Z     'X-Content-Type-Options': 'REDACTED'
-2025-12-23T17:03:48.3566667Z     'Access-Control-Allow-Origin': 'REDACTED'
-2025-12-23T17:03:48.3566951Z     'Access-Control-Allow-Methods': 'REDACTED'
-2025-12-23T17:03:48.3567211Z     'P3P': 'REDACTED'
-2025-12-23T17:03:48.3567489Z     'x-ms-request-id': 'a315c138-b056-4274-a97b-2a74ca75bc00'
-2025-12-23T17:03:48.3567782Z     'x-ms-ests-server': 'REDACTED'
-2025-12-23T17:03:48.3568038Z     'x-ms-srs': 'REDACTED'
-2025-12-23T17:03:48.3568314Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2025-12-23T17:03:48.3568600Z     'X-XSS-Protection': 'REDACTED'
-2025-12-23T17:03:48.3568824Z     'Set-Cookie': 'REDACTED'
-2025-12-23T17:03:48.3569172Z     'Date': 'Tue, 23 Dec 2025 17:03:47 GMT'
-2025-12-23T17:03:48.3569339Z     'Content-Length': '1964'
-2025-12-23T17:03:48.3940014Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
-2025-12-23T17:03:48.3941413Z Request method: 'POST'
-2025-12-23T17:03:48.3942030Z Request headers:
-2025-12-23T17:03:48.3942311Z     'Accept': 'application/json'
-2025-12-23T17:03:48.3942594Z     'x-client-sku': 'REDACTED'
-2025-12-23T17:03:48.3942872Z     'x-client-ver': 'REDACTED'
-2025-12-23T17:03:48.3943159Z     'x-client-os': 'REDACTED'
-2025-12-23T17:03:48.3943443Z     'x-ms-lib-capability': 'REDACTED'
-2025-12-23T17:03:48.3943736Z     'client-request-id': 'REDACTED'
-2025-12-23T17:03:48.3944039Z     'x-client-current-telemetry': 'REDACTED'
-2025-12-23T17:03:48.3944346Z     'x-client-last-telemetry': 'REDACTED'
-2025-12-23T17:03:48.3944770Z     'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2025-12-23T17:03:48.3945346Z A body is sent with the request
-2025-12-23T17:03:48.4613655Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2025-12-23T17:03:48.4614037Z Response headers:
-2025-12-23T17:03:48.4614302Z     'Cache-Control': 'no-store, no-cache'
-2025-12-23T17:03:48.4614574Z     'Pragma': 'no-cache'
-2025-12-23T17:03:48.4614847Z     'Content-Type': 'application/json; charset=utf-8'
-2025-12-23T17:03:48.4615114Z     'Expires': '-1'
-2025-12-23T17:03:48.4615371Z     'Strict-Transport-Security': 'REDACTED'
-2025-12-23T17:03:48.4615650Z     'X-Content-Type-Options': 'REDACTED'
-2025-12-23T17:03:48.4615904Z     'P3P': 'REDACTED'
-2025-12-23T17:03:48.4616154Z     'client-request-id': 'REDACTED'
-2025-12-23T17:03:48.4616445Z     'x-ms-request-id': 'a315c138-b056-4274-a97b-2a74cd75bc00'
-2025-12-23T17:03:48.4616733Z     'x-ms-ests-server': 'REDACTED'
-2025-12-23T17:03:48.4616990Z     'x-ms-clitelem': 'REDACTED'
-2025-12-23T17:03:48.4617272Z     'x-ms-srs': 'REDACTED'
-2025-12-23T17:03:48.4617590Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2025-12-23T17:03:48.4617905Z     'X-XSS-Protection': 'REDACTED'
-2025-12-23T17:03:48.4618192Z     'Set-Cookie': 'REDACTED'
-2025-12-23T17:03:48.4618500Z     'Date': 'Tue, 23 Dec 2025 17:03:47 GMT'
-2025-12-23T17:03:48.4618796Z     'Content-Length': '1664'
-2025-12-23T17:03:48.4630351Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
-2025-12-23T17:03:48.4630765Z INFO:fabric_auth:Successfully obtained access token
-2025-12-23T17:03:48.6315171Z INFO:fabric_auth:Authentication validation successful
-2025-12-23T17:03:48.6321103Z INFO:__main__:Target workspace: AAG-SIT-FWS-ENGINEERING-01 (d7faf1fa-0e7e-4061-b3e5-50fa3873eb64)
-2025-12-23T17:03:48.6324690Z INFO:__main__:Running in artifact creation mode
-2025-12-23T17:03:48.6325236Z INFO:__main__:============================================================
-2025-12-23T17:03:48.6325842Z INFO:__main__:Creating artifacts from configuration for dev
-2025-12-23T17:03:48.6326323Z INFO:__main__:============================================================
-2025-12-23T17:03:48.6327499Z INFO:__main__:No artifacts configured for creation
-2025-12-23T17:03:48.6327827Z INFO:__main__:Artifact creation completed successfully
-2025-12-23T17:03:48.6330473Z INFO:__main__:============================================================
-2025-12-23T17:03:48.6330977Z INFO:__main__:ARTIFACT DISCOVERY PHASE
-2025-12-23T17:03:48.6331443Z INFO:__main__:============================================================
-2025-12-23T17:03:48.6334971Z INFO:__main__:Discovering artifacts from file system...
-2025-12-23T17:03:48.6335371Z INFO:__main__:Discovered 1 lakehouse(s): ReportingLakehouse
-2025-12-23T17:03:48.6344044Z INFO:__main__:Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
-2025-12-23T17:03:48.6346836Z INFO:__main__:Discovered 1 Variable Library: ReportingVariables
-2025-12-23T17:03:48.6348729Z INFO:__main__:============================================================
-2025-12-23T17:03:48.6351123Z INFO:__main__:DISCOVERY COMPLETE: Found 9 total artifacts
-2025-12-23T17:03:48.6351683Z INFO:__main__:============================================================
-2025-12-23T17:03:48.6351991Z INFO:__main__:
-2025-12-23T17:03:48.6352265Z ============================================================
-2025-12-23T17:03:48.6352567Z INFO:__main__:CHANGE DETECTION
-2025-12-23T17:03:48.6352885Z INFO:__main__:============================================================
-2025-12-23T17:03:48.6453475Z WARNING:change_detector:Git not available, deploying all artifacts
-2025-12-23T17:03:48.6454844Z INFO:__main__:Deploying all discovered artifacts
-2025-12-23T17:03:48.6455056Z INFO:__main__:============================================================
-2025-12-23T17:03:48.6455251Z INFO:__main__:Starting deployment to dev environment
-2025-12-23T17:03:48.6455444Z INFO:__main__:============================================================
-2025-12-23T17:03:48.6455859Z INFO:dependency_resolver:✅ All dependencies are valid
-2025-12-23T17:03:48.6456176Z INFO:dependency_resolver:Deployment order determined:
-2025-12-23T17:03:48.6456362Z INFO:dependency_resolver:  1. ReportingVariables (VariableLibrary)
-2025-12-23T17:03:48.6456547Z INFO:dependency_resolver:  2. ReportingLakehouse (Lakehouse)
-2025-12-23T17:03:48.6456722Z INFO:dependency_resolver:  3. Notebook 5 (Notebook)
-2025-12-23T17:03:48.6456903Z INFO:dependency_resolver:  4. nb_sample_artifact_creation (Notebook)
-2025-12-23T17:03:48.6457082Z INFO:dependency_resolver:  5. Notebook 3 (Notebook)
-2025-12-23T17:03:48.6457249Z INFO:dependency_resolver:  6. NBT1 (Notebook)
-2025-12-23T17:03:48.6457414Z INFO:dependency_resolver:  7. Notebook 7 (Notebook)
-2025-12-23T17:03:48.6457579Z INFO:dependency_resolver:  8. NBT2 (Notebook)
-2025-12-23T17:03:48.6457743Z INFO:dependency_resolver:  9. Notebook 6 (Notebook)
-2025-12-23T17:03:48.6457891Z INFO:__main__:
-2025-12-23T17:03:48.6458049Z Deploying: ReportingVariables (VariableLibrary)
-2025-12-23T17:03:48.6458240Z INFO:__main__:  Reading variable library definition from folder: ReportingVariables.VariableLibrary/
-2025-12-23T17:03:48.6458437Z INFO:__main__:  Using .platform file (Git format v2)
-2025-12-23T17:03:48.6458618Z INFO:__main__:  Found valueSets folder - reading Git format structure
-2025-12-23T17:03:48.6458788Z INFO:__main__:  Reading variables.json...
-2025-12-23T17:03:48.6459015Z INFO:__main__:    ✓ Loaded 4 base variable definitions
-2025-12-23T17:03:48.6459189Z INFO:__main__:  Reading settings.json...
-2025-12-23T17:03:48.6459409Z INFO:__main__:    ✓ Loaded valueSetsOrder: ['dev', 'uat', 'prod']
-2025-12-23T17:03:48.6459592Z INFO:__main__:  Available value sets: uat.json, prod.json, dev.json
-2025-12-23T17:03:48.6459765Z INFO:__main__:  Reading value set: uat.json
-2025-12-23T17:03:48.6459980Z INFO:__main__:    ✓ Loaded 4 variable override(s) from 'uat' set
-2025-12-23T17:03:48.6460147Z INFO:__main__:  Reading value set: prod.json
-2025-12-23T17:03:48.6460373Z INFO:__main__:    ✓ Loaded 4 variable override(s) from 'prod' set
-2025-12-23T17:03:48.6460546Z INFO:__main__:  Reading value set: dev.json
-2025-12-23T17:03:48.6460767Z INFO:__main__:    ✓ Loaded 2 variable override(s) from 'dev' set
-2025-12-23T17:03:48.6460939Z INFO:__main__:  Total value sets to deploy: 3
-2025-12-23T17:03:48.6461100Z INFO:__main__:  Total base variables: 4
-2025-12-23T17:03:48.6461285Z INFO:__main__:  NOTE: All value sets will be deployed. You can switch between them in the Fabric UI.
-2025-12-23T17:03:48.6461721Z INFO:fabric_client:Listing Variable Libraries in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2025-12-23T17:03:48.8352324Z INFO:__main__:  Variable Library 'ReportingVariables' already exists, updating...
-2025-12-23T17:03:48.8353172Z INFO:__main__:  Deploying base variables (4) + 3 value sets + settings...
-2025-12-23T17:03:48.8354254Z INFO:__main__:  DEBUG: variables.json content:
-2025-12-23T17:03:48.8354921Z {
-2025-12-23T17:03:48.8356139Z   "variables": [
-2025-12-23T17:03:48.8356718Z     {
-2025-12-23T17:03:48.8366789Z       "name": "environment",
-2025-12-23T17:03:48.8367317Z       "note": "x",
-2025-12-23T17:03:48.8367712Z       "type": "String",
-2025-12-23T17:03:48.8368081Z       "value": "dev"
-2025-12-23T17:03:48.8368552Z     },
-2025-12-23T17:03:48.8368889Z     {
-2025-12-23T17:03:48.8369249Z       "name": "reporting_worskpace_id",
-2025-12-23T17:03:48.8369640Z       "note": "x",
-2025-12-23T17:03:48.8369994Z       "type": "String",
-2025-12-23T17:03:48.8370411Z       "value": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb64"
-2025-12-23T17:03:48.8370833Z     },
-2025-12-23T17:03:48.8371212Z     {
-2025-12-23T17:03:48.8371945Z       "name": "engineering_workspace_id",
-2025-12-23T17:03:48.8372407Z       "note": "x",
-2025-12-23T17:03:48.8372804Z       "type": "String",
-2025-12-23T17:03:48.8373230Z       "value": "73079d7b-e1ff-4b80-8cc8-47e9c153d414"
-2025-12-23T17:03:48.8373647Z     },
-2025-12-23T17:03:48.8374018Z     {
-2025-12-23T17:03:48.8375400Z       "name": "gold_lakehouse",
-2025-12-23T17:03:48.8375681Z       "note": "x",
-2025-12-23T17:03:48.8375928Z       "type": "String",
-2025-12-23T17:03:48.8376386Z       "value": "a5324796-c240-448e-97cf-e944179b90eb"
-2025-12-23T17:03:48.8376652Z     }
-2025-12-23T17:03:48.8376876Z   ]
-2025-12-23T17:03:48.8377092Z }
-2025-12-23T17:03:48.8377367Z INFO:__main__:  DEBUG: valueSets/uat.json content:
-2025-12-23T17:03:48.8377643Z {
-2025-12-23T17:03:48.8377877Z   "name": "uat",
-2025-12-23T17:03:48.8378132Z   "variableOverrides": [
-2025-12-23T17:03:48.8378375Z     {
-2025-12-23T17:03:48.8378618Z       "name": "environment",
-2025-12-23T17:03:48.8378875Z       "value": "uat"
-2025-12-23T17:03:48.8379116Z     },
-2025-12-23T17:03:48.8379340Z     {
-2025-12-23T17:03:48.8379597Z       "name": "reporting_worskpace_id",
-2025-12-23T17:03:48.8379900Z       "value": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb6x"
-2025-12-23T17:03:48.8380176Z     },
-2025-12-23T17:03:48.8380397Z     {
-2025-12-23T17:03:48.8380656Z       "name": "engineering_workspace_id",
-2025-12-23T17:03:48.8380970Z       "value": "73079d7b-e1ff-4b80-8cc8-47e9c153d41x"
-2025-12-23T17:03:48.8381252Z     },
-2025-12-23T17:03:48.8381700Z     {
-2025-12-23T17:03:48.8381961Z       "name": "gold_lakehouse",
-2025-12-23T17:03:48.8382262Z       "value": "a5324796-c240-448e-97cf-e944179b90exx"
-2025-12-23T17:03:48.8382538Z     }
-2025-12-23T17:03:48.8382763Z   ]
-2025-12-23T17:03:48.8382985Z }
-2025-12-23T17:03:48.8383280Z INFO:__main__:  DEBUG: valueSets/prod.json content:
-2025-12-23T17:03:48.8383571Z {
-2025-12-23T17:03:48.8383860Z   "name": "prod",
-2025-12-23T17:03:48.8384156Z   "variableOverrides": [
-2025-12-23T17:03:48.8384397Z     {
-2025-12-23T17:03:48.8384640Z       "name": "environment",
-2025-12-23T17:03:48.8384906Z       "value": "prod"
-2025-12-23T17:03:48.8385144Z     },
-2025-12-23T17:03:48.8385372Z     {
-2025-12-23T17:03:48.8385627Z       "name": "reporting_worskpace_id",
-2025-12-23T17:03:48.8385915Z       "value": "68c48a5c-8b88-4559-962d-5dc7f29ab96a"
-2025-12-23T17:03:48.8386174Z     },
-2025-12-23T17:03:48.8386397Z     {
-2025-12-23T17:03:48.8386653Z       "name": "engineering_workspace_id",
-2025-12-23T17:03:48.8386959Z       "value": "9fb8885f-d2af-4605-a451-24d7a6253172"
-2025-12-23T17:03:48.8387220Z     },
-2025-12-23T17:03:48.8387438Z     {
-2025-12-23T17:03:48.8387680Z       "name": "gold_lakehouse",
-2025-12-23T17:03:48.8387963Z       "value": "76bf3aeb-c0f0-4ce7-b7b3-578178e0c2e4"
-2025-12-23T17:03:48.8388222Z     }
-2025-12-23T17:03:48.8388439Z   ]
-2025-12-23T17:03:48.8388656Z }
-2025-12-23T17:03:48.8388928Z INFO:__main__:  DEBUG: valueSets/dev.json content:
-2025-12-23T17:03:48.8389202Z {
-2025-12-23T17:03:48.8389438Z   "name": "dev",
-2025-12-23T17:03:48.8389689Z   "variableOverrides": [
-2025-12-23T17:03:48.8389939Z     {
-2025-12-23T17:03:48.8390270Z       "name": "reporting_worskpace_id",
-2025-12-23T17:03:48.8390579Z       "value": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb64"
-2025-12-23T17:03:48.8390840Z     },
-2025-12-23T17:03:48.8391058Z     {
-2025-12-23T17:03:48.8391319Z       "name": "engineering_workspace_id",
-2025-12-23T17:03:48.8394204Z       "value": "73079d7b-e1ff-4b80-8cc8-47e9c153d414"
-2025-12-23T17:03:48.8394491Z     }
-2025-12-23T17:03:48.8394714Z   ]
-2025-12-23T17:03:48.8394930Z }
-2025-12-23T17:03:48.8395202Z INFO:__main__:  DEBUG: settings.json content:
-2025-12-23T17:03:48.8395472Z {
-2025-12-23T17:03:48.8395707Z   "valueSetsOrder": [
-2025-12-23T17:03:48.8395943Z     "dev",
-2025-12-23T17:03:48.8396166Z     "uat",
-2025-12-23T17:03:48.8396485Z     "prod"
-2025-12-23T17:03:48.8396703Z   ]
-2025-12-23T17:03:48.8396928Z }
-2025-12-23T17:03:48.8397198Z INFO:__main__:  DEBUG: Payload has 5 part(s)
-2025-12-23T17:03:48.8397561Z INFO:fabric_client:Updating Variable Library definition: 12f1b9db-d0c0-4492-b3bf-e4f8e101360e
-2025-12-23T17:03:48.8398084Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/VariableLibraries/12f1b9db-d0c0-4492-b3bf-e4f8e101360e/updateDefinition
-2025-12-23T17:03:48.8398552Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:03:48.8398837Z   "definition": {
-2025-12-23T17:03:48.8399078Z     "parts": [
-2025-12-23T17:03:48.8399462Z       {
-2025-12-23T17:03:48.8399700Z         "path": "variables.json",
-2025-12-23T17:03:48.8399966Z         "payloadType": "InlineBase64",
-2025-12-23T17:03:48.8400244Z         "payload_length": 764
-2025-12-23T17:03:48.8400477Z       },
-2025-12-23T17:03:48.8400690Z       {
-2025-12-23T17:03:48.8400935Z         "path": "valueSets/uat.json",
-2025-12-23T17:03:48.8401207Z         "payloadType": "InlineBase64",
-2025-12-23T17:03:48.8401672Z         "payload_length": 572
-2025-12-23T17:03:48.8401927Z       },
-2025-12-23T17:03:48.8402183Z       {
-2025-12-23T17:03:48.8402424Z         "path": "valueSets/prod.json",
-2025-12-23T17:03:48.8402695Z         "payloadType": "InlineBase64",
-2025-12-23T17:03:48.8402960Z         "payload_length": 572
-2025-12-23T17:03:48.8403196Z       },
-2025-12-23T17:03:48.8403414Z       {
-2025-12-23T17:03:48.8403666Z         "path": "valueSets/dev.json",
-2025-12-23T17:03:48.8403954Z         "payloadType": "InlineBase64",
-2025-12-23T17:03:48.8404220Z         "payload_length": 352
-2025-12-23T17:03:48.8404461Z       },
-2025-12-23T17:03:48.8404677Z       {
-2025-12-23T17:03:48.8404918Z         "path": "settings.json",
-2025-12-23T17:03:48.8405181Z         "payloadType": "InlineBase64",
-2025-12-23T17:03:48.8405441Z         "payload_length": 84
-2025-12-23T17:03:48.8405675Z       }
-2025-12-23T17:03:48.8405900Z     ],
-2025-12-23T17:03:48.8406190Z     "format": "VariableLibraryV1"
-2025-12-23T17:03:48.8406417Z   }
-2025-12-23T17:03:48.8406611Z }
-2025-12-23T17:03:49.8595367Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/87497022-9234-4177-8539-60d762723f4e
-2025-12-23T17:03:49.8598222Z INFO:fabric_client:  LRO Operation ID: 87497022-9234-4177-8539-60d762723f4e
-2025-12-23T17:03:49.8599593Z INFO:fabric_client:  Retry-After: 20 seconds
-2025-12-23T17:03:49.8600886Z INFO:__main__:  DEBUG: API response: {
-2025-12-23T17:03:49.8601983Z   "status": "success",
-2025-12-23T17:03:49.8602983Z   "status_code": 202,
-2025-12-23T17:03:49.8604045Z   "location": "https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/87497022-9234-4177-8539-60d762723f4e",
-2025-12-23T17:03:49.8605559Z   "operation_id": "87497022-9234-4177-8539-60d762723f4e",
-2025-12-23T17:03:49.8605866Z   "retry_after": 20
-2025-12-23T17:03:49.8606121Z }
-2025-12-23T17:03:49.8606757Z INFO:__main__:  ✓ Updated Variable Library definition for 'ReportingVariables'
-2025-12-23T17:03:49.8607133Z INFO:__main__:  Waiting for definition update to complete...
-2025-12-23T17:03:49.8607516Z INFO:fabric_client:  Polling operation 87497022-9234-4177-8539-60d762723f4e (retry every 20s, max 12 attempts)
-2025-12-23T17:04:09.9955818Z INFO:fabric_client:    Attempt 1/12: Failed (None% complete)
-2025-12-23T17:04:09.9956636Z INFO:fabric_client:    Full LRO state response: {
-2025-12-23T17:04:09.9957401Z   "status": "Failed",
-2025-12-23T17:04:09.9958054Z   "createdTimeUtc": "2025-12-23T17:03:49.7711428",
-2025-12-23T17:04:09.9965865Z   "lastUpdatedTimeUtc": "2025-12-23T17:03:50.5373201",
-2025-12-23T17:04:09.9966205Z   "percentComplete": null,
-2025-12-23T17:04:09.9966467Z   "error": {
-2025-12-23T17:04:09.9966784Z     "errorCode": "InvalidContent (first issue: VariablesValidationErrorCode)",
-2025-12-23T17:04:09.9967170Z     "message": "Variable Library content cannot be used (Variable Library content cannot be used)"
-2025-12-23T17:04:09.9967476Z   }
-2025-12-23T17:04:09.9967699Z }
-2025-12-23T17:04:09.9968403Z ERROR:fabric_client:  ✗ Operation failed: Variable Library content cannot be used (Variable Library content cannot be used)
-2025-12-23T17:04:09.9968849Z ERROR:fabric_client:    Error code: InvalidContent (first issue: VariablesValidationErrorCode)
-2025-12-23T17:04:09.9969212Z ERROR:fabric_client:    Full error object: {
-2025-12-23T17:04:09.9969550Z   "errorCode": "InvalidContent (first issue: VariablesValidationErrorCode)",
-2025-12-23T17:04:09.9969924Z   "message": "Variable Library content cannot be used (Variable Library content cannot be used)"
-2025-12-23T17:04:09.9970236Z }
-2025-12-23T17:04:09.9971125Z ERROR:__main__:  ❌ Failed to update Variable Library 'ReportingVariables': Operation 87497022-9234-4177-8539-60d762723f4e failed: Variable Library content cannot be used (Variable Library content cannot be used)
-2025-12-23T17:04:09.9972219Z ERROR:__main__:❌ Failed to deploy ReportingVariables: Operation 87497022-9234-4177-8539-60d762723f4e failed: Variable Library content cannot be used (Variable Library content cannot be used)
-2025-12-23T17:04:09.9972694Z INFO:__main__:
-2025-12-23T17:04:09.9972989Z Deploying: ReportingLakehouse (Lakehouse)
-2025-12-23T17:04:09.9973357Z INFO:__main__:  Reading lakehouse definition from Fabric Git folder (v2): ReportingLakehouse.Lakehouse/
-2025-12-23T17:04:09.9975144Z INFO:__main__:  Using .platform file (Git format v2)
-2025-12-23T17:04:09.9976068Z INFO:__main__:  Reading shortcuts from: shortcuts.metadata.json
-2025-12-23T17:04:09.9976851Z INFO:__main__:  Found 0 shortcut(s) in metadata file
-2025-12-23T17:04:09.9977388Z INFO:fabric_client:Listing lakehouses in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2025-12-23T17:04:10.4293383Z INFO:__main__:  Lakehouse 'ReportingLakehouse' already exists (ID: 4631080c-b683-481f-91b8-db613b66046e)
-2025-12-23T17:04:10.4296553Z INFO:__main__:✅ Successfully deployed: ReportingLakehouse
-2025-12-23T17:04:10.4296879Z INFO:__main__:
-2025-12-23T17:04:10.4297143Z Deploying: Notebook 5 (Notebook)
-2025-12-23T17:04:10.4299583Z INFO:fabric_client:Listing notebooks in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2025-12-23T17:04:10.6255036Z INFO:__main__:  Notebook 'Notebook 5' already exists, updating...
-2025-12-23T17:04:10.6256400Z INFO:fabric_client:Updating notebook: 5495236e-441e-4b31-b523-96dc69a7888f
-2025-12-23T17:04:10.6258555Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/5495236e-441e-4b31-b523-96dc69a7888f/updateDefinition
-2025-12-23T17:04:10.6260549Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:10.6260870Z   "definition": {
-2025-12-23T17:04:10.6261129Z     "parts": [
-2025-12-23T17:04:10.6261357Z       {
-2025-12-23T17:04:10.6261820Z         "path": "notebook-content.py",
-2025-12-23T17:04:10.6262102Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:10.6262375Z         "payload_length": 840
-2025-12-23T17:04:10.6262616Z       }
-2025-12-23T17:04:10.6262836Z     ]
-2025-12-23T17:04:10.6263054Z   }
-2025-12-23T17:04:10.6263275Z }
-2025-12-23T17:04:10.6263703Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/5495236e-441e-4b31-b523-96dc69a7888f/updateDefinition
-2025-12-23T17:04:10.6264163Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:10.6264442Z   "definition": {
-2025-12-23T17:04:10.6264680Z     "parts": [
-2025-12-23T17:04:10.6264906Z       {
-2025-12-23T17:04:10.6265157Z         "path": "notebook-content.py",
-2025-12-23T17:04:10.6265675Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:10.6265942Z         "payload_length": 840
-2025-12-23T17:04:10.6266184Z       }
-2025-12-23T17:04:10.6266406Z     ]
-2025-12-23T17:04:10.6266628Z   }
-2025-12-23T17:04:10.6266850Z }
-2025-12-23T17:04:11.0198129Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/fe5cf8ca-d8a2-473a-ae02-b25dcf278d5a
-2025-12-23T17:04:11.0199390Z INFO:fabric_client:  LRO Operation ID: fe5cf8ca-d8a2-473a-ae02-b25dcf278d5a
-2025-12-23T17:04:11.0199692Z INFO:fabric_client:  Retry-After: 20 seconds
-2025-12-23T17:04:11.0206445Z INFO:__main__:  ✓ Updated notebook 'Notebook 5' (ID: 5495236e-441e-4b31-b523-96dc69a7888f)
-2025-12-23T17:04:11.0208829Z INFO:__main__:✅ Successfully deployed: Notebook 5
-2025-12-23T17:04:11.0209139Z INFO:__main__:
-2025-12-23T17:04:11.0209416Z Deploying: nb_sample_artifact_creation (Notebook)
-2025-12-23T17:04:11.0214085Z INFO:fabric_client:Listing notebooks in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2025-12-23T17:04:11.1766875Z INFO:__main__:  Notebook 'nb_sample_artifact_creation' already exists, updating...
-2025-12-23T17:04:11.1771211Z INFO:fabric_client:Updating notebook: db00e212-8cfc-459f-8e50-8371cd7c1092
-2025-12-23T17:04:11.1773455Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/db00e212-8cfc-459f-8e50-8371cd7c1092/updateDefinition
-2025-12-23T17:04:11.1773930Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:11.1774216Z   "definition": {
-2025-12-23T17:04:11.1774459Z     "parts": [
-2025-12-23T17:04:11.1774685Z       {
-2025-12-23T17:04:11.1774937Z         "path": "notebook-content.py",
-2025-12-23T17:04:11.1775214Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:11.1775481Z         "payload_length": 8472
-2025-12-23T17:04:11.1775720Z       }
-2025-12-23T17:04:11.1775944Z     ]
-2025-12-23T17:04:11.1776161Z   }
-2025-12-23T17:04:11.1776385Z }
-2025-12-23T17:04:11.1776820Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/db00e212-8cfc-459f-8e50-8371cd7c1092/updateDefinition
-2025-12-23T17:04:11.1777310Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:11.1777590Z   "definition": {
-2025-12-23T17:04:11.1777829Z     "parts": [
-2025-12-23T17:04:11.1778052Z       {
-2025-12-23T17:04:11.1778310Z         "path": "notebook-content.py",
-2025-12-23T17:04:11.1778585Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:11.1778852Z         "payload_length": 8472
-2025-12-23T17:04:11.1779090Z       }
-2025-12-23T17:04:11.1779306Z     ]
-2025-12-23T17:04:11.1779527Z   }
-2025-12-23T17:04:11.1779748Z }
-2025-12-23T17:04:11.5758551Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/929f9c82-96e7-4615-9856-126272a1aedc
-2025-12-23T17:04:11.5759394Z INFO:fabric_client:  LRO Operation ID: 929f9c82-96e7-4615-9856-126272a1aedc
-2025-12-23T17:04:11.5760063Z INFO:fabric_client:  Retry-After: 20 seconds
-2025-12-23T17:04:11.5768578Z INFO:__main__:  ✓ Updated notebook 'nb_sample_artifact_creation' (ID: db00e212-8cfc-459f-8e50-8371cd7c1092)
-2025-12-23T17:04:11.5770298Z INFO:__main__:✅ Successfully deployed: nb_sample_artifact_creation
-2025-12-23T17:04:11.5770907Z INFO:__main__:
-2025-12-23T17:04:11.5773397Z Deploying: Notebook 3 (Notebook)
-2025-12-23T17:04:11.5779155Z INFO:fabric_client:Listing notebooks in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2025-12-23T17:04:11.7754862Z INFO:__main__:  Notebook 'Notebook 3' already exists, updating...
-2025-12-23T17:04:11.7755786Z INFO:fabric_client:Updating notebook: 3e679564-e523-46f9-9fd4-b621e238ecd1
-2025-12-23T17:04:11.7757820Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/3e679564-e523-46f9-9fd4-b621e238ecd1/updateDefinition
-2025-12-23T17:04:11.7758615Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:11.7760464Z   "definition": {
-2025-12-23T17:04:11.7762500Z     "parts": [
-2025-12-23T17:04:11.7763915Z       {
-2025-12-23T17:04:11.7764328Z         "path": "notebook-content.py",
-2025-12-23T17:04:11.7764781Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:11.7765190Z         "payload_length": 820
-2025-12-23T17:04:11.7765906Z       }
-2025-12-23T17:04:11.7766275Z     ]
-2025-12-23T17:04:11.7766695Z   }
-2025-12-23T17:04:11.7767080Z }
-2025-12-23T17:04:11.7767792Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/3e679564-e523-46f9-9fd4-b621e238ecd1/updateDefinition
-2025-12-23T17:04:11.7768815Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:11.7769317Z   "definition": {
-2025-12-23T17:04:11.7770529Z     "parts": [
-2025-12-23T17:04:11.7770930Z       {
-2025-12-23T17:04:11.7778835Z         "path": "notebook-content.py",
-2025-12-23T17:04:11.7779309Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:11.7779740Z         "payload_length": 820
-2025-12-23T17:04:11.7780495Z       }
-2025-12-23T17:04:11.7782227Z     ]
-2025-12-23T17:04:11.7782612Z   }
-2025-12-23T17:04:11.7782818Z }
-2025-12-23T17:04:12.1178056Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/c124f607-d283-418f-84d3-25e96b9934d0
-2025-12-23T17:04:12.1178880Z INFO:fabric_client:  LRO Operation ID: c124f607-d283-418f-84d3-25e96b9934d0
-2025-12-23T17:04:12.1179367Z INFO:fabric_client:  Retry-After: 20 seconds
-2025-12-23T17:04:12.1188068Z INFO:__main__:  ✓ Updated notebook 'Notebook 3' (ID: 3e679564-e523-46f9-9fd4-b621e238ecd1)
-2025-12-23T17:04:12.1189981Z INFO:__main__:✅ Successfully deployed: Notebook 3
-2025-12-23T17:04:12.1190594Z INFO:__main__:
-2025-12-23T17:04:12.1192374Z Deploying: NBT1 (Notebook)
-2025-12-23T17:04:12.1198798Z INFO:fabric_client:Listing notebooks in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2025-12-23T17:04:12.3188436Z INFO:__main__:  Notebook 'NBT1' already exists, updating...
-2025-12-23T17:04:12.3191129Z INFO:fabric_client:Updating notebook: dca4984c-ff81-4cd1-8aeb-a26e04c1b096
-2025-12-23T17:04:12.3193457Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/dca4984c-ff81-4cd1-8aeb-a26e04c1b096/updateDefinition
-2025-12-23T17:04:12.3193940Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:12.3194226Z   "definition": {
-2025-12-23T17:04:12.3194468Z     "parts": [
-2025-12-23T17:04:12.3194699Z       {
-2025-12-23T17:04:12.3194947Z         "path": "notebook-content.py",
-2025-12-23T17:04:12.3195231Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:12.3195498Z         "payload_length": 688
-2025-12-23T17:04:12.3195738Z       }
-2025-12-23T17:04:12.3195963Z     ]
-2025-12-23T17:04:12.3196180Z   }
-2025-12-23T17:04:12.3196404Z }
-2025-12-23T17:04:12.3196831Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/dca4984c-ff81-4cd1-8aeb-a26e04c1b096/updateDefinition
-2025-12-23T17:04:12.3197301Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:12.3197585Z   "definition": {
-2025-12-23T17:04:12.3197825Z     "parts": [
-2025-12-23T17:04:12.3198049Z       {
-2025-12-23T17:04:12.3198298Z         "path": "notebook-content.py",
-2025-12-23T17:04:12.3198572Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:12.3198843Z         "payload_length": 688
-2025-12-23T17:04:12.3199083Z       }
-2025-12-23T17:04:12.3199301Z     ]
-2025-12-23T17:04:12.3199525Z   }
-2025-12-23T17:04:12.3199742Z }
-2025-12-23T17:04:12.7582702Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/77b8957f-3072-40a5-9709-eff934641e0d
-2025-12-23T17:04:12.7583481Z INFO:fabric_client:  LRO Operation ID: 77b8957f-3072-40a5-9709-eff934641e0d
-2025-12-23T17:04:12.7584664Z INFO:fabric_client:  Retry-After: 20 seconds
-2025-12-23T17:04:12.7592680Z INFO:__main__:  ✓ Updated notebook 'NBT1' (ID: dca4984c-ff81-4cd1-8aeb-a26e04c1b096)
-2025-12-23T17:04:12.7594928Z INFO:__main__:✅ Successfully deployed: NBT1
-2025-12-23T17:04:12.7596088Z INFO:__main__:
-2025-12-23T17:04:12.7596364Z Deploying: Notebook 7 (Notebook)
-2025-12-23T17:04:12.7602158Z INFO:fabric_client:Listing notebooks in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2025-12-23T17:04:12.9374561Z INFO:__main__:  Notebook 'Notebook 7' already exists, updating...
-2025-12-23T17:04:12.9377115Z INFO:fabric_client:Updating notebook: c184271b-ddf8-46b7-8ebc-8e61e1b3dd8c
-2025-12-23T17:04:12.9378072Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/c184271b-ddf8-46b7-8ebc-8e61e1b3dd8c/updateDefinition
-2025-12-23T17:04:12.9383244Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:12.9383551Z   "definition": {
-2025-12-23T17:04:12.9383797Z     "parts": [
-2025-12-23T17:04:12.9384028Z       {
-2025-12-23T17:04:12.9384277Z         "path": "notebook-content.py",
-2025-12-23T17:04:12.9384576Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:12.9384842Z         "payload_length": 844
-2025-12-23T17:04:12.9385288Z       }
-2025-12-23T17:04:12.9385509Z     ]
-2025-12-23T17:04:12.9385737Z   }
-2025-12-23T17:04:12.9385958Z }
-2025-12-23T17:04:12.9386389Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/c184271b-ddf8-46b7-8ebc-8e61e1b3dd8c/updateDefinition
-2025-12-23T17:04:12.9386850Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:12.9387131Z   "definition": {
-2025-12-23T17:04:12.9387372Z     "parts": [
-2025-12-23T17:04:12.9387597Z       {
-2025-12-23T17:04:12.9387847Z         "path": "notebook-content.py",
-2025-12-23T17:04:12.9388125Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:12.9388395Z         "payload_length": 844
-2025-12-23T17:04:12.9388633Z       }
-2025-12-23T17:04:12.9388850Z     ]
-2025-12-23T17:04:12.9389069Z   }
-2025-12-23T17:04:12.9389286Z }
-2025-12-23T17:04:13.3338216Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/c76b12b7-9cfc-45ed-be5b-86364e70522a
-2025-12-23T17:04:13.3341409Z INFO:fabric_client:  LRO Operation ID: c76b12b7-9cfc-45ed-be5b-86364e70522a
-2025-12-23T17:04:13.3341917Z INFO:fabric_client:  Retry-After: 20 seconds
-2025-12-23T17:04:13.3349151Z INFO:__main__:  ✓ Updated notebook 'Notebook 7' (ID: c184271b-ddf8-46b7-8ebc-8e61e1b3dd8c)
-2025-12-23T17:04:13.3351056Z INFO:__main__:✅ Successfully deployed: Notebook 7
-2025-12-23T17:04:13.3353813Z INFO:__main__:
-2025-12-23T17:04:13.3354092Z Deploying: NBT2 (Notebook)
-2025-12-23T17:04:13.3362247Z INFO:fabric_client:Listing notebooks in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2025-12-23T17:04:13.5098323Z INFO:__main__:  Notebook 'NBT2' already exists, updating...
-2025-12-23T17:04:13.5098754Z INFO:fabric_client:Updating notebook: bdfac507-bede-453f-b008-faf5c7733c4e
-2025-12-23T17:04:13.5099329Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/bdfac507-bede-453f-b008-faf5c7733c4e/updateDefinition
-2025-12-23T17:04:13.5100571Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:13.5101003Z   "definition": {
-2025-12-23T17:04:13.5101243Z     "parts": [
-2025-12-23T17:04:13.5101690Z       {
-2025-12-23T17:04:13.5101965Z         "path": "notebook-content.py",
-2025-12-23T17:04:13.5102254Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:13.5102525Z         "payload_length": 688
-2025-12-23T17:04:13.5102771Z       }
-2025-12-23T17:04:13.5103000Z     ]
-2025-12-23T17:04:13.5103212Z   }
-2025-12-23T17:04:13.5103439Z }
-2025-12-23T17:04:13.5104634Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/bdfac507-bede-453f-b008-faf5c7733c4e/updateDefinition
-2025-12-23T17:04:13.5105257Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:13.5105525Z   "definition": {
-2025-12-23T17:04:13.5105985Z     "parts": [
-2025-12-23T17:04:13.5106197Z       {
-2025-12-23T17:04:13.5106430Z         "path": "notebook-content.py",
-2025-12-23T17:04:13.5106691Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:13.5106943Z         "payload_length": 688
-2025-12-23T17:04:13.5107162Z       }
-2025-12-23T17:04:13.5107381Z     ]
-2025-12-23T17:04:13.5107598Z   }
-2025-12-23T17:04:13.5107817Z }
-2025-12-23T17:04:13.8787757Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/6bdf507d-3bad-4372-aa76-059b766a3854
-2025-12-23T17:04:13.8789326Z INFO:fabric_client:  LRO Operation ID: 6bdf507d-3bad-4372-aa76-059b766a3854
-2025-12-23T17:04:13.8789633Z INFO:fabric_client:  Retry-After: 20 seconds
-2025-12-23T17:04:13.8796556Z INFO:__main__:  ✓ Updated notebook 'NBT2' (ID: bdfac507-bede-453f-b008-faf5c7733c4e)
-2025-12-23T17:04:13.8798900Z INFO:__main__:✅ Successfully deployed: NBT2
-2025-12-23T17:04:13.8799229Z INFO:__main__:
-2025-12-23T17:04:13.8799517Z Deploying: Notebook 6 (Notebook)
-2025-12-23T17:04:13.8805990Z INFO:fabric_client:Listing notebooks in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2025-12-23T17:04:14.0757270Z INFO:__main__:  Notebook 'Notebook 6' already exists, updating...
-2025-12-23T17:04:14.0757773Z INFO:fabric_client:Updating notebook: 5170de53-5b8a-412f-986d-f14baa928878
-2025-12-23T17:04:14.0760580Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/5170de53-5b8a-412f-986d-f14baa928878/updateDefinition
-2025-12-23T17:04:14.0762359Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:14.0763549Z   "definition": {
-2025-12-23T17:04:14.0763806Z     "parts": [
-2025-12-23T17:04:14.0764037Z       {
-2025-12-23T17:04:14.0764287Z         "path": "notebook-content.py",
-2025-12-23T17:04:14.0764564Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:14.0764830Z         "payload_length": 844
-2025-12-23T17:04:14.0765068Z       }
-2025-12-23T17:04:14.0765305Z     ]
-2025-12-23T17:04:14.0765524Z   }
-2025-12-23T17:04:14.0765743Z }
-2025-12-23T17:04:14.0766176Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/notebooks/5170de53-5b8a-412f-986d-f14baa928878/updateDefinition
-2025-12-23T17:04:14.0766648Z INFO:fabric_client:Payload structure: {
-2025-12-23T17:04:14.0766931Z   "definition": {
-2025-12-23T17:04:14.0767169Z     "parts": [
-2025-12-23T17:04:14.0767398Z       {
-2025-12-23T17:04:14.0767650Z         "path": "notebook-content.py",
-2025-12-23T17:04:14.0767925Z         "payloadType": "InlineBase64",
-2025-12-23T17:04:14.0768191Z         "payload_length": 844
-2025-12-23T17:04:14.0768427Z       }
-2025-12-23T17:04:14.0768645Z     ]
-2025-12-23T17:04:14.0768866Z   }
-2025-12-23T17:04:14.0769083Z }
-2025-12-23T17:04:14.6002103Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/75c24d5d-09d5-4d3a-bb4b-081c5ae33699
-2025-12-23T17:04:14.6003684Z INFO:fabric_client:  LRO Operation ID: 75c24d5d-09d5-4d3a-bb4b-081c5ae33699
-2025-12-23T17:04:14.6004021Z INFO:fabric_client:  Retry-After: 20 seconds
-2025-12-23T17:04:14.6010616Z INFO:__main__:  ✓ Updated notebook 'Notebook 6' (ID: 5170de53-5b8a-412f-986d-f14baa928878)
-2025-12-23T17:04:14.6013177Z INFO:__main__:✅ Successfully deployed: Notebook 6
-2025-12-23T17:04:14.6013490Z INFO:__main__:
-2025-12-23T17:04:14.6013780Z ============================================================
-2025-12-23T17:04:14.6014093Z INFO:__main__:DEPLOYMENT SUMMARY
-2025-12-23T17:04:14.6014408Z INFO:__main__:============================================================
-2025-12-23T17:04:14.6014704Z INFO:__main__:Total artifacts: 9
-2025-12-23T17:04:14.6014965Z INFO:__main__:Successful: 8
-2025-12-23T17:04:14.6015207Z INFO:__main__:Failed: 1
-2025-12-23T17:04:14.6015499Z INFO:__main__:============================================================
-2025-12-23T17:04:14.6322555Z 
-2025-12-23T17:04:14.6363329Z ##[error]Bash exited with code '1'.
-2025-12-23T17:04:14.6385688Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2025-12-23T17:44:21.0087047Z ##[section]Starting: Deploy to Production Workspace (Change Detection Enabled)
+2025-12-23T17:44:21.0094884Z ==============================================================================
+2025-12-23T17:44:21.0094994Z Task         : Command line
+2025-12-23T17:44:21.0095060Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2025-12-23T17:44:21.0095149Z Version      : 2.250.1
+2025-12-23T17:44:21.0095214Z Author       : Microsoft Corporation
+2025-12-23T17:44:21.0095285Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2025-12-23T17:44:21.0095379Z ==============================================================================
+2025-12-23T17:44:21.2369636Z Generating script.
+2025-12-23T17:44:21.2379299Z ========================== Starting Command Output ===========================
+2025-12-23T17:44:21.2395407Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/81c0fa24-daa6-4269-9042-a5e21015e52f.sh
+2025-12-23T17:44:21.2452704Z ========================================
+2025-12-23T17:44:21.2456269Z Deploying to Production Environment
+2025-12-23T17:44:21.2457224Z ========================================
+2025-12-23T17:44:21.2457771Z Features:
+2025-12-23T17:44:21.2458357Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2025-12-23T17:44:21.2458748Z   📊 Dependency-aware deployment ordering
+2025-12-23T17:44:21.2459321Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2025-12-23T17:44:21.2459457Z 
+2025-12-23T17:44:21.2459689Z Deployment steps:
+2025-12-23T17:44:21.2459944Z   1. Create artifacts from config file
+2025-12-23T17:44:21.2460234Z   2. Detect changed artifacts using Git diff
+2025-12-23T17:44:21.2460552Z   3. Deploy only changed artifacts (use --force-all to override)
+2025-12-23T17:44:21.2460859Z ========================================
+2025-12-23T17:44:21.5340112Z INFO:__main__:Initializing deployment to prod environment
+2025-12-23T17:44:21.5345244Z INFO:config_manager:Loading configuration from: config/prod.json
+2025-12-23T17:44:21.5345857Z INFO:__main__:Using environment-specific service principal for prod
+2025-12-23T17:44:21.5347347Z INFO:fabric_auth:Using environment-specific secret from: AZURE_CLIENT_SECRET_PROD
+2025-12-23T17:44:21.5347742Z INFO:__main__:Using artifacts root folder: wsartifacts
+2025-12-23T17:44:21.5348136Z INFO:fabric_auth:Using Service Principal authentication (Client ID: ec81f59c-d725-449d-8b8a-922a926457ed)
+2025-12-23T17:44:21.5357838Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/v2.0/.well-known/openid-configuration'
+2025-12-23T17:44:21.5358556Z Request method: 'GET'
+2025-12-23T17:44:21.5359245Z Request headers:
+2025-12-23T17:44:21.5359963Z     'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
+2025-12-23T17:44:21.5360648Z No body was attached to the request
+2025-12-23T17:44:21.6612507Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
+2025-12-23T17:44:21.6617141Z Response headers:
+2025-12-23T17:44:21.6622033Z     'Cache-Control': 'max-age=86400, private'
+2025-12-23T17:44:21.6622798Z     'Content-Type': 'application/json; charset=utf-8'
+2025-12-23T17:44:21.6626764Z     'Strict-Transport-Security': 'REDACTED'
+2025-12-23T17:44:21.6627433Z     'X-Content-Type-Options': 'REDACTED'
+2025-12-23T17:44:21.6630182Z     'Access-Control-Allow-Origin': 'REDACTED'
+2025-12-23T17:44:21.6639561Z     'Access-Control-Allow-Methods': 'REDACTED'
+2025-12-23T17:44:21.6640004Z     'P3P': 'REDACTED'
+2025-12-23T17:44:21.6640481Z     'x-ms-request-id': 'b586428c-b095-4d9d-a152-7301a037de00'
+2025-12-23T17:44:21.6641175Z     'x-ms-ests-server': 'REDACTED'
+2025-12-23T17:44:21.6641655Z     'x-ms-srs': 'REDACTED'
+2025-12-23T17:44:21.6642121Z     'Content-Security-Policy-Report-Only': 'REDACTED'
+2025-12-23T17:44:21.6642629Z     'X-XSS-Protection': 'REDACTED'
+2025-12-23T17:44:21.6643100Z     'Set-Cookie': 'REDACTED'
+2025-12-23T17:44:21.6643946Z     'Date': 'Tue, 23 Dec 2025 17:44:20 GMT'
+2025-12-23T17:44:21.6644479Z     'Content-Length': '1964'
+2025-12-23T17:44:21.6701028Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
+2025-12-23T17:44:21.6701750Z Request method: 'POST'
+2025-12-23T17:44:21.6702265Z Request headers:
+2025-12-23T17:44:21.6702750Z     'Accept': 'application/json'
+2025-12-23T17:44:21.6703279Z     'x-client-sku': 'REDACTED'
+2025-12-23T17:44:21.6703877Z     'x-client-ver': 'REDACTED'
+2025-12-23T17:44:21.6704331Z     'x-client-os': 'REDACTED'
+2025-12-23T17:44:21.6704785Z     'x-ms-lib-capability': 'REDACTED'
+2025-12-23T17:44:21.6705269Z     'client-request-id': 'REDACTED'
+2025-12-23T17:44:21.6705908Z     'x-client-current-telemetry': 'REDACTED'
+2025-12-23T17:44:21.6706454Z     'x-client-last-telemetry': 'REDACTED'
+2025-12-23T17:44:21.6707171Z     'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
+2025-12-23T17:44:21.6708224Z A body is sent with the request
+2025-12-23T17:44:21.7464441Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
+2025-12-23T17:44:21.7465222Z Response headers:
+2025-12-23T17:44:21.7465850Z     'Cache-Control': 'no-store, no-cache'
+2025-12-23T17:44:21.7466392Z     'Pragma': 'no-cache'
+2025-12-23T17:44:21.7466932Z     'Content-Type': 'application/json; charset=utf-8'
+2025-12-23T17:44:21.7467454Z     'Expires': '-1'
+2025-12-23T17:44:21.7467995Z     'Strict-Transport-Security': 'REDACTED'
+2025-12-23T17:44:21.7468677Z     'X-Content-Type-Options': 'REDACTED'
+2025-12-23T17:44:21.7469889Z     'P3P': 'REDACTED'
+2025-12-23T17:44:21.7470552Z     'client-request-id': 'REDACTED'
+2025-12-23T17:44:21.7471121Z     'x-ms-request-id': '4ccae340-078e-47a5-aacd-e9993d15cb00'
+2025-12-23T17:44:21.7471661Z     'x-ms-ests-server': 'REDACTED'
+2025-12-23T17:44:21.7472181Z     'x-ms-clitelem': 'REDACTED'
+2025-12-23T17:44:21.7472867Z     'x-ms-srs': 'REDACTED'
+2025-12-23T17:44:21.7473429Z     'Content-Security-Policy-Report-Only': 'REDACTED'
+2025-12-23T17:44:21.7475179Z     'X-XSS-Protection': 'REDACTED'
+2025-12-23T17:44:21.7475480Z     'Set-Cookie': 'REDACTED'
+2025-12-23T17:44:21.7475788Z     'Date': 'Tue, 23 Dec 2025 17:44:20 GMT'
+2025-12-23T17:44:21.7476103Z     'Content-Length': '1665'
+2025-12-23T17:44:21.7493263Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
+2025-12-23T17:44:21.7510967Z INFO:fabric_auth:Successfully obtained access token
+2025-12-23T17:44:21.9484254Z INFO:fabric_auth:Authentication validation successful
+2025-12-23T17:44:21.9523086Z INFO:__main__:Target workspace: AAG-SIT-FWS-REPORTING-01 (68c48a5c-8b88-4559-962d-5dc7f29ab96a)
+2025-12-23T17:44:21.9523706Z INFO:__main__:Running in artifact creation mode
+2025-12-23T17:44:21.9524288Z INFO:__main__:============================================================
+2025-12-23T17:44:21.9525005Z INFO:__main__:Creating artifacts from configuration for prod
+2025-12-23T17:44:21.9525633Z INFO:__main__:============================================================
+2025-12-23T17:44:21.9526743Z INFO:__main__:No artifacts configured for creation
+2025-12-23T17:44:21.9527286Z INFO:__main__:Artifact creation completed successfully
+2025-12-23T17:44:21.9527647Z INFO:__main__:============================================================
+2025-12-23T17:44:21.9527973Z INFO:__main__:ARTIFACT DISCOVERY PHASE
+2025-12-23T17:44:21.9528319Z INFO:__main__:============================================================
+2025-12-23T17:44:21.9528700Z INFO:__main__:Discovering artifacts from file system...
+2025-12-23T17:44:21.9529454Z INFO:__main__:Discovered 1 lakehouse(s): ReportingLakehouse
+2025-12-23T17:44:21.9537934Z INFO:__main__:Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
+2025-12-23T17:44:21.9543549Z INFO:__main__:Discovered 1 Variable Library: ReportingVariables
+2025-12-23T17:44:21.9544405Z INFO:__main__:============================================================
+2025-12-23T17:44:21.9544932Z INFO:__main__:DISCOVERY COMPLETE: Found 9 total artifacts
+2025-12-23T17:44:21.9545453Z INFO:__main__:============================================================
+2025-12-23T17:44:21.9545855Z INFO:__main__:
+2025-12-23T17:44:21.9546180Z ============================================================
+2025-12-23T17:44:21.9546541Z INFO:__main__:CHANGE DETECTION
+2025-12-23T17:44:21.9546993Z INFO:__main__:============================================================
+2025-12-23T17:44:21.9693342Z WARNING:change_detector:Git not available, deploying all artifacts
+2025-12-23T17:44:21.9699143Z INFO:__main__:Deploying all discovered artifacts
+2025-12-23T17:44:21.9699751Z INFO:__main__:============================================================
+2025-12-23T17:44:21.9700346Z INFO:__main__:Starting deployment to prod environment
+2025-12-23T17:44:21.9700942Z INFO:__main__:============================================================
+2025-12-23T17:44:21.9702588Z INFO:dependency_resolver:✅ All dependencies are valid
+2025-12-23T17:44:21.9703158Z INFO:dependency_resolver:Deployment order determined:
+2025-12-23T17:44:21.9703526Z INFO:dependency_resolver:  1. ReportingVariables (VariableLibrary)
+2025-12-23T17:44:21.9703887Z INFO:dependency_resolver:  2. ReportingLakehouse (Lakehouse)
+2025-12-23T17:44:21.9704232Z INFO:dependency_resolver:  3. Notebook 5 (Notebook)
+2025-12-23T17:44:21.9704578Z INFO:dependency_resolver:  4. nb_sample_artifact_creation (Notebook)
+2025-12-23T17:44:21.9704930Z INFO:dependency_resolver:  5. Notebook 3 (Notebook)
+2025-12-23T17:44:21.9705259Z INFO:dependency_resolver:  6. NBT1 (Notebook)
+2025-12-23T17:44:21.9705594Z INFO:dependency_resolver:  7. Notebook 7 (Notebook)
+2025-12-23T17:44:21.9705918Z INFO:dependency_resolver:  8. NBT2 (Notebook)
+2025-12-23T17:44:21.9706236Z INFO:dependency_resolver:  9. Notebook 6 (Notebook)
+2025-12-23T17:44:21.9706544Z INFO:__main__:
+2025-12-23T17:44:21.9706837Z Deploying: ReportingVariables (VariableLibrary)
+2025-12-23T17:44:21.9709527Z INFO:__main__:  Reading variable library definition from folder: ReportingVariables.VariableLibrary/
+2025-12-23T17:44:21.9710813Z INFO:__main__:  Using .platform file (Git format v2)
+2025-12-23T17:44:21.9711177Z INFO:__main__:  Found valueSets folder - reading Git format structure
+2025-12-23T17:44:21.9711533Z INFO:__main__:  Reading variables.json...
+2025-12-23T17:44:21.9712038Z INFO:__main__:    ✓ Loaded 4 base variable definitions
+2025-12-23T17:44:21.9712369Z INFO:__main__:  Reading settings.json...
+2025-12-23T17:44:21.9712838Z INFO:__main__:    ✓ Loaded valueSetsOrder: ['dev', 'uat', 'prod']
+2025-12-23T17:44:21.9713193Z INFO:__main__:  Available value sets: uat.json, prod.json, dev.json
+2025-12-23T17:44:21.9713499Z INFO:__main__:  Reading value set: uat.json
+2025-12-23T17:44:21.9713905Z INFO:__main__:    ✓ Loaded 4 variable override(s) from 'uat' set
+2025-12-23T17:44:21.9714207Z INFO:__main__:  Reading value set: prod.json
+2025-12-23T17:44:21.9714612Z INFO:__main__:    ✓ Loaded 4 variable override(s) from 'prod' set
+2025-12-23T17:44:21.9714927Z INFO:__main__:  Reading value set: dev.json
+2025-12-23T17:44:21.9715319Z INFO:__main__:    ✓ Loaded 2 variable override(s) from 'dev' set
+2025-12-23T17:44:21.9715649Z INFO:__main__:  Total value sets to deploy: 3
+2025-12-23T17:44:21.9715950Z INFO:__main__:  Total base variables: 4
+2025-12-23T17:44:21.9719969Z INFO:__main__:  NOTE: All value sets will be deployed. You can switch between them in the Fabric UI.
+2025-12-23T17:44:21.9723243Z INFO:fabric_client:Listing Variable Libraries in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+2025-12-23T17:44:22.1494665Z INFO:__main__:  Variable Library 'ReportingVariables' already exists, updating...
+2025-12-23T17:44:22.1495595Z INFO:__main__:  Deploying base variables (4) + 3 value sets + settings...
+2025-12-23T17:44:22.1497331Z INFO:__main__:  DEBUG: variables.json content:
+2025-12-23T17:44:22.1498620Z {
+2025-12-23T17:44:22.1499527Z   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/variables/1.0.0/schema.json",
+2025-12-23T17:44:22.1499876Z   "variables": [
+2025-12-23T17:44:22.1500102Z     {
+2025-12-23T17:44:22.1500351Z       "name": "environment",
+2025-12-23T17:44:22.1500597Z       "note": "x",
+2025-12-23T17:44:22.1500835Z       "type": "String",
+2025-12-23T17:44:22.1501081Z       "value": "dev"
+2025-12-23T17:44:22.1501318Z     },
+2025-12-23T17:44:22.1501533Z     {
+2025-12-23T17:44:22.1501779Z       "name": "reporting_worskpace_id",
+2025-12-23T17:44:22.1502037Z       "note": "x",
+2025-12-23T17:44:22.1502280Z       "type": "String",
+2025-12-23T17:44:22.1502550Z       "value": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb64"
+2025-12-23T17:44:22.1502798Z     },
+2025-12-23T17:44:22.1503015Z     {
+2025-12-23T17:44:22.1503255Z       "name": "engineering_workspace_id",
+2025-12-23T17:44:22.1503505Z       "note": "x",
+2025-12-23T17:44:22.1503736Z       "type": "String",
+2025-12-23T17:44:22.1504031Z       "value": "73079d7b-e1ff-4b80-8cc8-47e9c153d414"
+2025-12-23T17:44:22.1504294Z     },
+2025-12-23T17:44:22.1504686Z     {
+2025-12-23T17:44:22.1504933Z       "name": "gold_lakehouse",
+2025-12-23T17:44:22.1505188Z       "note": "x",
+2025-12-23T17:44:22.1505436Z       "type": "String",
+2025-12-23T17:44:22.1505716Z       "value": "a5324796-c240-448e-97cf-e944179b90eb"
+2025-12-23T17:44:22.1505979Z     }
+2025-12-23T17:44:22.1506201Z   ]
+2025-12-23T17:44:22.1506420Z }
+2025-12-23T17:44:22.1508703Z INFO:__main__:  DEBUG: valueSets/uat.json content:
+2025-12-23T17:44:22.1509515Z {
+2025-12-23T17:44:22.1509873Z   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
+2025-12-23T17:44:22.1510200Z   "name": "uat",
+2025-12-23T17:44:22.1510441Z   "variableOverrides": [
+2025-12-23T17:44:22.1510667Z     {
+2025-12-23T17:44:22.1510897Z       "name": "environment",
+2025-12-23T17:44:22.1511131Z       "value": "uat"
+2025-12-23T17:44:22.1511354Z     },
+2025-12-23T17:44:22.1511562Z     {
+2025-12-23T17:44:22.1511798Z       "name": "reporting_worskpace_id",
+2025-12-23T17:44:22.1512087Z       "value": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb6x"
+2025-12-23T17:44:22.1512329Z     },
+2025-12-23T17:44:22.1512564Z     {
+2025-12-23T17:44:22.1512801Z       "name": "engineering_workspace_id",
+2025-12-23T17:44:22.1513079Z       "value": "73079d7b-e1ff-4b80-8cc8-47e9c153d41x"
+2025-12-23T17:44:22.1513324Z     },
+2025-12-23T17:44:22.1513526Z     {
+2025-12-23T17:44:22.1513752Z       "name": "gold_lakehouse",
+2025-12-23T17:44:22.1514026Z       "value": "a5324796-c240-448e-97cf-e944179b90exx"
+2025-12-23T17:44:22.1514269Z     }
+2025-12-23T17:44:22.1514475Z   ]
+2025-12-23T17:44:22.1514681Z }
+2025-12-23T17:44:22.1514942Z INFO:__main__:  DEBUG: valueSets/prod.json content:
+2025-12-23T17:44:22.1515196Z {
+2025-12-23T17:44:22.1515509Z   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
+2025-12-23T17:44:22.1515830Z   "name": "prod",
+2025-12-23T17:44:22.1516063Z   "variableOverrides": [
+2025-12-23T17:44:22.1516302Z     {
+2025-12-23T17:44:22.1516540Z       "name": "environment",
+2025-12-23T17:44:22.1516791Z       "value": "prod"
+2025-12-23T17:44:22.1517021Z     },
+2025-12-23T17:44:22.1517244Z     {
+2025-12-23T17:44:22.1517499Z       "name": "reporting_worskpace_id",
+2025-12-23T17:44:22.1517800Z       "value": "68c48a5c-8b88-4559-962d-5dc7f29ab96a"
+2025-12-23T17:44:22.1518114Z     },
+2025-12-23T17:44:22.1518332Z     {
+2025-12-23T17:44:22.1518588Z       "name": "engineering_workspace_id",
+2025-12-23T17:44:22.1519078Z       "value": "9fb8885f-d2af-4605-a451-24d7a6253172"
+2025-12-23T17:44:22.1519342Z     },
+2025-12-23T17:44:22.1519561Z     {
+2025-12-23T17:44:22.1519803Z       "name": "gold_lakehouse",
+2025-12-23T17:44:22.1520089Z       "value": "76bf3aeb-c0f0-4ce7-b7b3-578178e0c2e4"
+2025-12-23T17:44:22.1520348Z     }
+2025-12-23T17:44:22.1520567Z   ]
+2025-12-23T17:44:22.1520783Z }
+2025-12-23T17:44:22.1521058Z INFO:__main__:  DEBUG: valueSets/dev.json content:
+2025-12-23T17:44:22.1521498Z {
+2025-12-23T17:44:22.1521841Z   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
+2025-12-23T17:44:22.1522190Z   "name": "dev",
+2025-12-23T17:44:22.1522455Z   "variableOverrides": [
+2025-12-23T17:44:22.1522693Z     {
+2025-12-23T17:44:22.1522945Z       "name": "reporting_worskpace_id",
+2025-12-23T17:44:22.1523237Z       "value": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb64"
+2025-12-23T17:44:22.1523498Z     },
+2025-12-23T17:44:22.1523716Z     {
+2025-12-23T17:44:22.1523971Z       "name": "engineering_workspace_id",
+2025-12-23T17:44:22.1524268Z       "value": "73079d7b-e1ff-4b80-8cc8-47e9c153d414"
+2025-12-23T17:44:22.1524526Z     }
+2025-12-23T17:44:22.1524743Z   ]
+2025-12-23T17:44:22.1524961Z }
+2025-12-23T17:44:22.1525230Z INFO:__main__:  DEBUG: settings.json content:
+2025-12-23T17:44:22.1525493Z {
+2025-12-23T17:44:22.1525832Z   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/settings/1.0.0/schema.json",
+2025-12-23T17:44:22.1526189Z   "valueSetsOrder": [
+2025-12-23T17:44:22.1526543Z     "dev",
+2025-12-23T17:44:22.1526773Z     "uat",
+2025-12-23T17:44:22.1527004Z     "prod"
+2025-12-23T17:44:22.1527225Z   ]
+2025-12-23T17:44:22.1527444Z }
+2025-12-23T17:44:22.1527707Z INFO:__main__:  DEBUG: Payload has 5 part(s)
+2025-12-23T17:44:22.1528068Z INFO:fabric_client:Updating Variable Library definition: a48ff49a-7c27-41b6-880e-f6cb02aa5bba
+2025-12-23T17:44:22.1528586Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/VariableLibraries/a48ff49a-7c27-41b6-880e-f6cb02aa5bba/updateDefinition
+2025-12-23T17:44:22.1529213Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:22.1529504Z   "definition": {
+2025-12-23T17:44:22.1529737Z     "parts": [
+2025-12-23T17:44:22.1529946Z       {
+2025-12-23T17:44:22.1530187Z         "path": "variables.json",
+2025-12-23T17:44:22.1530463Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:22.1530726Z         "payload_length": 936
+2025-12-23T17:44:22.1530969Z       },
+2025-12-23T17:44:22.1531180Z       {
+2025-12-23T17:44:22.1531426Z         "path": "valueSets/uat.json",
+2025-12-23T17:44:22.1531694Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:22.1531951Z         "payload_length": 740
+2025-12-23T17:44:22.1532165Z       },
+2025-12-23T17:44:22.1532374Z       {
+2025-12-23T17:44:22.1532595Z         "path": "valueSets/prod.json",
+2025-12-23T17:44:22.1532833Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:22.1533072Z         "payload_length": 740
+2025-12-23T17:44:22.1533281Z       },
+2025-12-23T17:44:22.1533481Z       {
+2025-12-23T17:44:22.1533711Z         "path": "valueSets/dev.json",
+2025-12-23T17:44:22.1533941Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:22.1534168Z         "payload_length": 524
+2025-12-23T17:44:22.1534373Z       },
+2025-12-23T17:44:22.1534573Z       {
+2025-12-23T17:44:22.1534796Z         "path": "settings.json",
+2025-12-23T17:44:22.1535048Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:22.1535302Z         "payload_length": 252
+2025-12-23T17:44:22.1535523Z       }
+2025-12-23T17:44:22.1535734Z     ],
+2025-12-23T17:44:22.1535972Z     "format": "VariableLibraryV1"
+2025-12-23T17:44:22.1536205Z   }
+2025-12-23T17:44:22.1536412Z }
+2025-12-23T17:44:23.0402137Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/5e74ee58-452c-4474-b501-2e3ae504488d
+2025-12-23T17:44:23.0404504Z INFO:fabric_client:  LRO Operation ID: 5e74ee58-452c-4474-b501-2e3ae504488d
+2025-12-23T17:44:23.0404832Z INFO:fabric_client:  Retry-After: 20 seconds
+2025-12-23T17:44:23.0410771Z INFO:__main__:  DEBUG: API response: {
+2025-12-23T17:44:23.0412286Z   "status": "success",
+2025-12-23T17:44:23.0412710Z   "status_code": 202,
+2025-12-23T17:44:23.0413060Z   "location": "https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/5e74ee58-452c-4474-b501-2e3ae504488d",
+2025-12-23T17:44:23.0413725Z   "operation_id": "5e74ee58-452c-4474-b501-2e3ae504488d",
+2025-12-23T17:44:23.0414026Z   "retry_after": 20
+2025-12-23T17:44:23.0414257Z }
+2025-12-23T17:44:23.0415507Z INFO:__main__:  ✓ Updated Variable Library definition for 'ReportingVariables'
+2025-12-23T17:44:23.0415855Z INFO:__main__:  Waiting for definition update to complete...
+2025-12-23T17:44:23.0416216Z INFO:fabric_client:  Polling operation 5e74ee58-452c-4474-b501-2e3ae504488d (retry every 20s, max 12 attempts)
+2025-12-23T17:44:43.3166435Z INFO:fabric_client:    Attempt 1/12: Succeeded (100% complete)
+2025-12-23T17:44:43.3168273Z INFO:fabric_client:  ✓ Operation completed successfully
+2025-12-23T17:44:43.4590653Z INFO:__main__:  Setting active value set to 'prod'...
+2025-12-23T17:44:43.4591096Z INFO:fabric_client:Setting active value set to 'prod' for Variable Library: a48ff49a-7c27-41b6-880e-f6cb02aa5bba
+2025-12-23T17:44:44.0521028Z INFO:__main__:  ✓ Set active value set to 'prod' for Variable Library 'ReportingVariables'
+2025-12-23T17:44:44.0522242Z INFO:__main__:✅ Successfully deployed: ReportingVariables
+2025-12-23T17:44:44.0523339Z INFO:__main__:
+2025-12-23T17:44:44.0523968Z Deploying: ReportingLakehouse (Lakehouse)
+2025-12-23T17:44:44.0531545Z INFO:__main__:  Reading lakehouse definition from Fabric Git folder (v2): ReportingLakehouse.Lakehouse/
+2025-12-23T17:44:44.0537085Z INFO:__main__:  Using .platform file (Git format v2)
+2025-12-23T17:44:44.0537442Z INFO:__main__:  Reading shortcuts from: shortcuts.metadata.json
+2025-12-23T17:44:44.0537789Z INFO:__main__:  Found 2 shortcut(s) in metadata file
+2025-12-23T17:44:44.0538357Z INFO:fabric_client:Listing lakehouses in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+2025-12-23T17:44:44.4704070Z INFO:__main__:  Lakehouse 'ReportingLakehouse' already exists (ID: 0c353b8f-0a49-4137-88a3-7a73557a452d)
+2025-12-23T17:44:44.4705276Z INFO:__main__:  Processing 2 shortcut(s) for lakehouse 'ReportingLakehouse'...
+2025-12-23T17:44:44.4706668Z INFO:fabric_client:Listing shortcuts in lakehouse: 0c353b8f-0a49-4137-88a3-7a73557a452d, path: /Tables/dbo
+2025-12-23T17:44:44.5935099Z ERROR:fabric_client:HTTP Error: 404 - {"requestId":"e9a24652-cd4c-4977-aea7-c6017b3cf3bd","errorCode":"EntityNotFound","message":"The requested resource could not be found"}
+2025-12-23T17:44:44.5937091Z ERROR:__main__:    ❌ Failed to create shortcut 'aggregated_odessa_dim_asset': 404 Client Error: Not Found for url: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/lakehouses/0c353b8f-0a49-4137-88a3-7a73557a452d/shortcuts?path=%2FTables%2Fdbo
+2025-12-23T17:44:44.5945753Z INFO:fabric_client:Listing shortcuts in lakehouse: 0c353b8f-0a49-4137-88a3-7a73557a452d, path: /Tables/dbo
+2025-12-23T17:44:44.7251860Z ERROR:fabric_client:HTTP Error: 404 - {"requestId":"df203cb9-9809-4c07-8d87-0d852d6fc5ce","errorCode":"EntityNotFound","message":"The requested resource could not be found"}
+2025-12-23T17:44:44.7255258Z ERROR:__main__:    ❌ Failed to create shortcut 'aggregated_odessa_dim_additional_charge': 404 Client Error: Not Found for url: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/lakehouses/0c353b8f-0a49-4137-88a3-7a73557a452d/shortcuts?path=%2FTables%2Fdbo
+2025-12-23T17:44:44.7263036Z INFO:__main__:✅ Successfully deployed: ReportingLakehouse
+2025-12-23T17:44:44.7265782Z INFO:__main__:
+2025-12-23T17:44:44.7266072Z Deploying: Notebook 5 (Notebook)
+2025-12-23T17:44:44.7269925Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+2025-12-23T17:44:44.9277156Z INFO:__main__:  Notebook 'Notebook 5' already exists, updating...
+2025-12-23T17:44:44.9299362Z INFO:fabric_client:Updating notebook: dd8ac7f1-28ec-418e-8296-26d288ebe841
+2025-12-23T17:44:44.9299893Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/dd8ac7f1-28ec-418e-8296-26d288ebe841/updateDefinition
+2025-12-23T17:44:44.9301042Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:44.9305597Z   "definition": {
+2025-12-23T17:44:44.9305839Z     "parts": [
+2025-12-23T17:44:44.9306071Z       {
+2025-12-23T17:44:44.9306325Z         "path": "notebook-content.py",
+2025-12-23T17:44:44.9306632Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:44.9306892Z         "payload_length": 840
+2025-12-23T17:44:44.9307125Z       }
+2025-12-23T17:44:44.9307341Z     ]
+2025-12-23T17:44:44.9307553Z   }
+2025-12-23T17:44:44.9307771Z }
+2025-12-23T17:44:44.9308191Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/dd8ac7f1-28ec-418e-8296-26d288ebe841/updateDefinition
+2025-12-23T17:44:44.9308644Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:44.9309119Z   "definition": {
+2025-12-23T17:44:44.9309358Z     "parts": [
+2025-12-23T17:44:44.9309576Z       {
+2025-12-23T17:44:44.9309816Z         "path": "notebook-content.py",
+2025-12-23T17:44:44.9310081Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:44.9310347Z         "payload_length": 840
+2025-12-23T17:44:44.9310576Z       }
+2025-12-23T17:44:44.9310925Z     ]
+2025-12-23T17:44:44.9311139Z   }
+2025-12-23T17:44:44.9311356Z }
+2025-12-23T17:44:45.4358472Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/67748eec-846d-4393-93be-4ef9d91dd775
+2025-12-23T17:44:45.4360844Z INFO:fabric_client:  LRO Operation ID: 67748eec-846d-4393-93be-4ef9d91dd775
+2025-12-23T17:44:45.4361168Z INFO:fabric_client:  Retry-After: 20 seconds
+2025-12-23T17:44:45.4367680Z INFO:__main__:  ✓ Updated notebook 'Notebook 5' (ID: dd8ac7f1-28ec-418e-8296-26d288ebe841)
+2025-12-23T17:44:45.4369765Z INFO:__main__:✅ Successfully deployed: Notebook 5
+2025-12-23T17:44:45.4370410Z INFO:__main__:
+2025-12-23T17:44:45.4371006Z Deploying: nb_sample_artifact_creation (Notebook)
+2025-12-23T17:44:45.4378398Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+2025-12-23T17:44:45.6014197Z INFO:__main__:  Notebook 'nb_sample_artifact_creation' already exists, updating...
+2025-12-23T17:44:45.6015082Z INFO:fabric_client:Updating notebook: 261e4c6e-4353-48de-ba65-486d9ca45764
+2025-12-23T17:44:45.6016517Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/261e4c6e-4353-48de-ba65-486d9ca45764/updateDefinition
+2025-12-23T17:44:45.6017357Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:45.6017891Z   "definition": {
+2025-12-23T17:44:45.6018402Z     "parts": [
+2025-12-23T17:44:45.6020269Z       {
+2025-12-23T17:44:45.6020783Z         "path": "notebook-content.py",
+2025-12-23T17:44:45.6021265Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:45.6021719Z         "payload_length": 8472
+2025-12-23T17:44:45.6023907Z       }
+2025-12-23T17:44:45.6024143Z     ]
+2025-12-23T17:44:45.6024365Z   }
+2025-12-23T17:44:45.6024584Z }
+2025-12-23T17:44:45.6025020Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/261e4c6e-4353-48de-ba65-486d9ca45764/updateDefinition
+2025-12-23T17:44:45.6025497Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:45.6025780Z   "definition": {
+2025-12-23T17:44:45.6026025Z     "parts": [
+2025-12-23T17:44:45.6026253Z       {
+2025-12-23T17:44:45.6026501Z         "path": "notebook-content.py",
+2025-12-23T17:44:45.6026782Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:45.6027052Z         "payload_length": 8472
+2025-12-23T17:44:45.6027294Z       }
+2025-12-23T17:44:45.6027512Z     ]
+2025-12-23T17:44:45.6027731Z   }
+2025-12-23T17:44:45.6027947Z }
+2025-12-23T17:44:46.0095645Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/02925d3c-e4a5-42aa-b0bf-4af80606fc2e
+2025-12-23T17:44:46.0098021Z INFO:fabric_client:  LRO Operation ID: 02925d3c-e4a5-42aa-b0bf-4af80606fc2e
+2025-12-23T17:44:46.0098334Z INFO:fabric_client:  Retry-After: 20 seconds
+2025-12-23T17:44:46.0105372Z INFO:__main__:  ✓ Updated notebook 'nb_sample_artifact_creation' (ID: 261e4c6e-4353-48de-ba65-486d9ca45764)
+2025-12-23T17:44:46.0107557Z INFO:__main__:✅ Successfully deployed: nb_sample_artifact_creation
+2025-12-23T17:44:46.0108195Z INFO:__main__:
+2025-12-23T17:44:46.0108705Z Deploying: Notebook 3 (Notebook)
+2025-12-23T17:44:46.0115791Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+2025-12-23T17:44:46.1907445Z INFO:__main__:  Notebook 'Notebook 3' already exists, updating...
+2025-12-23T17:44:46.1909011Z INFO:fabric_client:Updating notebook: e1951542-6f5b-49fc-801b-8fd3ef75be58
+2025-12-23T17:44:46.1912048Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/e1951542-6f5b-49fc-801b-8fd3ef75be58/updateDefinition
+2025-12-23T17:44:46.1914177Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:46.1914600Z   "definition": {
+2025-12-23T17:44:46.1914845Z     "parts": [
+2025-12-23T17:44:46.1915079Z       {
+2025-12-23T17:44:46.1915294Z         "path": "notebook-content.py",
+2025-12-23T17:44:46.1915854Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:46.1916100Z         "payload_length": 820
+2025-12-23T17:44:46.1916305Z       }
+2025-12-23T17:44:46.1916513Z     ]
+2025-12-23T17:44:46.1916723Z   }
+2025-12-23T17:44:46.1916929Z }
+2025-12-23T17:44:46.1917364Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/e1951542-6f5b-49fc-801b-8fd3ef75be58/updateDefinition
+2025-12-23T17:44:46.1917797Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:46.1918058Z   "definition": {
+2025-12-23T17:44:46.1918283Z     "parts": [
+2025-12-23T17:44:46.1918492Z       {
+2025-12-23T17:44:46.1918723Z         "path": "notebook-content.py",
+2025-12-23T17:44:46.1919186Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:46.1919419Z         "payload_length": 820
+2025-12-23T17:44:46.1919649Z       }
+2025-12-23T17:44:46.1919859Z     ]
+2025-12-23T17:44:46.1920058Z   }
+2025-12-23T17:44:46.1920259Z }
+2025-12-23T17:44:46.5742463Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/2806cd2c-e77f-4a72-b047-2ee4e580417b
+2025-12-23T17:44:46.5743330Z INFO:fabric_client:  LRO Operation ID: 2806cd2c-e77f-4a72-b047-2ee4e580417b
+2025-12-23T17:44:46.5743956Z INFO:fabric_client:  Retry-After: 20 seconds
+2025-12-23T17:44:46.5752551Z INFO:__main__:  ✓ Updated notebook 'Notebook 3' (ID: e1951542-6f5b-49fc-801b-8fd3ef75be58)
+2025-12-23T17:44:46.5754246Z INFO:__main__:✅ Successfully deployed: Notebook 3
+2025-12-23T17:44:46.5754946Z INFO:__main__:
+2025-12-23T17:44:46.5755487Z Deploying: NBT1 (Notebook)
+2025-12-23T17:44:46.5764299Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+2025-12-23T17:44:46.7737717Z INFO:__main__:  Notebook 'NBT1' already exists, updating...
+2025-12-23T17:44:46.7738560Z INFO:fabric_client:Updating notebook: 1c204970-73fd-4255-a8e5-2bc8872c57d0
+2025-12-23T17:44:46.7744636Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/1c204970-73fd-4255-a8e5-2bc8872c57d0/updateDefinition
+2025-12-23T17:44:46.7745126Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:46.7745400Z   "definition": {
+2025-12-23T17:44:46.7745641Z     "parts": [
+2025-12-23T17:44:46.7745865Z       {
+2025-12-23T17:44:46.7746117Z         "path": "notebook-content.py",
+2025-12-23T17:44:46.7746382Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:46.7746651Z         "payload_length": 688
+2025-12-23T17:44:46.7746889Z       }
+2025-12-23T17:44:46.7747115Z     ]
+2025-12-23T17:44:46.7747334Z   }
+2025-12-23T17:44:46.7747556Z }
+2025-12-23T17:44:46.7747984Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/1c204970-73fd-4255-a8e5-2bc8872c57d0/updateDefinition
+2025-12-23T17:44:46.7748954Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:46.7749259Z   "definition": {
+2025-12-23T17:44:46.7749505Z     "parts": [
+2025-12-23T17:44:46.7749732Z       {
+2025-12-23T17:44:46.7749983Z         "path": "notebook-content.py",
+2025-12-23T17:44:46.7750258Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:46.7750530Z         "payload_length": 688
+2025-12-23T17:44:46.7750773Z       }
+2025-12-23T17:44:46.7750990Z     ]
+2025-12-23T17:44:46.7751209Z   }
+2025-12-23T17:44:46.7751428Z }
+2025-12-23T17:44:47.1677136Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/5d6af322-70a9-4963-905f-be76bd0e405c
+2025-12-23T17:44:47.1679526Z INFO:fabric_client:  LRO Operation ID: 5d6af322-70a9-4963-905f-be76bd0e405c
+2025-12-23T17:44:47.1679855Z INFO:fabric_client:  Retry-After: 20 seconds
+2025-12-23T17:44:47.1687078Z INFO:__main__:  ✓ Updated notebook 'NBT1' (ID: 1c204970-73fd-4255-a8e5-2bc8872c57d0)
+2025-12-23T17:44:47.1689269Z INFO:__main__:✅ Successfully deployed: NBT1
+2025-12-23T17:44:47.1689935Z INFO:__main__:
+2025-12-23T17:44:47.1690924Z Deploying: Notebook 7 (Notebook)
+2025-12-23T17:44:47.1701117Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+2025-12-23T17:44:47.3558517Z INFO:__main__:  Notebook 'Notebook 7' already exists, updating...
+2025-12-23T17:44:47.3561367Z INFO:fabric_client:Updating notebook: 34e9ccb8-fbbe-4802-9910-c96f5d9d736b
+2025-12-23T17:44:47.3562314Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/34e9ccb8-fbbe-4802-9910-c96f5d9d736b/updateDefinition
+2025-12-23T17:44:47.3563625Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:47.3564109Z   "definition": {
+2025-12-23T17:44:47.3565808Z     "parts": [
+2025-12-23T17:44:47.3566046Z       {
+2025-12-23T17:44:47.3566302Z         "path": "notebook-content.py",
+2025-12-23T17:44:47.3566578Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:47.3566875Z         "payload_length": 844
+2025-12-23T17:44:47.3567114Z       }
+2025-12-23T17:44:47.3567351Z     ]
+2025-12-23T17:44:47.3567573Z   }
+2025-12-23T17:44:47.3567793Z }
+2025-12-23T17:44:47.3568222Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/34e9ccb8-fbbe-4802-9910-c96f5d9d736b/updateDefinition
+2025-12-23T17:44:47.3568693Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:47.3569168Z   "definition": {
+2025-12-23T17:44:47.3569408Z     "parts": [
+2025-12-23T17:44:47.3569633Z       {
+2025-12-23T17:44:47.3569884Z         "path": "notebook-content.py",
+2025-12-23T17:44:47.3570162Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:47.3570429Z         "payload_length": 844
+2025-12-23T17:44:47.3570667Z       }
+2025-12-23T17:44:47.3570889Z     ]
+2025-12-23T17:44:47.3571107Z   }
+2025-12-23T17:44:47.3571325Z }
+2025-12-23T17:44:47.8062953Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/2f35e993-cb1b-4934-906c-77193616f5e1
+2025-12-23T17:44:47.8064333Z INFO:fabric_client:  LRO Operation ID: 2f35e993-cb1b-4934-906c-77193616f5e1
+2025-12-23T17:44:47.8064649Z INFO:fabric_client:  Retry-After: 20 seconds
+2025-12-23T17:44:47.8071909Z INFO:__main__:  ✓ Updated notebook 'Notebook 7' (ID: 34e9ccb8-fbbe-4802-9910-c96f5d9d736b)
+2025-12-23T17:44:47.8074272Z INFO:__main__:✅ Successfully deployed: Notebook 7
+2025-12-23T17:44:47.8074584Z INFO:__main__:
+2025-12-23T17:44:47.8074846Z Deploying: NBT2 (Notebook)
+2025-12-23T17:44:47.8081048Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+2025-12-23T17:44:47.9823863Z INFO:__main__:  Notebook 'NBT2' already exists, updating...
+2025-12-23T17:44:47.9825201Z INFO:fabric_client:Updating notebook: 7b98be9e-386c-4195-894a-fa92d8477ac1
+2025-12-23T17:44:47.9827322Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/7b98be9e-386c-4195-894a-fa92d8477ac1/updateDefinition
+2025-12-23T17:44:47.9829970Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:47.9830275Z   "definition": {
+2025-12-23T17:44:47.9830522Z     "parts": [
+2025-12-23T17:44:47.9830749Z       {
+2025-12-23T17:44:47.9831002Z         "path": "notebook-content.py",
+2025-12-23T17:44:47.9831280Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:47.9831549Z         "payload_length": 688
+2025-12-23T17:44:47.9831800Z       }
+2025-12-23T17:44:47.9832023Z     ]
+2025-12-23T17:44:47.9832245Z   }
+2025-12-23T17:44:47.9832464Z }
+2025-12-23T17:44:47.9832904Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/7b98be9e-386c-4195-894a-fa92d8477ac1/updateDefinition
+2025-12-23T17:44:47.9833363Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:47.9833641Z   "definition": {
+2025-12-23T17:44:47.9833881Z     "parts": [
+2025-12-23T17:44:47.9834120Z       {
+2025-12-23T17:44:47.9834369Z         "path": "notebook-content.py",
+2025-12-23T17:44:47.9834805Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:47.9835073Z         "payload_length": 688
+2025-12-23T17:44:47.9835311Z       }
+2025-12-23T17:44:47.9835528Z     ]
+2025-12-23T17:44:47.9835745Z   }
+2025-12-23T17:44:47.9835963Z }
+2025-12-23T17:44:48.4272805Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/d7cea564-0d38-4979-bbc4-f04a0889d10c
+2025-12-23T17:44:48.4273869Z INFO:fabric_client:  LRO Operation ID: d7cea564-0d38-4979-bbc4-f04a0889d10c
+2025-12-23T17:44:48.4276550Z INFO:fabric_client:  Retry-After: 20 seconds
+2025-12-23T17:44:48.4285555Z INFO:__main__:  ✓ Updated notebook 'NBT2' (ID: 7b98be9e-386c-4195-894a-fa92d8477ac1)
+2025-12-23T17:44:48.4286285Z INFO:__main__:✅ Successfully deployed: NBT2
+2025-12-23T17:44:48.4287148Z INFO:__main__:
+2025-12-23T17:44:48.4287692Z Deploying: Notebook 6 (Notebook)
+2025-12-23T17:44:48.4296048Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
+2025-12-23T17:44:48.6224731Z INFO:__main__:  Notebook 'Notebook 6' already exists, updating...
+2025-12-23T17:44:48.6225118Z INFO:fabric_client:Updating notebook: a941aaa2-357c-49af-b434-f3d3a39da228
+2025-12-23T17:44:48.6231703Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/a941aaa2-357c-49af-b434-f3d3a39da228/updateDefinition
+2025-12-23T17:44:48.6232683Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:48.6233567Z   "definition": {
+2025-12-23T17:44:48.6234064Z     "parts": [
+2025-12-23T17:44:48.6234542Z       {
+2025-12-23T17:44:48.6235437Z         "path": "notebook-content.py",
+2025-12-23T17:44:48.6236366Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:48.6236940Z         "payload_length": 844
+2025-12-23T17:44:48.6237335Z       }
+2025-12-23T17:44:48.6238117Z     ]
+2025-12-23T17:44:48.6238498Z   }
+2025-12-23T17:44:48.6239127Z }
+2025-12-23T17:44:48.6240002Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/a941aaa2-357c-49af-b434-f3d3a39da228/updateDefinition
+2025-12-23T17:44:48.6240484Z INFO:fabric_client:Payload structure: {
+2025-12-23T17:44:48.6240751Z   "definition": {
+2025-12-23T17:44:48.6240981Z     "parts": [
+2025-12-23T17:44:48.6241193Z       {
+2025-12-23T17:44:48.6241429Z         "path": "notebook-content.py",
+2025-12-23T17:44:48.6241687Z         "payloadType": "InlineBase64",
+2025-12-23T17:44:48.6241938Z         "payload_length": 844
+2025-12-23T17:44:48.6242169Z       }
+2025-12-23T17:44:48.6242378Z     ]
+2025-12-23T17:44:48.6242585Z   }
+2025-12-23T17:44:48.6242791Z }
+2025-12-23T17:44:49.0359469Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/3a6a89e3-dd11-4e1e-91c6-ec61e1852ed7
+2025-12-23T17:44:49.0361271Z INFO:fabric_client:  LRO Operation ID: 3a6a89e3-dd11-4e1e-91c6-ec61e1852ed7
+2025-12-23T17:44:49.0361915Z INFO:fabric_client:  Retry-After: 20 seconds
+2025-12-23T17:44:49.0369358Z INFO:__main__:  ✓ Updated notebook 'Notebook 6' (ID: a941aaa2-357c-49af-b434-f3d3a39da228)
+2025-12-23T17:44:49.0371592Z INFO:__main__:✅ Successfully deployed: Notebook 6
+2025-12-23T17:44:49.0372250Z INFO:__main__:
+2025-12-23T17:44:49.0372846Z ============================================================
+2025-12-23T17:44:49.0373544Z INFO:__main__:DEPLOYMENT SUMMARY
+2025-12-23T17:44:49.0374163Z INFO:__main__:============================================================
+2025-12-23T17:44:49.0374758Z INFO:__main__:Total artifacts: 9
+2025-12-23T17:44:49.0377395Z INFO:__main__:Successful: 9
+2025-12-23T17:44:49.0377625Z INFO:__main__:Failed: 0
+2025-12-23T17:44:49.0377899Z INFO:__main__:============================================================
+2025-12-23T17:44:49.0394943Z WARNING:change_detector:Failed to get current commit: Command '['git', 'rev-parse', 'HEAD']' returned non-zero exit status 128.
+2025-12-23T17:44:49.0396931Z WARNING:__main__:Could not save deployment state (Git not available)
+2025-12-23T17:44:49.0703796Z 
+2025-12-23T17:44:49.0707413Z ✓ Production deployment completed successfully
+2025-12-23T17:44:49.0713886Z 
+2025-12-23T17:44:49.0773275Z ##[section]Finishing: Deploy to Production Workspace (Change Detection Enabled)

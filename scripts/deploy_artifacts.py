@@ -2681,22 +2681,8 @@ print('Notebook initialized')
         existing_library = next((lib for lib in existing if lib["displayName"] == name), None)
         
         if existing_library:
-            logger.info(f"  Variable Library '{name}' already exists.")
-            logger.info(f"  WORKAROUND: Deleting and recreating to avoid UPDATE API validation issues...")
+            logger.info(f"  Variable Library '{name}' already exists, updating...")
             library_id = existing_library["id"]
-            
-            # DELETE the existing variable library using specific endpoint
-            try:
-                self.client.delete_variable_library(self.workspace_id, library_id)
-                logger.info(f"  ✓ Deleted existing Variable Library '{name}'")
-                # Reset so we create a new one
-                existing_library = None
-                library_id = None
-            except Exception as e:
-                logger.error(f"  ❌ Failed to delete Variable Library '{name}': {str(e)}")
-                raise
-        
-        if existing_library:
             
             # Check if we have value sets (dict with base_variables and value_sets) or just variables (list)
             is_value_sets = isinstance(variables, dict) and "value_sets" in variables

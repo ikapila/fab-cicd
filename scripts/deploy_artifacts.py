@@ -2700,7 +2700,10 @@ print('Notebook initialized')
                     parts = []
                     
                     # Add base variables.json (REQUIRED)
-                    base_json = json.dumps({"variables": base_vars}, indent=2)
+                    base_json = json.dumps({
+                        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/variables/1.0.0/schema.json",
+                        "variables": base_vars
+                    }, indent=2)
                     logger.info(f"  DEBUG: variables.json content:\n{base_json}")
                     base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
                     parts.append({
@@ -2712,7 +2715,12 @@ print('Notebook initialized')
                     # Add each value set as valueSets/{name}.json with overrides
                     for set_name, set_data in value_sets.items():
                         # set_data already has proper structure: {name, variableOverrides, [description]}
-                        set_json = json.dumps(set_data, indent=2)
+                        # Add $schema field per Microsoft docs
+                        set_data_with_schema = {
+                            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
+                            **set_data
+                        }
+                        set_json = json.dumps(set_data_with_schema, indent=2)
                         logger.info(f"  DEBUG: valueSets/{set_name}.json content:\n{set_json}")
                         
                         set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
@@ -2723,7 +2731,10 @@ print('Notebook initialized')
                         })
                     
                     # Add settings.json (REQUIRED)
-                    settings_json = json.dumps({"valueSetsOrder": value_sets_order}, indent=2)
+                    settings_json = json.dumps({
+                        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/settings/1.0.0/schema.json",
+                        "valueSetsOrder": value_sets_order
+                    }, indent=2)
                     logger.info(f"  DEBUG: settings.json content:\n{settings_json}")
                     settings_base64 = base64.b64encode(settings_json.encode('utf-8')).decode('utf-8')
                     parts.append({
@@ -2826,7 +2837,10 @@ print('Notebook initialized')
                         parts = []
                         
                         # Add base variables.json (REQUIRED)
-                        base_json = json.dumps({"variables": base_vars}, indent=2)
+                        base_json = json.dumps({
+                            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/variables/1.0.0/schema.json",
+                            "variables": base_vars
+                        }, indent=2)
                         logger.debug(f"  Base variables structure sample:\n{base_json[:300]}...")
                         base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
                         parts.append({
@@ -2838,7 +2852,12 @@ print('Notebook initialized')
                         # Add each value set as valueSets/{name}.json with overrides
                         for set_name, set_data in value_sets.items():
                             # set_data already has proper structure: {name, variableOverrides, [description]}
-                            set_json = json.dumps(set_data, indent=2)
+                            # Add $schema field per Microsoft docs
+                            set_data_with_schema = {
+                                "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
+                                **set_data
+                            }
+                            set_json = json.dumps(set_data_with_schema, indent=2)
                             logger.debug(f"  Value set '{set_name}' structure sample:\n{set_json[:300]}...")
                             
                             set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
@@ -2849,7 +2868,10 @@ print('Notebook initialized')
                             })
                         
                         # Add settings.json (REQUIRED)
-                        settings_json = json.dumps({"valueSetsOrder": value_sets_order}, indent=2)
+                        settings_json = json.dumps({
+                            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/settings/1.0.0/schema.json",
+                            "valueSetsOrder": value_sets_order
+                        }, indent=2)
                         logger.debug(f"  Settings structure: {settings_json}")
                         settings_base64 = base64.b64encode(settings_json.encode('utf-8')).decode('utf-8')
                         parts.append({

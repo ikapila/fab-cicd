@@ -2612,8 +2612,7 @@ print('Notebook initialized')
                             note = var.get("note", "")
                             if note:
                                 var_def["note"] = note
-                            base_variables.append(var_def
-                            })
+                            base_variables.append(var_def)
                         logger.info(f"    ✓ Loaded {len(base_variables)} base variable definitions")
                 
                 # Read settings.json (REQUIRED per Fabric Git format)

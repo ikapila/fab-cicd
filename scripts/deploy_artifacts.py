@@ -2603,11 +2603,16 @@ print('Notebook initialized')
                         for var in raw_variables:
                             var_type = normalize_variable_type(var.get("type", "String"))
                             var_value = convert_value_to_type(var.get("value"), var_type)
-                            base_variables.append({
+                            var_def = {
                                 "name": var["name"],
                                 "type": var_type,
-                                "value": var_value,
-                                "note": var.get("note", "")
+                                "value": var_value
+                            }
+                            # Only include note if it's not empty (optional field)
+                            note = var.get("note", "")
+                            if note:
+                                var_def["note"] = note
+                            base_variables.append(var_def
                             })
                         logger.info(f"    ✓ Loaded {len(base_variables)} base variable definitions")
                 
@@ -2665,12 +2670,16 @@ print('Notebook initialized')
                                 for var in set_data:
                                     var_type = normalize_variable_type(var.get("type", "String"))
                                     var_value = convert_value_to_type(var["value"], var_type)
-                                    base_variables.append({
+                                    var_def = {
                                         "name": var["name"],
                                         "type": var_type,
-                                        "value": var_value,
-                                        "note": var.get("description", "")
-                                    })
+                                        "value": var_value
+                                    }
+                                    # Only include note if it's not empty (optional field)
+                                    note = var.get("description", "")
+                                    if note:
+                                        var_def["note"] = note
+                                    base_variables.append(var_def)
                                 first_set_processed = True
                         else:
                             value_sets[set_name] = {"name": set_name, "variableOverrides": []}

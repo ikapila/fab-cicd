@@ -989,9 +989,11 @@ class FabricClient:
         """
         logger.info(f"Setting active value set to '{value_set_name}' for Variable Library: {library_id}")
         payload = {
-            "activeValueSetName": value_set_name
+            "properties": {
+                "activeValueSetName": value_set_name
+            }
         }
-        return self._make_request("PATCH", f"/workspaces/{workspace_id}/items/{library_id}", json_data=payload)
+        return self._make_request("PATCH", f"/workspaces/{workspace_id}/VariableLibraries/{library_id}", json_data=payload)
     
     # ==================== Shortcut Operations ====================
     

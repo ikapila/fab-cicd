@@ -2638,16 +2638,25 @@ print('Notebook initialized')
                         # Check if this is proper Git format (with variableOverrides) or legacy format (full definitions)
                         if isinstance(set_data, dict) and "variableOverrides" in set_data:
                             # Proper Git format: has name, description, variableOverrides
-                            value_sets[set_name] = set_data.get("variableOverrides", [])
+                            # Store complete valueSet structure (name is required per Microsoft docs)
+                            value_sets[set_name] = {
+                                "name": set_data.get("name", set_name),
+                                "variableOverrides": set_data.get("variableOverrides", [])
+                            }
+                            if "description" in set_data:
+                                value_sets[set_name]["description"] = set_data["description"]
                         elif isinstance(set_data, list):
-                            # Legacy format: list of full variable definitions - convert to overrides
-                            logger.info(f"    Converting legacy format to overrides for '{set_name}'")
+                            # Legacy format: list of full variable definitions - convert to proper Git format
+                            logger.info(f"    Converting legacy format to Git format for '{set_name}'")
                             
-                            # Convert to overrides (always strings in overrides)
-                            value_sets[set_name] = [
-                                {"name": var["name"], "value": str(var["value"])}
-                                for var in set_data
-                            ]
+                            # Create proper valueSet structure with name (required) and variableOverrides
+                            value_sets[set_name] = {
+                                "name": set_name,
+                                "variableOverrides": [
+                                    {"name": var["name"], "value": str(var["value"])}
+                                    for var in set_data
+                                ]
+                            }
                             
                             # If base_variables is empty, create it from first set (legacy format)
                             if not base_variables and not first_set_processed:
@@ -2664,14 +2673,15 @@ print('Notebook initialized')
                                     })
                                 first_set_processed = True
                         else:
-                            value_sets[set_name] = []
+                            value_sets[set_name] = {"name": set_name, "variableOverrides": []}
                     
                     # Substitute parameters in value set overrides
                     set_str = json.dumps(value_sets[set_name])
                     set_str = self.config.substitute_parameters(set_str)
                     value_sets[set_name] = json.loads(set_str)
                     
-                    logger.info(f"    ✓ Loaded {len(value_sets[set_name])} variable override(s) from '{set_name}' set")
+                    override_count = len(value_sets[set_name].get("variableOverrides", []))
+                    logger.info(f"    ✓ Loaded {override_count} variable override(s) from '{set_name}' set")
                 
                 if not value_sets:
                     logger.error(f"  ❌ No valid value sets found in valueSets folder")
@@ -2741,10 +2751,8 @@ print('Notebook initialized')
                     })
                     
                     # Add each value set as valueSets/{name}.json with overrides
-                    for set_name, set_vars in value_sets.items():
-                        set_data = {
-                            "variableOverrides": set_vars  # Already in correct format: [{name, value}, ...]
-                        }
+                    for set_name, set_data in value_sets.items():
+                        # set_data already has proper structure: {name, variableOverrides, [description]}
                         set_json = json.dumps(set_data, indent=2)
                         logger.info(f"  DEBUG: valueSets/{set_name}.json content:\n{set_json}")
                         

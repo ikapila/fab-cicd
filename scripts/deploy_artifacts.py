@@ -2560,35 +2560,46 @@ print('Notebook initialized')
                 
                 # Helper functions for type normalization
                 def normalize_variable_type(var_type):
-                    """Normalize type names to Fabric API standard"""
+                    """Normalize type names to Fabric API standard - use lowercase per example"""
                     type_map = {
-                        "Int": "Integer",
-                        "Bool": "Boolean", 
-                        "bool": "Boolean",
-                        "int": "Integer",
-                        "string": "String",
-                        "number": "Number",
-                        "datetime": "DateTime"
+                        "Int": "integer",
+                        "Bool": "boolean", 
+                        "Boolean": "boolean",
+                        "Integer": "integer",
+                        "bool": "boolean",
+                        "int": "integer",
+                        "String": "string",
+                        "string": "string",
+                        "Number": "number",
+                        "number": "number",
+                        "DateTime": "datetime",
+                        "datetime": "datetime"
                     }
-                    return type_map.get(var_type, var_type)
+                    normalized = type_map.get(var_type)
+                    if normalized:
+                        return normalized
+                    # Default: convert to lowercase
+                    return var_type.lower() if var_type else "string"
                 
                 def convert_value_to_type(value, var_type):
                     """Convert string values to proper JSON types"""
-                    if var_type == "Boolean":
+                    # Use lowercase for comparison
+                    var_type_lower = var_type.lower() if var_type else "string"
+                    if var_type_lower == "boolean":
                         if isinstance(value, bool):
                             return value
                         if isinstance(value, str):
                             return value.lower() in ("true", "1", "yes")
                         return bool(value)
-                    elif var_type == "Integer":
+                    elif var_type_lower == "integer":
                         if isinstance(value, int):
                             return value
                         return int(value) if value else 0
-                    elif var_type == "Number":
+                    elif var_type_lower == "number":
                         if isinstance(value, (int, float)):
                             return value
                         return float(value) if value else 0.0
-                    # String and DateTime remain as strings
+                    # string and datetime remain as strings
                     return value
                 
                 # Read base variables.json (REQUIRED per Fabric Git format)

@@ -2558,6 +2558,39 @@ print('Notebook initialized')
             if value_sets_dir.exists():
                 logger.info(f"  Found valueSets folder - reading Git format structure")
                 
+                # Helper functions for type normalization
+                def normalize_variable_type(var_type):
+                    """Normalize type names to Fabric API standard"""
+                    type_map = {
+                        "Int": "Integer",
+                        "Bool": "Boolean", 
+                        "bool": "Boolean",
+                        "int": "Integer",
+                        "string": "String",
+                        "number": "Number",
+                        "datetime": "DateTime"
+                    }
+                    return type_map.get(var_type, var_type)
+                
+                def convert_value_to_type(value, var_type):
+                    """Convert string values to proper JSON types"""
+                    if var_type == "Boolean":
+                        if isinstance(value, bool):
+                            return value
+                        if isinstance(value, str):
+                            return value.lower() in ("true", "1", "yes")
+                        return bool(value)
+                    elif var_type == "Integer":
+                        if isinstance(value, int):
+                            return value
+                        return int(value) if value else 0
+                    elif var_type == "Number":
+                        if isinstance(value, (int, float)):
+                            return value
+                        return float(value) if value else 0.0
+                    # String and DateTime remain as strings
+                    return value
+                
                 # Read base variables.json (REQUIRED per Fabric Git format)
                 base_variables_file = library_folder / "variables.json"
                 base_variables = []
@@ -2565,7 +2598,17 @@ print('Notebook initialized')
                     logger.info(f"  Reading variables.json...")
                     with open(base_variables_file, 'r') as f:
                         base_data = json.load(f)
-                        base_variables = base_data.get("variables", [])
+                        raw_variables = base_data.get("variables", [])
+                        # Normalize types and convert values
+                        for var in raw_variables:
+                            var_type = normalize_variable_type(var.get("type", "String"))
+                            var_value = convert_value_to_type(var.get("value"), var_type)
+                            base_variables.append({
+                                "name": var["name"],
+                                "type": var_type,
+                                "value": var_value,
+                                "note": var.get("note", "")
+                            })
                         logger.info(f"    ✓ Loaded {len(base_variables)} base variable definitions")
                 
                 # Read settings.json (REQUIRED per Fabric Git format)
@@ -2599,22 +2642,26 @@ print('Notebook initialized')
                         elif isinstance(set_data, list):
                             # Legacy format: list of full variable definitions - convert to overrides
                             logger.info(f"    Converting legacy format to overrides for '{set_name}'")
+                            
+                            # Convert to overrides (always strings in overrides)
                             value_sets[set_name] = [
-                                {"name": var["name"], "value": var["value"]}
+                                {"name": var["name"], "value": str(var["value"])}
                                 for var in set_data
                             ]
+                            
                             # If base_variables is empty, create it from first set (legacy format)
                             if not base_variables and not first_set_processed:
                                 logger.info(f"    Creating base variables from '{set_name}' (legacy format)")
-                                base_variables = [
-                                    {
+                                base_variables = []
+                                for var in set_data:
+                                    var_type = normalize_variable_type(var.get("type", "String"))
+                                    var_value = convert_value_to_type(var["value"], var_type)
+                                    base_variables.append({
                                         "name": var["name"],
-                                        "type": var.get("type", "String"),
-                                        "value": var["value"],
+                                        "type": var_type,
+                                        "value": var_value,
                                         "note": var.get("description", "")
-                                    }
-                                    for var in set_data
-                                ]
+                                    })
                                 first_set_processed = True
                         else:
                             value_sets[set_name] = []

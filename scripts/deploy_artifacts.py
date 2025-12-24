@@ -3235,7 +3235,7 @@ print('Notebook initialized')
         view_sql = self.config.substitute_parameters(view_sql)
         
         # Get the lakehouse
-        lakehouses = self.client.list_items(self.workspace_id, type_filter="Lakehouse")
+        lakehouses = self.client.list_items(self.workspace_id, item_type="Lakehouse")
         lakehouse = next((lh for lh in lakehouses if lh["displayName"] == lakehouse_name), None)
         
         if not lakehouse:

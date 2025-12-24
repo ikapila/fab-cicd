@@ -448,7 +448,8 @@ class FabricDeployer:
                     platform_data = json.load(f)
                 
                 lakehouse_name = platform_data["metadata"].get("displayName", base_name)
-                lakehouse_id = platform_data["config"].get("logicalId", f"lakehouse-{lakehouse_name}")
+                # Always use standard format for consistency with view dependencies
+                lakehouse_id = f"lakehouse-{lakehouse_name}"
                 
                 # Skip if already discovered from JSON file
                 if lakehouse_name in discovered:
@@ -479,7 +480,8 @@ class FabricDeployer:
                     continue
                 
                 discovered.append(lakehouse_name)
-                lakehouse_id = metadata.get("id", f"lakehouse-{lakehouse_name}")
+                # Always use standard format for consistency with view dependencies
+                lakehouse_id = f"lakehouse-{lakehouse_name}"
                 
                 self.resolver.add_artifact(
                     lakehouse_id,

@@ -1217,30 +1217,49 @@ class FabricClient:
             lakehouse_id: Lakehouse GUID
             
         Returns:
-            SQL endpoint connection string
+            SQL endpoint connection string (server address)
         """
         logger.info(f"Getting SQL endpoint for lakehouse: {lakehouse_id}")
-        lakehouse = self.get_item(workspace_id, lakehouse_id)
+        lakehouse = self.get_lakehouse(workspace_id, lakehouse_id)
         
         # Extract properties for SQL endpoint
         properties = lakehouse.get("properties", {})
         sql_endpoint_props = properties.get("sqlEndpointProperties", {})
         
         if not sql_endpoint_props:
-            raise ValueError(f"Lakehouse {lakehouse_id} does not have SQL endpoint enabled")
+            logger.warning(f"Lakehouse {lakehouse_id} does not have sqlEndpointProperties, trying alternate method")
         
-        # Build connection string using workspace and lakehouse info
-        # Format: <workspace-name>.datawarehouse.fabric.microsoft.com
+        # Try to get connection string from properties
         connection_string = sql_endpoint_props.get("connectionString")
         
-        if not connection_string:
-            # Fallback: construct from workspace info
-            workspace = self.get_workspace(workspace_id)
-            workspace_name = workspace.get("displayName", "").replace(" ", "")
-            lakehouse_name = lakehouse.get("displayName", "")
-            connection_string = f"{workspace_name}.datawarehouse.fabric.microsoft.com"
-            
-        return connection_string
+        if connection_string:
+            logger.info(f"Found SQL endpoint from properties: {connection_string}")
+            return connection_string
+        
+        # Fallback: Use standard Fabric SQL endpoint format
+        # Format: <guid>.datawarehouse.fabric.microsoft.com
+        # The SQL endpoint ID is typically different from lakehouse ID
+        sql_endpoint_id = sql_endpoint_props.get("id") if sql_endpoint_props else None
+        
+        if sql_endpoint_id:
+            connection_string = f"{sql_endpoint_id}.datawarehouse.fabric.microsoft.com"
+            logger.info(f"Constructed SQL endpoint from ID: {connection_string}")
+            return connection_string
+        
+        # Last resort: Try to get SQL endpoint via list_items
+        items = self.list_items(workspace_id, item_type="SQLEndpoint")
+        lakehouse_name = lakehouse.get("displayName", "")
+        
+        # SQL endpoints are named same as lakehouse
+        sql_endpoint = next((item for item in items if item.get("displayName") == lakehouse_name), None)
+        
+        if sql_endpoint:
+            endpoint_id = sql_endpoint.get("id")
+            connection_string = f"{endpoint_id}.datawarehouse.fabric.microsoft.com"
+            logger.info(f"Found SQL endpoint via list: {connection_string}")
+            return connection_string
+        
+        raise ValueError(f"Could not determine SQL endpoint for lakehouse {lakehouse_id} ({lakehouse_name})")
     
     def execute_sql_command(self, connection_string: str, database: str, sql_command: str) -> Optional[List[Dict]]:
         """

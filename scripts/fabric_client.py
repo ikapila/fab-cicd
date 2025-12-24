@@ -1278,8 +1278,9 @@ class FabricClient:
         
         logger.info(f"Executing SQL command on {database}")
         
-        # Get access token for Azure SQL
-        token = self.auth.get_access_token()
+        # Get access token for Azure SQL Database (not Fabric API token)
+        # SQL endpoints require https://database.windows.net/.default scope
+        token = self.auth.get_sql_access_token()
         
         # Convert token to bytes for pyodbc
         token_bytes = token.encode('utf-16-le')

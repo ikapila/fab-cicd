@@ -17,6 +17,7 @@ class FabricAuthenticator:
     """Handles authentication for Microsoft Fabric REST API calls"""
     
     FABRIC_API_SCOPE = "https://api.fabric.microsoft.com/.default"
+    SQL_DATABASE_SCOPE = "https://database.windows.net/.default"  # For SQL endpoint authentication
     
     def __init__(
         self,
@@ -50,6 +51,7 @@ class FabricAuthenticator:
         
         self._credential = None
         self._access_token = None
+        self._sql_access_token = None  # Separate token for SQL database authentication
         
     def _get_credential(self):
         """Get Azure credential object"""
@@ -89,6 +91,24 @@ class FabricAuthenticator:
             logger.info("Successfully obtained access token")
         
         return self._access_token
+    
+    def get_sql_access_token(self, force_refresh: bool = False) -> str:
+        """
+        Get access token for SQL Database (for lakehouse SQL endpoints)
+        
+        Args:
+            force_refresh: Force token refresh even if cached token exists
+            
+        Returns:
+            Access token string for SQL Database scope
+        """
+        if self._sql_access_token is None or force_refresh:
+            credential = self._get_credential()
+            token = credential.get_token(self.SQL_DATABASE_SCOPE)
+            self._sql_access_token = token.token
+            logger.info("Successfully obtained SQL Database access token")
+        
+        return self._sql_access_token
     
     def get_auth_headers(self, force_refresh: bool = False) -> dict:
         """

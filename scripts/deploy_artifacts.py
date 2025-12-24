@@ -489,6 +489,27 @@ class FabricDeployer:
                 )
                 
                 logger.debug(f"Discovered lakehouse ({format_type}): {lakehouse_name}")
+            
+            else:
+                # No .platform or item.metadata.json - use folder name
+                lakehouse_name = base_name
+                
+                # Skip if already discovered from JSON file
+                if lakehouse_name in discovered:
+                    logger.debug(f"Skipping duplicate lakehouse folder: {lakehouse_name}")
+                    continue
+                
+                discovered.append(lakehouse_name)
+                lakehouse_id = f"lakehouse-{lakehouse_name}"
+                
+                self.resolver.add_artifact(
+                    lakehouse_id,
+                    ArtifactType.LAKEHOUSE,
+                    lakehouse_name,
+                    dependencies=[]
+                )
+                
+                logger.debug(f"Discovered lakehouse (folder without metadata): {lakehouse_name}")
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} lakehouse(s): {', '.join(sorted(discovered))}")

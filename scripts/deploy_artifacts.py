@@ -181,6 +181,44 @@ class FabricDeployer:
         
         return config_managed
     
+    def _register_config_managed_artifacts(self) -> None:
+        """
+        Register config-managed artifacts in the dependency resolver.
+        This allows other artifacts (like views) to have dependencies on config-managed lakehouses.
+        """
+        artifacts_config = self.config.get_artifacts_to_create()
+        if not artifacts_config:
+            return
+        
+        # Register config-managed lakehouses
+        for lh_def in artifacts_config.get("lakehouses", []):
+            name = lh_def.get("name")
+            if name:
+                lakehouse_id = f"lakehouse-{name}"
+                self.resolver.add_artifact(
+                    lakehouse_id,
+                    ArtifactType.LAKEHOUSE,
+                    name,
+                    dependencies=[]
+                )
+                logger.debug(f"Registered config-managed lakehouse: {name}")
+        
+        # Register config-managed environments
+        for env_def in artifacts_config.get("environments", []):
+            name = env_def.get("name")
+            if name:
+                env_id = f"environment-{name}"
+                self.resolver.add_artifact(
+                    env_id,
+                    ArtifactType.ENVIRONMENT,
+                    name,
+                    dependencies=[]
+                )
+                logger.debug(f"Registered config-managed environment: {name}")
+        
+        # Note: Notebooks and spark jobs don't typically have dependencies from other artifacts
+        # so we don't need to register them here
+    
     def _get_or_create_folder(self, folder_name: str) -> str:
         """
         Get or create a workspace folder and cache the ID
@@ -322,6 +360,9 @@ class FabricDeployer:
         logger.info("ARTIFACT DISCOVERY PHASE")
         logger.info("="*60)
         logger.info("Discovering artifacts from file system...")
+        
+        # First, register config-managed artifacts so dependencies can reference them
+        self._register_config_managed_artifacts()
         
         # Discover lakehouses
         self._discover_lakehouses()

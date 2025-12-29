@@ -136,10 +136,10 @@ stages:
                     echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
                     echo "Debug: Listing Build.SourcesDirectory:"
                     ls -la $(Build.SourcesDirectory)
-                    echo "Debug: Checking scripts directory:"
-                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
+                    echo "Debug: Checking azure-pipelines/scripts directory:"
+                    ls -la $(Build.SourcesDirectory)/azure-pipelines/scripts/ || echo "azure-pipelines/scripts directory not found"
                     
-                    cd $(Build.SourcesDirectory)
+                    cd $(Build.SourcesDirectory)/azure-pipelines
                     
                     echo "========================================"
                     echo "Deploying to Dev Environment"
@@ -170,7 +170,7 @@ stages:
                     AZURE_CLIENT_SECRET_DEV: $(AZURE_CLIENT_SECRET_DEV)
 
                 - script: |
-                    cd $(Build.SourcesDirectory)
+                    cd $(Build.SourcesDirectory)/azure-pipelines
                     
                     # Commit deployment tracking file back to repository
                     if [ -f .deployment_tracking/dev_last_commit.txt ]; then
@@ -210,7 +210,7 @@ stages:
 
                 - script: |
                     python -m pip install --upgrade pip
-                    pip install -r $(Build.SourcesDirectory)/scripts/requirements.txt
+                    pip install -r $(Build.SourcesDirectory)/azure-pipelines/scripts/requirements.txt
                   displayName: 'Install dependencies'
 
                 - script: |
@@ -231,10 +231,10 @@ stages:
                     echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
                     echo "Debug: Listing Build.SourcesDirectory:"
                     ls -la $(Build.SourcesDirectory)
-                    echo "Debug: Checking scripts directory:"
-                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
+                    echo "Debug: Checking azure-pipelines/scripts directory:"
+                    ls -la $(Build.SourcesDirectory)/azure-pipelines/scripts/ || echo "azure-pipelines/scripts directory not found"
                     
-                    cd $(Build.SourcesDirectory)
+                    cd $(Build.SourcesDirectory)/azure-pipelines
                     
                     echo "========================================"
                     echo "Deploying to UAT Environment"
@@ -265,7 +265,7 @@ stages:
                     AZURE_CLIENT_SECRET_UAT: $(AZURE_CLIENT_SECRET_UAT)
 
                 - script: |
-                    cd $(Build.SourcesDirectory)
+                    cd $(Build.SourcesDirectory)/azure-pipelines
                     
                     # Commit deployment tracking file back to repository
                     if [ -f .deployment_tracking/uat_last_commit.txt ]; then
@@ -305,7 +305,7 @@ stages:
 
                 - script: |
                     python -m pip install --upgrade pip
-                    pip install -r $(Build.SourcesDirectory)/scripts/requirements.txt
+                    pip install -r $(Build.SourcesDirectory)/azure-pipelines/scripts/requirements.txt
                   displayName: 'Install dependencies'
 
                 - script: |
@@ -326,10 +326,10 @@ stages:
                     echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
                     echo "Debug: Listing Build.SourcesDirectory:"
                     ls -la $(Build.SourcesDirectory)
-                    echo "Debug: Checking scripts directory:"
-                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
+                    echo "Debug: Checking azure-pipelines/scripts directory:"
+                    ls -la $(Build.SourcesDirectory)/azure-pipelines/scripts/ || echo "azure-pipelines/scripts directory not found"
                     
-                    cd $(Build.SourcesDirectory)
+                    cd $(Build.SourcesDirectory)/azure-pipelines
                     
                     echo "========================================"
                     echo "Deploying to Production Environment"
@@ -361,7 +361,7 @@ stages:
                     AZURE_CLIENT_SECRET_PROD: $(AZURE_CLIENT_SECRET_PROD)
 
                 - script: |
-                    cd $(Build.SourcesDirectory)
+                    cd $(Build.SourcesDirectory)/azure-pipelines
                     
                     # Commit deployment tracking file back to repository
                     if [ -f .deployment_tracking/prod_last_commit.txt ]; then

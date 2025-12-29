@@ -131,7 +131,7 @@ stages:
 
                 - script: |
                     set -e  # Exit immediately if any command fails
-                    cd $(Pipeline.Workspace)/fabric-artifacts
+                    cd $(Build.SourcesDirectory)
                     
                     echo "========================================"
                     echo "Deploying to Dev Environment"
@@ -162,7 +162,7 @@ stages:
                     AZURE_CLIENT_SECRET_DEV: $(AZURE_CLIENT_SECRET_DEV)
 
                 - script: |
-                    cd $(Pipeline.Workspace)/fabric-artifacts
+                    cd $(Build.SourcesDirectory)
                     
                     # Commit deployment tracking file back to repository
                     if [ -f .deployment_tracking/dev_last_commit.txt ]; then
@@ -192,8 +192,8 @@ stages:
           runOnce:
             deploy:
               steps:
-                - download: current
-                  artifact: fabric-artifacts
+                - checkout: self
+                  displayName: 'Checkout source code'
 
                 - task: UsePythonVersion@0
                   inputs:
@@ -202,7 +202,7 @@ stages:
 
                 - script: |
                     python -m pip install --upgrade pip
-                    pip install -r $(Pipeline.Workspace)/fabric-artifacts/scripts/requirements.txt
+                    pip install -r $(Build.SourcesDirectory)/scripts/requirements.txt
                   displayName: 'Install dependencies'
 
                 - script: |
@@ -218,7 +218,7 @@ stages:
 
                 - script: |
                     set -e  # Exit immediately if any command fails
-                    cd $(Pipeline.Workspace)/fabric-artifacts
+                    cd $(Build.SourcesDirectory)
                     
                     echo "========================================"
                     echo "Deploying to UAT Environment"
@@ -249,7 +249,7 @@ stages:
                     AZURE_CLIENT_SECRET_UAT: $(AZURE_CLIENT_SECRET_UAT)
 
                 - script: |
-                    cd $(Pipeline.Workspace)/fabric-artifacts
+                    cd $(Build.SourcesDirectory)
                     
                     # Commit deployment tracking file back to repository
                     if [ -f .deployment_tracking/uat_last_commit.txt ]; then
@@ -279,8 +279,8 @@ stages:
           runOnce:
             deploy:
               steps:
-                - download: current
-                  artifact: fabric-artifacts
+                - checkout: self
+                  displayName: 'Checkout source code'
 
                 - task: UsePythonVersion@0
                   inputs:
@@ -289,7 +289,7 @@ stages:
 
                 - script: |
                     python -m pip install --upgrade pip
-                    pip install -r $(Pipeline.Workspace)/fabric-artifacts/scripts/requirements.txt
+                    pip install -r $(Build.SourcesDirectory)/scripts/requirements.txt
                   displayName: 'Install dependencies'
 
                 - script: |
@@ -305,7 +305,7 @@ stages:
 
                 - script: |
                     set -e  # Exit immediately if any command fails
-                    cd $(Pipeline.Workspace)/fabric-artifacts
+                    cd $(Build.SourcesDirectory)
                     
                     echo "========================================"
                     echo "Deploying to Production Environment"
@@ -337,7 +337,7 @@ stages:
                     AZURE_CLIENT_SECRET_PROD: $(AZURE_CLIENT_SECRET_PROD)
 
                 - script: |
-                    cd $(Pipeline.Workspace)/fabric-artifacts
+                    cd $(Build.SourcesDirectory)
                     
                     # Commit deployment tracking file back to repository
                     if [ -f .deployment_tracking/prod_last_commit.txt ]; then

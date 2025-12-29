@@ -115,7 +115,7 @@ stages:
 
                 - script: |
                     python -m pip install --upgrade pip
-                    pip install -r $(Pipeline.Workspace)/fabric-artifacts/scripts/requirements.txt
+                    pip install -r $(Build.SourcesDirectory)/scripts/requirements.txt
                   displayName: 'Install dependencies'
 
                 - script: |

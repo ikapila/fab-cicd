@@ -132,17 +132,25 @@ stages:
                 - script: |
                     set -e  # Exit immediately if any command fails
                     
-                    echo "Debug: Current directory: $(pwd)"
-                    echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
-                    echo "Debug: Listing Build.SourcesDirectory:"
-                    ls -la $(Build.SourcesDirectory)
-                    echo "Debug: Checking scripts directory:"
-                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
+                    echo "========================================"
+                    echo "DEBUG: Verifying Repository Checkout"
+                    echo "========================================"
+                    echo "Current directory: $(pwd)"
+                    echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"
+                    echo ""
+                    echo "Contents of Build.SourcesDirectory:"
+                    ls -la $(Build.SourcesDirectory) || echo "ERROR: Cannot list Build.SourcesDirectory"
+                    echo ""
+                    echo "Checking for required folders:"
+                    test -d $(Build.SourcesDirectory)/scripts && echo "✓ scripts/ exists" || echo "✗ scripts/ NOT FOUND"
+                    test -d $(Build.SourcesDirectory)/config && echo "✓ config/ exists" || echo "✗ config/ NOT FOUND"
+                    test -d $(Build.SourcesDirectory)/wsartifacts && echo "✓ wsartifacts/ exists" || echo "✗ wsartifacts/ NOT FOUND"
+                    echo "========================================"
                     
                     cd $(Build.SourcesDirectory)
                     
                     echo "========================================"
-                    echo "Deploying to Dev Environment"
+                    echo "Deploying to UAT Environment"
                     echo "========================================"
                     echo "Features:"
                     echo "  ⚡ Automatic change detection (deploys only modified artifacts)"
@@ -210,7 +218,7 @@ stages:
 
                 - script: |
                     python -m pip install --upgrade pip
-                    pip install -r $(Build.SourcesDirectory)/azure-pipelines/scripts/requirements.txt
+                    pip install -r $(Build.SourcesDirectory)/scripts/requirements.txt
                   displayName: 'Install dependencies'
 
                 - script: |
@@ -227,12 +235,20 @@ stages:
                 - script: |
                     set -e  # Exit immediately if any command fails
                     
-                    echo "Debug: Current directory: $(pwd)"
-                    echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
-                    echo "Debug: Listing Build.SourcesDirectory:"
-                    ls -la $(Build.SourcesDirectory)
-                    echo "Debug: Checking scripts directory:"
-                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
+                    echo "========================================"
+                    echo "DEBUG: Verifying Repository Checkout"
+                    echo "========================================"
+                    echo "Current directory: $(pwd)"
+                    echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"
+                    echo ""
+                    echo "Contents of Build.SourcesDirectory:"
+                    ls -la $(Build.SourcesDirectory) || echo "ERROR: Cannot list Build.SourcesDirectory"
+                    echo ""
+                    echo "Checking for required folders:"
+                    test -d $(Build.SourcesDirectory)/scripts && echo "✓ scripts/ exists" || echo "✗ scripts/ NOT FOUND"
+                    test -d $(Build.SourcesDirectory)/config && echo "✓ config/ exists" || echo "✗ config/ NOT FOUND"
+                    test -d $(Build.SourcesDirectory)/wsartifacts && echo "✓ wsartifacts/ exists" || echo "✗ wsartifacts/ NOT FOUND"
+                    echo "========================================"
                     
                     cd $(Build.SourcesDirectory)
                     
@@ -305,7 +321,7 @@ stages:
 
                 - script: |
                     python -m pip install --upgrade pip
-                    pip install -r $(Build.SourcesDirectory)/azure-pipelines/scripts/requirements.txt
+                    pip install -r $(Build.SourcesDirectory)/scripts/requirements.txt
                   displayName: 'Install dependencies'
 
                 - script: |
@@ -322,12 +338,20 @@ stages:
                 - script: |
                     set -e  # Exit immediately if any command fails
                     
-                    echo "Debug: Current directory: $(pwd)"
-                    echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
-                    echo "Debug: Listing Build.SourcesDirectory:"
-                    ls -la $(Build.SourcesDirectory)
-                    echo "Debug: Checking scripts directory:"
-                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
+                    echo "========================================"
+                    echo "DEBUG: Verifying Repository Checkout"
+                    echo "========================================"
+                    echo "Current directory: $(pwd)"
+                    echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"
+                    echo ""
+                    echo "Contents of Build.SourcesDirectory:"
+                    ls -la $(Build.SourcesDirectory) || echo "ERROR: Cannot list Build.SourcesDirectory"
+                    echo ""
+                    echo "Checking for required folders:"
+                    test -d $(Build.SourcesDirectory)/scripts && echo "✓ scripts/ exists" || echo "✗ scripts/ NOT FOUND"
+                    test -d $(Build.SourcesDirectory)/config && echo "✓ config/ exists" || echo "✗ config/ NOT FOUND"
+                    test -d $(Build.SourcesDirectory)/wsartifacts && echo "✓ wsartifacts/ exists" || echo "✗ wsartifacts/ NOT FOUND"
+                    echo "========================================"
                     
                     cd $(Build.SourcesDirectory)
                     

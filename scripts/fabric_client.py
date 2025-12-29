@@ -1264,11 +1264,12 @@ class FabricClient:
     def execute_sql_command(self, connection_string: str, database: str, sql_command: str) -> Optional[List[Dict]]:
         """
         Execute SQL command against lakehouse SQL endpoint
+        Supports multiple statements separated by GO batch separator
         
         Args:
             connection_string: SQL endpoint connection string
             database: Database name (lakehouse name)
-            sql_command: SQL command to execute
+            sql_command: SQL command to execute (can contain multiple batches separated by GO)
             
         Returns:
             Query results as list of dictionaries (for SELECT), None for DDL commands
@@ -1295,28 +1296,56 @@ class FabricClient:
             f"TrustServerCertificate=no;"
         )
         
+        # Split by GO batch separator (case-insensitive, must be on its own line)
+        import re
+        batches = re.split(r'^\s*GO\s*$', sql_command, flags=re.MULTILINE | re.IGNORECASE)
+        
+        # Clean up batches - remove comments and empty lines
+        cleaned_batches = []
+        for batch in batches:
+            # Remove single-line comments
+            lines = []
+            for line in batch.split('\n'):
+                # Keep line if it's not a comment-only line
+                stripped = line.strip()
+                if stripped and not stripped.startswith('--'):
+                    lines.append(line)
+            cleaned = '\n'.join(lines).strip()
+            if cleaned:
+                cleaned_batches.append(cleaned)
+        
+        if not cleaned_batches:
+            logger.warning("No SQL statements to execute after parsing")
+            return None
+        
         connection = None
         cursor = None
+        results = None
         
         try:
             # Connect using AAD token
             connection = pyodbc.connect(conn_str, attrs_before={1256: token_struct})
             cursor = connection.cursor()
             
-            # Execute command
-            cursor.execute(sql_command)
+            # Execute each batch separately
+            for i, batch in enumerate(cleaned_batches, 1):
+                if len(cleaned_batches) > 1:
+                    logger.info(f"  Executing batch {i}/{len(cleaned_batches)}")
+                
+                cursor.execute(batch)
+                
+                # Check if this is a SELECT query
+                if batch.strip().upper().startswith("SELECT"):
+                    columns = [column[0] for column in cursor.description]
+                    batch_results = []
+                    for row in cursor.fetchall():
+                        batch_results.append(dict(zip(columns, row)))
+                    results = batch_results  # Return last SELECT result
+                else:
+                    # DDL command (CREATE, ALTER, DROP)
+                    connection.commit()
             
-            # Check if this is a SELECT query
-            if sql_command.strip().upper().startswith("SELECT"):
-                columns = [column[0] for column in cursor.description]
-                results = []
-                for row in cursor.fetchall():
-                    results.append(dict(zip(columns, row)))
-                return results
-            else:
-                # DDL command (CREATE, ALTER, DROP)
-                connection.commit()
-                return None
+            return results
                 
         except pyodbc.Error as e:
             logger.error(f"SQL execution error: {str(e)}")

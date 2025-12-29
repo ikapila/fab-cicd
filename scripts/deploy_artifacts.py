@@ -3247,52 +3247,69 @@ print('Notebook initialized')
         logger.info(f"  Connecting to SQL endpoint for lakehouse: {lakehouse_name}")
         connection_string = self.client.get_lakehouse_sql_endpoint(self.workspace_id, lakehouse_id)
         
-        # Parse schema and view name from SQL (assuming dbo schema)
-        schema = "dbo"
-        view_name = name
-        
-        # Check if SQL contains CREATE VIEW with schema
         import re
-        create_match = re.search(r'CREATE\s+VIEW\s+(\[?(\w+)\]?\.)?(\[?(\w+)\]?)', view_sql, re.IGNORECASE)
-        if create_match:
-            if create_match.group(2):
-                schema = create_match.group(2)
-            view_name = create_match.group(4)
         
-        # Check if view exists
-        view_exists = self.client.check_view_exists(connection_string, lakehouse_name, schema, view_name)
+        # Split by GO to handle multiple views in one file
+        batches = re.split(r'^\s*GO\s*$', view_sql, flags=re.MULTILINE | re.IGNORECASE)
         
-        if view_exists:
-            logger.info(f"  View '{schema}.{view_name}' exists, checking if update needed...")
+        # Process each view definition
+        processed_batches = []
+        for batch in batches:
+            batch = batch.strip()
+            if not batch:
+                continue
             
-            # Get existing definition
-            existing_def = self.client.get_view_definition(connection_string, lakehouse_name, schema, view_name)
+            # Parse schema and view name from SQL (assuming dbo schema)
+            schema = "dbo"
+            view_name = name
             
-            # Normalize both definitions for comparison (remove whitespace, comments)
-            def normalize_sql(sql):
-                # Remove comments
-                sql = re.sub(r'--.*$', '', sql, flags=re.MULTILINE)
-                sql = re.sub(r'/\*.*?\*/', '', sql, flags=re.DOTALL)
-                # Remove extra whitespace
-                sql = ' '.join(sql.split())
-                return sql.strip().upper()
+            # Check if SQL contains CREATE VIEW or CREATE OR ALTER VIEW with schema
+            create_match = re.search(r'CREATE\s+(OR\s+ALTER\s+)?VIEW\s+(\[?(\w+)\]?\.)?\[?(\w+)\]?', batch, re.IGNORECASE)
+            if create_match:
+                if create_match.group(3):  # Schema found
+                    schema = create_match.group(3)
+                view_name = create_match.group(4)
             
-            new_sql_normalized = normalize_sql(view_sql)
-            existing_sql_normalized = normalize_sql(existing_def) if existing_def else ""
+            # Check if view exists
+            view_exists = self.client.check_view_exists(connection_string, lakehouse_name, schema, view_name)
             
-            if new_sql_normalized == existing_sql_normalized:
-                logger.info(f"  View '{schema}.{view_name}' is up to date, skipping")
-                return
-            
-            logger.info(f"  View definition changed, updating...")
-            # Convert CREATE to ALTER
-            alter_sql = re.sub(r'CREATE\s+VIEW', 'ALTER VIEW', view_sql, count=1, flags=re.IGNORECASE)
-            self.client.execute_sql_command(connection_string, lakehouse_name, alter_sql)
-            logger.info(f"  Updated view '{schema}.{view_name}'")
+            if view_exists:
+                logger.info(f"  View '{schema}.{view_name}' exists, checking if update needed...")
+                
+                # Get existing definition
+                existing_def = self.client.get_view_definition(connection_string, lakehouse_name, schema, view_name)
+                
+                # Normalize both definitions for comparison (remove whitespace, comments)
+                def normalize_sql(sql):
+                    # Remove comments
+                    sql = re.sub(r'--.*$', '', sql, flags=re.MULTILINE)
+                    sql = re.sub(r'/\*.*?\*/', '', sql, flags=re.DOTALL)
+                    # Remove extra whitespace
+                    sql = ' '.join(sql.split())
+                    return sql.strip().upper()
+                
+                new_sql_normalized = normalize_sql(batch)
+                existing_sql_normalized = normalize_sql(existing_def) if existing_def else ""
+                
+                if new_sql_normalized == existing_sql_normalized:
+                    logger.info(f"  View '{schema}.{view_name}' is up to date, skipping")
+                    continue
+                
+                logger.info(f"  View definition changed, updating '{schema}.{view_name}'...")
+                # Convert CREATE VIEW to ALTER VIEW (handle CREATE OR ALTER VIEW)
+                alter_sql = re.sub(r'CREATE\s+(OR\s+ALTER\s+)?VIEW', 'ALTER VIEW', batch, count=1, flags=re.IGNORECASE)
+                processed_batches.append(alter_sql)
+            else:
+                logger.info(f"  Creating new view '{schema}.{view_name}'...")
+                processed_batches.append(batch)
+        
+        # Execute all batches in one go (reconnecting for each would be inefficient)
+        if processed_batches:
+            final_sql = '\nGO\n'.join(processed_batches)
+            self.client.execute_sql_command(connection_string, lakehouse_name, final_sql)
+            logger.info(f"  ✓ Completed SQL view deployment for '{name}'")
         else:
-            logger.info(f"  Creating view '{schema}.{view_name}'...")
-            self.client.execute_sql_command(connection_string, lakehouse_name, view_sql)
-            logger.info(f"  Created view '{schema}.{view_name}'")
+            logger.info(f"  All views in '{name}' are up to date")
 
 
 def main():

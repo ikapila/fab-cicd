@@ -131,6 +131,14 @@ stages:
 
                 - script: |
                     set -e  # Exit immediately if any command fails
+                    
+                    echo "Debug: Current directory: $(pwd)"
+                    echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
+                    echo "Debug: Listing Build.SourcesDirectory:"
+                    ls -la $(Build.SourcesDirectory)
+                    echo "Debug: Checking scripts directory:"
+                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
+                    
                     cd $(Build.SourcesDirectory)
                     
                     echo "========================================"
@@ -218,6 +226,14 @@ stages:
 
                 - script: |
                     set -e  # Exit immediately if any command fails
+                    
+                    echo "Debug: Current directory: $(pwd)"
+                    echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
+                    echo "Debug: Listing Build.SourcesDirectory:"
+                    ls -la $(Build.SourcesDirectory)
+                    echo "Debug: Checking scripts directory:"
+                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
+                    
                     cd $(Build.SourcesDirectory)
                     
                     echo "========================================"
@@ -305,6 +321,14 @@ stages:
 
                 - script: |
                     set -e  # Exit immediately if any command fails
+                    
+                    echo "Debug: Current directory: $(pwd)"
+                    echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
+                    echo "Debug: Listing Build.SourcesDirectory:"
+                    ls -la $(Build.SourcesDirectory)
+                    echo "Debug: Checking scripts directory:"
+                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
+                    
                     cd $(Build.SourcesDirectory)
                     
                     echo "========================================"

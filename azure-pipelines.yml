@@ -136,10 +136,10 @@ stages:
                     echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
                     echo "Debug: Listing Build.SourcesDirectory:"
                     ls -la $(Build.SourcesDirectory)
-                    echo "Debug: Checking azure-pipelines/scripts directory:"
-                    ls -la $(Build.SourcesDirectory)/azure-pipelines/scripts/ || echo "azure-pipelines/scripts directory not found"
+                    echo "Debug: Checking scripts directory:"
+                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
                     
-                    cd $(Build.SourcesDirectory)/azure-pipelines
+                    cd $(Build.SourcesDirectory)
                     
                     echo "========================================"
                     echo "Deploying to Dev Environment"
@@ -157,8 +157,8 @@ stages:
                     
                     # Change detection is automatic - no special flags needed
                     python scripts/deploy_artifacts.py dev \
-                      --config-dir config \
-                      --artifacts-dir . \
+                      --config-dir azure-pipelines/config \
+                      --artifacts-dir azure-pipelines \
                       --create-artifacts
                     
                     echo ""
@@ -170,14 +170,14 @@ stages:
                     AZURE_CLIENT_SECRET_DEV: $(AZURE_CLIENT_SECRET_DEV)
 
                 - script: |
-                    cd $(Build.SourcesDirectory)/azure-pipelines
+                    cd $(Build.SourcesDirectory)
                     
                     # Commit deployment tracking file back to repository
-                    if [ -f .deployment_tracking/dev_last_commit.txt ]; then
+                    if [ -f azure-pipelines/.deployment_tracking/dev_last_commit.txt ]; then
                       echo "📝 Committing deployment tracking file..."
                       git config user.email "azure-pipelines@fabcicd.com"
                       git config user.name "Azure Pipelines"
-                      git add .deployment_tracking/dev_last_commit.txt
+                      git add azure-pipelines/.deployment_tracking/dev_last_commit.txt
                       git commit -m "Update Dev deployment tracking [skip ci]" || echo "No changes to commit"
                       git push origin HEAD:$(Build.SourceBranch) || echo "Push failed or not needed"
                       echo "✓ Deployment tracking updated"
@@ -231,10 +231,10 @@ stages:
                     echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
                     echo "Debug: Listing Build.SourcesDirectory:"
                     ls -la $(Build.SourcesDirectory)
-                    echo "Debug: Checking azure-pipelines/scripts directory:"
-                    ls -la $(Build.SourcesDirectory)/azure-pipelines/scripts/ || echo "azure-pipelines/scripts directory not found"
+                    echo "Debug: Checking scripts directory:"
+                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
                     
-                    cd $(Build.SourcesDirectory)/azure-pipelines
+                    cd $(Build.SourcesDirectory)
                     
                     echo "========================================"
                     echo "Deploying to UAT Environment"
@@ -252,8 +252,8 @@ stages:
                     
                     # Change detection is automatic - no special flags needed
                     python scripts/deploy_artifacts.py uat \
-                      --config-dir config \
-                      --artifacts-dir . \
+                      --config-dir azure-pipelines/config \
+                      --artifacts-dir azure-pipelines \
                       --create-artifacts
                     
                     echo ""
@@ -265,14 +265,14 @@ stages:
                     AZURE_CLIENT_SECRET_UAT: $(AZURE_CLIENT_SECRET_UAT)
 
                 - script: |
-                    cd $(Build.SourcesDirectory)/azure-pipelines
+                    cd $(Build.SourcesDirectory)
                     
                     # Commit deployment tracking file back to repository
-                    if [ -f .deployment_tracking/uat_last_commit.txt ]; then
+                    if [ -f azure-pipelines/.deployment_tracking/uat_last_commit.txt ]; then
                       echo "📝 Committing deployment tracking file..."
                       git config user.email "azure-pipelines@fabcicd.com"
                       git config user.name "Azure Pipelines"
-                      git add .deployment_tracking/uat_last_commit.txt
+                      git add azure-pipelines/.deployment_tracking/uat_last_commit.txt
                       git commit -m "Update UAT deployment tracking [skip ci]" || echo "No changes to commit"
                       git push origin HEAD:$(Build.SourceBranch) || echo "Push failed or not needed"
                       echo "✓ Deployment tracking updated"
@@ -326,10 +326,10 @@ stages:
                     echo "Debug: Build.SourcesDirectory = $(Build.SourcesDirectory)"
                     echo "Debug: Listing Build.SourcesDirectory:"
                     ls -la $(Build.SourcesDirectory)
-                    echo "Debug: Checking azure-pipelines/scripts directory:"
-                    ls -la $(Build.SourcesDirectory)/azure-pipelines/scripts/ || echo "azure-pipelines/scripts directory not found"
+                    echo "Debug: Checking scripts directory:"
+                    ls -la $(Build.SourcesDirectory)/scripts/ || echo "scripts directory not found"
                     
-                    cd $(Build.SourcesDirectory)/azure-pipelines
+                    cd $(Build.SourcesDirectory)
                     
                     echo "========================================"
                     echo "Deploying to Production Environment"
@@ -348,8 +348,8 @@ stages:
                     # Change detection is automatic - no special flags needed
                     # Add --force-all flag here if you want to force full deployment
                     python scripts/deploy_artifacts.py prod \
-                      --config-dir config \
-                      --artifacts-dir . \
+                      --config-dir azure-pipelines/config \
+                      --artifacts-dir azure-pipelines \
                       --create-artifacts
                     
                     echo ""
@@ -361,14 +361,14 @@ stages:
                     AZURE_CLIENT_SECRET_PROD: $(AZURE_CLIENT_SECRET_PROD)
 
                 - script: |
-                    cd $(Build.SourcesDirectory)/azure-pipelines
+                    cd $(Build.SourcesDirectory)
                     
                     # Commit deployment tracking file back to repository
-                    if [ -f .deployment_tracking/prod_last_commit.txt ]; then
+                    if [ -f azure-pipelines/.deployment_tracking/prod_last_commit.txt ]; then
                       echo "📝 Committing deployment tracking file..."
                       git config user.email "azure-pipelines@fabcicd.com"
                       git config user.name "Azure Pipelines"
-                      git add .deployment_tracking/prod_last_commit.txt
+                      git add azure-pipelines/.deployment_tracking/prod_last_commit.txt
                       git commit -m "Update Production deployment tracking [skip ci]" || echo "No changes to commit"
                       git push origin HEAD:$(Build.SourceBranch) || echo "Push failed or not needed"
                       echo "✓ Deployment tracking updated"

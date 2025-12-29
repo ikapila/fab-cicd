@@ -3252,6 +3252,8 @@ print('Notebook initialized')
         # Split by GO to handle multiple views in one file
         batches = re.split(r'^\s*GO\s*$', view_sql, flags=re.MULTILINE | re.IGNORECASE)
         
+        logger.info(f"  Found {len(batches)} batch(es) in SQL file")
+        
         # Process each view definition
         processed_batches = []
         view_names_processed = []
@@ -3259,7 +3261,10 @@ print('Notebook initialized')
         for batch_idx, batch in enumerate(batches):
             batch = batch.strip()
             if not batch:
+                logger.info(f"  Batch {batch_idx + 1}: Empty, skipping")
                 continue
+            
+            logger.info(f"  Processing batch {batch_idx + 1} ({len(batch)} chars)")
             
             # Parse schema and view name from SQL (assuming dbo schema)
             schema = "dbo"
@@ -3277,9 +3282,11 @@ print('Notebook initialized')
                     schema = create_match.group(1)
                 # View name is in group 3 (without brackets) or we can strip brackets from group 2
                 view_name = create_match.group(3) if create_match.group(3) else create_match.group(2).strip('[]')
+                logger.info(f"  Batch {batch_idx + 1}: Parsed view name '{schema}.{view_name}'")
             
             if not view_name:
-                logger.warning(f"  Could not parse view name from batch {batch_idx + 1}, skipping")
+                logger.warning(f"  Could not parse view name from batch {batch_idx + 1}")
+                logger.warning(f"  Batch content (first 200 chars): {batch[:200]}")
                 continue
             
             full_view_name = f"{schema}.{view_name}"

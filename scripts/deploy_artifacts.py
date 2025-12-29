@@ -3254,27 +3254,41 @@ print('Notebook initialized')
         
         # Process each view definition
         processed_batches = []
-        for batch in batches:
+        view_names_processed = []
+        
+        for batch_idx, batch in enumerate(batches):
             batch = batch.strip()
             if not batch:
                 continue
             
             # Parse schema and view name from SQL (assuming dbo schema)
             schema = "dbo"
-            view_name = name
+            view_name = None
             
             # Check if SQL contains CREATE VIEW or CREATE OR ALTER VIEW with schema
-            create_match = re.search(r'CREATE\s+(OR\s+ALTER\s+)?VIEW\s+(\[?(\w+)\]?\.)?\[?(\w+)\]?', batch, re.IGNORECASE)
+            # Pattern: CREATE [OR ALTER] VIEW [schema.]viewname
+            create_match = re.search(
+                r'CREATE\s+(?:OR\s+ALTER\s+)?VIEW\s+(?:\[?(\w+)\]?\.)?(\[?(\w+)\]?)',
+                batch,
+                re.IGNORECASE
+            )
             if create_match:
-                if create_match.group(3):  # Schema found
-                    schema = create_match.group(3)
-                view_name = create_match.group(4)
+                if create_match.group(1):  # Schema found (first capture group)
+                    schema = create_match.group(1)
+                # View name is in group 3 (without brackets) or we can strip brackets from group 2
+                view_name = create_match.group(3) if create_match.group(3) else create_match.group(2).strip('[]')
+            
+            if not view_name:
+                logger.warning(f"  Could not parse view name from batch {batch_idx + 1}, skipping")
+                continue
+            
+            full_view_name = f"{schema}.{view_name}"
             
             # Check if view exists
             view_exists = self.client.check_view_exists(connection_string, lakehouse_name, schema, view_name)
             
             if view_exists:
-                logger.info(f"  View '{schema}.{view_name}' exists, checking if update needed...")
+                logger.info(f"  View '{full_view_name}' exists, checking if update needed...")
                 
                 # Get existing definition
                 existing_def = self.client.get_view_definition(connection_string, lakehouse_name, schema, view_name)
@@ -3292,22 +3306,26 @@ print('Notebook initialized')
                 existing_sql_normalized = normalize_sql(existing_def) if existing_def else ""
                 
                 if new_sql_normalized == existing_sql_normalized:
-                    logger.info(f"  View '{schema}.{view_name}' is up to date, skipping")
+                    logger.info(f"  View '{full_view_name}' is up to date, skipping")
                     continue
                 
-                logger.info(f"  View definition changed, updating '{schema}.{view_name}'...")
+                logger.info(f"  View definition changed, updating '{full_view_name}'...")
                 # Convert CREATE VIEW to ALTER VIEW (handle CREATE OR ALTER VIEW)
-                alter_sql = re.sub(r'CREATE\s+(OR\s+ALTER\s+)?VIEW', 'ALTER VIEW', batch, count=1, flags=re.IGNORECASE)
+                alter_sql = re.sub(r'CREATE\s+(?:OR\s+ALTER\s+)?VIEW', 'ALTER VIEW', batch, count=1, flags=re.IGNORECASE)
                 processed_batches.append(alter_sql)
+                view_names_processed.append(full_view_name)
             else:
-                logger.info(f"  Creating new view '{schema}.{view_name}'...")
+                logger.info(f"  Creating new view '{full_view_name}'...")
                 processed_batches.append(batch)
+                view_names_processed.append(full_view_name)
         
         # Execute all batches in one go (reconnecting for each would be inefficient)
         if processed_batches:
             final_sql = '\nGO\n'.join(processed_batches)
             self.client.execute_sql_command(connection_string, lakehouse_name, final_sql)
-            logger.info(f"  ✓ Completed SQL view deployment for '{name}'")
+            logger.info(f"  ✓ Deployed {len(view_names_processed)} view(s): {', '.join(view_names_processed)}")
+        else:
+            logger.info(f"  All views in '{name}.sql' are up to date")
         else:
             logger.info(f"  All views in '{name}' are up to date")
 

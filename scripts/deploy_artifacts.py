@@ -3326,8 +3326,6 @@ print('Notebook initialized')
             logger.info(f"  ✓ Deployed {len(view_names_processed)} view(s): {', '.join(view_names_processed)}")
         else:
             logger.info(f"  All views in '{name}.sql' are up to date")
-        else:
-            logger.info(f"  All views in '{name}' are up to date")
 
 
 def main():

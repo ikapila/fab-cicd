@@ -3300,14 +3300,18 @@ print('Notebook initialized')
                 # Get existing definition
                 existing_def = self.client.get_view_definition(connection_string, lakehouse_name, schema, view_name)
                 
-                # Normalize both definitions for comparison (remove whitespace, comments)
+                # Normalize both definitions for comparison (remove whitespace, comments, OR ALTER)
                 def normalize_sql(sql):
                     # Remove comments
                     sql = re.sub(r'--.*$', '', sql, flags=re.MULTILINE)
                     sql = re.sub(r'/\*.*?\*/', '', sql, flags=re.DOTALL)
-                    # Remove extra whitespace
+                    # Remove OR ALTER to normalize CREATE OR ALTER VIEW vs CREATE VIEW
+                    sql = re.sub(r'\bOR\s+ALTER\b', '', sql, flags=re.IGNORECASE)
+                    # Remove schema brackets [dbo] -> dbo
+                    sql = re.sub(r'\[(\w+)\]', r'\1', sql)
+                    # Remove extra whitespace and normalize case
                     sql = ' '.join(sql.split())
-                    return sql.strip().upper()
+                    return sql.strip().lower()
                 
                 new_sql_normalized = normalize_sql(batch)
                 existing_sql_normalized = normalize_sql(existing_def) if existing_def else ""
@@ -3317,8 +3321,8 @@ print('Notebook initialized')
                     continue
                 
                 logger.info(f"  View definition changed, updating '{full_view_name}'...")
-                # Convert CREATE VIEW to ALTER VIEW (handle CREATE OR ALTER VIEW)
-                alter_sql = re.sub(r'CREATE\s+(?:OR\s+ALTER\s+)?VIEW', 'ALTER VIEW', batch, count=1, flags=re.IGNORECASE)
+                # Convert CREATE VIEW to CREATE OR ALTER VIEW for safer updates
+                alter_sql = re.sub(r'CREATE\s+(?:OR\s+ALTER\s+)?VIEW', 'CREATE OR ALTER VIEW', batch, count=1, flags=re.IGNORECASE)
                 processed_batches.append(alter_sql)
                 view_names_processed.append(full_view_name)
             else:

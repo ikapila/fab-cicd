@@ -180,17 +180,37 @@ stages:
                     AZURE_CLIENT_SECRET_DEV: $(AZURE_CLIENT_SECRET_DEV)
 
                 - script: |
+                    set -x  # Enable debug output
                     cd $(Build.SourcesDirectory)
                     
-                    # Commit deployment tracking file back to repository
+                    # Check if deployment tracking file was created
                     if [ -f .deployment_tracking/dev_last_commit.txt ]; then
-                      echo "📝 Committing deployment tracking file..."
+                      echo "📝 Found deployment tracking file, committing..."
+                      cat .deployment_tracking/dev_last_commit.txt
+                      
+                      # Configure git
                       git config user.email "azure-pipelines@fabcicd.com"
                       git config user.name "Azure Pipelines"
+                      
+                      # Add and commit the file
                       git add .deployment_tracking/dev_last_commit.txt
-                      git commit -m "Update Dev deployment tracking [skip ci]" || echo "No changes to commit"
-                      git push origin HEAD:$(Build.SourceBranch) || echo "Push failed or not needed"
-                      echo "✓ Deployment tracking updated"
+                      
+                      # Check if there are changes to commit
+                      if git diff --cached --quiet; then
+                        echo "No changes to commit (file already up to date)"
+                      else
+                        echo "Committing changes..."
+                        git commit -m "Update Dev deployment tracking [skip ci]"
+                        
+                        # Push to remote - using full ref path for Azure Repos
+                        echo "Pushing to remote branch: $(Build.SourceBranch)..."
+                        git push origin HEAD:refs/heads/$(Build.SourceBranch)
+                        echo "✓ Deployment tracking updated and pushed"
+                      fi
+                    else
+                      echo "⚠️  Deployment tracking file not found at .deployment_tracking/dev_last_commit.txt"
+                      echo "Checking .deployment_tracking directory contents:"
+                      ls -la .deployment_tracking/ || echo "Directory does not exist"
                     fi
                   displayName: 'Update deployment tracking'
                   continueOnError: true
@@ -285,17 +305,37 @@ stages:
                     AZURE_CLIENT_SECRET_UAT: $(AZURE_CLIENT_SECRET_UAT)
 
                 - script: |
+                    set -x  # Enable debug output
                     cd $(Build.SourcesDirectory)
                     
-                    # Commit deployment tracking file back to repository
+                    # Check if deployment tracking file was created
                     if [ -f .deployment_tracking/uat_last_commit.txt ]; then
-                      echo "📝 Committing deployment tracking file..."
+                      echo "📝 Found deployment tracking file, committing..."
+                      cat .deployment_tracking/uat_last_commit.txt
+                      
+                      # Configure git
                       git config user.email "azure-pipelines@fabcicd.com"
                       git config user.name "Azure Pipelines"
+                      
+                      # Add and commit the file
                       git add .deployment_tracking/uat_last_commit.txt
-                      git commit -m "Update UAT deployment tracking [skip ci]" || echo "No changes to commit"
-                      git push origin HEAD:$(Build.SourceBranch) || echo "Push failed or not needed"
-                      echo "✓ Deployment tracking updated"
+                      
+                      # Check if there are changes to commit
+                      if git diff --cached --quiet; then
+                        echo "No changes to commit (file already up to date)"
+                      else
+                        echo "Committing changes..."
+                        git commit -m "Update UAT deployment tracking [skip ci]"
+                        
+                        # Push to remote - using full ref path for Azure Repos
+                        echo "Pushing to remote branch: $(Build.SourceBranch)..."
+                        git push origin HEAD:refs/heads/$(Build.SourceBranch)
+                        echo "✓ Deployment tracking updated and pushed"
+                      fi
+                    else
+                      echo "⚠️  Deployment tracking file not found at .deployment_tracking/uat_last_commit.txt"
+                      echo "Checking .deployment_tracking directory contents:"
+                      ls -la .deployment_tracking/ || echo "Directory does not exist"
                     fi
                   displayName: 'Update deployment tracking'
                   continueOnError: true
@@ -391,17 +431,37 @@ stages:
                     AZURE_CLIENT_SECRET_PROD: $(AZURE_CLIENT_SECRET_PROD)
 
                 - script: |
+                    set -x  # Enable debug output
                     cd $(Build.SourcesDirectory)
                     
-                    # Commit deployment tracking file back to repository
+                    # Check if deployment tracking file was created
                     if [ -f .deployment_tracking/prod_last_commit.txt ]; then
-                      echo "📝 Committing deployment tracking file..."
+                      echo "📝 Found deployment tracking file, committing..."
+                      cat .deployment_tracking/prod_last_commit.txt
+                      
+                      # Configure git
                       git config user.email "azure-pipelines@fabcicd.com"
                       git config user.name "Azure Pipelines"
+                      
+                      # Add and commit the file
                       git add .deployment_tracking/prod_last_commit.txt
-                      git commit -m "Update Production deployment tracking [skip ci]" || echo "No changes to commit"
-                      git push origin HEAD:$(Build.SourceBranch) || echo "Push failed or not needed"
-                      echo "✓ Deployment tracking updated"
+                      
+                      # Check if there are changes to commit
+                      if git diff --cached --quiet; then
+                        echo "No changes to commit (file already up to date)"
+                      else
+                        echo "Committing changes..."
+                        git commit -m "Update Production deployment tracking [skip ci]"
+                        
+                        # Push to remote - using full ref path for Azure Repos
+                        echo "Pushing to remote branch: $(Build.SourceBranch)..."
+                        git push origin HEAD:refs/heads/$(Build.SourceBranch)
+                        echo "✓ Deployment tracking updated and pushed"
+                      fi
+                    else
+                      echo "⚠️  Deployment tracking file not found at .deployment_tracking/prod_last_commit.txt"
+                      echo "Checking .deployment_tracking directory contents:"
+                      ls -la .deployment_tracking/ || echo "Directory does not exist"
                     fi
                   displayName: 'Update deployment tracking'
                   continueOnError: true

@@ -312,6 +312,14 @@ class FabricDeployer:
         # Update resolver with filtered artifacts
         self.resolver.artifacts = filtered_artifacts
         
+        # Update dependency graph to only include artifacts in the filtered list
+        filtered_artifact_ids = {a["id"] for a in filtered_artifacts}
+        self.resolver.dependency_graph = {
+            artifact_id: deps
+            for artifact_id, deps in self.resolver.dependency_graph.items()
+            if artifact_id in filtered_artifact_ids
+        }
+        
         # Log summary
         total_changed = sum(len(names) for names in changed_artifacts.values())
         logger.info(f"Changed artifacts: {total_changed}")

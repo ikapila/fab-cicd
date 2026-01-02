@@ -285,13 +285,28 @@ class FabricDeployer:
         filtered_artifacts = []
         skipped_count = 0
         
+        # First pass: Add changed artifacts
+        changed_artifact_ids = set()
         for artifact in self.resolver.artifacts:
             artifact_type = artifact["type"].value
             artifact_name = artifact["name"]
             
             if artifact_type in changed_artifacts and artifact_name in changed_artifacts[artifact_type]:
                 filtered_artifacts.append(artifact)
-            else:
+                changed_artifact_ids.add(artifact["id"])
+        
+        # Second pass: Add dependencies of changed artifacts (they must exist for validation/deployment)
+        dependency_ids = set()
+        for artifact in filtered_artifacts:
+            for dep_id in artifact.get("dependencies", []):
+                dependency_ids.add(dep_id)
+        
+        # Add dependency artifacts if they're not already in the filtered list
+        for artifact in self.resolver.artifacts:
+            if artifact["id"] in dependency_ids and artifact["id"] not in changed_artifact_ids:
+                filtered_artifacts.append(artifact)
+                logger.debug(f"Including dependency: {artifact['name']} ({artifact['type'].value}) - required by changed artifact")
+            elif artifact["id"] not in changed_artifact_ids and artifact["id"] not in dependency_ids:
                 skipped_count += 1
         
         # Update resolver with filtered artifacts

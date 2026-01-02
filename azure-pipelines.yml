@@ -202,7 +202,11 @@ stages:
                         echo "Committing changes..."
                         git commit -m "Update Dev deployment tracking [skip ci]"
                         
-                        # Push to remote - using SourceBranchName to get just 'dev' without 'refs/heads/'
+                        # Configure git to use System.AccessToken for authentication
+                        echo "Configuring authentication with System.AccessToken..."
+                        git config http.extraheader "AUTHORIZATION: bearer $(System.AccessToken)"
+                        
+                        # Push to remote
                         echo "Pushing to remote branch: $(Build.SourceBranchName)..."
                         git push origin HEAD:refs/heads/$(Build.SourceBranchName)
                         echo "✓ Deployment tracking updated and pushed"
@@ -213,6 +217,8 @@ stages:
                       ls -la .deployment_tracking/ || echo "Directory does not exist"
                     fi
                   displayName: 'Update deployment tracking'
+                  env:
+                    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                   continueOnError: true
 
   # ========================================
@@ -327,7 +333,11 @@ stages:
                         echo "Committing changes..."
                         git commit -m "Update UAT deployment tracking [skip ci]"
                         
-                        # Push to remote - using SourceBranchName to get just 'uat' without 'refs/heads/'
+                        # Configure git to use System.AccessToken for authentication
+                        echo "Configuring authentication with System.AccessToken..."
+                        git config http.extraheader "AUTHORIZATION: bearer $(System.AccessToken)"
+                        
+                        # Push to remote
                         echo "Pushing to remote branch: $(Build.SourceBranchName)..."
                         git push origin HEAD:refs/heads/$(Build.SourceBranchName)
                         echo "✓ Deployment tracking updated and pushed"
@@ -338,6 +348,8 @@ stages:
                       ls -la .deployment_tracking/ || echo "Directory does not exist"
                     fi
                   displayName: 'Update deployment tracking'
+                  env:
+                    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                   continueOnError: true
 
   # ========================================
@@ -453,7 +465,11 @@ stages:
                         echo "Committing changes..."
                         git commit -m "Update Production deployment tracking [skip ci]"
                         
-                        # Push to remote - using SourceBranchName to get just 'main' without 'refs/heads/'
+                        # Configure git to use System.AccessToken for authentication
+                        echo "Configuring authentication with System.AccessToken..."
+                        git config http.extraheader "AUTHORIZATION: bearer $(System.AccessToken)"
+                        
+                        # Push to remote
                         echo "Pushing to remote branch: $(Build.SourceBranchName)..."
                         git push origin HEAD:refs/heads/$(Build.SourceBranchName)
                         echo "✓ Deployment tracking updated and pushed"
@@ -464,6 +480,8 @@ stages:
                       ls -la .deployment_tracking/ || echo "Directory does not exist"
                     fi
                   displayName: 'Update deployment tracking'
+                  env:
+                    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                   continueOnError: true
 
   # ========================================

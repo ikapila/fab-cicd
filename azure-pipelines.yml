@@ -202,9 +202,9 @@ stages:
                         echo "Committing changes..."
                         git commit -m "Update Dev deployment tracking [skip ci]"
                         
-                        # Push to remote - using full ref path for Azure Repos
-                        echo "Pushing to remote branch: $(Build.SourceBranch)..."
-                        git push origin HEAD:refs/heads/$(Build.SourceBranch)
+                        # Push to remote - using SourceBranchName to get just 'dev' without 'refs/heads/'
+                        echo "Pushing to remote branch: $(Build.SourceBranchName)..."
+                        git push origin HEAD:refs/heads/$(Build.SourceBranchName)
                         echo "✓ Deployment tracking updated and pushed"
                       fi
                     else
@@ -327,9 +327,9 @@ stages:
                         echo "Committing changes..."
                         git commit -m "Update UAT deployment tracking [skip ci]"
                         
-                        # Push to remote - using full ref path for Azure Repos
-                        echo "Pushing to remote branch: $(Build.SourceBranch)..."
-                        git push origin HEAD:refs/heads/$(Build.SourceBranch)
+                        # Push to remote - using SourceBranchName to get just 'uat' without 'refs/heads/'
+                        echo "Pushing to remote branch: $(Build.SourceBranchName)..."
+                        git push origin HEAD:refs/heads/$(Build.SourceBranchName)
                         echo "✓ Deployment tracking updated and pushed"
                       fi
                     else
@@ -453,9 +453,9 @@ stages:
                         echo "Committing changes..."
                         git commit -m "Update Production deployment tracking [skip ci]"
                         
-                        # Push to remote - using full ref path for Azure Repos
-                        echo "Pushing to remote branch: $(Build.SourceBranch)..."
-                        git push origin HEAD:refs/heads/$(Build.SourceBranch)
+                        # Push to remote - using SourceBranchName to get just 'main' without 'refs/heads/'
+                        echo "Pushing to remote branch: $(Build.SourceBranchName)..."
+                        git push origin HEAD:refs/heads/$(Build.SourceBranchName)
                         echo "✓ Deployment tracking updated and pushed"
                       fi
                     else

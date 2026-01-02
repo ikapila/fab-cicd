@@ -106,6 +106,8 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                  persistCredentials: true
+                  fetchDepth: 0
                   displayName: 'Checkout source code'
 
                 - task: UsePythonVersion@0
@@ -150,7 +152,7 @@ stages:
                     cd $(Build.SourcesDirectory)
                     
                     echo "========================================"
-                    echo "Deploying to UAT Environment"
+                    echo "Deploying to Dev Environment"
                     echo "========================================"
                     echo "Features:"
                     echo "  ⚡ Automatic change detection (deploys only modified artifacts)"
@@ -209,6 +211,8 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                  persistCredentials: true
+                  fetchDepth: 0
                   displayName: 'Checkout source code'
 
                 - task: UsePythonVersion@0
@@ -312,6 +316,8 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                  persistCredentials: true
+                  fetchDepth: 0
                   displayName: 'Checkout source code'
 
                 - task: UsePythonVersion@0

@@ -1,5 +1,39 @@
 # Azure DevOps Build Service Permissions Fix
 
+## ✅ RECOMMENDED SOLUTION: Enable OAuth Token Access
+
+The pipeline now uses `System.AccessToken` for authentication, which is simpler and more reliable.
+
+### Required Setting (One-Time Setup):
+
+1. **Open Pipeline Settings**
+   - Go to your pipeline in Azure DevOps
+   - Click **Edit** (top right)
+   - Click the **⋮** (three dots) menu → **Triggers**
+   - Or go to: `https://dev.azure.com/Arbuthnot-AAG/AAG-Proj-DataFabric/_build?definitionId=<YOUR_PIPELINE_ID>`
+
+2. **Enable OAuth Token**
+   - Go to **YAML** tab (if you were in Triggers)
+   - Click **⋮** (three dots) → **Settings** 
+   - Or navigate to the pipeline and select **More actions** → **Settings**
+   - Under **Advanced settings** or in the settings page
+   - Enable: **"Allow scripts to access the OAuth token"**
+   - Save
+
+   Alternative path:
+   - Pipeline → **Edit** → **⋮ More Actions** → **Pipeline settings**
+   - Check: ☑ **Allow scripts to access the OAuth token**
+
+3. **Run Pipeline**
+   - The System.AccessToken will automatically have push permissions
+   - No manual permission grants needed
+
+---
+
+## Alternative: Manual Permissions (If OAuth Doesn't Work)
+
+If enabling OAuth token doesn't work or is blocked by policy, use manual permissions:
+
 ## Problem
 The build pipeline fails to push deployment tracking files with error:
 ```

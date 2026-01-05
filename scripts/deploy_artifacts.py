@@ -405,6 +405,15 @@ class FabricDeployer:
         # Discover variable libraries
         self._discover_variable_libraries()
         
+        # Discover semantic models
+        self._discover_semantic_models()
+        
+        # Discover reports
+        self._discover_reports()
+        
+        # Discover paginated reports
+        self._discover_paginated_reports()
+        
         # Discover SQL views
         self._discover_sql_views()
         
@@ -865,6 +874,93 @@ class FabricDeployer:
                 )
                 
                 logger.debug(f"Discovered SQL view: {view_name} with {len(artifact_dependencies)} dependencies")
+    
+    def _discover_semantic_models(self) -> None:
+        """Discover semantic model definitions"""
+        models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
+        if not models_dir.exists():
+            logger.debug("No semantic models directory found")
+            return
+        
+        discovered = []
+        for model_file in models_dir.glob("*.json"):
+            with open(model_file, 'r') as f:
+                definition = json.load(f)
+            
+            model_name = definition.get("name", model_file.stem)
+            discovered.append(model_name)
+            model_id = definition.get("id", f"semanticmodel-{model_name}")
+            dependencies = definition.get("dependencies", [])
+            
+            self.resolver.add_artifact(
+                model_id,
+                ArtifactType.SEMANTIC_MODEL,
+                model_name,
+                dependencies=dependencies
+            )
+            
+            logger.debug(f"Discovered semantic model: {model_name}")
+        
+        if discovered:
+            logger.info(f"Discovered {len(discovered)} semantic model(s): {', '.join(sorted(discovered))}")
+    
+    def _discover_reports(self) -> None:
+        """Discover Power BI report definitions"""
+        reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
+        if not reports_dir.exists():
+            logger.debug("No reports directory found")
+            return
+        
+        discovered = []
+        for report_file in reports_dir.glob("*.json"):
+            with open(report_file, 'r') as f:
+                definition = json.load(f)
+            
+            report_name = definition.get("name", report_file.stem)
+            discovered.append(report_name)
+            report_id = definition.get("id", f"report-{report_name}")
+            dependencies = definition.get("dependencies", [])
+            
+            self.resolver.add_artifact(
+                report_id,
+                ArtifactType.POWER_BI_REPORT,
+                report_name,
+                dependencies=dependencies
+            )
+            
+            logger.debug(f"Discovered report: {report_name}")
+        
+        if discovered:
+            logger.info(f"Discovered {len(discovered)} report(s): {', '.join(sorted(discovered))}")
+    
+    def _discover_paginated_reports(self) -> None:
+        """Discover paginated report definitions"""
+        reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports"
+        if not reports_dir.exists():
+            logger.debug("No paginated reports directory found")
+            return
+        
+        discovered = []
+        for report_file in reports_dir.glob("*.json"):
+            with open(report_file, 'r') as f:
+                definition = json.load(f)
+            
+            report_name = definition.get("name", report_file.stem)
+            discovered.append(report_name)
+            report_id = definition.get("id", f"paginatedreport-{report_name}")
+            dependencies = definition.get("dependencies", [])
+            
+            self.resolver.add_artifact(
+                report_id,
+                ArtifactType.PAGINATED_REPORT,
+                report_name,
+                dependencies=dependencies
+            )
+            
+            logger.debug(f"Discovered paginated report: {report_name}")
+        
+        if discovered:
+            logger.info(f"Discovered {len(discovered)} paginated report(s): {', '.join(sorted(discovered))}")
     
     def _extract_notebook_dependencies(self, notebook_path: Path) -> List[str]:
         """

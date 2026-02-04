@@ -793,6 +793,54 @@ class FabricClient:
         payload = {"definition": definition}
         return self._make_request("POST", f"/workspaces/{workspace_id}/semanticModels/{model_id}/updateDefinition", json_data=payload)
     
+    def rebind_semantic_model_sources(self, workspace_id: str, model_id: str, table_sources: List[Dict]) -> Dict:
+        """
+        Rebind semantic model table sources after deployment
+        
+        This allows changing data sources without redeploying the entire model,
+        similar to Fabric deployment pipeline rules.
+        
+        Args:
+            workspace_id: Workspace GUID
+            model_id: Semantic model GUID
+            table_sources: List of table rebinding configs:
+              [
+                {
+                  "tableName": "FactSales",
+                  "sourceLakehouseId": "lakehouse-guid",
+                  "sourceWorkspaceId": "workspace-guid"
+                }
+              ]
+        
+        Returns:
+            Rebinding response
+        """
+        logger.info(f"Rebinding data sources for semantic model: {model_id}")
+        endpoint = f"/workspaces/{workspace_id}/semanticModels/{model_id}/rebindSources"
+        payload = {"tableSources": table_sources}
+        return self._make_request("POST", endpoint, json_data=payload)
+    
+    def update_semantic_model_parameters(self, workspace_id: str, model_id: str, parameters: List[Dict]) -> Dict:
+        """
+        Update semantic model parameters (for parameterized queries)
+        
+        Args:
+            workspace_id: Workspace GUID
+            model_id: Semantic model GUID
+            parameters: List of parameter updates:
+              [
+                {"name": "ServerName", "newValue": "prod-sql.database.windows.net"},
+                {"name": "DatabaseName", "newValue": "ProdDB"}
+              ]
+        
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating parameters for semantic model: {model_id}")
+        endpoint = f"/workspaces/{workspace_id}/semanticModels/{model_id}/updateParameters"
+        payload = {"updateDetails": parameters}
+        return self._make_request("POST", endpoint, json_data=payload)
+    
     # ==================== Power BI Report Operations ====================
     
     def list_reports(self, workspace_id: str) -> List[Dict]:
@@ -846,6 +894,26 @@ class FabricClient:
         logger.info(f"Updating Power BI report: {report_id}")
         payload = {"definition": definition}
         return self._make_request("POST", f"/workspaces/{workspace_id}/reports/{report_id}/updateDefinition", json_data=payload)
+    
+    def rebind_report_dataset(self, workspace_id: str, report_id: str, dataset_id: str) -> Dict:
+        """
+        Rebind report to different dataset/semantic model
+        
+        This allows changing the data source of a report after deployment,
+        similar to Fabric deployment pipeline rules.
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Report GUID
+            dataset_id: New dataset/semantic model GUID
+        
+        Returns:
+            Rebinding response
+        """
+        logger.info(f"Rebinding report {report_id} to dataset {dataset_id}")
+        endpoint = f"/workspaces/{workspace_id}/reports/{report_id}/rebind"
+        payload = {"datasetId": dataset_id}
+        return self._make_request("POST", endpoint, json_data=payload)
     
     # ==================== Paginated Report Operations ====================
     
@@ -902,6 +970,33 @@ class FabricClient:
         logger.info(f"Updating paginated report: {report_id}")
         payload = {"definition": definition}
         return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports/{report_id}/updateDefinition", json_data=payload)
+    
+    def rebind_paginated_report_datasource(self, workspace_id: str, report_id: str, connection_details: Dict) -> Dict:
+        """
+        Rebind paginated report data source connection
+        
+        This allows updating connection strings or data source references after deployment,
+        similar to Fabric deployment pipeline rules.
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Paginated report GUID
+            connection_details: Connection configuration:
+              {
+                "connectionString": "Server=prod-sql.database.windows.net;...",
+                "datasourceType": "sql"
+              }
+              or
+              {
+                "datasetId": "semantic-model-guid"
+              }
+        
+        Returns:
+            Rebinding response
+        """
+        logger.info(f"Rebinding data source for paginated report: {report_id}")
+        endpoint = f"/workspaces/{workspace_id}/paginatedReports/{report_id}/rebindDatasource"
+        return self._make_request("POST", endpoint, json_data=connection_details)
     
     # ==================== Variable Library Operations ===================
     

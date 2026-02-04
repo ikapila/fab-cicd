@@ -2781,7 +2781,8 @@ print('Notebook initialized')
                 existing_model['id'],
                 definition
             )
-            logger.info(f"  Updated semantic model (ID: {existing_model['id']})")
+            model_id = existing_model['id']
+            logger.info(f"  Updated semantic model (ID: {model_id})")
         else:
             # Get or create folder for semantic models
             folder_id = self._get_or_create_folder("Semanticmodels")
@@ -2794,6 +2795,9 @@ print('Notebook initialized')
             )
             model_id = result.get('id') if result else 'unknown'
             logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {model_id})")
+        
+        # Apply rebinding rules if configured
+        self._apply_semantic_model_rebinding(name, model_id)
     
     def _deploy_report(self, name: str) -> None:
         """Deploy a Power BI report"""
@@ -2817,7 +2821,8 @@ print('Notebook initialized')
                 existing_report['id'],
                 definition
             )
-            logger.info(f"  Updated report (ID: {existing_report['id']})")
+            report_id = existing_report['id']
+            logger.info(f"  Updated report (ID: {report_id})")
         else:
             # Get or create folder for reports
             folder_id = self._get_or_create_folder("Reports")
@@ -2830,6 +2835,9 @@ print('Notebook initialized')
             )
             report_id = result.get('id') if result else 'unknown'
             logger.info(f"  ✓ Created report '{name}' in 'Reports' folder (ID: {report_id})")
+        
+        # Apply rebinding rules if configured
+        self._apply_report_rebinding(name, report_id)
     
     def _deploy_paginated_report(self, name: str) -> None:
         """Deploy a paginated report"""
@@ -2853,7 +2861,8 @@ print('Notebook initialized')
                 existing_report['id'],
                 definition
             )
-            logger.info(f"  Updated paginated report (ID: {existing_report['id']})")
+            report_id = existing_report['id']
+            logger.info(f"  Updated paginated report (ID: {report_id})")
         else:
             # Get or create folder for paginated reports
             folder_id = self._get_or_create_folder("Paginatedreports")
@@ -2861,6 +2870,9 @@ print('Notebook initialized')
             result = self.client.create_paginated_report(self.workspace_id, name, definition, folder_id=folder_id)
             report_id = result.get('id') if result else 'unknown'
             logger.info(f"  ✓ Created paginated report '{name}' in 'Paginatedreports' folder (ID: {report_id})")
+        
+        # Apply rebinding rules if configured
+        self._apply_paginated_report_rebinding(name, report_id)
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""
@@ -3456,6 +3468,141 @@ print('Notebook initialized')
             logger.info(f"  ✓ Deployed {len(view_names_processed)} view(s): {', '.join(view_names_processed)}")
         else:
             logger.info(f"  All views in '{name}.sql' are up to date")
+    
+    # ==================== Rebinding Helper Methods ====================
+    
+    def _apply_semantic_model_rebinding(self, model_name: str, model_id: str) -> None:
+        """
+        Apply data source rebinding rules to a semantic model
+        
+        Args:
+            model_name: Name of the semantic model
+            model_id: Semantic model GUID
+        """
+        rebind_rule = self.config.get_rebind_rule_for_artifact("semantic_models", model_name)
+        
+        if not rebind_rule or "table_rebindings" not in rebind_rule:
+            return
+        
+        logger.info(f"  Applying data source rebinding rules for '{model_name}'...")
+        
+        table_rebindings = rebind_rule["table_rebindings"]
+        resolved_bindings = []
+        
+        for binding in table_rebindings:
+            table_name = binding["table_name"]
+            lakehouse_name = self.config.substitute_parameters(binding["source_lakehouse"])
+            workspace_id = self.config.substitute_parameters(
+                binding.get("source_workspace_id", self.workspace_id)
+            )
+            
+            # Get lakehouse ID
+            try:
+                lakehouses = self.client.list_lakehouses(workspace_id)
+                lakehouse = next((lh for lh in lakehouses if lh["displayName"] == lakehouse_name), None)
+                
+                if lakehouse:
+                    resolved_bindings.append({
+                        "tableName": table_name,
+                        "sourceLakehouseId": lakehouse["id"],
+                        "sourceWorkspaceId": workspace_id
+                    })
+                    logger.info(f"    ✓ Will rebind table '{table_name}' to lakehouse '{lakehouse_name}'")
+                else:
+                    logger.warning(f"    ⚠ Lakehouse '{lakehouse_name}' not found, skipping rebinding for table '{table_name}'")
+            except Exception as e:
+                logger.warning(f"    ⚠ Error resolving lakehouse '{lakehouse_name}': {str(e)}")
+        
+        if resolved_bindings:
+            try:
+                self.client.rebind_semantic_model_sources(
+                    self.workspace_id,
+                    model_id,
+                    resolved_bindings
+                )
+                logger.info(f"  ✓ Data source rebinding completed for {len(resolved_bindings)} table(s)")
+            except Exception as e:
+                logger.error(f"  ✗ Failed to rebind data sources: {str(e)}")
+                logger.warning(f"  Model deployed successfully but rebinding failed - may need manual adjustment")
+    
+    def _apply_report_rebinding(self, report_name: str, report_id: str) -> None:
+        """
+        Apply dataset rebinding rules to a Power BI report
+        
+        Args:
+            report_name: Name of the report
+            report_id: Report GUID
+        """
+        rebind_rule = self.config.get_rebind_rule_for_artifact("reports", report_name)
+        
+        if not rebind_rule or "dataset_rebinding" not in rebind_rule:
+            return
+        
+        logger.info(f"  Applying dataset rebinding rules for '{report_name}'...")
+        
+        dataset_rebinding = rebind_rule["dataset_rebinding"]
+        target_dataset = self.config.substitute_parameters(dataset_rebinding["target_dataset"])
+        target_workspace_id = self.config.substitute_parameters(
+            dataset_rebinding.get("target_workspace_id", self.workspace_id)
+        )
+        
+        # Get dataset ID
+        try:
+            datasets = self.client.list_semantic_models(target_workspace_id)
+            dataset = next((ds for ds in datasets if ds["displayName"] == target_dataset), None)
+            
+            if dataset:
+                self.client.rebind_report_dataset(
+                    self.workspace_id,
+                    report_id,
+                    dataset["id"]
+                )
+                logger.info(f"  ✓ Report rebound to dataset '{target_dataset}'")
+            else:
+                logger.warning(f"  ⚠ Dataset '{target_dataset}' not found, skipping rebinding")
+        except Exception as e:
+            logger.error(f"  ✗ Failed to rebind report dataset: {str(e)}")
+            logger.warning(f"  Report deployed successfully but rebinding failed - may need manual adjustment")
+    
+    def _apply_paginated_report_rebinding(self, report_name: str, report_id: str) -> None:
+        """
+        Apply data source rebinding rules to a paginated report
+        
+        Args:
+            report_name: Name of the paginated report
+            report_id: Paginated report GUID
+        """
+        rebind_rule = self.config.get_rebind_rule_for_artifact("paginated_reports", report_name)
+        
+        if not rebind_rule or "datasource_rebinding" not in rebind_rule:
+            return
+        
+        logger.info(f"  Applying data source rebinding rules for '{report_name}'...")
+        
+        datasource_rebinding = rebind_rule["datasource_rebinding"]
+        connection_details = {}
+        
+        # Handle different rebinding types
+        if "connection_string" in datasource_rebinding:
+            connection_details["connectionString"] = self.config.substitute_parameters(
+                datasource_rebinding["connection_string"]
+            )
+            connection_details["datasourceType"] = datasource_rebinding.get("datasource_type", "sql")
+        elif "dataset_id" in datasource_rebinding:
+            connection_details["datasetId"] = self.config.substitute_parameters(
+                datasource_rebinding["dataset_id"]
+            )
+        
+        try:
+            self.client.rebind_paginated_report_datasource(
+                self.workspace_id,
+                report_id,
+                connection_details
+            )
+            logger.info(f"  ✓ Paginated report data source rebinding completed")
+        except Exception as e:
+            logger.error(f"  ✗ Failed to rebind paginated report data source: {str(e)}")
+            logger.warning(f"  Report deployed successfully but rebinding failed - may need manual adjustment")
 
 
 def main():

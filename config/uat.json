@@ -34,6 +34,43 @@
     "batch_size": "500",
     "max_retries": "3"
   },
+  "rebind_rules": {
+    "semantic_models": [
+      {
+        "artifact_name": "SalesAnalyticsModel",
+        "table_rebindings": [
+          {
+            "table_name": "FactSales",
+            "source_lakehouse": "SalesDataLakehouse",
+            "source_workspace_id": "{{workspace_id}}"
+          },
+          {
+            "table_name": "DimDate",
+            "source_lakehouse": "SalesDataLakehouse",
+            "source_workspace_id": "{{workspace_id}}"
+          }
+        ]
+      }
+    ],
+    "reports": [
+      {
+        "artifact_name": "SalesDashboard",
+        "dataset_rebinding": {
+          "target_dataset": "SalesAnalyticsModel",
+          "target_workspace_id": "{{workspace_id}}"
+        }
+      }
+    ],
+    "paginated_reports": [
+      {
+        "artifact_name": "MonthlySalesReport",
+        "datasource_rebinding": {
+          "datasource_type": "semanticModel",
+          "dataset_id": "SalesAnalyticsModel"
+        }
+      }
+    ]
+  },
   "artifacts_to_create": {
     "lakehouses": [
       {

@@ -233,6 +233,38 @@ class ConfigManager:
         """
         return self.config.get("variable_library")
     
+    def get_rebind_rules(self) -> Optional[Dict]:
+        """
+        Get rebinding rules configuration
+        
+        Rebinding rules allow changing data sources after deployment,
+        similar to Fabric deployment pipeline rules.
+        
+        Returns:
+            Rebind rules dictionary or None
+        """
+        return self.config.get("rebind_rules")
+    
+    def get_rebind_rule_for_artifact(self, artifact_type: str, artifact_name: str) -> Optional[Dict]:
+        """
+        Get specific rebinding rule for an artifact
+        
+        Args:
+            artifact_type: Type of artifact (semantic_models, reports, paginated_reports)
+            artifact_name: Name of the artifact
+        
+        Returns:
+            Rebinding rule configuration or None
+        """
+        rebind_rules = self.get_rebind_rules()
+        if not rebind_rules or artifact_type not in rebind_rules:
+            return None
+        
+        return next(
+            (rule for rule in rebind_rules[artifact_type] if rule["artifact_name"] == artifact_name),
+            None
+        )
+    
     def get_config(self) -> Dict:
         """Get entire configuration dictionary"""
         return self.config

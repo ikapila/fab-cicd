@@ -19,7 +19,7 @@
     }
   },
   "connections": {
-    "sql_connection_string": "Server=prod-sql-server.database.windows.net;Database=ProdDB;",
+    "sql_connection_string": "Server=prod-reporting-gold.datawarehouse.fabric.microsoft.com;Database=reporting_gold;",
     "storage_connection_string": "DefaultEndpointsProtocol=https;AccountName=prodstorageaccount;",
     "api_endpoint": "https://api.company.com"
   },
@@ -34,19 +34,13 @@
   },
   "rebind_rules": {
     "semantic_models": {
-      "sql_endpoint_replacements": {
-        "old_pattern": "Sql\\.Databases\\(\"[^\"]+\\.datawarehouse\\.fabric\\.microsoft\\.com\"\\)",
-        "new_sql_endpoint": "Sql.Databases(\"prod-reporting-gold.datawarehouse.fabric.microsoft.com\")"
-      }
+      "enabled": true
     },
     "reports": {
       "target_workspace_id": "{{workspace_id}}"
     },
     "paginated_reports": {
-      "connection_string_replacements": {
-        "old_pattern": "Server=[^;]+\\.datawarehouse\\.fabric\\.microsoft\\.com",
-        "new_connection_string": "Server=prod-reporting-gold.datawarehouse.fabric.microsoft.com"
-      }
+      "enabled": true
     }
   },
   "artifacts_to_create": {

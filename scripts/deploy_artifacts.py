@@ -3220,22 +3220,23 @@ print('Notebook initialized')
                         # Get rebind rules for this report
                         rebind_rule = self.config.get_rebind_rule_for_artifact("paginated_reports", name)
                         
-                        # Extract connection_string_replacements from rule
-                        connection_replacements = {}
-                        if rebind_rule and "connection_string_replacements" in rebind_rule:
-                            connection_replacements = rebind_rule["connection_string_replacements"]
-                        
                         # Read RDL content
                         rdl_content, _ = self._read_paginated_report_git_format(folder, name)
                         
-                        # Transform RDL if replacements provided
-                        if connection_replacements:
-                            old_pattern = connection_replacements.get("old_pattern")
-                            new_connection_string = connection_replacements.get("new_connection_string")
-                            if old_pattern and new_connection_string:
+                        # Transform RDL if rebinding is enabled
+                        if rebind_rule and rebind_rule.get("enabled"):
+                            # Extract server from connections.sql_connection_string
+                            sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
+                            if sql_connection_string:
                                 import re
-                                rdl_content = re.sub(old_pattern, new_connection_string, rdl_content)
-                                logger.info(f"    ✓ Applied connection string transformation")
+                                # Parse server name from connection string
+                                server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
+                                if server_match:
+                                    new_server = server_match.group(1)
+                                    # Replace any fabric SQL endpoint with the new one
+                                    old_pattern = r'Server=[^;]+\\.datawarehouse\\.fabric\\.microsoft\\.com'
+                                    rdl_content = re.sub(old_pattern, f'Server={new_server}', rdl_content)
+                                    logger.info(f"    ✓ Applied connection string transformation to '{new_server}'")
                         
                         # Encode all parts with transformed RDL
                         definition = self._encode_paginated_report_parts(folder, rdl_content)
@@ -3874,10 +3875,10 @@ print('Notebook initialized')
     
     def _apply_semantic_model_tmdl_transformation(self, tmdl_content: str, model_name: str) -> str:
         """
-        Transform TMDL file content by replacing SQL endpoints with environment-specific values.
-        Similar to paginated report RDL transformation.
+        Transform TMDL file content by replacing SQL endpoints with environment-specific values
+        from connections.sql_connection_string.
         
-        Replaces patterns like:
+        Extracts the server name from sql_connection_string and replaces patterns like:
           Sql.Databases("old-lakehouse.datawarehouse.fabric.microsoft.com")
         With:
           Sql.Databases("dev-reporting-gold.datawarehouse.fabric.microsoft.com")
@@ -3891,24 +3892,33 @@ print('Notebook initialized')
         """
         rebind_rule = self.config.get_rebind_rule_for_artifact("semantic_models", model_name)
         
-        if not rebind_rule or "sql_endpoint_replacements" not in rebind_rule:
+        if not rebind_rule or not rebind_rule.get("enabled"):
             return tmdl_content
         
-        replacements = rebind_rule["sql_endpoint_replacements"]
-        old_pattern = replacements.get("old_pattern")
-        new_endpoint = self.config.substitute_parameters(replacements.get("new_sql_endpoint", ""))
-        
-        if not old_pattern or not new_endpoint:
+        # Extract server from connections.sql_connection_string
+        sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
+        if not sql_connection_string:
             return tmdl_content
         
-        # Apply regex replacement
+        # Parse server name from connection string (format: Server=xxx;Database=yyy;)
         import re
-        transformed_content = re.sub(old_pattern, new_endpoint, tmdl_content)
+        server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
+        if not server_match:
+            return tmdl_content
+        
+        server_name = server_match.group(1)
+        
+        # Build the new M expression
+        new_sql_endpoint = f'Sql.Databases("{server_name}")'
+        
+        # Replace any Sql.Databases(...) pattern with the new endpoint
+        old_pattern = r'Sql\.Databases\("[^"]+\.datawarehouse\.fabric\.microsoft\.com"\)'
+        transformed_content = re.sub(old_pattern, new_sql_endpoint, tmdl_content)
         
         # Log if any replacements were made
         if transformed_content != tmdl_content:
             matches = len(re.findall(old_pattern, tmdl_content))
-            logger.info(f"    ✓ Transformed {matches} SQL endpoint(s) in TMDL files")
+            logger.info(f"    ✓ Transformed {matches} SQL endpoint(s) to '{server_name}'")
         
         return transformed_content
     
@@ -3927,7 +3937,7 @@ print('Notebook initialized')
         """
         rebind_rule = self.config.get_rebind_rule_for_artifact("semantic_models", model_name)
         
-        if rebind_rule and "sql_endpoint_replacements" in rebind_rule:
+        if rebind_rule and rebind_rule.get("enabled"):
             logger.info(f"  SQL endpoints transformed during file reading for '{model_name}'")
     
     def _apply_report_rebinding(self, report_name: str, report_id: str) -> None:

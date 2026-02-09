@@ -3201,8 +3201,20 @@ print('Notebook initialized')
                         if rebind_rule and "connection_string_replacements" in rebind_rule:
                             connection_replacements = rebind_rule["connection_string_replacements"]
                         
-                        # Read and transform RDL, then encode all parts
-                        definition = self._encode_paginated_report_parts(folder, connection_replacements)
+                        # Read RDL content
+                        rdl_content, _ = self._read_paginated_report_git_format(folder, name)
+                        
+                        # Transform RDL if replacements provided
+                        if connection_replacements:
+                            old_pattern = connection_replacements.get("old_pattern")
+                            new_connection_string = connection_replacements.get("new_connection_string")
+                            if old_pattern and new_connection_string:
+                                import re
+                                rdl_content = re.sub(old_pattern, new_connection_string, rdl_content)
+                                logger.info(f"    ✓ Applied connection string transformation")
+                        
+                        # Encode all parts with transformed RDL
+                        definition = self._encode_paginated_report_parts(folder, rdl_content)
                         found = True
                         break
                 
@@ -3875,13 +3887,28 @@ print('Notebook initialized')
             )
             
             # Get all tables from the semantic model
-            try:
-                tables = self.client.get_semantic_model_tables(self.workspace_id, model_id)
-                table_names = [table["name"] for table in tables]
-                logger.info(f"    Found {len(table_names)} table(s) in semantic model")
-            except Exception as e:
-                logger.warning(f"    ⚠ Could not retrieve tables from model: {str(e)}")
-                logger.warning(f"    Skipping rebinding - ensure model is refreshed after deployment")
+            # Note: Model needs to be processed before tables are available
+            import time
+            max_retries = 3
+            retry_delay = 5
+            
+            tables = None
+            for attempt in range(max_retries):
+                try:
+                    tables = self.client.get_semantic_model_tables(self.workspace_id, model_id)
+                    table_names = [table["name"] for table in tables]
+                    logger.info(f"    Found {len(table_names)} table(s) in semantic model")
+                    break
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        logger.info(f"    Tables not yet available (attempt {attempt + 1}/{max_retries}), waiting {retry_delay}s...")
+                        time.sleep(retry_delay)
+                    else:
+                        logger.warning(f"    ⚠ Could not retrieve tables from model: {str(e)}")
+                        logger.warning(f"    Skipping rebinding - model may need time to process or manual refresh")
+                        return
+            
+            if not tables:
                 return
             
             # Get lakehouse ID
@@ -3991,6 +4018,10 @@ print('Notebook initialized')
         else:
             logger.warning(f"    ⚠ Invalid rebind rule format")
             return
+        
+        # Ensure workspace_id is substituted (not {{workspace_id}})
+        if "{{" in target_workspace_id:
+            target_workspace_id = self.config.substitute_parameters(target_workspace_id)
         
         # Get dataset ID
         try:

@@ -856,6 +856,23 @@ class FabricClient:
         payload = {"updateDetails": parameters}
         return self._make_request("POST", endpoint, json_data=payload)
     
+    def refresh_semantic_model(self, workspace_id: str, model_id: str, refresh_type: str = "full") -> Dict:
+        """
+        Trigger a refresh of a semantic model
+        
+        Args:
+            workspace_id: Workspace GUID
+            model_id: Semantic model GUID
+            refresh_type: Type of refresh - "full" (default), "automatic", "dataOnly", "calculate", "clearValues"
+            
+        Returns:
+            Refresh response with request ID
+        """
+        logger.info(f"Triggering {refresh_type} refresh for semantic model: {model_id}")
+        endpoint = f"/workspaces/{workspace_id}/semanticModels/{model_id}/refreshes"
+        payload = {"type": refresh_type}
+        return self._make_request("POST", endpoint, json_data=payload)
+    
     # ==================== Power BI Report Operations ====================
     
     def list_reports(self, workspace_id: str) -> List[Dict]:

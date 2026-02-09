@@ -9,6 +9,7 @@ import json
 import base64
 import argparse
 import logging
+import time
 from typing import List, Dict, Optional
 from pathlib import Path
 
@@ -3097,6 +3098,12 @@ print('Notebook initialized')
             )
             model_id = existing_model['id']
             logger.info(f"  Updated semantic model (ID: {model_id})")
+            
+            # Semantic model update is an LRO operation - wait for completion before rebinding
+            # The Fabric API typically indicates 20 seconds via Retry-After header
+            logger.info(f"  Waiting for semantic model update LRO to complete (20 seconds)...")
+            time.sleep(20)
+            logger.info(f"  Semantic model update LRO completed")
         else:
             # Get or create folder for semantic models
             folder_id = self._get_or_create_folder("Semanticmodels")
@@ -3166,6 +3173,12 @@ print('Notebook initialized')
             )
             report_id = existing_report['id']
             logger.info(f"  Updated report (ID: {report_id})")
+            
+            # Report update is an LRO operation - wait for completion before rebinding
+            # The Fabric API typically indicates 20 seconds via Retry-After header
+            logger.info(f"  Waiting for report update LRO to complete (20 seconds)...")
+            time.sleep(20)
+            logger.info(f"  Report update LRO completed")
         else:
             # Get or create folder for reports
             folder_id = self._get_or_create_folder("Reports")
@@ -3922,12 +3935,11 @@ print('Notebook initialized')
     
     def _apply_semantic_model_rebinding(self, model_name: str, model_id: str) -> None:
         """
-        DEPRECATED: This method is no longer used.
+        DEPRECATED: This method is no longer used for rebinding.
         SQL endpoint transformation now happens during TMDL file reading,
         before deployment (see _apply_semantic_model_tmdl_transformation).
         
-        The method still exists to avoid breaking the deployment flow,
-        but simply logs that transformation happened earlier.
+        However, we trigger a refresh here to validate the transformed model.
         
         Args:
             model_name: Name of the semantic model
@@ -3937,6 +3949,22 @@ print('Notebook initialized')
         
         if rebind_rule and rebind_rule.get("enabled"):
             logger.info(f"  SQL endpoints transformed during file reading for '{model_name}'")
+            
+            # Trigger a refresh to validate the transformed semantic model
+            try:
+                logger.info(f"  Triggering semantic model refresh to validate transformation...")
+                refresh_response = self.client.refresh_semantic_model(
+                    self.workspace_id,
+                    model_id,
+                    refresh_type="full"
+                )
+                logger.info(f"  ✓ Semantic model refresh triggered successfully")
+                if refresh_response and 'requestId' in refresh_response:
+                    logger.info(f"    Refresh request ID: {refresh_response['requestId']}")
+            except Exception as e:
+                error_msg = f"Failed to trigger semantic model refresh: {str(e)}"
+                logger.error(f"  ✗ {error_msg}")
+                raise Exception(error_msg)
     
     def _apply_report_rebinding(self, report_name: str, report_id: str) -> None:
         """
@@ -3991,7 +4019,6 @@ print('Notebook initialized')
             
             # Reports need time to process before rebinding
             # Use 20 second delays to match Fabric's LRO operations (Retry-After header)
-            import time
             max_retries = 3
             retry_delay = 20  # Match Fabric's LRO Retry-After timing
             last_error = None

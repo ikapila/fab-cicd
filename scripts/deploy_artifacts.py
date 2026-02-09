@@ -1049,16 +1049,6 @@ class FabricDeployer:
         if discovered:
             logger.info(f"Discovered {len(discovered)} paginated report(s): {', '.join(sorted(discovered))}")
     
-    def _read_semantic_model_git_format(self, folder_path: Path) -> Dict:
-                report_name,
-                dependencies=dependencies
-            )
-            
-            logger.debug(f"Discovered paginated report: {report_name}")
-        
-        if discovered:
-            logger.info(f"Discovered {len(discovered)} paginated report(s): {', '.join(sorted(discovered))}")
-    
     # ==================== Fabric Git Format Helper Methods ====================
     
     def _read_semantic_model_git_format(self, model_folder: Path) -> Dict:

@@ -1,0 +1,53 @@
+model Model
+	culture: en-GB
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_QueryOrder = ["sundry_charges","receipts","contracts","lease_finance","lease_receivables","invoices","customer","Payments"]
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBIDesktopVersion = 2.141.1451.0 (25.03)+5007b75f0f7edbed506e31fcb76584cd6d711788
+
+ref table DateTableTemplate_4ed89777-abcc-4a38-9229-cae44fe8de37
+ref table 'Origination Dates'
+ref table Date
+ref table LocalDateTable_b913591e-5c5c-423d-b392-91c05bcbe308
+ref table sundry_charges
+ref table LocalDateTable_7351796f-b9e7-43d6-8359-c0dcf147a214
+ref table LocalDateTable_fc720cde-f7a5-48ba-996a-d85bacec89a0
+ref table LocalDateTable_4f8745f5-2286-4cff-b90a-2ae0535f32ed
+ref table LocalDateTable_6d35864e-6579-4465-9b1a-131959c4da1b
+ref table receipts
+ref table LocalDateTable_3b7d84c8-2a4b-48e9-87d0-0d36d14ebc50
+ref table LocalDateTable_a9be32a7-ea5e-4a2a-89c9-e3f439e30843
+ref table LocalDateTable_bcd20351-072f-4e5b-ad62-20caaa6a4f5d
+ref table LocalDateTable_4cacd077-9657-41f6-95b8-0d8e11b86187
+ref table contracts
+ref table LocalDateTable_55c995e9-5f17-4274-bf39-8abf5b7369f9
+ref table LocalDateTable_8e05a108-6fe6-4beb-8a0d-9aa40bc6a5e0
+ref table LocalDateTable_29a7aa3c-1b7e-4546-9c2e-d337c44cff50
+ref table LocalDateTable_c9506875-c62c-4cf5-9a2e-d055a0ffa5eb
+ref table lease_finance
+ref table lease_receivables
+ref table LocalDateTable_e54a4fd8-322c-46ec-9edb-c71bf5e2ccf9
+ref table invoices
+ref table LocalDateTable_8d388dc9-7379-4833-af99-49606daad1ac
+ref table LocalDateTable_6091144c-a56f-4d8e-ba6a-c09a95647ae9
+ref table customer
+ref table LocalDateTable_a2a7f051-b1b9-4dcd-a680-fbd3e09b008b
+ref table LocalDateTable_7fc1bfb3-6927-413d-9944-f572555ef422
+ref table LocalDateTable_b524626c-d6f3-422c-88b8-86f63a882608
+ref table Payments
+ref table LocalDateTable_800fb5ae-d08e-4b67-8c86-150022748772
+ref table LocalDateTable_f80953f8-52ea-4878-8fb0-9f7967ddf33c
+ref table LocalDateTable_13a26fdd-a293-4aed-83e8-d179b8e59b5d
+ref table LocalDateTable_f79a6bb1-3117-4555-be3c-9536454e7801
+ref table LocalDateTable_a390c296-8624-4079-97ef-bf642681d1a1
+ref table LocalDateTable_d6e646fd-9351-4392-bb98-f4104f373e09
+
+ref cultureInfo en-GB
+

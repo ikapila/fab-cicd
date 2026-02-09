@@ -1,0 +1,75 @@
+table Date
+	lineageTag: 7aa618be-6651-429e-98a1-f80b52989064
+
+	column Date
+		formatString: General Date
+		lineageTag: 5708eda8-8ae9-48cf-ae18-347582ebdc26
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		variation Variation
+			isDefault
+			relationship: ea803038-f094-40c9-a67e-16babcde5dfc
+			defaultHierarchy: LocalDateTable_b913591e-5c5c-423d-b392-91c05bcbe308.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		formatString: 0
+		lineageTag: f910ee59-04ba-4b22-afe8-dbab0fefc057
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Year]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter
+		lineageTag: 97acec9b-a913-447f-ad1e-30039d5af0d8
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Quarter]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month
+		lineageTag: 2b9fba51-7558-4ec7-b41c-f7a0fda78053
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Number'
+		formatString: 0
+		lineageTag: ff7d3af1-13f5-4163-8273-3d8a75e500ad
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Month Number]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Serial'
+		formatString: 0
+		lineageTag: 6022a6e8-4272-43be-9230-aba908a5fb27
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Month Serial]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Date = calculated
+		mode: import
+		source = ```
+				ADDCOLUMNS (
+				    CALENDARAUTO (),
+				    "Year", YEAR ( [Date] ),
+				    "Quarter", "Q" & QUARTER ( [Date] ),
+				    "Month", FORMAT ( [Date],"MMM"),    
+				    "Month Serial", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),
+				    "Month Number", MONTH ( [Date] )
+				)
+				```
+
+	annotation PBI_Id = a2c5a97e0b9d490ab060540d39912f2e
+

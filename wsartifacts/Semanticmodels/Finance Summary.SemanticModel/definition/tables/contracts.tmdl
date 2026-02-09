@@ -1,0 +1,781 @@
+table contracts
+	lineageTag: 1a3d2bd5-1195-4f47-93e1-798478b75dc3
+
+	column sk_aggregated_dim_contract
+		dataType: int64
+		formatString: 0
+		lineageTag: ae263df2-afc7-4be7-97b0-143960e8a64d
+		summarizeBy: sum
+		sourceColumn: sk_aggregated_dim_contract
+
+		annotation SummarizationSetBy = Automatic
+
+	column contract_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 3158e873-f7b8-4136-9681-3bbee1ea5302
+		summarizeBy: none
+		sourceColumn: contract_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column sequence_number
+		dataType: string
+		lineageTag: 580875b6-29ba-4c90-9ef8-0f603204b919
+		summarizeBy: none
+		sourceColumn: sequence_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column external_reference_number
+		dataType: string
+		lineageTag: 41fba1d1-a454-4446-ae04-7a20858e24e4
+		summarizeBy: none
+		sourceColumn: external_reference_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column contract_type
+		dataType: string
+		lineageTag: f4f249e0-2d2e-47d6-a9a3-e03b3189c200
+		summarizeBy: none
+		sourceColumn: contract_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: 5bb33d85-dbbe-42f2-9af8-cee6831869cf
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column report_status
+		dataType: string
+		lineageTag: a03844d9-327f-498e-9929-7237f4401443
+		summarizeBy: none
+		sourceColumn: report_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column previous_schedule_number
+		dataType: string
+		lineageTag: ee473de7-7862-4fee-8fc9-25f0dc063e99
+		summarizeBy: none
+		sourceColumn: previous_schedule_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column current_flag
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 10391c93-4a50-430c-b9ad-f49a07d2f570
+		summarizeBy: none
+		sourceColumn: current_flag
+
+		annotation SummarizationSetBy = Automatic
+
+	column aag_contract_number
+		dataType: string
+		lineageTag: 455b2300-df76-433b-be22-f47c8ac425e8
+		summarizeBy: none
+		sourceColumn: aag_contract_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column grace_delinquency_days
+		dataType: int64
+		formatString: 0
+		lineageTag: 350aaf6d-4722-4a6f-a565-961d63ccfa3d
+		summarizeBy: sum
+		sourceColumn: grace_delinquency_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_time
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: bcaf530d-6cd0-498a-bc5a-1d9e6dad12f3
+		summarizeBy: none
+		sourceColumn: created_time
+
+		variation Variation
+			isDefault
+			relationship: 69be46f0-cbff-4927-b72d-9bc8e16cf04f
+			defaultHierarchy: LocalDateTable_55c995e9-5f17-4274-bf39-8abf5b7369f9.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column updated_time
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 918f19d3-702e-4dce-b7c3-bf90f5524df0
+		summarizeBy: none
+		sourceColumn: updated_time
+
+		variation Variation
+			isDefault
+			relationship: e1b8838d-701e-4442-a307-081663405fbe
+			defaultHierarchy: LocalDateTable_8e05a108-6fe6-4beb-8a0d-9aa40bc6a5e0.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column lease_start_date
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 1e38ea4b-9135-4b08-86f0-c2d6b9328dde
+		summarizeBy: none
+		sourceColumn: lease_start_date
+
+		variation Variation
+			isDefault
+			relationship: 56ebb3f6-9736-4c81-a37e-9b0013b75a69
+			defaultHierarchy: LocalDateTable_29a7aa3c-1b7e-4546-9c2e-d337c44cff50.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_created_date
+		dataType: int64
+		formatString: 0
+		lineageTag: 67b7a088-3544-441b-97c5-1020bdcab82e
+		summarizeBy: sum
+		sourceColumn: sk_created_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_migrated
+		dataType: string
+		lineageTag: 91e5413a-5558-46c1-a054-1157b5ccf2ee
+		summarizeBy: none
+		sourceColumn: is_migrated
+
+		annotation SummarizationSetBy = Automatic
+
+	column company_name
+		dataType: string
+		lineageTag: 274186b1-9077-4cf0-8827-255ccf98c54f
+		summarizeBy: none
+		sourceColumn: company_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_id
+		dataType: int64
+		formatString: 0
+		lineageTag: b27dff19-b82f-481c-ba1d-e5b9ddb3c7ea
+		summarizeBy: sum
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_account_created_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 85146ee6-111e-4fd2-89a2-c2a09f6a6c44
+		summarizeBy: none
+		sourceColumn: customer_account_created_date
+
+		variation Variation
+			isDefault
+			relationship: 67460d3d-e09c-43e2-a6e5-288cec3b3469
+			defaultHierarchy: LocalDateTable_c9506875-c62c-4cf5-9a2e-d055a0ffa5eb.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column external_reference_id
+		dataType: string
+		lineageTag: c14f90ff-4ff7-49f0-af3d-91fd5faa9229
+		summarizeBy: none
+		sourceColumn: external_reference_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_number
+		dataType: string
+		lineageTag: 688f03b3-fc78-4898-b25b-8f7265dfd6a7
+		summarizeBy: none
+		sourceColumn: account_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column number
+		dataType: string
+		lineageTag: 0cc2993a-9602-4651-a605-4585b11e7dcd
+		summarizeBy: none
+		sourceColumn: number
+
+		annotation SummarizationSetBy = Automatic
+
+	column opportunity_number
+		dataType: string
+		lineageTag: 2504698b-cfa4-42a5-bb52-513db9052eab
+		summarizeBy: none
+		sourceColumn: opportunity_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column sales_rep
+		dataType: string
+		lineageTag: 96fb9d4d-3903-4732-b7bd-3d0d4d11c0cc
+		summarizeBy: none
+		sourceColumn: sales_rep
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_manager
+		dataType: string
+		lineageTag: 2bd9da3d-eb6c-4feb-aa87-e43afa617d9c
+		summarizeBy: none
+		sourceColumn: account_manager
+
+		annotation SummarizationSetBy = Automatic
+
+	column contract_created_by
+		dataType: string
+		lineageTag: 78cbc567-bc76-4087-9b38-42f494fe56b0
+		summarizeBy: none
+		sourceColumn: contract_created_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_method
+		dataType: string
+		lineageTag: adfea724-06ef-42a3-84bd-1457a4c04f61
+		summarizeBy: none
+		sourceColumn: payment_method
+
+		annotation SummarizationSetBy = Automatic
+
+	column lease_maturity_date
+		dataType: int64
+		formatString: 0
+		lineageTag: dfcfbb97-0016-4117-a9a4-80411285e7aa
+		summarizeBy: sum
+		sourceColumn: lease_maturity_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column lease_commencement_date
+		dataType: int64
+		formatString: 0
+		lineageTag: bf03d0f6-08d0-41ff-8000-0d1538193503
+		summarizeBy: sum
+		sourceColumn: lease_commencement_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column nbv_amount
+		dataType: double
+		lineageTag: 6d78012f-09fa-4a40-aee7-ec583809f0b8
+		summarizeBy: sum
+		sourceColumn: nbv_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column customer_cost_amount
+		dataType: double
+		lineageTag: fcbe7f63-1a26-401e-93d5-7b097e359ff0
+		summarizeBy: sum
+		sourceColumn: customer_cost_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column rent_amount
+		dataType: double
+		lineageTag: ac189f99-1657-43d3-bb95-267fe00e440d
+		summarizeBy: sum
+		sourceColumn: rent_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column accumulated_depreciation_amount
+		dataType: double
+		lineageTag: f86df0a5-e671-43ca-a779-38736ace68c2
+		summarizeBy: sum
+		sourceColumn: accumulated_depreciation_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column fmv_amount
+		dataType: double
+		lineageTag: da7e3278-f869-4a37-a87a-c0cfd44ea014
+		summarizeBy: sum
+		sourceColumn: fmv_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column initial_customer_cost_amount
+		dataType: double
+		lineageTag: 08a743c7-a433-44cd-b1f6-a042ee59ef2f
+		summarizeBy: sum
+		sourceColumn: initial_customer_cost_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_nbv_amount
+		dataType: double
+		lineageTag: db94df0c-c83f-4856-bb6e-111f85ebed90
+		summarizeBy: sum
+		sourceColumn: total_nbv_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column capitalized_additional_charge_amount
+		dataType: double
+		lineageTag: 9c11fd6e-f4de-4f2c-a7e2-116de3e60b49
+		summarizeBy: sum
+		sourceColumn: capitalized_additional_charge_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column asset_budget_value
+		dataType: double
+		lineageTag: f1b43743-0df5-45d8-ab8e-a0cdccfb6aea
+		summarizeBy: sum
+		sourceColumn: asset_budget_value
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_charge_to_customer
+		dataType: double
+		lineageTag: 596a4706-cf03-4b6a-859a-b7510703bc5e
+		summarizeBy: sum
+		sourceColumn: total_charge_to_customer
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column number_of_assets
+		dataType: int64
+		formatString: 0
+		lineageTag: 3aaa3044-6cee-4b4b-ad52-02d44e3317d3
+		summarizeBy: sum
+		sourceColumn: number_of_assets
+
+		annotation SummarizationSetBy = Automatic
+
+	column legal_entity_number
+		dataType: string
+		lineageTag: 290b1e69-c0ec-4e2a-a74e-5ae99712a484
+		summarizeBy: none
+		sourceColumn: legal_entity_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_name
+		dataType: string
+		lineageTag: 5cd77edd-90f6-46eb-ac67-96f6b9da7973
+		summarizeBy: none
+		sourceColumn: product_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column deal_type
+		dataType: string
+		lineageTag: 42d68a76-d6fe-443b-82c9-ca4a739ac3be
+		summarizeBy: none
+		sourceColumn: deal_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column sic_code
+		dataType: string
+		lineageTag: 366363fa-f892-47d6-855c-dc3dcc140785
+		summarizeBy: none
+		sourceColumn: sic_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column sic_desc
+		dataType: string
+		lineageTag: 17114112-c3f4-4ecc-a0ce-b173770987a7
+		summarizeBy: none
+		sourceColumn: sic_desc
+
+		annotation SummarizationSetBy = Automatic
+
+	column business_type
+		dataType: string
+		lineageTag: 6b640d03-5670-425f-8e27-53b055a9fd3b
+		summarizeBy: none
+		sourceColumn: business_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column cost_center
+		dataType: string
+		lineageTag: 066bfed9-9058-44de-a3dc-a0c630f7372e
+		summarizeBy: none
+		sourceColumn: cost_center
+
+		annotation SummarizationSetBy = Automatic
+
+	column line_of_business
+		dataType: string
+		lineageTag: f9fd9364-e093-4355-85a1-131c5985e78d
+		summarizeBy: none
+		sourceColumn: line_of_business
+
+		annotation SummarizationSetBy = Automatic
+
+	column branch_name
+		dataType: string
+		lineageTag: 6ca55009-bf3d-4ef4-874c-8b22aff4f26b
+		summarizeBy: none
+		sourceColumn: branch_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column booking_status
+		dataType: string
+		lineageTag: 1c7fba41-9bcd-4464-966a-ab7f96641e80
+		summarizeBy: none
+		sourceColumn: booking_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column approval_status
+		dataType: string
+		lineageTag: 217fde65-93c3-41cf-afd0-fcd55c2780cd
+		summarizeBy: none
+		sourceColumn: approval_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_current
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: cfbfa509-dbe3-4917-bf9c-ac9f1109f5e1
+		summarizeBy: none
+		sourceColumn: is_current
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_term_in_months
+		dataType: int64
+		formatString: 0
+		lineageTag: 96eb1b6c-1039-47b0-91a6-124c63a18a2f
+		summarizeBy: sum
+		sourceColumn: customer_term_in_months
+
+		annotation SummarizationSetBy = Automatic
+
+	column term_in_months
+		dataType: double
+		lineageTag: d41bb213-7687-4a23-bdd0-c7a663ea1c92
+		summarizeBy: sum
+		sourceColumn: term_in_months
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column remaining_lease_term_in_months
+		dataType: double
+		lineageTag: 57302f4d-f5f9-41b2-a6b2-1edbc00e932a
+		summarizeBy: sum
+		sourceColumn: remaining_lease_term_in_months
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column payment_frequency
+		dataType: string
+		lineageTag: 492f0f76-228d-45b8-92f7-0383eab5359a
+		summarizeBy: none
+		sourceColumn: payment_frequency
+
+		annotation SummarizationSetBy = Automatic
+
+	column purchase_option
+		dataType: string
+		lineageTag: 798401dc-357f-4605-93d0-d33267585629
+		summarizeBy: none
+		sourceColumn: purchase_option
+
+		annotation SummarizationSetBy = Automatic
+
+	column classification_contract_type
+		dataType: string
+		lineageTag: b516c817-e3ef-48cd-b671-9c715edb41bf
+		summarizeBy: none
+		sourceColumn: classification_contract_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column lease_contract_type
+		dataType: string
+		lineageTag: e060d16b-1ca3-47e4-820b-8fae4cb09c18
+		summarizeBy: none
+		sourceColumn: lease_contract_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column payment_frequency_days
+		dataType: int64
+		formatString: 0
+		lineageTag: 46e58388-a4fc-4f44-9cb7-c2a1a43035a8
+		summarizeBy: sum
+		sourceColumn: payment_frequency_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column lease_finance_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 8e5d0793-969b-4f7e-b5a3-47e64f5fe25e
+		summarizeBy: sum
+		sourceColumn: lease_finance_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_lease_finance
+		dataType: int64
+		formatString: 0
+		lineageTag: 182d58a8-0dba-4f81-b45a-932f1ef000c4
+		summarizeBy: sum
+		sourceColumn: sk_aggregated_dim_lease_finance
+
+		annotation SummarizationSetBy = Automatic
+
+	column booked_residual_amount
+		dataType: double
+		lineageTag: 73c22b0c-cc18-43f4-b392-17b6061f56e1
+		summarizeBy: sum
+		sourceColumn: booked_residual_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_yield
+		dataType: double
+		lineageTag: 8f6b5d18-44c5-41a1-b839-b9ff8ca52d13
+		summarizeBy: sum
+		sourceColumn: total_yield
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column regular_payment_amount_amount
+		dataType: double
+		lineageTag: 3eef0e2e-dc08-4252-a6b7-32075f300fb3
+		summarizeBy: sum
+		sourceColumn: regular_payment_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_down_payment_amount
+		dataType: double
+		lineageTag: a2ce2f76-1a34-4eeb-a4fb-b48b78c51c51
+		summarizeBy: sum
+		sourceColumn: total_down_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column interest_rate
+		dataType: double
+		lineageTag: bbc2e542-1498-423e-8689-7e6dd6f7c9a1
+		summarizeBy: sum
+		sourceColumn: interest_rate
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column lease_rent_amount
+		dataType: double
+		lineageTag: a8616cb2-d250-4d6c-9c32-24a864e6a30a
+		summarizeBy: sum
+		sourceColumn: lease_rent_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column net_investment_amount
+		dataType: double
+		lineageTag: ed4fc5df-1d70-4d1d-b888-2614771c13bf
+		summarizeBy: sum
+		sourceColumn: net_investment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column base_rate
+		dataType: double
+		lineageTag: 84cb90b0-d465-4142-a7d9-3a32db5ac956
+		summarizeBy: sum
+		sourceColumn: base_rate
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column spread
+		dataType: double
+		lineageTag: 564b3b69-8390-431f-bc98-811f96f01768
+		summarizeBy: sum
+		sourceColumn: spread
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column bank_yield_spread
+		dataType: double
+		lineageTag: 96511da0-7949-4876-ada7-46c2118af485
+		summarizeBy: sum
+		sourceColumn: bank_yield_spread
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column sk_aggregated_dim_date_post_date
+		dataType: int64
+		formatString: 0
+		lineageTag: c87042b4-7b71-4d56-ab22-2bd0cfdf4f80
+		summarizeBy: sum
+		sourceColumn: sk_aggregated_dim_date_post_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_customer
+		dataType: int64
+		formatString: 0
+		lineageTag: 47486a4f-2cee-476a-9cca-feefc9664c28
+		summarizeBy: sum
+		sourceColumn: sk_aggregated_dim_customer
+
+		annotation SummarizationSetBy = Automatic
+
+	column tax_down_payment_amount
+		dataType: double
+		lineageTag: fb159de4-fde8-4269-8a06-1ab7840f9c52
+		summarizeBy: sum
+		sourceColumn: tax_down_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tax_deferral_amount
+		dataType: double
+		lineageTag: 6eb917de-65a2-4f6a-ad89-ca374b0ccb98
+		summarizeBy: sum
+		sourceColumn: tax_deferral_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tax_deferral_numberof_payments
+		dataType: int64
+		formatString: 0
+		lineageTag: 57a4f46b-1a6b-403f-ad08-8ca6fea5039f
+		summarizeBy: sum
+		sourceColumn: tax_deferral_numberof_payments
+
+		annotation SummarizationSetBy = Automatic
+
+	column tax_deferral_payment_number
+		dataType: int64
+		formatString: 0
+		lineageTag: 163e50ef-d031-437b-ae81-c3c4ee4b961d
+		summarizeBy: sum
+		sourceColumn: tax_deferral_payment_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column down_payment_amount
+		dataType: double
+		lineageTag: bcc157e5-0d9b-436a-b089-dff4796e0eca
+		summarizeBy: sum
+		sourceColumn: down_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column inception_payment_amount
+		dataType: double
+		lineageTag: 85d13c75-5afe-4dda-be30-28d87ea4d5d7
+		summarizeBy: sum
+		sourceColumn: inception_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column is_over_term_lease
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: a97c85a6-3ffa-4ef0-8061-e52d330f257f
+		summarizeBy: none
+		sourceColumn: is_over_term_lease
+
+		annotation SummarizationSetBy = Automatic
+
+	column balloon_payment_amount
+		dataType: double
+		lineageTag: 1305e367-c14a-44a5-9a55-07cb4b6dd331
+		summarizeBy: sum
+		sourceColumn: balloon_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column is_latest
+		dataType: int64
+		formatString: 0
+		lineageTag: 940726cf-7701-45e0-9dde-2d7729412626
+		summarizeBy: sum
+		sourceColumn: is_latest
+
+		annotation SummarizationSetBy = Automatic
+
+	partition contracts = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Databases("urucevsjhkyejogdndw7poe5fi-opyx2w4p6nuelgvikczclpbina.datawarehouse.fabric.microsoft.com"),
+				    reporting_gold = Source{[Name="reporting_gold"]}[Data],
+				    dbo_vw_lease_contracts = reporting_gold{[Schema="dbo",Item="vw_lease_contracts"]}[Data]
+				in
+				    dbo_vw_lease_contracts
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,190 @@
+table lease_receivables
+	lineageTag: 576a4840-db94-49c1-a6af-aa93c17dbb70
+
+	column tax_balance_amount
+		dataType: double
+		lineageTag: 6d3dca3e-15fe-4b55-99fe-65b8ac31ab57
+		summarizeBy: sum
+		sourceColumn: tax_balance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column effective_balance_amount
+		dataType: double
+		lineageTag: 2884b67b-4dbf-4a23-9f3e-5f4e22f39ffa
+		summarizeBy: sum
+		sourceColumn: effective_balance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column effective_tax_balance_amount
+		dataType: double
+		lineageTag: 4caadaf2-afdc-48dc-a435-554971de18bb
+		summarizeBy: sum
+		sourceColumn: effective_tax_balance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column invoice_amount_amount
+		dataType: double
+		lineageTag: f115a322-cc10-4748-bb30-5458d4a2f8df
+		summarizeBy: sum
+		sourceColumn: invoice_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column invoice_tax_amount_amount
+		dataType: double
+		lineageTag: 5dd9f535-d9ad-4e26-8bfe-d419e6c34dae
+		summarizeBy: sum
+		sourceColumn: invoice_tax_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column balance_amount
+		dataType: double
+		lineageTag: 6527e70b-9729-473d-a8dd-f4646aee3a5c
+		summarizeBy: sum
+		sourceColumn: balance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column receivable_amount_amount
+		dataType: double
+		lineageTag: 9e7b2e06-7f3d-4bbe-86e9-401f6630fb42
+		summarizeBy: sum
+		sourceColumn: receivable_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tax_amount_amount
+		dataType: double
+		lineageTag: cac16c30-8473-49e7-9429-4075346c5658
+		summarizeBy: sum
+		sourceColumn: tax_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column days_late_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 9e16ec14-d5dc-4400-be73-a85d5c1e5a48
+		summarizeBy: sum
+		sourceColumn: days_late_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column days_since_due
+		dataType: int64
+		formatString: 0
+		lineageTag: 4c15aaf2-fda6-43e0-9d17-5ebc37517134
+		summarizeBy: sum
+		sourceColumn: days_since_due
+
+		annotation SummarizationSetBy = Automatic
+
+	column contract_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 16a88971-d454-4725-acc9-2b027c9508dd
+		summarizeBy: sum
+		sourceColumn: contract_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column next_due_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 4fca67d4-ddd1-4d1e-809c-59f6403aba10
+		summarizeBy: none
+		sourceColumn: next_due_date
+
+		variation Variation
+			isDefault
+			relationship: 4c43d2f0-77df-4490-b748-2404f1fd5651
+			defaultHierarchy: LocalDateTable_e54a4fd8-322c-46ec-9edb-c71bf5e2ccf9.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column days_past_due
+		dataType: int64
+		formatString: 0
+		lineageTag: bd4414bd-4e79-41f0-80fa-0e9e921f6591
+		summarizeBy: sum
+		sourceColumn: days_past_due
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_name
+		dataType: string
+		lineageTag: 892dc7d9-382d-4b07-aec3-e8dbd8c7edfa
+		summarizeBy: none
+		sourceColumn: customer_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_number
+		dataType: string
+		lineageTag: d299ede4-75c5-4a99-a2ef-285a0697a554
+		summarizeBy: none
+		sourceColumn: customer_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column sequence_number
+		dataType: string
+		lineageTag: 8e589fd3-00e3-46b5-8ee2-6f5069dfbca7
+		summarizeBy: none
+		sourceColumn: sequence_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 0fc5a3b8-2628-4978-ab13-744b640fadca
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_name
+		dataType: string
+		lineageTag: 104fdc90-a777-4ffd-9756-1d96aa219553
+		summarizeBy: none
+		sourceColumn: product_name
+
+		annotation SummarizationSetBy = Automatic
+
+	partition lease_receivables = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Databases("urucevsjhkyejogdndw7poe5fi-opyx2w4p6nuelgvikczclpbina.datawarehouse.fabric.microsoft.com"),
+				    reporting_gold = Source{[Name="reporting_gold"]}[Data],
+				    dbo_vw_lease_receivables = reporting_gold{[Schema="dbo",Item="vw_lease_receivables"]}[Data]
+				in
+				    dbo_vw_lease_receivables
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

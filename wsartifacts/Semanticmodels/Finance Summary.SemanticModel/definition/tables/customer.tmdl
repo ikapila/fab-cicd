@@ -1,0 +1,350 @@
+table customer
+	lineageTag: 7c65e6ec-f7ed-4178-9c5c-7317e4d126e5
+
+	column is_current_exposure
+		dataType: int64
+		formatString: 0
+		lineageTag: 2b67e38f-8412-4913-a46d-400dd96f7388
+		summarizeBy: sum
+		sourceColumn: is_current_exposure
+
+		annotation SummarizationSetBy = Automatic
+
+	column current_flag
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 9413f44f-81fe-4bed-81b4-9eea2ae0ca21
+		summarizeBy: none
+		sourceColumn: current_flag
+
+		annotation SummarizationSetBy = Automatic
+
+	column sic_code
+		dataType: string
+		lineageTag: 7c940f4b-61ae-465e-8848-de77ea7be2f0
+		summarizeBy: none
+		sourceColumn: sic_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column sic_desc
+		dataType: string
+		lineageTag: e065d057-4176-46a1-880a-2e00fbb90b81
+		summarizeBy: none
+		sourceColumn: sic_desc
+
+		annotation SummarizationSetBy = Automatic
+
+	column party_name
+		dataType: string
+		lineageTag: c12fe362-91af-4a0f-8293-625b15ee6d00
+		summarizeBy: none
+		sourceColumn: party_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column default_automated_payment_method
+		dataType: string
+		lineageTag: 8b2f5be3-4ef4-4e12-8e8e-bd4cbd6b4a1e
+		summarizeBy: none
+		sourceColumn: default_automated_payment_method
+
+		annotation SummarizationSetBy = Automatic
+
+	column company_name
+		dataType: string
+		lineageTag: daecad75-774d-4b9a-bf7e-b8e880b0cf18
+		summarizeBy: none
+		sourceColumn: company_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: 5c98ac29-1c64-40ef-9f70-60de71b99a16
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column credit_term
+		dataType: int64
+		formatString: 0
+		lineageTag: bf14dfed-6471-4e76-b68a-df8848210bfd
+		summarizeBy: sum
+		sourceColumn: credit_term
+
+		annotation SummarizationSetBy = Automatic
+
+	column next_review_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 2403aa11-aac5-49bc-9d96-2a3a5fbf4bb4
+		summarizeBy: none
+		sourceColumn: next_review_date
+
+		variation Variation
+			isDefault
+			relationship: 87869694-e890-4487-b3d7-fba6bcaf478b
+			defaultHierarchy: LocalDateTable_a2a7f051-b1b9-4dcd-a680-fbd3e09b008b.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column invoice_grace_days
+		dataType: int64
+		formatString: 0
+		lineageTag: c9fb4556-a59f-467d-acd2-1d8e74c90478
+		summarizeBy: sum
+		sourceColumn: invoice_grace_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 3f5ac5e9-5263-4f04-9b55-da672979c48d
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column activation_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: ea35d6f3-2096-42bc-809c-b4a3909f91e9
+		summarizeBy: none
+		sourceColumn: activation_date
+
+		variation Variation
+			isDefault
+			relationship: 9490bb3b-8b7f-4767-961a-a88fa67d67a8
+			defaultHierarchy: LocalDateTable_7fc1bfb3-6927-413d-9944-f572555ef422.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column total_proposed_customer_exposure_amount
+		dataType: double
+		lineageTag: b4352b36-90b9-4bd8-b21e-a29769ceb0fa
+		summarizeBy: sum
+		sourceColumn: total_proposed_customer_exposure_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column exposure_id
+		dataType: int64
+		formatString: 0
+		lineageTag: e7d2f4c8-1af0-4536-9c2a-500ca4bacd23
+		summarizeBy: sum
+		sourceColumn: exposure_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column primary_customer_amount
+		dataType: double
+		lineageTag: 3a4005e7-013f-4edc-b84c-69893c212f15
+		summarizeBy: sum
+		sourceColumn: primary_customer_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column policy_expiration_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: e34dcb26-febe-4c74-8a85-a82427a0a134
+		summarizeBy: none
+		sourceColumn: policy_expiration_date
+
+		variation Variation
+			isDefault
+			relationship: e717b781-d35b-4d38-bbbb-e9285849ccd0
+			defaultHierarchy: LocalDateTable_b524626c-d6f3-422c-88b8-86f63a882608.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column months_to_annual_review
+		dataType: int64
+		formatString: 0
+		lineageTag: 377c37b3-9948-4fd5-842e-4347220b019b
+		summarizeBy: sum
+		sourceColumn: months_to_annual_review
+
+		annotation SummarizationSetBy = Automatic
+
+	column policy_type
+		dataType: string
+		lineageTag: 8298f16c-ef8e-43a0-9ef8-ed661214bf5c
+		summarizeBy: none
+		sourceColumn: policy_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column policy_number
+		dataType: string
+		lineageTag: 8cfff7ee-27ee-4ca4-acdb-07b5b6da9646
+		summarizeBy: none
+		sourceColumn: policy_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_manager
+		dataType: string
+		lineageTag: 6b2224cd-fbd2-4c79-a36e-f5bbc235d3a6
+		summarizeBy: none
+		sourceColumn: account_manager
+
+		annotation SummarizationSetBy = Automatic
+
+	column effective_balance_amount
+		dataType: double
+		lineageTag: d2822aa8-11b8-469b-85d3-aa761de84dcf
+		summarizeBy: sum
+		sourceColumn: effective_balance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column nbv_amount
+		dataType: double
+		lineageTag: e02db5ea-2404-4914-bd76-fac20fe46e4d
+		summarizeBy: sum
+		sourceColumn: nbv_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column customer_cost_amount
+		dataType: double
+		lineageTag: d63c9495-27a0-4ddd-8b13-be13ca0765e2
+		summarizeBy: sum
+		sourceColumn: customer_cost_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column rent_amount
+		dataType: double
+		lineageTag: 13a22cca-1be6-46e4-9a4f-84254c210e7b
+		summarizeBy: sum
+		sourceColumn: rent_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column accumulated_depreciation_amount
+		dataType: double
+		lineageTag: c1c70f0f-a6c8-4e28-96df-3886f8ded29c
+		summarizeBy: sum
+		sourceColumn: accumulated_depreciation_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column fmv_amount
+		dataType: double
+		lineageTag: 7268b248-6b12-4ed7-adfa-59ccc1f2dbd7
+		summarizeBy: sum
+		sourceColumn: fmv_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column initial_customer_cost_amount
+		dataType: double
+		lineageTag: 65f81a1a-34bb-4983-93a7-c1d7392ea119
+		summarizeBy: sum
+		sourceColumn: initial_customer_cost_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_nbv_amount
+		dataType: double
+		lineageTag: f6045811-5074-4196-97ea-8396d386974c
+		summarizeBy: sum
+		sourceColumn: total_nbv_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column capitalized_additional_charge_amount
+		dataType: double
+		lineageTag: 32eb6431-757a-42f8-9cb9-0e747785dbed
+		summarizeBy: sum
+		sourceColumn: capitalized_additional_charge_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column asset_budget_value
+		dataType: double
+		lineageTag: 50b3787a-d98e-4470-8b5f-d2230a9201d7
+		summarizeBy: sum
+		sourceColumn: asset_budget_value
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_charge_to_customer
+		dataType: double
+		lineageTag: 903872b2-9517-4b34-84fc-ff99047c99c7
+		summarizeBy: sum
+		sourceColumn: total_charge_to_customer
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column number_of_assets
+		dataType: int64
+		formatString: 0
+		lineageTag: d68eaa05-cdc7-4fd3-8db9-30e026de27e5
+		summarizeBy: sum
+		sourceColumn: number_of_assets
+
+		annotation SummarizationSetBy = Automatic
+
+	column yield
+		dataType: double
+		lineageTag: 76e35fd5-fe72-4cd0-aa2f-6be05929db65
+		summarizeBy: sum
+		sourceColumn: yield
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition customer = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Databases("urucevsjhkyejogdndw7poe5fi-opyx2w4p6nuelgvikczclpbina.datawarehouse.fabric.microsoft.com"),
+				    reporting_gold = Source{[Name="reporting_gold"]}[Data],
+				    dbo_vw_customer = reporting_gold{[Schema="dbo",Item="vw_customer"]}[Data],
+				    #"Removed Other Columns" = Table.SelectColumns(dbo_vw_customer,{"is_current_exposure", "current_flag", "sic_code", "sic_desc", "party_name", "default_automated_payment_method", "company_name", "status", "credit_term", "next_review_date", "invoice_grace_days", "customer_id", "activation_date", "total_proposed_customer_exposure_amount", "exposure_id", "primary_customer_amount", "policy_expiration_date", "months_to_annual_review", "policy_type", "policy_number", "account_manager", "effective_balance_amount", "nbv_amount", "customer_cost_amount", "rent_amount", "accumulated_depreciation_amount", "fmv_amount", "initial_customer_cost_amount", "total_nbv_amount", "capitalized_additional_charge_amount", "asset_budget_value", "total_charge_to_customer", "number_of_assets", "yield"})
+				in
+				    #"Removed Other Columns"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

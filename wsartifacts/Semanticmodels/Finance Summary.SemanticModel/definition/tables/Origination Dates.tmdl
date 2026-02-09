@@ -1,0 +1,63 @@
+table 'Origination Dates'
+	lineageTag: 54e37bee-1579-43e6-8380-708c429716be
+	dataCategory: Time
+
+	column Date
+		formatString: General Date
+		lineageTag: e7de190a-76a4-42f0-a48f-28016e46ee19
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: Date[Date]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		formatString: 0
+		lineageTag: 87f58ff3-09b4-4327-a4b8-c4bbd631fdfb
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: Date[Year]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter
+		lineageTag: a9aea52e-21b9-4723-be41-d327e0a18a62
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: Date[Quarter]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month
+		lineageTag: 084ef834-a34c-4069-bd3c-a736b648006c
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: Date[Month]
+		sortByColumn: 'Month Number'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Number'
+		formatString: 0
+		lineageTag: f2959a80-89f6-40a8-aef0-000327f2b688
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: Date[Month Number]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Serial'
+		formatString: 0
+		lineageTag: 421ee430-9b8b-4208-a19f-a47116c72f54
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: Date[Month Serial]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Origination Dates' = calculated
+		mode: import
+		source = FILTER('Date', 'Date'[Date] <= MAX(Origination[Origination Date]))
+
+	annotation PBI_Id = 3c7ab172819a408cb743d2c3e53c8aef
+

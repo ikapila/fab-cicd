@@ -1,0 +1,489 @@
+table lease_finance
+	lineageTag: d0b2052a-6526-4e48-b63d-d2ead7e4d7d4
+
+	column booked_residual_amount
+		dataType: double
+		lineageTag: 8854799c-58e3-405e-848b-7d756be6587f
+		summarizeBy: none
+		sourceColumn: booked_residual_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column regular_payment_amount_amount
+		dataType: double
+		lineageTag: ea7ed3d4-b987-403e-8c24-490246fb3228
+		summarizeBy: none
+		sourceColumn: regular_payment_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_down_payment_amount
+		dataType: double
+		lineageTag: 03259a5f-b05a-40ae-8f02-592a49001067
+		summarizeBy: none
+		sourceColumn: total_down_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column bank_yield_spread
+		dataType: double
+		lineageTag: ef3d1ccc-84cb-4981-ad3e-3580da83bad2
+		summarizeBy: none
+		sourceColumn: bank_yield_spread
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_yield
+		dataType: double
+		lineageTag: 3ae94ecd-c09f-4426-8bb5-6bb9cd609f74
+		summarizeBy: none
+		sourceColumn: total_yield
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column rent_amount
+		dataType: double
+		lineageTag: ef525c14-1113-47e5-81c7-c4202790a24f
+		summarizeBy: none
+		sourceColumn: rent_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column net_investment_amount
+		dataType: double
+		lineageTag: 660b9061-45dd-4d7f-8ff3-6356a2efa82b
+		summarizeBy: none
+		sourceColumn: net_investment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column base_rate
+		dataType: double
+		lineageTag: b319fb66-0dc5-483e-b30a-0e158382ff28
+		summarizeBy: none
+		sourceColumn: base_rate
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column spread
+		dataType: double
+		lineageTag: 1b056fa3-6a29-4346-a67f-fc3bccc4d2de
+		summarizeBy: none
+		sourceColumn: spread
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column interest_rate
+		dataType: double
+		lineageTag: a2c63fb4-dde8-45ab-b008-c34a225477cf
+		summarizeBy: none
+		sourceColumn: interest_rate
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_upfront_tax_amount_amount
+		dataType: double
+		lineageTag: a9f60f1b-575c-485c-bd77-0c102e3d6882
+		summarizeBy: none
+		sourceColumn: total_upfront_tax_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column true_down_payment_amount
+		dataType: double
+		lineageTag: 084966a0-04b6-4d5b-8139-5ea38339ccc5
+		summarizeBy: none
+		sourceColumn: true_down_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column vat_down_payment_amount
+		dataType: double
+		lineageTag: 90d0332c-f354-43b4-a9ea-1847c250d3b9
+		summarizeBy: none
+		sourceColumn: vat_down_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column number_of_payments
+		dataType: int64
+		formatString: 0
+		lineageTag: 1feec656-2115-448a-b353-9864145e78ff
+		summarizeBy: none
+		sourceColumn: number_of_payments
+
+		annotation SummarizationSetBy = Automatic
+
+	column maturity_payment_amount
+		dataType: double
+		lineageTag: 0fcab8aa-cdc7-49d5-9b2a-8029450c6684
+		summarizeBy: none
+		sourceColumn: maturity_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column down_payment_amount
+		dataType: double
+		lineageTag: f39fb04b-08a6-4091-9eca-6bf89013afd8
+		summarizeBy: none
+		sourceColumn: down_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column florida_stamp_tax_amount
+		dataType: double
+		lineageTag: 16b860bb-77cb-4173-b2a7-cf4a32f7ca1c
+		summarizeBy: none
+		sourceColumn: florida_stamp_tax_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column fmv_amount
+		dataType: double
+		lineageTag: 431c9454-3221-4999-a390-df6fa4795b17
+		summarizeBy: none
+		sourceColumn: fmv_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column inception_payment_amount
+		dataType: double
+		lineageTag: 7093578e-319d-4004-9a8d-33547970de4a
+		summarizeBy: none
+		sourceColumn: inception_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column interim_rent_amount
+		dataType: double
+		lineageTag: c1179ef4-2e07-4928-9841-5f881911b4aa
+		summarizeBy: none
+		sourceColumn: interim_rent_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tax_deferral_numberof_payments
+		dataType: int64
+		formatString: 0
+		lineageTag: 75bc4e7a-f667-4c2c-8b19-d9f3ebc3ecae
+		summarizeBy: none
+		sourceColumn: tax_deferral_numberof_payments
+
+		annotation SummarizationSetBy = Automatic
+
+	column tax_deferral_payment_number
+		dataType: int64
+		formatString: 0
+		lineageTag: 1ce501a5-4ed7-4ae5-8496-78ebb5550379
+		summarizeBy: none
+		sourceColumn: tax_deferral_payment_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_over_term_lease
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 64dfb03d-a1da-4e7a-92ef-ece0e25a2381
+		summarizeBy: none
+		sourceColumn: is_over_term_lease
+
+		annotation SummarizationSetBy = Automatic
+
+	column cost_of_funds
+		dataType: double
+		lineageTag: a86c50e0-f7c7-4b4f-b5ae-efe47e8c63cd
+		summarizeBy: none
+		sourceColumn: cost_of_funds
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column deferred_tax_balance_amount
+		dataType: double
+		lineageTag: e2811ca6-080a-452b-aec1-8868a20e1d57
+		summarizeBy: none
+		sourceColumn: deferred_tax_balance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column capitalized_sales_tax_down_payment_amount
+		dataType: double
+		lineageTag: 49c27007-c724-41ae-ad53-1098a735c22c
+		summarizeBy: none
+		sourceColumn: capitalized_sales_tax_down_payment_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column calculated_tax_deferral_amount_amount
+		dataType: double
+		lineageTag: 638088de-dbb3-4f8f-901c-0be0737d188a
+		summarizeBy: none
+		sourceColumn: calculated_tax_deferral_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column sk_aggregated_dim_date_maturity_date
+		dataType: int64
+		formatString: 0
+		lineageTag: c29a6ae4-c681-4900-a925-d33b874ce95e
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_date_maturity_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_date_commencement_date
+		dataType: int64
+		formatString: 0
+		lineageTag: b071abd6-6860-4b09-915e-508cdf3b8a71
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_date_commencement_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_line_of_business
+		dataType: int64
+		formatString: 0
+		lineageTag: 5010699f-5a46-48d5-839c-0b2659e84f91
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_line_of_business
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_legal_entity
+		dataType: int64
+		formatString: 0
+		lineageTag: 274b1534-2a28-4b96-94a9-cc1c1a026797
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_legal_entity
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_customer
+		dataType: int64
+		formatString: 0
+		lineageTag: 401c7b1a-62f4-447b-aca0-214f31a5d0cc
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_customer
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_cost_center
+		dataType: int64
+		formatString: 0
+		lineageTag: 1cf8b2ba-de22-4b09-b9c2-3280d3ee41ba
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_cost_center
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_date_post_date
+		dataType: int64
+		formatString: 0
+		lineageTag: 3c500f5f-8fa4-4526-bc2e-3c3f76b7ffce
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_date_post_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_date_record
+		dataType: int64
+		formatString: 0
+		lineageTag: 5f2446d7-f402-40e0-9a02-0a4b440ad0e0
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_date_record
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_time_record
+		dataType: int64
+		formatString: 0
+		lineageTag: 991a1817-3a72-44c8-b061-b15d90fb6374
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_time_record
+
+		annotation SummarizationSetBy = Automatic
+
+	column current_contract_detail
+		dataType: int64
+		formatString: 0
+		lineageTag: 7f825333-1538-4906-98be-0c9f470792ba
+		summarizeBy: none
+		sourceColumn: current_contract_detail
+
+		annotation SummarizationSetBy = Automatic
+
+	column current_lease_detail
+		dataType: int64
+		formatString: 0
+		lineageTag: 31ec340f-16ec-448f-ab5d-20a5900c8ced
+		summarizeBy: none
+		sourceColumn: current_lease_detail
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_current_fact_contract
+		dataType: int64
+		formatString: 0
+		lineageTag: 495d0f5f-24ca-409b-ba10-3a23b4f57fdc
+		summarizeBy: none
+		sourceColumn: sk_current_fact_contract
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_current_dim_contract
+		dataType: int64
+		formatString: 0
+		lineageTag: 8902c2e5-a761-4bef-a0cc-4f8f705675ec
+		summarizeBy: none
+		sourceColumn: sk_current_dim_contract
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_current_fact_customer
+		dataType: int64
+		formatString: 0
+		lineageTag: 2e1ac633-6bdd-4c0e-9476-6eec37fc4114
+		summarizeBy: none
+		sourceColumn: sk_current_fact_customer
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_current_dim_customer
+		dataType: int64
+		formatString: 0
+		lineageTag: d95ef282-a565-4ba2-b0c8-8d4c3e622939
+		summarizeBy: none
+		sourceColumn: sk_current_dim_customer
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_current_dim_lease_finance
+		dataType: int64
+		formatString: 0
+		lineageTag: c249af13-f045-4ba9-82dc-8321fe01cc00
+		summarizeBy: none
+		sourceColumn: sk_current_dim_lease_finance
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_contract
+		dataType: int64
+		formatString: 0
+		lineageTag: cec77f9c-120a-4f90-8957-9557d9137207
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_contract
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_branch
+		dataType: int64
+		formatString: 0
+		lineageTag: 336a7258-23be-4c46-bacc-e40183e7cf46
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_branch
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_aggregated_dim_lease_finance
+		dataType: int64
+		formatString: 0
+		lineageTag: 0bbb5b46-e49e-43ba-a2ff-7877641cda9c
+		summarizeBy: none
+		sourceColumn: sk_aggregated_dim_lease_finance
+
+		annotation SummarizationSetBy = Automatic
+
+	column contract_id
+		dataType: int64
+		formatString: 0
+		lineageTag: d80b451f-5562-45fb-8325-42c851152e79
+		summarizeBy: none
+		sourceColumn: contract_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column sequence_number
+		dataType: string
+		lineageTag: f0d6b0e7-3441-4bb1-93b0-0f4f44008d4c
+		summarizeBy: none
+		sourceColumn: sequence_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column interest_rate_detail_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 682582d9-1b79-4522-92e1-e2d00a68daf8
+		summarizeBy: none
+		sourceColumn: interest_rate_detail_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column bk_aggregated_dim_interest_rate_detail_id
+		dataType: int64
+		formatString: 0
+		lineageTag: b3eeace3-a957-418e-bb7e-8f0632cad5fb
+		summarizeBy: none
+		sourceColumn: bk_aggregated_dim_interest_rate_detail_id
+
+		annotation SummarizationSetBy = Automatic
+
+	partition lease_finance = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Databases("urucevsjhkyejogdndw7poe5fi-opyx2w4p6nuelgvikczclpbina.datawarehouse.fabric.microsoft.com"),
+				    reporting_gold = Source{[Name="reporting_gold"]}[Data],
+				    dbo_vw_lease_finance_detail = reporting_gold{[Schema="dbo",Item="vw_lease_finance_detail"]}[Data]
+				in
+				    dbo_vw_lease_finance_detail
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,179 @@
+relationship ea803038-f094-40c9-a67e-16babcde5dfc
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Date.Date
+	toColumn: LocalDateTable_b913591e-5c5c-423d-b392-91c05bcbe308.Date
+
+relationship d42f70ff-8539-47fb-9b42-17dbcea9a641
+	joinOnDateBehavior: datePartOnly
+	fromColumn: sundry_charges.receivable_due_date
+	toColumn: LocalDateTable_7351796f-b9e7-43d6-8359-c0dcf147a214.Date
+
+relationship d41210d7-2e89-46ad-b11b-ae1adf6e231a
+	joinOnDateBehavior: datePartOnly
+	fromColumn: sundry_charges.sundry_created_date
+	toColumn: LocalDateTable_fc720cde-f7a5-48ba-996a-d85bacec89a0.Date
+
+relationship 9358872e-4043-455e-a118-8bca8873b49c
+	joinOnDateBehavior: datePartOnly
+	fromColumn: sundry_charges.invoice_date
+	toColumn: LocalDateTable_4f8745f5-2286-4cff-b90a-2ae0535f32ed.Date
+
+relationship b73f54dd-6b2d-4d35-bf59-e9888d304bb8
+	joinOnDateBehavior: datePartOnly
+	fromColumn: sundry_charges.invoice_due_date
+	toColumn: LocalDateTable_6d35864e-6579-4465-9b1a-131959c4da1b.Date
+
+relationship b10651fb-f7e0-4bfb-bd8c-ab5f7bbc9f82
+	joinOnDateBehavior: datePartOnly
+	fromColumn: receipts.reversal_as_of_date
+	toColumn: LocalDateTable_3b7d84c8-2a4b-48e9-87d0-0d36d14ebc50.Date
+
+relationship 74836817-70ed-49d5-a092-6e679a88f341
+	joinOnDateBehavior: datePartOnly
+	fromColumn: receipts.created_time
+	toColumn: LocalDateTable_a9be32a7-ea5e-4a2a-89c9-e3f439e30843.Date
+
+relationship 19075271-0064-485f-8727-87bd708ad8c1
+	joinOnDateBehavior: datePartOnly
+	fromColumn: receipts.post_date
+	toColumn: LocalDateTable_bcd20351-072f-4e5b-ad62-20caaa6a4f5d.Date
+
+relationship 530ff483-df38-4e08-977e-42a6c1b37375
+	joinOnDateBehavior: datePartOnly
+	fromColumn: receipts.received_date
+	toColumn: LocalDateTable_4cacd077-9657-41f6-95b8-0d8e11b86187.Date
+
+relationship 69be46f0-cbff-4927-b72d-9bc8e16cf04f
+	joinOnDateBehavior: datePartOnly
+	fromColumn: contracts.created_time
+	toColumn: LocalDateTable_55c995e9-5f17-4274-bf39-8abf5b7369f9.Date
+
+relationship e1b8838d-701e-4442-a307-081663405fbe
+	joinOnDateBehavior: datePartOnly
+	fromColumn: contracts.updated_time
+	toColumn: LocalDateTable_8e05a108-6fe6-4beb-8a0d-9aa40bc6a5e0.Date
+
+relationship 56ebb3f6-9736-4c81-a37e-9b0013b75a69
+	joinOnDateBehavior: datePartOnly
+	fromColumn: contracts.lease_start_date
+	toColumn: LocalDateTable_29a7aa3c-1b7e-4546-9c2e-d337c44cff50.Date
+
+relationship 67460d3d-e09c-43e2-a6e5-288cec3b3469
+	joinOnDateBehavior: datePartOnly
+	fromColumn: contracts.customer_account_created_date
+	toColumn: LocalDateTable_c9506875-c62c-4cf5-9a2e-d055a0ffa5eb.Date
+
+relationship 4c43d2f0-77df-4490-b748-2404f1fd5651
+	joinOnDateBehavior: datePartOnly
+	fromColumn: lease_receivables.next_due_date
+	toColumn: LocalDateTable_e54a4fd8-322c-46ec-9edb-c71bf5e2ccf9.Date
+
+relationship b4bc4414-21e4-4f63-a432-ec54d5b923c3
+	joinOnDateBehavior: datePartOnly
+	fromColumn: invoices.due_date
+	toColumn: LocalDateTable_8d388dc9-7379-4833-af99-49606daad1ac.Date
+
+relationship f5253f9b-303a-4871-9349-872a1dc9a750
+	joinOnDateBehavior: datePartOnly
+	fromColumn: invoices.invoice_date
+	toColumn: LocalDateTable_6091144c-a56f-4d8e-ba6a-c09a95647ae9.Date
+
+relationship 87869694-e890-4487-b3d7-fba6bcaf478b
+	joinOnDateBehavior: datePartOnly
+	fromColumn: customer.next_review_date
+	toColumn: LocalDateTable_a2a7f051-b1b9-4dcd-a680-fbd3e09b008b.Date
+
+relationship 9490bb3b-8b7f-4767-961a-a88fa67d67a8
+	joinOnDateBehavior: datePartOnly
+	fromColumn: customer.activation_date
+	toColumn: LocalDateTable_7fc1bfb3-6927-413d-9944-f572555ef422.Date
+
+relationship e717b781-d35b-4d38-bbbb-e9285849ccd0
+	joinOnDateBehavior: datePartOnly
+	fromColumn: customer.policy_expiration_date
+	toColumn: LocalDateTable_b524626c-d6f3-422c-88b8-86f63a882608.Date
+
+relationship AutoDetected_09be23c1-afed-42ff-b5c3-bfc837a6e93d
+	fromColumn: sundry_charges.customer_id
+	toColumn: customer.customer_id
+
+relationship AutoDetected_c3c3807a-a918-42e3-9350-9d8a187c06cb
+	fromColumn: receipts.customer_id
+	toColumn: customer.customer_id
+
+relationship AutoDetected_cfb6795e-4097-4a14-984f-8b0a29d3bae3
+	isActive: false
+	fromColumn: sundry_charges.contract_id
+	toColumn: contracts.contract_id
+
+relationship AutoDetected_53af5427-19b3-4690-9ec5-da59fb16df65
+	fromColumn: receipts.contract_id
+	toColumn: contracts.contract_id
+
+relationship AutoDetected_5c8558a0-ce6f-4a8c-bb59-ea143394035e
+	crossFilteringBehavior: bothDirections
+	fromCardinality: one
+	fromColumn: lease_finance.contract_id
+	toColumn: contracts.contract_id
+
+relationship AutoDetected_427dc598-ff47-47ba-9d38-b8a534957c64
+	isActive: false
+	fromColumn: sundry_charges.sequence_number
+	toColumn: lease_finance.sequence_number
+
+relationship AutoDetected_81ea6a1d-2405-4640-a631-ab773e6f0e36
+	fromColumn: lease_receivables.customer_id
+	toColumn: customer.customer_id
+
+relationship AutoDetected_11529615-b2af-46df-a37a-67706114dd49
+	fromColumn: lease_receivables.sequence_number
+	toColumn: lease_finance.sequence_number
+
+relationship AutoDetected_bce19208-d544-4f01-9bdc-dc227854c66a
+	isActive: false
+	fromColumn: lease_receivables.sequence_number
+	toColumn: contracts.sequence_number
+
+relationship 06d69886-f7e8-4a81-ad41-4ea0bf4e52f2
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Payments.due_date
+	toColumn: LocalDateTable_800fb5ae-d08e-4b67-8c86-150022748772.Date
+
+relationship 41ee90e8-013a-4e6b-9285-27d790147e95
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Payments.start_date
+	toColumn: LocalDateTable_f80953f8-52ea-4878-8fb0-9f7967ddf33c.Date
+
+relationship a33c4b78-c93a-40dc-9ea8-bfb55cd60050
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Payments.end_date
+	toColumn: LocalDateTable_13a26fdd-a293-4aed-83e8-d179b8e59b5d.Date
+
+relationship 5673b03a-a039-4956-a204-0ef3c181a4e0
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Payments.post_date
+	toColumn: LocalDateTable_f79a6bb1-3117-4555-be3c-9536454e7801.Date
+
+relationship b8b01e30-f939-4beb-b44b-ed019d82e297
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Payments.maturity_date
+	toColumn: LocalDateTable_a390c296-8624-4079-97ef-bf642681d1a1.Date
+
+relationship be29a80e-4d9a-4c2c-8205-32556516b2d8
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Payments.commencement_date
+	toColumn: LocalDateTable_d6e646fd-9351-4392-bb98-f4104f373e09.Date
+
+relationship AutoDetected_22625c34-1b9f-40bc-8871-c87033a1d87b
+	fromColumn: Payments.customer_id
+	toColumn: customer.customer_id
+
+relationship AutoDetected_bc542e04-5531-49f6-8bf8-f794cf387c7e
+	fromColumn: Payments.contract_id
+	toColumn: contracts.contract_id
+
+relationship AutoDetected_1baa4d58-515a-439d-a1ad-48bec72c2241
+	isActive: false
+	fromColumn: Payments.sequence_number
+	toColumn: lease_finance.sequence_number
+

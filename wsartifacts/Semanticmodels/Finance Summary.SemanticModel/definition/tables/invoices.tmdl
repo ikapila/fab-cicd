@@ -1,0 +1,264 @@
+table invoices
+	lineageTag: f6918dc3-e51c-434a-9c41-fb645cbc3962
+
+	measure 'Overdue Bills' = CALCULATE(SUM(invoices[balance_amount]), invoices[due_date] < TODAY())
+		lineageTag: 0b74beb5-580d-464e-8059-f020e78b9f27
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure #invoices = COUNTROWS(invoices)
+		formatString: 0
+		lineageTag: 04308b42-6c3f-4c6e-a213-4a71d7a4f311
+
+	column tax_balance_amount
+		dataType: double
+		lineageTag: 054103d4-d515-4b5c-90d3-6a8d403b5fb8
+		summarizeBy: sum
+		sourceColumn: tax_balance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column effective_balance_amount
+		dataType: double
+		lineageTag: 5d888015-3ac3-4d2c-9bc0-4cc4fa9c558c
+		summarizeBy: sum
+		sourceColumn: effective_balance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column effective_tax_balance_amount
+		dataType: double
+		lineageTag: ea3304a0-fc74-4939-b154-e963a2ce7743
+		summarizeBy: sum
+		sourceColumn: effective_tax_balance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column invoice_amount_amount
+		dataType: double
+		lineageTag: d0c0d708-7e8c-4675-b392-3a6ef1438b6b
+		summarizeBy: sum
+		sourceColumn: invoice_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column invoice_tax_amount_amount
+		dataType: double
+		lineageTag: 9906a15f-9776-4789-b96f-053458d3a955
+		summarizeBy: sum
+		sourceColumn: invoice_tax_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column balance_amount
+		dataType: double
+		lineageTag: 6ee52776-7ff9-472b-9fb2-4f36a441be1d
+		summarizeBy: sum
+		sourceColumn: balance_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column receivable_amount_amount
+		dataType: double
+		lineageTag: 8288a97e-fa31-49cd-b7e1-fcea4f614ff0
+		summarizeBy: sum
+		sourceColumn: receivable_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tax_amount_amount
+		dataType: double
+		lineageTag: 7133dc6c-1007-48ca-bc5b-dbc626ca9eb4
+		summarizeBy: sum
+		sourceColumn: tax_amount_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column customer_name
+		dataType: string
+		lineageTag: 7a4565b5-6a33-4f13-88c0-52fcdeaee820
+		summarizeBy: none
+		sourceColumn: customer_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_number
+		dataType: string
+		lineageTag: 746d6d83-7389-48f0-b030-0a9aedec8344
+		summarizeBy: none
+		sourceColumn: customer_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column days_late_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 06b83ea0-5bc5-450a-839b-ec0944176118
+		summarizeBy: sum
+		sourceColumn: days_late_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 00672dc4-fbb1-4b61-9ee2-c582f9270131
+		summarizeBy: sum
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column entity_type
+		dataType: string
+		lineageTag: 1a0d5eb8-f3b8-452c-9db8-976b0aa54923
+		summarizeBy: none
+		sourceColumn: entity_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column sequence_number
+		dataType: string
+		lineageTag: 99cc804b-db21-4ef5-96b2-103979c5136c
+		summarizeBy: none
+		sourceColumn: sequence_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column branch_name
+		dataType: string
+		lineageTag: d856bb50-37c1-44e2-988d-e9eb1b79ab35
+		summarizeBy: none
+		sourceColumn: branch_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column due_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: b8b80082-eb9e-4f5e-bf58-213ba24dae68
+		summarizeBy: none
+		sourceColumn: due_date
+
+		variation Variation
+			isDefault
+			relationship: b4bc4414-21e4-4f63-a432-ec54d5b923c3
+			defaultHierarchy: LocalDateTable_8d388dc9-7379-4833-af99-49606daad1ac.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column days_since_due
+		dataType: int64
+		formatString: 0
+		lineageTag: de6541d2-bc04-4048-a3a9-cf8698c787a3
+		summarizeBy: sum
+		sourceColumn: days_since_due
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_name
+		dataType: string
+		lineageTag: f80c57a9-1803-4490-8dff-ed251669ad66
+		summarizeBy: none
+		sourceColumn: product_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column receivable_type
+		dataType: string
+		lineageTag: 5a448722-6c1c-4ad7-b8a1-8103c1ad7e72
+		summarizeBy: none
+		sourceColumn: receivable_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column invoice_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 1ad88aec-3fca-4fd2-8db8-4bfbf944d1fc
+		summarizeBy: none
+		sourceColumn: invoice_date
+
+		variation Variation
+			isDefault
+			relationship: f5253f9b-303a-4871-9349-872a1dc9a750
+			defaultHierarchy: LocalDateTable_6091144c-a56f-4d8e-ba6a-c09a95647ae9.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column invoice_number
+		dataType: string
+		lineageTag: be4cefd4-aa40-4dea-81a9-5ab68b64b224
+		summarizeBy: none
+		sourceColumn: invoice_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column receivable_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 608c3534-40ca-441a-97d0-e1096c7d3d54
+		summarizeBy: sum
+		sourceColumn: receivable_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column contract_id
+		dataType: int64
+		formatString: 0
+		lineageTag: bc741c60-6314-4753-9211-f92848305e7e
+		summarizeBy: sum
+		sourceColumn: contract_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column contract_status
+		dataType: string
+		lineageTag: 95c3323a-18b5-439a-8463-77fc602e0a97
+		summarizeBy: none
+		sourceColumn: contract_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Months Overdue' = FLOOR(DIVIDE(invoices[days_since_due],30),1)
+		lineageTag: f4524289-6bd4-42d3-986c-416eb4b57a71
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition invoices = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Databases("urucevsjhkyejogdndw7poe5fi-opyx2w4p6nuelgvikczclpbina.datawarehouse.fabric.microsoft.com"),
+				    reporting_gold = Source{[Name="reporting_gold"]}[Data],
+				    dbo_vw_receivable_invoice_detail = reporting_gold{[Schema="dbo",Item="vw_receivable_invoice_detail"]}[Data],
+				    #"Removed Other Columns" = Table.SelectColumns(dbo_vw_receivable_invoice_detail,{"tax_balance_amount", "effective_balance_amount", "effective_tax_balance_amount", "invoice_amount_amount", "invoice_tax_amount_amount", "balance_amount", "receivable_amount_amount", "tax_amount_amount", "customer_name", "customer_number", "days_late_count", "customer_id", "entity_type", "sequence_number", "branch_name", "due_date", "days_since_due", "product_name", "receivable_type", "invoice_date", "invoice_number", "receivable_id", "contract_id", "contract_status"})
+				in
+				    #"Removed Other Columns"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

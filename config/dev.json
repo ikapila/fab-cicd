@@ -34,8 +34,10 @@
   },
   "rebind_rules": {
     "semantic_models": {
-      "source_lakehouse": "reporting_gold",
-      "source_workspace_id": "{{workspace_id}}"
+      "sql_endpoint_replacements": {
+        "old_pattern": "Sql\\.Databases\\(\"[^\"]+\\.datawarehouse\\.fabric\\.microsoft\\.com\"\\)",
+        "new_sql_endpoint": "Sql.Databases(\"dev-reporting-gold.datawarehouse.fabric.microsoft.com\")"
+      }
     },
     "reports": {
       "target_workspace_id": "{{workspace_id}}"

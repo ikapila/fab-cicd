@@ -1054,6 +1054,7 @@ class FabricDeployer:
     def _read_semantic_model_git_format(self, model_folder: Path) -> Dict:
         """
         Read semantic model from Fabric Git format (.SemanticModel folder)
+        Applies SQL endpoint transformation to TMDL files before encoding.
         
         Args:
             model_folder: Path to .SemanticModel folder
@@ -1063,6 +1064,17 @@ class FabricDeployer:
         """
         import base64
         
+        # Get model name from .platform metadata
+        platform_file = model_folder / ".platform"
+        model_name = "unknown"
+        if platform_file.exists():
+            try:
+                with open(platform_file, 'r') as f:
+                    platform_data = json.load(f)
+                model_name = platform_data.get("metadata", {}).get("displayName", "unknown")
+            except:
+                pass
+        
         parts = []
         
         # Read all files recursively and encode them
@@ -1071,9 +1083,21 @@ class FabricDeployer:
                 # Get relative path from model folder
                 relative_path = file_path.relative_to(model_folder)
                 
-                # Read and encode file content
+                # Read file content
                 with open(file_path, 'rb') as f:
                     content_bytes = f.read()
+                
+                # Apply TMDL transformation for .tmdl files
+                if file_path.suffix.lower() == '.tmdl':
+                    try:
+                        # Decode to string, transform, re-encode
+                        content_str = content_bytes.decode('utf-8')
+                        transformed_str = self._apply_semantic_model_tmdl_transformation(content_str, model_name)
+                        content_bytes = transformed_str.encode('utf-8')
+                    except Exception as e:
+                        logger.warning(f"  ⚠ Could not transform TMDL file {relative_path}: {e}")
+                        # Use original content if transformation fails
+                
                 content_base64 = base64.b64encode(content_bytes).decode('utf-8')
                 
                 parts.append({
@@ -3848,24 +3872,54 @@ print('Notebook initialized')
     
     # ==================== Rebinding Helper Methods ====================
     
+    def _apply_semantic_model_tmdl_transformation(self, tmdl_content: str, model_name: str) -> str:
+        """
+        Transform TMDL file content by replacing SQL endpoints with environment-specific values.
+        Similar to paginated report RDL transformation.
+        
+        Replaces patterns like:
+          Sql.Databases("old-lakehouse.datawarehouse.fabric.microsoft.com")
+        With:
+          Sql.Databases("dev-reporting-gold.datawarehouse.fabric.microsoft.com")
+        
+        Args:
+            tmdl_content: Original TMDL file content
+            model_name: Name of the semantic model (for logging)
+            
+        Returns:
+            Transformed TMDL content with updated SQL endpoints
+        """
+        rebind_rule = self.config.get_rebind_rule_for_artifact("semantic_models", model_name)
+        
+        if not rebind_rule or "sql_endpoint_replacements" not in rebind_rule:
+            return tmdl_content
+        
+        replacements = rebind_rule["sql_endpoint_replacements"]
+        old_pattern = replacements.get("old_pattern")
+        new_endpoint = self.config.substitute_parameters(replacements.get("new_sql_endpoint", ""))
+        
+        if not old_pattern or not new_endpoint:
+            return tmdl_content
+        
+        # Apply regex replacement
+        import re
+        transformed_content = re.sub(old_pattern, new_endpoint, tmdl_content)
+        
+        # Log if any replacements were made
+        if transformed_content != tmdl_content:
+            matches = len(re.findall(old_pattern, tmdl_content))
+            logger.info(f"    ✓ Transformed {matches} SQL endpoint(s) in TMDL files")
+        
+        return transformed_content
+    
     def _apply_semantic_model_rebinding(self, model_name: str, model_id: str) -> None:
         """
-        Apply data source rebinding rules to a semantic model
+        DEPRECATED: This method is no longer used.
+        SQL endpoint transformation now happens during TMDL file reading,
+        before deployment (see _apply_semantic_model_tmdl_transformation).
         
-        Supports two configuration formats:
-        1. Simplified (rebind all tables to one lakehouse):
-           "semantic_models": {
-             "source_lakehouse": "reporting_gold",
-             "source_workspace_id": "{{workspace_id}}"
-           }
-        
-        2. Per-table (for models with multiple lakehouses):
-           "semantic_models": [{
-             "artifact_name": "Finance Summary",
-             "table_rebindings": [
-               {"table_name": "invoices", "source_lakehouse": "reporting_gold", ...}
-             ]
-           }]
+        The method still exists to avoid breaking the deployment flow,
+        but simply logs that transformation happened earlier.
         
         Args:
             model_name: Name of the semantic model
@@ -3873,110 +3927,8 @@ print('Notebook initialized')
         """
         rebind_rule = self.config.get_rebind_rule_for_artifact("semantic_models", model_name)
         
-        if not rebind_rule:
-            return
-        
-        logger.info(f"  Applying data source rebinding rules for '{model_name}'...")
-        
-        # Check if using simplified format (source_lakehouse at top level)
-        if "source_lakehouse" in rebind_rule:
-            # Simplified format - rebind all tables to one lakehouse
-            lakehouse_name = self.config.substitute_parameters(rebind_rule["source_lakehouse"])
-            workspace_id = self.config.substitute_parameters(
-                rebind_rule.get("source_workspace_id", self.workspace_id)
-            )
-            
-            # Get all tables from the semantic model
-            # Note: Model needs to be processed before tables are available
-            import time
-            max_retries = 3
-            retry_delay = 5
-            
-            tables = None
-            for attempt in range(max_retries):
-                try:
-                    tables = self.client.get_semantic_model_tables(self.workspace_id, model_id)
-                    table_names = [table["name"] for table in tables]
-                    logger.info(f"    Found {len(table_names)} table(s) in semantic model")
-                    break
-                except Exception as e:
-                    if attempt < max_retries - 1:
-                        logger.info(f"    Tables not yet available (attempt {attempt + 1}/{max_retries}), waiting {retry_delay}s...")
-                        time.sleep(retry_delay)
-                    else:
-                        logger.warning(f"    ⚠ Could not retrieve tables from model: {str(e)}")
-                        logger.warning(f"    Skipping rebinding - model may need time to process or manual refresh")
-                        return
-            
-            if not tables:
-                return
-            
-            # Get lakehouse ID
-            try:
-                lakehouses = self.client.list_lakehouses(workspace_id)
-                lakehouse = next((lh for lh in lakehouses if lh["displayName"] == lakehouse_name), None)
-                
-                if not lakehouse:
-                    logger.warning(f"    ⚠ Lakehouse '{lakehouse_name}' not found, skipping rebinding")
-                    return
-                
-                # Build bindings for all tables
-                resolved_bindings = [{
-                    "tableName": table_name,
-                    "sourceLakehouseId": lakehouse["id"],
-                    "sourceWorkspaceId": workspace_id
-                } for table_name in table_names]
-                
-                logger.info(f"    ✓ Will rebind all {len(table_names)} table(s) to lakehouse '{lakehouse_name}'")
-                
-            except Exception as e:
-                logger.warning(f"    ⚠ Error resolving lakehouse '{lakehouse_name}': {str(e)}")
-                return
-                
-        elif "table_rebindings" in rebind_rule:
-            # Per-table format - for models with multiple lakehouses
-            table_rebindings = rebind_rule["table_rebindings"]
-            resolved_bindings = []
-            
-            for binding in table_rebindings:
-                table_name = binding["table_name"]
-                lakehouse_name = self.config.substitute_parameters(binding["source_lakehouse"])
-                workspace_id = self.config.substitute_parameters(
-                    binding.get("source_workspace_id", self.workspace_id)
-                )
-                
-                # Get lakehouse ID
-                try:
-                    lakehouses = self.client.list_lakehouses(workspace_id)
-                    lakehouse = next((lh for lh in lakehouses if lh["displayName"] == lakehouse_name), None)
-                    
-                    if lakehouse:
-                        resolved_bindings.append({
-                            "tableName": table_name,
-                            "sourceLakehouseId": lakehouse["id"],
-                            "sourceWorkspaceId": workspace_id
-                        })
-                        logger.info(f"    ✓ Will rebind table '{table_name}' to lakehouse '{lakehouse_name}'")
-                    else:
-                        logger.warning(f"    ⚠ Lakehouse '{lakehouse_name}' not found, skipping rebinding for table '{table_name}'")
-                except Exception as e:
-                    logger.warning(f"    ⚠ Error resolving lakehouse '{lakehouse_name}': {str(e)}")
-        else:
-            logger.warning(f"    ⚠ Invalid rebind rule format - expected 'source_lakehouse' or 'table_rebindings'")
-            return
-        
-        # Apply rebinding
-        if resolved_bindings:
-            try:
-                self.client.rebind_semantic_model_sources(
-                    self.workspace_id,
-                    model_id,
-                    resolved_bindings
-                )
-                logger.info(f"  ✓ Data source rebinding completed for {len(resolved_bindings)} table(s)")
-            except Exception as e:
-                logger.error(f"  ✗ Failed to rebind data sources: {str(e)}")
-                logger.warning(f"  Model deployed successfully but rebinding failed - may need manual adjustment")
+        if rebind_rule and "sql_endpoint_replacements" in rebind_rule:
+            logger.info(f"  SQL endpoints transformed during file reading for '{model_name}'")
     
     def _apply_report_rebinding(self, report_name: str, report_id: str) -> None:
         """

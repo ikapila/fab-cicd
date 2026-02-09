@@ -3206,10 +3206,13 @@ print('Notebook initialized')
                     if platform_data.get("metadata", {}).get("displayName") == name:
                         logger.info(f"  Reading paginated report from Fabric Git format: {folder}")
                         
-                        # Get rebind rules for this report (if any)
-                        rebind_rules = self.config.rebind_rules.get("paginated_reports", [])
-                        report_rule = next((r for r in rebind_rules if r["report_name"] == name), None)
-                        connection_replacements = report_rule.get("connection_string_replacements", {}) if report_rule else {}
+                        # Get rebind rules for this report
+                        rebind_rule = self.config.get_rebind_rule_for_artifact("paginated_reports", name)
+                        
+                        # Extract connection_string_replacements from rule
+                        connection_replacements = {}
+                        if rebind_rule and "connection_string_replacements" in rebind_rule:
+                            connection_replacements = rebind_rule["connection_string_replacements"]
                         
                         # Read and transform RDL, then encode all parts
                         definition = self._encode_paginated_report_parts(folder, connection_replacements)

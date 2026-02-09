@@ -1,150 +1,140 @@
-2026-01-05T11:08:16.0915921Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2026-01-05T11:08:16.0924673Z ==============================================================================
-2026-01-05T11:08:16.0924914Z Task         : Command line
-2026-01-05T11:08:16.0925029Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-01-05T11:08:16.0925230Z Version      : 2.250.1
-2026-01-05T11:08:16.0925364Z Author       : Microsoft Corporation
-2026-01-05T11:08:16.0925477Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-01-05T11:08:16.0925634Z ==============================================================================
-2026-01-05T11:08:16.2332964Z Generating script.
-2026-01-05T11:08:16.2333997Z ========================== Starting Command Output ===========================
-2026-01-05T11:08:16.2404790Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/e140c7ba-dd2a-4d81-8868-4b88e7575adf.sh
-2026-01-05T11:08:16.2510589Z ========================================
-2026-01-05T11:08:16.2511400Z DEBUG: Verifying Repository Checkout
-2026-01-05T11:08:16.2512703Z ========================================
-2026-01-05T11:08:16.2520645Z Current directory: /home/vsts/work/1/s
-2026-01-05T11:08:16.2521423Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-01-05T11:08:16.2522485Z 
-2026-01-05T11:08:16.2523074Z Contents of Build.SourcesDirectory:
-2026-01-05T11:08:16.2546506Z total 36
-2026-01-05T11:08:16.2547055Z drwxr-xr-x 8 vsts vsts 4096 Jan  5 11:07 .
-2026-01-05T11:08:16.2547510Z drwxr-xr-x 7 vsts vsts 4096 Jan  5 11:07 ..
-2026-01-05T11:08:16.2547964Z drwxr-xr-x 2 vsts vsts 4096 Jan  5 11:07 .deployment_tracking
-2026-01-05T11:08:16.2548427Z drwxr-xr-x 7 vsts vsts 4096 Jan  5 11:07 .git
-2026-01-05T11:08:16.2548868Z -rw-r--r-- 1 vsts vsts  985 Jan  5 11:07 README.md
-2026-01-05T11:08:16.2549317Z drwxr-xr-x 2 vsts vsts 4096 Jan  5 11:07 azure-pipelines
-2026-01-05T11:08:16.2549777Z drwxr-xr-x 2 vsts vsts 4096 Jan  5 11:07 config
-2026-01-05T11:08:16.2550249Z drwxr-xr-x 2 vsts vsts 4096 Jan  5 11:07 scripts
-2026-01-05T11:08:16.2550699Z drwxr-xr-x 8 vsts vsts 4096 Jan  5 11:07 wsartifacts
-2026-01-05T11:08:16.2550937Z 
-2026-01-05T11:08:16.2551291Z Checking for required folders:
-2026-01-05T11:08:16.2553251Z ✓ scripts/ exists
-2026-01-05T11:08:16.2553582Z ✓ config/ exists
-2026-01-05T11:08:16.2553963Z ✓ wsartifacts/ exists
-2026-01-05T11:08:16.2554238Z ========================================
-2026-01-05T11:08:16.2554538Z ========================================
-2026-01-05T11:08:16.2554807Z Deploying to Dev Environment
-2026-01-05T11:08:16.2555063Z ========================================
-2026-01-05T11:08:16.2555270Z Features:
-2026-01-05T11:08:16.2555610Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-01-05T11:08:16.2556006Z   📊 Dependency-aware deployment ordering
-2026-01-05T11:08:16.2556397Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-01-05T11:08:16.2556529Z 
-2026-01-05T11:08:16.2556771Z Deployment steps:
-2026-01-05T11:08:16.2557044Z   1. Create artifacts from config file
-2026-01-05T11:08:16.2557327Z   2. Detect changed artifacts using Git diff
-2026-01-05T11:08:16.2557633Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-01-05T11:08:16.2557936Z ========================================
-2026-01-05T11:08:17.3885785Z INFO:__main__:Initializing deployment to dev environment
-2026-01-05T11:08:17.3896621Z INFO:config_manager:Loading configuration from: config/dev.json
-2026-01-05T11:08:17.3897262Z INFO:__main__:Using environment-specific service principal for dev
-2026-01-05T11:08:17.3897661Z INFO:fabric_auth:Using environment-specific secret from: AZURE_CLIENT_SECRET_DEV
-2026-01-05T11:08:17.3898046Z INFO:__main__:Using artifacts root folder: wsartifacts
-2026-01-05T11:08:17.3898458Z INFO:fabric_auth:Using Service Principal authentication (Client ID: 0c296168-ffc5-447a-83bc-bdaf8979d8da)
-2026-01-05T11:08:17.3903539Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/v2.0/.well-known/openid-configuration'
-2026-01-05T11:08:17.3912773Z Request method: 'GET'
-2026-01-05T11:08:17.3913070Z Request headers:
-2026-01-05T11:08:17.3913481Z     'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2026-01-05T11:08:17.3913908Z No body was attached to the request
-2026-01-05T11:08:17.4782074Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2026-01-05T11:08:17.4783609Z Response headers:
-2026-01-05T11:08:17.4785243Z     'Cache-Control': 'max-age=86400, private'
-2026-01-05T11:08:17.4785732Z     'Content-Type': 'application/json; charset=utf-8'
-2026-01-05T11:08:17.4786042Z     'Strict-Transport-Security': 'REDACTED'
-2026-01-05T11:08:17.4786324Z     'X-Content-Type-Options': 'REDACTED'
-2026-01-05T11:08:17.4786615Z     'Access-Control-Allow-Origin': 'REDACTED'
-2026-01-05T11:08:17.4786912Z     'Access-Control-Allow-Methods': 'REDACTED'
-2026-01-05T11:08:17.4787200Z     'P3P': 'REDACTED'
-2026-01-05T11:08:17.4787490Z     'x-ms-request-id': '28336b1c-ed97-46d5-aabc-84db8cf5cf01'
-2026-01-05T11:08:17.4787798Z     'x-ms-ests-server': 'REDACTED'
-2026-01-05T11:08:17.4788062Z     'x-ms-srs': 'REDACTED'
-2026-01-05T11:08:17.4788344Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2026-01-05T11:08:17.4788634Z     'X-XSS-Protection': 'REDACTED'
-2026-01-05T11:08:17.4862863Z     'Set-Cookie': 'REDACTED'
-2026-01-05T11:08:17.4863301Z     'Date': 'Mon, 05 Jan 2026 11:08:16 GMT'
-2026-01-05T11:08:17.4863596Z     'Content-Length': '1964'
-2026-01-05T11:08:17.4953226Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
-2026-01-05T11:08:17.4956427Z Request method: 'POST'
-2026-01-05T11:08:17.4956954Z Request headers:
-2026-01-05T11:08:17.4958069Z     'Accept': 'application/json'
-2026-01-05T11:08:17.4958554Z     'x-client-sku': 'REDACTED'
-2026-01-05T11:08:17.4958985Z     'x-client-ver': 'REDACTED'
-2026-01-05T11:08:17.4959628Z     'x-client-os': 'REDACTED'
-2026-01-05T11:08:17.4960323Z     'x-ms-lib-capability': 'REDACTED'
-2026-01-05T11:08:17.4960794Z     'client-request-id': 'REDACTED'
-2026-01-05T11:08:17.4961278Z     'x-client-current-telemetry': 'REDACTED'
-2026-01-05T11:08:17.4961836Z     'x-client-last-telemetry': 'REDACTED'
-2026-01-05T11:08:17.4962886Z     'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2026-01-05T11:08:17.4963488Z A body is sent with the request
-2026-01-05T11:08:17.6155532Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2026-01-05T11:08:17.6156444Z Response headers:
-2026-01-05T11:08:17.6156937Z     'Cache-Control': 'no-store, no-cache'
-2026-01-05T11:08:17.6157520Z     'Pragma': 'no-cache'
-2026-01-05T11:08:17.6157976Z     'Content-Type': 'application/json; charset=utf-8'
-2026-01-05T11:08:17.6159688Z     'Expires': '-1'
-2026-01-05T11:08:17.6160012Z     'Strict-Transport-Security': 'REDACTED'
-2026-01-05T11:08:17.6160337Z     'X-Content-Type-Options': 'REDACTED'
-2026-01-05T11:08:17.6160636Z     'P3P': 'REDACTED'
-2026-01-05T11:08:17.6160927Z     'client-request-id': 'REDACTED'
-2026-01-05T11:08:17.6161265Z     'x-ms-request-id': '28336b1c-ed97-46d5-aabc-84db92f5cf01'
-2026-01-05T11:08:17.6161597Z     'x-ms-ests-server': 'REDACTED'
-2026-01-05T11:08:17.6162421Z     'x-ms-clitelem': 'REDACTED'
-2026-01-05T11:08:17.6162715Z     'x-ms-srs': 'REDACTED'
-2026-01-05T11:08:17.6163019Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2026-01-05T11:08:17.6163333Z     'X-XSS-Protection': 'REDACTED'
-2026-01-05T11:08:17.6163613Z     'Set-Cookie': 'REDACTED'
-2026-01-05T11:08:17.6163913Z     'Date': 'Mon, 05 Jan 2026 11:08:16 GMT'
-2026-01-05T11:08:17.6164207Z     'Content-Length': '1657'
-2026-01-05T11:08:17.6164565Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
-2026-01-05T11:08:17.6165122Z INFO:fabric_auth:Successfully obtained access token
-2026-01-05T11:08:17.8219028Z INFO:fabric_auth:Authentication validation successful
-2026-01-05T11:08:17.8227233Z INFO:__main__:Target workspace: AAG-SIT-FWS-ENGINEERING-01 (d7faf1fa-0e7e-4061-b3e5-50fa3873eb64)
-2026-01-05T11:08:17.8229457Z INFO:__main__:Running in artifact creation mode
-2026-01-05T11:08:17.8230324Z INFO:__main__:============================================================
-2026-01-05T11:08:17.8231080Z INFO:__main__:Creating artifacts from configuration for dev
-2026-01-05T11:08:17.8231805Z INFO:__main__:============================================================
-2026-01-05T11:08:17.8232350Z INFO:__main__:No artifacts configured for creation
-2026-01-05T11:08:17.8232679Z INFO:__main__:Artifact creation completed successfully
-2026-01-05T11:08:17.8236274Z INFO:__main__:============================================================
-2026-01-05T11:08:17.8237126Z INFO:__main__:ARTIFACT DISCOVERY PHASE
-2026-01-05T11:08:17.8237594Z INFO:__main__:============================================================
-2026-01-05T11:08:17.8238152Z INFO:__main__:Discovering artifacts from file system...
-2026-01-05T11:08:17.8244094Z INFO:__main__:Discovered 1 lakehouse(s): ReportingLakehouse
-2026-01-05T11:08:17.8255106Z INFO:__main__:Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
-2026-01-05T11:08:17.8258645Z INFO:__main__:Discovered 1 Variable Library: ReportingVariables
-2026-01-05T11:08:17.8263087Z INFO:__main__:============================================================
-2026-01-05T11:08:17.8263823Z INFO:__main__:DISCOVERY COMPLETE: Found 12 total artifacts
-2026-01-05T11:08:17.8265492Z INFO:__main__:============================================================
-2026-01-05T11:08:17.8267079Z INFO:__main__:
-2026-01-05T11:08:17.8267453Z ============================================================
-2026-01-05T11:08:17.8268504Z INFO:__main__:CHANGE DETECTION
-2026-01-05T11:08:17.8270360Z INFO:__main__:============================================================
-2026-01-05T11:08:17.8326482Z INFO:change_detector:Found 14 changed file(s) since 98e32d8a
-2026-01-05T11:08:17.8329783Z INFO:change_detector:Change detection: 2 artifact(s) changed
-2026-01-05T11:08:17.8333842Z INFO:change_detector:  Report: Welcome
-2026-01-05T11:08:17.8334584Z INFO:change_detector:  SemanticModel: Welcome
-2026-01-05T11:08:17.8335155Z INFO:__main__:Changed artifacts: 2
-2026-01-05T11:08:17.8335831Z INFO:__main__:  Report: Welcome
-2026-01-05T11:08:17.8339277Z INFO:__main__:  SemanticModel: Welcome
-2026-01-05T11:08:17.8340143Z INFO:__main__:Skipped (unchanged): 12
-2026-01-05T11:08:17.8340912Z INFO:__main__:============================================================
-2026-01-05T11:08:17.8341620Z INFO:__main__:============================================================
-2026-01-05T11:08:17.8342418Z INFO:__main__:Starting deployment to dev environment
-2026-01-05T11:08:17.8343862Z INFO:__main__:============================================================
-2026-01-05T11:08:17.8344614Z INFO:dependency_resolver:✅ All dependencies are valid
-2026-01-05T11:08:17.8345442Z WARNING:dependency_resolver:No artifacts to deploy
-2026-01-05T11:08:17.8345886Z WARNING:__main__:No artifacts to deploy
-2026-01-05T11:08:17.8743715Z 
-2026-01-05T11:08:17.8745193Z ✓ Dev deployment completed successfully
-2026-01-05T11:08:17.8754375Z 
-2026-01-05T11:08:17.8824503Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2026-02-09T14:56:17.6643129Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-02-09T14:56:17.6651404Z ==============================================================================
+2026-02-09T14:56:17.6651590Z Task         : Command line
+2026-02-09T14:56:17.6651689Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-02-09T14:56:17.6651845Z Version      : 2.268.0
+2026-02-09T14:56:17.6651942Z Author       : Microsoft Corporation
+2026-02-09T14:56:17.6652049Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-02-09T14:56:17.6652194Z ==============================================================================
+2026-02-09T14:56:17.7973170Z Generating script.
+2026-02-09T14:56:17.7979014Z ========================== Starting Command Output ===========================
+2026-02-09T14:56:17.7995332Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/7b43c55e-0056-407b-a3cc-47403c574811.sh
+2026-02-09T14:56:17.8054398Z ========================================
+2026-02-09T14:56:17.8055476Z DEBUG: Verifying Repository Checkout
+2026-02-09T14:56:17.8056799Z ========================================
+2026-02-09T14:56:17.8057830Z Current directory: /home/vsts/work/1/s
+2026-02-09T14:56:17.8058125Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-02-09T14:56:17.8058245Z 
+2026-02-09T14:56:17.8058495Z Contents of Build.SourcesDirectory:
+2026-02-09T14:56:17.8071503Z total 36
+2026-02-09T14:56:17.8073393Z drwxr-xr-x 8 vsts vsts 4096 Feb  9 14:55 .
+2026-02-09T14:56:17.8074419Z drwxr-xr-x 7 vsts vsts 4096 Feb  9 14:55 ..
+2026-02-09T14:56:17.8075365Z drwxr-xr-x 2 vsts vsts 4096 Feb  9 14:55 .deployment_tracking
+2026-02-09T14:56:17.8076819Z drwxr-xr-x 7 vsts vsts 4096 Feb  9 14:55 .git
+2026-02-09T14:56:17.8082073Z -rw-r--r-- 1 vsts vsts  985 Feb  9 14:55 README.md
+2026-02-09T14:56:17.8083302Z drwxr-xr-x 2 vsts vsts 4096 Feb  9 14:55 azure-pipelines
+2026-02-09T14:56:17.8083644Z drwxr-xr-x 2 vsts vsts 4096 Feb  9 14:55 config
+2026-02-09T14:56:17.8083974Z drwxr-xr-x 2 vsts vsts 4096 Feb  9 14:55 scripts
+2026-02-09T14:56:17.8084293Z drwxr-xr-x 8 vsts vsts 4096 Feb  9 14:55 wsartifacts
+2026-02-09T14:56:17.8084441Z 
+2026-02-09T14:56:17.8084687Z Checking for required folders:
+2026-02-09T14:56:17.8085171Z ✓ scripts/ exists
+2026-02-09T14:56:17.8085466Z ✓ config/ exists
+2026-02-09T14:56:17.8085755Z ✓ wsartifacts/ exists
+2026-02-09T14:56:17.8086027Z ========================================
+2026-02-09T14:56:17.8086652Z ========================================
+2026-02-09T14:56:17.8086928Z Deploying to Dev Environment
+2026-02-09T14:56:17.8087202Z ========================================
+2026-02-09T14:56:17.8087453Z Features:
+2026-02-09T14:56:17.8087852Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-02-09T14:56:17.8088243Z   📊 Dependency-aware deployment ordering
+2026-02-09T14:56:17.8088642Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-02-09T14:56:17.8088768Z 
+2026-02-09T14:56:17.8088997Z Deployment steps:
+2026-02-09T14:56:17.8089272Z   1. Create artifacts from config file
+2026-02-09T14:56:17.8089558Z   2. Detect changed artifacts using Git diff
+2026-02-09T14:56:17.8090027Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-02-09T14:56:17.8090327Z ========================================
+2026-02-09T14:56:18.1968359Z INFO:__main__:Initializing deployment to dev environment
+2026-02-09T14:56:18.1968710Z INFO:config_manager:Loading configuration from: config/dev.json
+2026-02-09T14:56:18.1969040Z INFO:__main__:Using environment-specific service principal for dev
+2026-02-09T14:56:18.1969380Z INFO:fabric_auth:Using environment-specific secret from: AZURE_CLIENT_SECRET_DEV
+2026-02-09T14:56:18.1969709Z INFO:__main__:Using artifacts root folder: wsartifacts
+2026-02-09T14:56:18.1970024Z INFO:fabric_auth:Using Service Principal authentication (Client ID: 0c296168-ffc5-447a-83bc-bdaf8979d8da)
+2026-02-09T14:56:18.1973068Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/v2.0/.well-known/openid-configuration'
+2026-02-09T14:56:18.1975218Z Request method: 'GET'
+2026-02-09T14:56:18.1975483Z Request headers:
+2026-02-09T14:56:18.1975843Z     'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
+2026-02-09T14:56:18.1976436Z No body was attached to the request
+2026-02-09T14:56:18.2892043Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
+2026-02-09T14:56:18.2893940Z Response headers:
+2026-02-09T14:56:18.2895774Z     'Cache-Control': 'max-age=86400, private'
+2026-02-09T14:56:18.2897402Z     'Content-Type': 'application/json; charset=utf-8'
+2026-02-09T14:56:18.2897691Z     'Strict-Transport-Security': 'REDACTED'
+2026-02-09T14:56:18.2897970Z     'X-Content-Type-Options': 'REDACTED'
+2026-02-09T14:56:18.2898230Z     'Access-Control-Allow-Origin': 'REDACTED'
+2026-02-09T14:56:18.2898499Z     'Access-Control-Allow-Methods': 'REDACTED'
+2026-02-09T14:56:18.2898755Z     'P3P': 'REDACTED'
+2026-02-09T14:56:18.2898948Z     'x-ms-request-id': 'fd867166-abb3-467b-bfd8-439b08430e00'
+2026-02-09T14:56:18.2899116Z     'x-ms-ests-server': 'REDACTED'
+2026-02-09T14:56:18.2899255Z     'x-ms-srs': 'REDACTED'
+2026-02-09T14:56:18.2899403Z     'Content-Security-Policy-Report-Only': 'REDACTED'
+2026-02-09T14:56:18.2899561Z     'X-XSS-Protection': 'REDACTED'
+2026-02-09T14:56:18.2899699Z     'Set-Cookie': 'REDACTED'
+2026-02-09T14:56:18.2899856Z     'Date': 'Mon, 09 Feb 2026 14:56:18 GMT'
+2026-02-09T14:56:18.2900007Z     'Content-Length': '1964'
+2026-02-09T14:56:18.3013507Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
+2026-02-09T14:56:18.3014140Z Request method: 'POST'
+2026-02-09T14:56:18.3015777Z Request headers:
+2026-02-09T14:56:18.3017424Z     'Accept': 'application/json'
+2026-02-09T14:56:18.3017703Z     'x-client-sku': 'REDACTED'
+2026-02-09T14:56:18.3017965Z     'x-client-ver': 'REDACTED'
+2026-02-09T14:56:18.3018216Z     'x-client-os': 'REDACTED'
+2026-02-09T14:56:18.3018480Z     'x-ms-lib-capability': 'REDACTED'
+2026-02-09T14:56:18.3018751Z     'client-request-id': 'REDACTED'
+2026-02-09T14:56:18.3019022Z     'x-client-current-telemetry': 'REDACTED'
+2026-02-09T14:56:18.3019303Z     'x-client-last-telemetry': 'REDACTED'
+2026-02-09T14:56:18.3019684Z     'User-Agent': 'azsdk-python-identity/1.25.1 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
+2026-02-09T14:56:18.3020056Z A body is sent with the request
+2026-02-09T14:56:18.3827928Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
+2026-02-09T14:56:18.3829722Z Response headers:
+2026-02-09T14:56:18.3830018Z     'Cache-Control': 'no-store, no-cache'
+2026-02-09T14:56:18.3830290Z     'Pragma': 'no-cache'
+2026-02-09T14:56:18.3830572Z     'Content-Type': 'application/json; charset=utf-8'
+2026-02-09T14:56:18.3830838Z     'Expires': '-1'
+2026-02-09T14:56:18.3831098Z     'Strict-Transport-Security': 'REDACTED'
+2026-02-09T14:56:18.3831539Z     'X-Content-Type-Options': 'REDACTED'
+2026-02-09T14:56:18.3831806Z     'P3P': 'REDACTED'
+2026-02-09T14:56:18.3832069Z     'client-request-id': 'REDACTED'
+2026-02-09T14:56:18.3832357Z     'x-ms-request-id': '1c71b277-1383-4e16-afa9-c9ebef546400'
+2026-02-09T14:56:18.3832640Z     'x-ms-ests-server': 'REDACTED'
+2026-02-09T14:56:18.3832898Z     'x-ms-clitelem': 'REDACTED'
+2026-02-09T14:56:18.3833150Z     'x-ms-srs': 'REDACTED'
+2026-02-09T14:56:18.3833421Z     'Content-Security-Policy-Report-Only': 'REDACTED'
+2026-02-09T14:56:18.3833701Z     'X-XSS-Protection': 'REDACTED'
+2026-02-09T14:56:18.3833967Z     'Set-Cookie': 'REDACTED'
+2026-02-09T14:56:18.3834252Z     'Date': 'Mon, 09 Feb 2026 14:56:18 GMT'
+2026-02-09T14:56:18.3834524Z     'Content-Length': '1703'
+2026-02-09T14:56:18.3837329Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
+2026-02-09T14:56:18.3838178Z INFO:fabric_auth:Successfully obtained access token
+2026-02-09T14:56:18.5616594Z INFO:fabric_auth:Authentication validation successful
+2026-02-09T14:56:18.5622175Z INFO:__main__:Target workspace: AAG-SIT-FWS-ENGINEERING-01 (d7faf1fa-0e7e-4061-b3e5-50fa3873eb64)
+2026-02-09T14:56:18.5625665Z INFO:__main__:Running in artifact creation mode
+2026-02-09T14:56:18.5627820Z INFO:__main__:============================================================
+2026-02-09T14:56:18.5628209Z INFO:__main__:Creating artifacts from configuration for dev
+2026-02-09T14:56:18.5628565Z INFO:__main__:============================================================
+2026-02-09T14:56:18.5628911Z INFO:__main__:No artifacts configured for creation
+2026-02-09T14:56:18.5629238Z INFO:__main__:Artifact creation completed successfully
+2026-02-09T14:56:18.5629599Z INFO:__main__:============================================================
+2026-02-09T14:56:18.5629949Z INFO:__main__:ARTIFACT DISCOVERY PHASE
+2026-02-09T14:56:18.5630296Z INFO:__main__:============================================================
+2026-02-09T14:56:18.5630669Z INFO:__main__:Discovering artifacts from file system...
+2026-02-09T14:56:18.5637548Z INFO:__main__:Discovered 1 lakehouse(s): ReportingLakehouse
+2026-02-09T14:56:18.5643667Z INFO:__main__:Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
+2026-02-09T14:56:18.5647785Z INFO:__main__:Discovered 1 Variable Library: ReportingVariables
+2026-02-09T14:56:18.5649394Z INFO:__main__:Discovered 2 semantic model(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
+2026-02-09T14:56:18.5652399Z INFO:__main__:Discovered 2 report(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
+2026-02-09T14:56:18.5654835Z INFO:__main__:Discovered 1 paginated report(s): Aged Debtors (Fabric Git)
+2026-02-09T14:56:18.5668174Z ERROR:__main__:Deployment failed: cannot access local variable 'definition' where it is not associated with a value
+2026-02-09T14:56:18.5669363Z Traceback (most recent call last):
+2026-02-09T14:56:18.5670243Z   File "/home/vsts/work/1/s/scripts/deploy_artifacts.py", line 4142, in main
+2026-02-09T14:56:18.5670716Z     deployer.discover_artifacts(
+2026-02-09T14:56:18.5672328Z   File "/home/vsts/work/1/s/scripts/deploy_artifacts.py", line 415, in discover_artifacts
+2026-02-09T14:56:18.5673246Z     self._discover_paginated_reports()
+2026-02-09T14:56:18.5674041Z   File "/home/vsts/work/1/s/scripts/deploy_artifacts.py", line 1051, in _discover_paginated_reports
+2026-02-09T14:56:18.5674768Z     dependencies = definition.get("dependencies", [])
+2026-02-09T14:56:18.5676417Z                    ^^^^^^^^^^
+2026-02-09T14:56:18.5677960Z UnboundLocalError: cannot access local variable 'definition' where it is not associated with a value
+2026-02-09T14:56:18.5963479Z 
+2026-02-09T14:56:18.6001118Z ##[error]Bash exited with code '1'.
+2026-02-09T14:56:18.6034281Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

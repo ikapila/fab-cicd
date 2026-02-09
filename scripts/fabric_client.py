@@ -1013,6 +1013,21 @@ class FabricClient:
         endpoint = f"/workspaces/{workspace_id}/paginatedReports/{report_id}/rebindDatasource"
         return self._make_request("POST", endpoint, json_data=connection_details)
     
+    def delete_paginated_report(self, workspace_id: str, report_id: str) -> Dict:
+        """
+        Delete a paginated report
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Paginated report GUID
+            
+        Returns:
+            Delete response
+        """
+        logger.info(f"Deleting paginated report: {report_id}")
+        endpoint = f"/workspaces/{workspace_id}/paginatedReports/{report_id}"
+        return self._make_request("DELETE", endpoint)
+    
     # ==================== Variable Library Operations ===================
     
     def list_variable_libraries(self, workspace_id: str) -> List[Dict]:

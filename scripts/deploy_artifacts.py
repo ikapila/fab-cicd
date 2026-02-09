@@ -3995,34 +3995,43 @@ print('Notebook initialized')
             datasets = self.client.list_semantic_models(target_workspace_id)
             dataset = next((ds for ds in datasets if ds["displayName"] == target_dataset), None)
             
-            if dataset:
-                # Reports need time to process before rebinding
-                # Add retry logic similar to semantic models
-                import time
-                max_retries = 3
-                retry_delay = 5
-                
-                for attempt in range(max_retries):
-                    try:
-                        self.client.rebind_report_dataset(
-                            self.workspace_id,
-                            report_id,
-                            dataset["id"]
-                        )
-                        logger.info(f"  ✓ Report rebound to dataset '{target_dataset}'")
-                        break
-                    except Exception as e:
-                        if attempt < max_retries - 1:
-                            logger.info(f"    Report not ready for rebinding (attempt {attempt + 1}/{max_retries}), waiting {retry_delay}s...")
-                            time.sleep(retry_delay)
-                        else:
-                            logger.error(f"  ✗ Failed to rebind report dataset: {str(e)}")
-                            logger.warning(f"  Report deployed successfully but rebinding failed - may need manual adjustment")
-            else:
-                logger.warning(f"  ⚠ Dataset '{target_dataset}' not found, skipping rebinding")
+            if not dataset:
+                error_msg = f"Dataset '{target_dataset}' not found for rebinding"
+                logger.error(f"  ✗ {error_msg}")
+                raise Exception(error_msg)
+            
+            # Reports need time to process before rebinding
+            # Add retry logic similar to semantic models
+            import time
+            max_retries = 3
+            retry_delay = 5
+            last_error = None
+            
+            for attempt in range(max_retries):
+                try:
+                    self.client.rebind_report_dataset(
+                        self.workspace_id,
+                        report_id,
+                        dataset["id"]
+                    )
+                    logger.info(f"  ✓ Report rebound to dataset '{target_dataset}'")
+                    return  # Success!
+                except Exception as e:
+                    last_error = e
+                    if attempt < max_retries - 1:
+                        logger.info(f"    Report not ready for rebinding (attempt {attempt + 1}/{max_retries}), waiting {retry_delay}s...")
+                        time.sleep(retry_delay)
+                    else:
+                        error_msg = f"Failed to rebind report dataset after {max_retries} attempts: {str(e)}"
+                        logger.error(f"  ✗ {error_msg}")
+                        raise Exception(error_msg)
         except Exception as e:
-            logger.error(f"  ✗ Failed to rebind report dataset: {str(e)}")
-            logger.warning(f"  Report deployed successfully but rebinding failed - may need manual adjustment")
+            # Re-raise the exception so deployment fails
+            if "Failed to rebind" in str(e) or "not found" in str(e):
+                raise
+            error_msg = f"Failed to rebind report dataset: {str(e)}"
+            logger.error(f"  ✗ {error_msg}")
+            raise Exception(error_msg)
     
     def _apply_paginated_report_rebinding(self, report_name: str, report_id: str) -> None:
         """

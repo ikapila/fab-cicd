@@ -4013,15 +4013,11 @@ print('Notebook initialized')
             dataset_rebinding = rebind_rule["dataset_rebinding"]
             target_dataset = self.config.substitute_parameters(dataset_rebinding["target_dataset"])
             target_workspace_id = self.config.substitute_parameters(
-                dataset_rebinding.get("target_workspace_id", self.workspace_id)
+                dataset_rebinding.get("target_workspace_id", "{{workspace_id}}")
             )
         else:
             logger.warning(f"    ⚠ Invalid rebind rule format")
             return
-        
-        # Ensure workspace_id is substituted (not {{workspace_id}})
-        if "{{" in target_workspace_id:
-            target_workspace_id = self.config.substitute_parameters(target_workspace_id)
         
         # Get dataset ID
         try:

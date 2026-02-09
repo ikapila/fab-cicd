@@ -174,8 +174,14 @@ class ConfigManager:
         Returns:
             Text with substituted values
         """
+        # Get all parameters
         parameters = self.get_all_parameters()
         
+        # Add workspace_id from workspace config
+        parameters['workspace_id'] = self.get_workspace_id()
+        parameters['workspace_name'] = self.get_workspace_name()
+        
+        # Substitute all placeholders
         for param_name, param_value in parameters.items():
             placeholder = f"{{{{{param_name}}}}}"
             text = text.replace(placeholder, str(param_value))

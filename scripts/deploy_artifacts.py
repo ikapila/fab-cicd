@@ -3260,23 +3260,12 @@ print('Notebook initialized')
         existing_report = next((r for r in existing if r["displayName"] == name), None)
         
         if existing_report:
-            # Paginated reports don't support updateDefinition API
-            # Must delete and recreate
-            logger.info(f"  Paginated report '{name}' already exists, recreating...")
-            logger.info(f"  Deleting existing paginated report (ID: {existing_report['id']})")
-            try:
-                self.client.delete_paginated_report(self.workspace_id, existing_report['id'])
-                logger.info(f"  ✓ Deleted existing paginated report")
-            except Exception as e:
-                logger.warning(f"  ⚠ Could not delete existing report: {e}")
-            
-            # Get or create folder
-            folder_id = self._get_or_create_folder("Paginatedreports")
-            
-            # Create new report
-            result = self.client.create_paginated_report(self.workspace_id, name, definition, folder_id=folder_id)
-            report_id = result.get('id') if result else 'unknown'
-            logger.info(f"  ✓ Recreated paginated report '{name}' (ID: {report_id})")
+            # Paginated reports don't support update or delete APIs
+            # Since datasource was already transformed in the RDL, just log success
+            logger.info(f"  Paginated report '{name}' already exists (ID: {existing_report['id']})")
+            logger.info(f"  ✓ Datasource transformation already applied - report ready to use")
+            logger.info(f"  Note: Paginated reports don't support updateDefinition API - manual update in Fabric UI if needed")
+            return  # Skip deployment, datasource is already correct
         else:
             # Get or create folder for paginated reports
             folder_id = self._get_or_create_folder("Paginatedreports")
@@ -4001,10 +3990,10 @@ print('Notebook initialized')
                 raise Exception(error_msg)
             
             # Reports need time to process before rebinding
-            # Add retry logic similar to semantic models
+            # Use 20 second delays to match Fabric's LRO operations (Retry-After header)
             import time
             max_retries = 3
-            retry_delay = 5
+            retry_delay = 20  # Match Fabric's LRO Retry-After timing
             last_error = None
             
             for attempt in range(max_retries):

@@ -50,6 +50,26 @@
             "source_workspace_id": "{{workspace_id}}"
           }
         ]
+      },
+      {
+        "artifact_name": "Finance Summary",
+        "table_rebindings": [
+          {
+            "table_name": "invoices",
+            "source_lakehouse": "reporting_gold",
+            "source_workspace_id": "{{workspace_id}}"
+          },
+          {
+            "table_name": "contracts",
+            "source_lakehouse": "reporting_gold",
+            "source_workspace_id": "{{workspace_id}}"
+          },
+          {
+            "table_name": "aged_debtors",
+            "source_lakehouse": "reporting_gold",
+            "source_workspace_id": "{{workspace_id}}"
+          }
+        ]
       }
     ],
     "reports": [
@@ -59,14 +79,28 @@
           "target_dataset": "SalesAnalyticsModel",
           "target_workspace_id": "{{workspace_id}}"
         }
+      },
+      {
+        "artifact_name": "Finance Summary",
+        "dataset_rebinding": {
+          "target_dataset": "Finance Summary",
+          "target_workspace_id": "{{workspace_id}}"
+        }
       }
     ],
     "paginated_reports": [
       {
-        "artifact_name": "MonthlySalesReport",
-        "datasource_rebinding": {
-          "datasource_type": "semanticModel",
-          "dataset_id": "SalesAnalyticsModel"
+        "report_name": "MonthlySalesReport",
+        "connection_string_replacements": {
+          "old_pattern": "Server=[^;]+\\.datawarehouse\\.fabric\\.microsoft\\.com",
+          "new_connection_string": "Server=uat-reporting-gold.datawarehouse.fabric.microsoft.com"
+        }
+      },
+      {
+        "report_name": "Aged Debtors",
+        "connection_string_replacements": {
+          "old_pattern": "Server=[^;]+\\.datawarehouse\\.fabric\\.microsoft\\.com",
+          "new_connection_string": "Server=uat-reporting-gold.datawarehouse.fabric.microsoft.com"
         }
       }
     ]

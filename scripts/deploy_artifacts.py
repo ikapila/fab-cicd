@@ -876,19 +876,21 @@ class FabricDeployer:
                 logger.debug(f"Discovered SQL view: {view_name} with {len(artifact_dependencies)} dependencies")
     
     def _discover_semantic_models(self) -> None:
-        """Discover semantic model definitions"""
+        """Discover semantic model definitions (JSON and Fabric Git format)"""
         models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
         if not models_dir.exists():
             logger.debug("No semantic models directory found")
             return
         
         discovered = []
+        
+        # Discover JSON files (legacy format)
         for model_file in models_dir.glob("*.json"):
             with open(model_file, 'r') as f:
                 definition = json.load(f)
             
             model_name = definition.get("name", model_file.stem)
-            discovered.append(model_name)
+            discovered.append(f"{model_name} (JSON)")
             model_id = definition.get("id", f"semanticmodel-{model_name}")
             dependencies = definition.get("dependencies", [])
             
@@ -899,25 +901,51 @@ class FabricDeployer:
                 dependencies=dependencies
             )
             
-            logger.debug(f"Discovered semantic model: {model_name}")
+            logger.debug(f"Discovered semantic model (JSON): {model_name}")
+        
+        # Discover Fabric Git format folders (.SemanticModel)
+        for item in models_dir.iterdir():
+            if item.is_dir() and item.name.endswith(".SemanticModel"):
+                platform_file = item / ".platform"
+                if platform_file.exists():
+                    try:
+                        with open(platform_file, 'r') as f:
+                            platform_data = json.load(f)
+                        
+                        model_name = platform_data.get("metadata", {}).get("displayName", item.name.replace(".SemanticModel", ""))
+                        discovered.append(f"{model_name} (Fabric Git)")
+                        model_id = platform_data.get("config", {}).get("logicalId", f"semanticmodel-{model_name}")
+                        
+                        self.resolver.add_artifact(
+                            model_id,
+                            ArtifactType.SEMANTIC_MODEL,
+                            model_name,
+                            dependencies=[]
+                        )
+                        
+                        logger.debug(f"Discovered semantic model (Fabric Git): {model_name} from {item.name}")
+                    except Exception as e:
+                        logger.debug(f"Skipping folder {item.name}: {e}")
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} semantic model(s): {', '.join(sorted(discovered))}")
     
     def _discover_reports(self) -> None:
-        """Discover Power BI report definitions"""
+        """Discover Power BI report definitions (JSON and Fabric Git format)"""
         reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
         if not reports_dir.exists():
             logger.debug("No reports directory found")
             return
         
         discovered = []
+        
+        # Discover JSON files (legacy format)
         for report_file in reports_dir.glob("*.json"):
             with open(report_file, 'r') as f:
                 definition = json.load(f)
             
             report_name = definition.get("name", report_file.stem)
-            discovered.append(report_name)
+            discovered.append(f"{report_name} (JSON)")
             report_id = definition.get("id", f"report-{report_name}")
             dependencies = definition.get("dependencies", [])
             
@@ -928,26 +956,98 @@ class FabricDeployer:
                 dependencies=dependencies
             )
             
-            logger.debug(f"Discovered report: {report_name}")
+            logger.debug(f"Discovered report (JSON): {report_name}")
+        
+        # Discover Fabric Git format folders (.Report) - exclude .PaginatedReport
+        for item in reports_dir.iterdir():
+            if item.is_dir() and item.name.endswith(".Report") and not item.name.endswith(".PaginatedReport"):
+                platform_file = item / ".platform"
+                if platform_file.exists():
+                    try:
+                        with open(platform_file, 'r') as f:
+                            platform_data = json.load(f)
+                        
+                        report_name = platform_data.get("metadata", {}).get("displayName", item.name.replace(".Report", ""))
+                        discovered.append(f"{report_name} (Fabric Git)")
+                        report_id = platform_data.get("config", {}).get("logicalId", f"report-{report_name}")
+                        
+                        self.resolver.add_artifact(
+                            report_id,
+                            ArtifactType.POWER_BI_REPORT,
+                            report_name,
+                            dependencies=[]
+                        )
+                        
+                        logger.debug(f"Discovered report (Fabric Git): {report_name} from {item.name}")
+                    except Exception as e:
+                        logger.debug(f"Skipping folder {item.name}: {e}")
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} report(s): {', '.join(sorted(discovered))}")
     
     def _discover_paginated_reports(self) -> None:
-        """Discover paginated report definitions"""
+        """Discover paginated report definitions (JSON and Fabric Git format)"""
         reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports"
-        if not reports_dir.exists():
+        
+        # Also check in Reports folder for .PaginatedReport folders
+        alt_reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
+        
+        if not reports_dir.exists() and not alt_reports_dir.exists():
             logger.debug("No paginated reports directory found")
             return
         
         discovered = []
-        for report_file in reports_dir.glob("*.json"):
-            with open(report_file, 'r') as f:
-                definition = json.load(f)
-            
-            report_name = definition.get("name", report_file.stem)
-            discovered.append(report_name)
-            report_id = definition.get("id", f"paginatedreport-{report_name}")
+        
+        # Discover JSON files (legacy format) in Paginatedreports folder
+        if reports_dir.exists():
+            for report_file in reports_dir.glob("*.json"):
+                with open(report_file, 'r') as f:
+                    definition = json.load(f)
+                
+                report_name = definition.get("name", report_file.stem)
+                discovered.append(f"{report_name} (JSON)")
+                report_id = definition.get("id", f"paginatedreport-{report_name}")
+                dependencies = definition.get("dependencies", [])
+                
+                self.resolver.add_artifact(
+                    report_id,
+                    ArtifactType.PAGINATED_REPORT,
+                    report_name,
+                    dependencies=dependencies
+                )
+                
+                logger.debug(f"Discovered paginated report (JSON): {report_name}")
+        
+        # Discover Fabric Git format folders (.PaginatedReport) in both locations
+        for search_dir in [reports_dir, alt_reports_dir]:
+            if not search_dir.exists():
+                continue
+                
+            for item in search_dir.iterdir():
+                if item.is_dir() and item.name.endswith(".PaginatedReport"):
+                    platform_file = item / ".platform"
+                    if platform_file.exists():
+                        try:
+                            with open(platform_file, 'r') as f:
+                                platform_data = json.load(f)
+                            
+                            report_name = platform_data.get("metadata", {}).get("displayName", item.name.replace(".PaginatedReport", ""))
+                            discovered.append(f"{report_name} (Fabric Git)")
+                            report_id = platform_data.get("config", {}).get("logicalId", f"paginatedreport-{report_name}")
+                            
+                            self.resolver.add_artifact(
+                                report_id,
+                                ArtifactType.PAGINATED_REPORT,
+                                report_name,
+                                dependencies=[]
+                            )
+                            
+                            logger.debug(f"Discovered paginated report (Fabric Git): {report_name} from {item.name}")
+                        except Exception as e:
+                            logger.debug(f"Skipping folder {item.name}: {e}")
+        
+        if discovered:
+            logger.info(f"Discovered {len(discovered)} paginated report(s): {', '.join(sorted(discovered))}")
             dependencies = definition.get("dependencies", [])
             
             self.resolver.add_artifact(
@@ -961,6 +1061,180 @@ class FabricDeployer:
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} paginated report(s): {', '.join(sorted(discovered))}")
+    
+    # ==================== Fabric Git Format Helper Methods ====================
+    
+    def _read_semantic_model_git_format(self, model_folder: Path) -> Dict:
+        """
+        Read semantic model from Fabric Git format (.SemanticModel folder)
+        
+        Args:
+            model_folder: Path to .SemanticModel folder
+            
+        Returns:
+            Definition dict with base64-encoded parts
+        """
+        import base64
+        
+        parts = []
+        
+        # Read all files recursively and encode them
+        for file_path in model_folder.rglob("*"):
+            if file_path.is_file():
+                # Get relative path from model folder
+                relative_path = file_path.relative_to(model_folder)
+                
+                # Read and encode file content
+                with open(file_path, 'rb') as f:
+                    content_bytes = f.read()
+                content_base64 = base64.b64encode(content_bytes).decode('utf-8')
+                
+                parts.append({
+                    "path": str(relative_path).replace("\\", "/"),  # Use forward slashes
+                    "payload": content_base64,
+                    "payloadType": "InlineBase64"
+                })
+                
+                logger.debug(f"  Added part: {relative_path} ({len(content_bytes)} bytes)")
+        
+        return {"parts": parts}
+    
+    def _read_report_git_format(self, report_folder: Path) -> Dict:
+        """
+        Read Power BI report from Fabric Git format (.Report folder)
+        
+        Args:
+            report_folder: Path to .Report folder
+            
+        Returns:
+            Definition dict with base64-encoded parts
+        """
+        import base64
+        
+        parts = []
+        
+        # Read all files recursively and encode them
+        for file_path in report_folder.rglob("*"):
+            if file_path.is_file():
+                # Get relative path from report folder
+                relative_path = file_path.relative_to(report_folder)
+                
+                # Read and encode file content
+                with open(file_path, 'rb') as f:
+                    content_bytes = f.read()
+                content_base64 = base64.b64encode(content_bytes).decode('utf-8')
+                
+                parts.append({
+                    "path": str(relative_path).replace("\\", "/"),  # Use forward slashes
+                    "payload": content_base64,
+                    "payloadType": "InlineBase64"
+                })
+                
+                logger.debug(f"  Added part: {relative_path} ({len(content_bytes)} bytes)")
+        
+        return {"parts": parts}
+    
+    def _transform_rdl_connection_strings(self, rdl_content: str, replacements: List[Dict]) -> str:
+        """
+        Transform connection strings in RDL XML for paginated reports
+        
+        Args:
+            rdl_content: RDL XML content as string
+            replacements: List of replacement rules from config
+            
+        Returns:
+            Transformed RDL content
+        """
+        import re
+        
+        transformed = rdl_content
+        
+        for replacement in replacements:
+            old_pattern = replacement.get("old_pattern")
+            new_value = replacement.get("new_value")
+            
+            if old_pattern and new_value:
+                # Use regex to replace connection strings
+                transformed = re.sub(old_pattern, new_value, transformed)
+                logger.debug(f"  Applied connection string replacement: {old_pattern[:50]}... -> {new_value[:50]}...")
+        
+        return transformed
+    
+    def _read_paginated_report_git_format(self, report_folder: Path, report_name: str) -> Dict:
+        """
+        Read paginated report from Fabric Git format (.PaginatedReport folder)
+        
+        Args:
+            report_folder: Path to .PaginatedReport folder
+            report_name: Name of the report (for finding .rdl file)
+            
+        Returns:
+            Tuple of (definition dict with base64-encoded parts, rdl_content for transformation)
+        """
+        import base64
+        
+        # Find the .rdl file
+        rdl_files = list(report_folder.glob("*.rdl"))
+        if not rdl_files:
+            raise FileNotFoundError(f"No .rdl file found in {report_folder}")
+        
+        rdl_file = rdl_files[0]
+        
+        # Read RDL content as text for potential transformation
+        with open(rdl_file, 'r', encoding='utf-8') as f:
+            rdl_content = f.read()
+        
+        # Return rdl_content for transformation and folder for full read after transformation
+        return rdl_content, report_folder
+    
+    def _encode_paginated_report_parts(self, report_folder: Path, transformed_rdl: str) -> Dict:
+        """
+        Encode paginated report parts with transformed RDL
+        
+        Args:
+            report_folder: Path to .PaginatedReport folder
+            transformed_rdl: Transformed RDL content
+            
+        Returns:
+            Definition dict with base64-encoded parts
+        """
+        import base64
+        
+        parts = []
+        
+        # Encode all files except .rdl first
+        for file_path in report_folder.rglob("*"):
+            if file_path.is_file() and not file_path.suffix == ".rdl":
+                relative_path = file_path.relative_to(report_folder)
+                
+                with open(file_path, 'rb') as f:
+                    content_bytes = f.read()
+                content_base64 = base64.b64encode(content_bytes).decode('utf-8')
+                
+                parts.append({
+                    "path": str(relative_path).replace("\\", "/"),
+                    "payload": content_base64,
+                    "payloadType": "InlineBase64"
+                })
+        
+        # Add transformed RDL
+        rdl_files = list(report_folder.glob("*.rdl"))
+        if rdl_files:
+            rdl_file = rdl_files[0]
+            relative_path = rdl_file.relative_to(report_folder)
+            
+            rdl_bytes = transformed_rdl.encode('utf-8')
+            rdl_base64 = base64.b64encode(rdl_bytes).decode('utf-8')
+            
+            parts.append({
+                "path": str(relative_path).replace("\\", "/"),
+                "payload": rdl_base64,
+                "payloadType": "InlineBase64"
+            })
+            
+            logger.debug(f"  Added transformed RDL: {relative_path} ({len(rdl_bytes)} bytes)")
+        
+        return {"parts": parts}
     
     def _extract_notebook_dependencies(self, notebook_path: Path) -> List[str]:
         """
@@ -2760,15 +3034,44 @@ print('Notebook initialized')
             logger.info(f"  ✓ Created data pipeline '{name}' in 'Datapipelines' folder (ID: {pipeline_id})")
     
     def _deploy_semantic_model(self, name: str) -> None:
-        """Deploy a semantic model"""
-        model_file = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels" / f"{name}.json"
-        with open(model_file, 'r') as f:
-            definition = json.load(f)
+        """Deploy a semantic model (JSON or Fabric Git format)"""
+        models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
         
-        # Substitute parameters
-        definition_str = json.dumps(definition)
-        definition_str = self.config.substitute_parameters(definition_str)
-        definition = json.loads(definition_str)
+        # Check for JSON file first
+        model_file = models_dir / f"{name}.json"
+        definition = None
+        
+        if model_file.exists():
+            logger.info(f"  Reading semantic model from JSON file: {name}.json")
+            with open(model_file, 'r') as f:
+                definition = json.load(f)
+            
+            # Substitute parameters
+            definition_str = json.dumps(definition)
+            definition_str = self.config.substitute_parameters(definition_str)
+            definition = json.loads(definition_str)
+        else:
+            # Try Fabric Git format - search for folder with matching displayName
+            found = False
+            for item in models_dir.iterdir():
+                if item.is_dir() and item.name.endswith(".SemanticModel"):
+                    platform_file = item / ".platform"
+                    if platform_file.exists():
+                        try:
+                            with open(platform_file, 'r') as f:
+                                platform_data = json.load(f)
+                            display_name = platform_data.get("metadata", {}).get("displayName", "")
+                            
+                            if display_name == name:
+                                logger.info(f"  Reading semantic model from Fabric Git format: {item.name}")
+                                definition = self._read_semantic_model_git_format(item)
+                                found = True
+                                break
+                        except Exception as e:
+                            logger.debug(f"  Skipping folder {item.name}: {e}")
+            
+            if not found:
+                raise FileNotFoundError(f"Semantic model '{name}' not found in JSON or Fabric Git format")
         
         # Check if model exists
         existing = self.client.list_semantic_models(self.workspace_id)
@@ -2800,15 +3103,44 @@ print('Notebook initialized')
         self._apply_semantic_model_rebinding(name, model_id)
     
     def _deploy_report(self, name: str) -> None:
-        """Deploy a Power BI report"""
-        report_file = self.artifacts_dir / self.artifacts_root_folder / "Reports" / f"{name}.json"
-        with open(report_file, 'r') as f:
-            definition = json.load(f)
+        """Deploy a Power BI report (JSON or Fabric Git format)"""
+        reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
         
-        # Substitute parameters
-        definition_str = json.dumps(definition)
-        definition_str = self.config.substitute_parameters(definition_str)
-        definition = json.loads(definition_str)
+        # Check for JSON file first
+        report_file = reports_dir / f"{name}.json"
+        definition = None
+        
+        if report_file.exists():
+            logger.info(f"  Reading report from JSON file: {name}.json")
+            with open(report_file, 'r') as f:
+                definition = json.load(f)
+            
+            # Substitute parameters
+            definition_str = json.dumps(definition)
+            definition_str = self.config.substitute_parameters(definition_str)
+            definition = json.loads(definition_str)
+        else:
+            # Try Fabric Git format - search for folder with matching displayName
+            found = False
+            for item in reports_dir.iterdir():
+                if item.is_dir() and item.name.endswith(".Report") and not item.name.endswith(".PaginatedReport"):
+                    platform_file = item / ".platform"
+                    if platform_file.exists():
+                        try:
+                            with open(platform_file, 'r') as f:
+                                platform_data = json.load(f)
+                            display_name = platform_data.get("metadata", {}).get("displayName", "")
+                            
+                            if display_name == name:
+                                logger.info(f"  Reading report from Fabric Git format: {item.name}")
+                                definition = self._read_report_git_format(item)
+                                found = True
+                                break
+                        except Exception as e:
+                            logger.debug(f"  Skipping folder {item.name}: {e}")
+            
+            if not found:
+                raise FileNotFoundError(f"Report '{name}' not found in JSON or Fabric Git format")
         
         # Check if report exists
         existing = self.client.list_reports(self.workspace_id)
@@ -2840,15 +3172,61 @@ print('Notebook initialized')
         self._apply_report_rebinding(name, report_id)
     
     def _deploy_paginated_report(self, name: str) -> None:
-        """Deploy a paginated report"""
-        report_file = self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports" / f"{name}.json"
-        with open(report_file, 'r') as f:
-            definition = json.load(f)
+        """Deploy a paginated report - supports both JSON and Fabric Git format"""
+        definition = None
+        found = False
         
-        # Substitute parameters
-        definition_str = json.dumps(definition)
-        definition_str = self.config.substitute_parameters(definition_str)
-        definition = json.loads(definition_str)
+        # Try JSON file in Paginatedreports folder first (legacy format)
+        report_file = self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports" / f"{name}.json"
+        if report_file.exists():
+            logger.info(f"  Reading paginated report from JSON: {report_file}")
+            with open(report_file, 'r') as f:
+                definition = json.load(f)
+            found = True
+        else:
+            # Try Fabric Git format in Reports/ or Paginatedreports/ folders
+            git_paths = [
+                self.artifacts_dir / self.artifacts_root_folder / "Reports",
+                self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports"
+            ]
+            
+            for base_path in git_paths:
+                if not base_path.exists():
+                    continue
+                    
+                # Look for *.PaginatedReport folders
+                for folder in base_path.glob("*.PaginatedReport"):
+                    platform_file = folder / ".platform"
+                    if not platform_file.exists():
+                        continue
+                        
+                    with open(platform_file, 'r') as f:
+                        platform_data = json.load(f)
+                    
+                    if platform_data.get("metadata", {}).get("displayName") == name:
+                        logger.info(f"  Reading paginated report from Fabric Git format: {folder}")
+                        
+                        # Get rebind rules for this report (if any)
+                        rebind_rules = self.config.rebind_rules.get("paginated_reports", [])
+                        report_rule = next((r for r in rebind_rules if r["report_name"] == name), None)
+                        connection_replacements = report_rule.get("connection_string_replacements", {}) if report_rule else {}
+                        
+                        # Read and transform RDL, then encode all parts
+                        definition = self._encode_paginated_report_parts(folder, connection_replacements)
+                        found = True
+                        break
+                
+                if found:
+                    break
+        
+        if not found:
+            raise FileNotFoundError(f"Paginated report '{name}' not found in JSON or Fabric Git format")
+        
+        # For JSON format, apply parameter substitution
+        if isinstance(definition, dict) and "parts" not in definition:
+            definition_str = json.dumps(definition)
+            definition_str = self.config.substitute_parameters(definition_str)
+            definition = json.loads(definition_str)
         
         # Check if report exists
         existing = self.client.list_paginated_reports(self.workspace_id)
@@ -2870,9 +3248,6 @@ print('Notebook initialized')
             result = self.client.create_paginated_report(self.workspace_id, name, definition, folder_id=folder_id)
             report_id = result.get('id') if result else 'unknown'
             logger.info(f"  ✓ Created paginated report '{name}' in 'Paginatedreports' folder (ID: {report_id})")
-        
-        # Apply rebinding rules if configured
-        self._apply_paginated_report_rebinding(name, report_id)
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

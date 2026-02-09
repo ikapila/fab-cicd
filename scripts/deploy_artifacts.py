@@ -1048,11 +1048,8 @@ class FabricDeployer:
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} paginated report(s): {', '.join(sorted(discovered))}")
-            dependencies = definition.get("dependencies", [])
-            
-            self.resolver.add_artifact(
-                report_id,
-                ArtifactType.PAGINATED_REPORT,
+    
+    def _read_semantic_model_git_format(self, folder_path: Path) -> Dict:
                 report_name,
                 dependencies=dependencies
             )

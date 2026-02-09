@@ -1134,6 +1134,11 @@ class FabricDeployer:
                 # Read and encode file content
                 with open(file_path, 'rb') as f:
                     content_bytes = f.read()
+                
+                # Transform PBIR file to update dataset reference from path to deployed model
+                if file_path.name == "definition.pbir":
+                    content_bytes = self._transform_pbir_dataset_reference(content_bytes)
+                
                 content_base64 = base64.b64encode(content_bytes).decode('utf-8')
                 
                 parts.append({
@@ -1145,6 +1150,53 @@ class FabricDeployer:
                 logger.debug(f"  Added part: {relative_path} ({len(content_bytes)} bytes)")
         
         return {"parts": parts}
+    
+    def _transform_pbir_dataset_reference(self, pbir_content: bytes) -> bytes:
+        """
+        Transform PBIR datasetReference from relative Git path to deployed semantic model reference
+        
+        In Fabric Git format, reports reference semantic models by relative path like:
+        "../../Semanticmodels/Finance Summary.SemanticModel"
+        
+        After deployment, we need to reference by the actual deployed model in the workspace.
+        We'll extract the model name and use byPath with the workspace model path.
+        
+        Args:
+            pbir_content: Original PBIR file content as bytes
+            
+        Returns:
+            Transformed PBIR content as bytes
+        """
+        try:
+            pbir_str = pbir_content.decode('utf-8')
+            pbir_data = json.loads(pbir_str)
+            
+            # Check if there's a datasetReference with byPath
+            if 'datasetReference' in pbir_data and 'byPath' in pbir_data['datasetReference']:
+                old_path = pbir_data['datasetReference']['byPath']['path']
+                
+                # Extract semantic model name from path like "../../Semanticmodels/Finance Summary.SemanticModel"
+                import re
+                match = re.search(r'/([^/]+)\.SemanticModel$', old_path)
+                if match:
+                    model_name = match.group(1)
+                    
+                    # Update to reference the deployed model in the current workspace
+                    # Using the workspace-relative path format
+                    new_path = f"/Semanticmodels/{model_name}.SemanticModel"
+                    pbir_data['datasetReference']['byPath']['path'] = new_path
+                    
+                    logger.info(f"    ✓ Transformed dataset reference: '{model_name}' (from Git path to workspace path)")
+                    
+                    # Return updated PBIR as bytes
+                    return json.dumps(pbir_data, indent=2).encode('utf-8')
+            
+            # No transformation needed
+            return pbir_content
+            
+        except Exception as e:
+            logger.warning(f"    ⚠ Could not transform PBIR dataset reference: {e}")
+            return pbir_content
     
     def _transform_rdl_connection_strings(self, rdl_content: str, replacements: List[Dict]) -> str:
         """
@@ -3098,12 +3150,6 @@ print('Notebook initialized')
             )
             model_id = existing_model['id']
             logger.info(f"  Updated semantic model (ID: {model_id})")
-            
-            # Semantic model update is an LRO operation - wait for completion before rebinding
-            # The Fabric API typically indicates 20 seconds via Retry-After header
-            logger.info(f"  Waiting for semantic model update LRO to complete (20 seconds)...")
-            time.sleep(20)
-            logger.info(f"  Semantic model update LRO completed")
         else:
             # Get or create folder for semantic models
             folder_id = self._get_or_create_folder("Semanticmodels")
@@ -3173,12 +3219,6 @@ print('Notebook initialized')
             )
             report_id = existing_report['id']
             logger.info(f"  Updated report (ID: {report_id})")
-            
-            # Report update is an LRO operation - wait for completion before rebinding
-            # The Fabric API typically indicates 20 seconds via Retry-After header
-            logger.info(f"  Waiting for report update LRO to complete (20 seconds)...")
-            time.sleep(20)
-            logger.info(f"  Report update LRO completed")
         else:
             # Get or create folder for reports
             folder_id = self._get_or_create_folder("Reports")
@@ -3939,7 +3979,8 @@ print('Notebook initialized')
         SQL endpoint transformation now happens during TMDL file reading,
         before deployment (see _apply_semantic_model_tmdl_transformation).
         
-        However, we trigger a refresh here to validate the transformed model.
+        The method still exists to avoid breaking the deployment flow,
+        but simply logs that transformation happened earlier.
         
         Args:
             model_name: Name of the semantic model
@@ -3948,37 +3989,16 @@ print('Notebook initialized')
         rebind_rule = self.config.get_rebind_rule_for_artifact("semantic_models", model_name)
         
         if rebind_rule and rebind_rule.get("enabled"):
-            logger.info(f"  SQL endpoints transformed during file reading for '{model_name}'")
-            
-            # Trigger a refresh to validate the transformed semantic model
-            try:
-                logger.info(f"  Triggering semantic model refresh to validate transformation...")
-                refresh_response = self.client.refresh_semantic_model(
-                    self.workspace_id,
-                    model_id,
-                    refresh_type="full"
-                )
-                logger.info(f"  ✓ Semantic model refresh triggered successfully")
-                if refresh_response and 'requestId' in refresh_response:
-                    logger.info(f"    Refresh request ID: {refresh_response['requestId']}")
-            except Exception as e:
-                error_msg = f"Failed to trigger semantic model refresh: {str(e)}"
-                logger.error(f"  ✗ {error_msg}")
-                raise Exception(error_msg)
+            logger.info(f"  ✓ SQL endpoints transformed during deployment for '{model_name}'")
     
     def _apply_report_rebinding(self, report_name: str, report_id: str) -> None:
         """
-        Apply dataset rebinding rules to a Power BI report
+        DEPRECATED: This method is no longer used for rebinding.
+        Dataset reference transformation now happens during PBIR file reading,
+        before deployment (see _transform_pbir_dataset_reference).
         
-        Supports two formats:
-        1. Automatic (rebind to semantic model with same name):
-           "reports": { "target_workspace_id": "{{workspace_id}}" }
-        
-        2. Explicit (specify target dataset):
-           "reports": [{
-             "artifact_name": "Sales Report",
-             "dataset_rebinding": { "target_dataset": "Sales Model" }
-           }]
+        The rebind API doesn't work reliably with Fabric Git format deployments,
+        so we transform the datasetReference in the PBIR file instead.
         
         Args:
             report_name: Name of the report
@@ -3986,68 +4006,8 @@ print('Notebook initialized')
         """
         rebind_rule = self.config.get_rebind_rule_for_artifact("reports", report_name)
         
-        if not rebind_rule:
-            return
-        
-        logger.info(f"  Applying dataset rebinding rules for '{report_name}'...")
-        
-        # Check if using simplified global format
-        if "target_workspace_id" in rebind_rule and "dataset_rebinding" not in rebind_rule:
-            # Automatic mode - try to find semantic model with same name
-            target_dataset = report_name  # Assume report and dataset have same name
-            target_workspace_id = self.config.substitute_parameters(rebind_rule["target_workspace_id"])
-        elif "dataset_rebinding" in rebind_rule:
-            # Explicit mode
-            dataset_rebinding = rebind_rule["dataset_rebinding"]
-            target_dataset = self.config.substitute_parameters(dataset_rebinding["target_dataset"])
-            target_workspace_id = self.config.substitute_parameters(
-                dataset_rebinding.get("target_workspace_id", "{{workspace_id}}")
-            )
-        else:
-            logger.warning(f"    ⚠ Invalid rebind rule format")
-            return
-        
-        # Get dataset ID
-        try:
-            datasets = self.client.list_semantic_models(target_workspace_id)
-            dataset = next((ds for ds in datasets if ds["displayName"] == target_dataset), None)
-            
-            if not dataset:
-                error_msg = f"Dataset '{target_dataset}' not found for rebinding"
-                logger.error(f"  ✗ {error_msg}")
-                raise Exception(error_msg)
-            
-            # Reports need time to process before rebinding
-            # Use 20 second delays to match Fabric's LRO operations (Retry-After header)
-            max_retries = 3
-            retry_delay = 20  # Match Fabric's LRO Retry-After timing
-            last_error = None
-            
-            for attempt in range(max_retries):
-                try:
-                    self.client.rebind_report_dataset(
-                        self.workspace_id,
-                        report_id,
-                        dataset["id"]
-                    )
-                    logger.info(f"  ✓ Report rebound to dataset '{target_dataset}'")
-                    return  # Success!
-                except Exception as e:
-                    last_error = e
-                    if attempt < max_retries - 1:
-                        logger.info(f"    Report not ready for rebinding (attempt {attempt + 1}/{max_retries}), waiting {retry_delay}s...")
-                        time.sleep(retry_delay)
-                    else:
-                        error_msg = f"Failed to rebind report dataset after {max_retries} attempts: {str(e)}"
-                        logger.error(f"  ✗ {error_msg}")
-                        raise Exception(error_msg)
-        except Exception as e:
-            # Re-raise the exception so deployment fails
-            if "Failed to rebind" in str(e) or "not found" in str(e):
-                raise
-            error_msg = f"Failed to rebind report dataset: {str(e)}"
-            logger.error(f"  ✗ {error_msg}")
-            raise Exception(error_msg)
+        if rebind_rule:
+            logger.info(f"  ✓ Dataset reference transformed during deployment for '{report_name}'")
     
     def _apply_paginated_report_rebinding(self, report_name: str, report_id: str) -> None:
         """

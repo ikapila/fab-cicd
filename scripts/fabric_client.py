@@ -1531,8 +1531,6 @@ class FabricClient:
 
 def main():
     """Test Fabric client"""
-    from fabric_auth import FabricAuthenticator
-    
     print("Testing Fabric Client...")
     
     # Authenticate

@@ -3850,44 +3850,105 @@ print('Notebook initialized')
         """
         Apply data source rebinding rules to a semantic model
         
+        Supports two configuration formats:
+        1. Simplified (rebind all tables to one lakehouse):
+           "semantic_models": {
+             "source_lakehouse": "reporting_gold",
+             "source_workspace_id": "{{workspace_id}}"
+           }
+        
+        2. Per-table (for models with multiple lakehouses):
+           "semantic_models": [{
+             "artifact_name": "Finance Summary",
+             "table_rebindings": [
+               {"table_name": "invoices", "source_lakehouse": "reporting_gold", ...}
+             ]
+           }]
+        
         Args:
             model_name: Name of the semantic model
             model_id: Semantic model GUID
         """
         rebind_rule = self.config.get_rebind_rule_for_artifact("semantic_models", model_name)
         
-        if not rebind_rule or "table_rebindings" not in rebind_rule:
+        if not rebind_rule:
             return
         
         logger.info(f"  Applying data source rebinding rules for '{model_name}'...")
         
-        table_rebindings = rebind_rule["table_rebindings"]
-        resolved_bindings = []
-        
-        for binding in table_rebindings:
-            table_name = binding["table_name"]
-            lakehouse_name = self.config.substitute_parameters(binding["source_lakehouse"])
+        # Check if using simplified format (source_lakehouse at top level)
+        if "source_lakehouse" in rebind_rule:
+            # Simplified format - rebind all tables to one lakehouse
+            lakehouse_name = self.config.substitute_parameters(rebind_rule["source_lakehouse"])
             workspace_id = self.config.substitute_parameters(
-                binding.get("source_workspace_id", self.workspace_id)
+                rebind_rule.get("source_workspace_id", self.workspace_id)
             )
+            
+            # Get all tables from the semantic model
+            try:
+                tables = self.client.get_semantic_model_tables(self.workspace_id, model_id)
+                table_names = [table["name"] for table in tables]
+                logger.info(f"    Found {len(table_names)} table(s) in semantic model")
+            except Exception as e:
+                logger.warning(f"    ⚠ Could not retrieve tables from model: {str(e)}")
+                logger.warning(f"    Skipping rebinding - ensure model is refreshed after deployment")
+                return
             
             # Get lakehouse ID
             try:
                 lakehouses = self.client.list_lakehouses(workspace_id)
                 lakehouse = next((lh for lh in lakehouses if lh["displayName"] == lakehouse_name), None)
                 
-                if lakehouse:
-                    resolved_bindings.append({
-                        "tableName": table_name,
-                        "sourceLakehouseId": lakehouse["id"],
-                        "sourceWorkspaceId": workspace_id
-                    })
-                    logger.info(f"    ✓ Will rebind table '{table_name}' to lakehouse '{lakehouse_name}'")
-                else:
-                    logger.warning(f"    ⚠ Lakehouse '{lakehouse_name}' not found, skipping rebinding for table '{table_name}'")
+                if not lakehouse:
+                    logger.warning(f"    ⚠ Lakehouse '{lakehouse_name}' not found, skipping rebinding")
+                    return
+                
+                # Build bindings for all tables
+                resolved_bindings = [{
+                    "tableName": table_name,
+                    "sourceLakehouseId": lakehouse["id"],
+                    "sourceWorkspaceId": workspace_id
+                } for table_name in table_names]
+                
+                logger.info(f"    ✓ Will rebind all {len(table_names)} table(s) to lakehouse '{lakehouse_name}'")
+                
             except Exception as e:
                 logger.warning(f"    ⚠ Error resolving lakehouse '{lakehouse_name}': {str(e)}")
+                return
+                
+        elif "table_rebindings" in rebind_rule:
+            # Per-table format - for models with multiple lakehouses
+            table_rebindings = rebind_rule["table_rebindings"]
+            resolved_bindings = []
+            
+            for binding in table_rebindings:
+                table_name = binding["table_name"]
+                lakehouse_name = self.config.substitute_parameters(binding["source_lakehouse"])
+                workspace_id = self.config.substitute_parameters(
+                    binding.get("source_workspace_id", self.workspace_id)
+                )
+                
+                # Get lakehouse ID
+                try:
+                    lakehouses = self.client.list_lakehouses(workspace_id)
+                    lakehouse = next((lh for lh in lakehouses if lh["displayName"] == lakehouse_name), None)
+                    
+                    if lakehouse:
+                        resolved_bindings.append({
+                            "tableName": table_name,
+                            "sourceLakehouseId": lakehouse["id"],
+                            "sourceWorkspaceId": workspace_id
+                        })
+                        logger.info(f"    ✓ Will rebind table '{table_name}' to lakehouse '{lakehouse_name}'")
+                    else:
+                        logger.warning(f"    ⚠ Lakehouse '{lakehouse_name}' not found, skipping rebinding for table '{table_name}'")
+                except Exception as e:
+                    logger.warning(f"    ⚠ Error resolving lakehouse '{lakehouse_name}': {str(e)}")
+        else:
+            logger.warning(f"    ⚠ Invalid rebind rule format - expected 'source_lakehouse' or 'table_rebindings'")
+            return
         
+        # Apply rebinding
         if resolved_bindings:
             try:
                 self.client.rebind_semantic_model_sources(
@@ -3904,22 +3965,42 @@ print('Notebook initialized')
         """
         Apply dataset rebinding rules to a Power BI report
         
+        Supports two formats:
+        1. Automatic (rebind to semantic model with same name):
+           "reports": { "target_workspace_id": "{{workspace_id}}" }
+        
+        2. Explicit (specify target dataset):
+           "reports": [{
+             "artifact_name": "Sales Report",
+             "dataset_rebinding": { "target_dataset": "Sales Model" }
+           }]
+        
         Args:
             report_name: Name of the report
             report_id: Report GUID
         """
         rebind_rule = self.config.get_rebind_rule_for_artifact("reports", report_name)
         
-        if not rebind_rule or "dataset_rebinding" not in rebind_rule:
+        if not rebind_rule:
             return
         
         logger.info(f"  Applying dataset rebinding rules for '{report_name}'...")
         
-        dataset_rebinding = rebind_rule["dataset_rebinding"]
-        target_dataset = self.config.substitute_parameters(dataset_rebinding["target_dataset"])
-        target_workspace_id = self.config.substitute_parameters(
-            dataset_rebinding.get("target_workspace_id", self.workspace_id)
-        )
+        # Check if using simplified global format
+        if "target_workspace_id" in rebind_rule and "dataset_rebinding" not in rebind_rule:
+            # Automatic mode - try to find semantic model with same name
+            target_dataset = report_name  # Assume report and dataset have same name
+            target_workspace_id = self.config.substitute_parameters(rebind_rule["target_workspace_id"])
+        elif "dataset_rebinding" in rebind_rule:
+            # Explicit mode
+            dataset_rebinding = rebind_rule["dataset_rebinding"]
+            target_dataset = self.config.substitute_parameters(dataset_rebinding["target_dataset"])
+            target_workspace_id = self.config.substitute_parameters(
+                dataset_rebinding.get("target_workspace_id", self.workspace_id)
+            )
+        else:
+            logger.warning(f"    ⚠ Invalid rebind rule format")
+            return
         
         # Get dataset ID
         try:

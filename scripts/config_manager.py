@@ -247,7 +247,16 @@ class ConfigManager:
     
     def get_rebind_rule_for_artifact(self, artifact_type: str, artifact_name: str) -> Optional[Dict]:
         """
-        Get specific rebinding rule for an artifact
+        Get rebinding rule for an artifact
+        
+        Supports two formats:
+        1. Global rule (applies to all artifacts of this type):
+           "semantic_models": { "source_lakehouse": "reporting_gold" }
+        
+        2. Per-artifact rules (for selective rebinding):
+           "semantic_models": [
+             { "artifact_name": "Finance Summary", "source_lakehouse": "reporting_gold" }
+           ]
         
         Args:
             artifact_type: Type of artifact (semantic_models, reports, paginated_reports)
@@ -260,10 +269,20 @@ class ConfigManager:
         if not rebind_rules or artifact_type not in rebind_rules:
             return None
         
-        return next(
-            (rule for rule in rebind_rules[artifact_type] if rule["artifact_name"] == artifact_name),
-            None
-        )
+        artifact_rules = rebind_rules[artifact_type]
+        
+        # Check if it's a global rule (dict) or per-artifact rules (list)
+        if isinstance(artifact_rules, dict):
+            # Global rule - applies to all artifacts
+            return artifact_rules
+        elif isinstance(artifact_rules, list):
+            # Per-artifact rules - find matching artifact_name
+            return next(
+                (rule for rule in artifact_rules if rule.get("artifact_name") == artifact_name),
+                None
+            )
+        
+        return None
     
     def get_config(self) -> Dict:
         """Get entire configuration dictionary"""

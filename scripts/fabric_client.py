@@ -793,6 +793,21 @@ class FabricClient:
         payload = {"definition": definition}
         return self._make_request("POST", f"/workspaces/{workspace_id}/semanticModels/{model_id}/updateDefinition", json_data=payload)
     
+    def get_semantic_model_tables(self, workspace_id: str, model_id: str) -> List[Dict]:
+        """
+        Get all tables from a semantic model
+        
+        Args:
+            workspace_id: Workspace GUID
+            model_id: Semantic model GUID
+        
+        Returns:
+            List of tables with name, source, etc.
+        """
+        endpoint = f"/workspaces/{workspace_id}/semanticModels/{model_id}/tables"
+        response = self._make_request("GET", endpoint)
+        return response.get("value", [])
+    
     def rebind_semantic_model_sources(self, workspace_id: str, model_id: str, table_sources: List[Dict]) -> Dict:
         """
         Rebind semantic model table sources after deployment

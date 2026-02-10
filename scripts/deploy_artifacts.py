@@ -1158,8 +1158,8 @@ class FabricDeployer:
         In Fabric Git format, reports reference semantic models by relative path like:
         "../../Semanticmodels/Finance Summary.SemanticModel"
         
-        After deployment in the workspace, we need to use the workspace-relative path.
-        We keep using byPath but simplify to just the model name.
+        After deployment in the workspace with folder structure (Reports/ and Semanticmodels/),
+        we need to use the relative path: "../Semanticmodels/ModelName.SemanticModel"
         
         Args:
             pbir_content: Original PBIR file content as bytes
@@ -1182,9 +1182,9 @@ class FabricDeployer:
                 if match:
                     model_name = match.group(1)
                     
-                    # Keep using byPath but with simplified workspace path
-                    # Just the model name without folder navigation
-                    pbir_data['datasetReference']['byPath']['path'] = f"{model_name}.SemanticModel"
+                    # Use relative path from Reports folder to Semanticmodels folder
+                    # Reports are in "Reports/" folder, models are in "Semanticmodels/" folder
+                    pbir_data['datasetReference']['byPath']['path'] = f"../Semanticmodels/{model_name}.SemanticModel"
                     
                     logger.info(f"    ✓ Transformed dataset reference path for '{model_name}'")
                     

@@ -968,11 +968,14 @@ class FabricClient:
         """
         Create a paginated report
         
+        Note: Paginated reports don't support folderId in creation payload.
+        The folder must be set after creation using a separate API call.
+        
         Args:
             workspace_id: Workspace GUID
             report_name: Name for the report
             definition: Report definition (.rdl file)
-            folder_id: Optional workspace folder ID to place report in
+            folder_id: Optional workspace folder ID (will be applied after creation)
             
         Returns:
             Created report details
@@ -982,10 +985,19 @@ class FabricClient:
             "displayName": report_name,
             "definition": definition
         }
-        if folder_id:
-            payload["folderId"] = folder_id
-            logger.info(f"  Including folderId in payload: {folder_id}")
-        return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports", json_data=payload)
+        # Note: folderId is NOT supported for paginated reports in the creation payload
+        # It must be set via update_item API after creation
+        response = self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports", json_data=payload)
+        
+        # If folder_id provided, move the report to the folder after creation
+        if folder_id and response and 'id' in response:
+            try:
+                logger.info(f"  Moving paginated report to folder: {folder_id}")
+                self.move_item_to_folder(workspace_id, response['id'], folder_id)
+            except Exception as e:
+                logger.warning(f"  ⚠ Could not move report to folder: {e}")
+        
+        return response
     
     def update_paginated_report(self, workspace_id: str, report_id: str, definition: Dict) -> Dict:
         """

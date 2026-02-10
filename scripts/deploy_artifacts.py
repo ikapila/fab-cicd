@@ -3229,8 +3229,24 @@ print('Notebook initialized')
                 definition, 
                 folder_id=folder_id
             )
-            report_id = result.get('id') if result else 'unknown'
-            logger.info(f"  ✓ Created report '{name}' in 'Reports' folder (ID: {report_id})")
+            
+            # Report creation is an LRO - response may not include ID
+            # List reports to find the newly created one
+            if not result or 'id' not in result:
+                logger.info(f"  Report creation initiated (LRO), retrieving report ID...")
+                import time
+                time.sleep(3)  # Brief wait for LRO to register the report
+                reports = self.client.list_reports(self.workspace_id)
+                created_report = next((r for r in reports if r["displayName"] == name), None)
+                if created_report:
+                    report_id = created_report['id']
+                    logger.info(f"  ✓ Created report '{name}' in 'Reports' folder (ID: {report_id})")
+                else:
+                    report_id = 'unknown'
+                    logger.warning(f"  ⚠ Created report '{name}' but could not retrieve ID yet")
+            else:
+                report_id = result.get('id')
+                logger.info(f"  ✓ Created report '{name}' in 'Reports' folder (ID: {report_id})")
         
         # Apply rebinding rules if configured
         self._apply_report_rebinding(name, report_id)
@@ -3334,12 +3350,12 @@ print('Notebook initialized')
             logger.info(f"  Note: Paginated reports don't support updateDefinition API - manual update in Fabric UI if needed")
             return  # Skip deployment, datasource is already correct
         else:
-            # Get or create folder for paginated reports
-            folder_id = self._get_or_create_folder("Paginatedreports")
+            # Get or create folder for reports (shared with Power BI reports)
+            folder_id = self._get_or_create_folder("Reports")
             
             result = self.client.create_paginated_report(self.workspace_id, name, definition, folder_id=folder_id)
             report_id = result.get('id') if result else 'unknown'
-            logger.info(f"  ✓ Created paginated report '{name}' in 'Paginatedreports' folder (ID: {report_id})")
+            logger.info(f"  ✓ Created paginated report '{name}' in 'Reports' folder (ID: {report_id})")
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

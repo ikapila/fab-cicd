@@ -966,39 +966,64 @@ class FabricClient:
     
     def create_paginated_report(self, workspace_id: str, report_name: str, definition: Dict, folder_id: str = None) -> Dict:
         """
-        Create a paginated report using the Fabric Items API
+        Create a paginated report using the Fabric Paginated Reports API
         
-        According to Fabric REST API documentation, paginated reports should be created
-        using the generic Items endpoint with type="PaginatedReport", not the specialized
-        paginatedReports endpoint.
+        According to Microsoft Fabric documentation, paginated reports should be created
+        using the specialized /paginatedReports endpoint with updateDefinition method.
         
         Args:
             workspace_id: Workspace GUID
             report_name: Name for the report
             definition: Report definition (.rdl file with parts structure)
-            folder_id: Optional workspace folder ID
+            folder_id: Optional workspace folder ID (not supported in creation, must be set after)
             
         Returns:
             Created report details
         """
         logger.info(f"Creating paginated report: {report_name}")
         
-        # Use the Items API with type="PaginatedReport"
+        # First create the report with just displayName (no definition)
         payload = {
-            "displayName": report_name,
-            "type": "PaginatedReport",
-            "definition": definition
+            "displayName": report_name
         }
         
-        # Folder ID can be included directly in Items API
+        # Create the report item (returns immediately with ID)
+        response = self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports", json_data=payload)
+        report_id = response.get('id')
+        
+        if not report_id:
+            raise Exception("Failed to get paginated report ID after creation")
+        
+        logger.info(f"  Created paginated report item (ID: {report_id})")
+        
+        # Now update the definition using updateDefinition endpoint
+        logger.info(f"  Updating paginated report definition...")
+        update_payload = {"definition": definition}
+        update_result = self._make_request(
+            "POST", 
+            f"/workspaces/{workspace_id}/paginatedReports/{report_id}/updateDefinition",
+            json_data=update_payload
+        )
+        
+        # updateDefinition is an LRO, poll for completion if operation_id returned
+        if update_result and 'operation_id' in update_result:
+            logger.info(f"  Waiting for definition update to complete...")
+            operation_result = self.wait_for_operation_completion(
+                update_result['operation_id'],
+                retry_after=update_result.get('retry_after', 5),
+                max_attempts=10
+            )
+            logger.info(f"  ✓ Paginated report definition updated successfully")
+        
+        # Move to folder if specified
         if folder_id:
-            payload["folderId"] = folder_id
-            logger.info(f"  Including folderId in payload: {folder_id}")
+            try:
+                logger.info(f"  Moving paginated report to folder: {folder_id}")
+                self.move_item_to_folder(workspace_id, report_id, folder_id)
+            except Exception as e:
+                logger.warning(f"  ⚠ Could not move report to folder: {e}")
         
-        # Use the Items endpoint instead of paginatedReports endpoint
-        response = self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
-        
-        return response
+        return {"id": report_id}
     
     def update_paginated_report(self, workspace_id: str, report_id: str, definition: Dict) -> Dict:
         """

@@ -3230,24 +3230,33 @@ print('Notebook initialized')
                 folder_id=folder_id
             )
             
-            # Report creation is an LRO - response may not include ID
-            # List reports to find the newly created one
-            if not result or 'id' not in result:
-                logger.info(f"  Report creation initiated (LRO), retrieving report ID...")
-                import time
-                # Wait for LRO to complete (Retry-After typically indicates 20 seconds)
-                time.sleep(20)
-                reports = self.client.list_reports(self.workspace_id)
-                created_report = next((r for r in reports if r["displayName"] == name), None)
-                if created_report:
-                    report_id = created_report['id']
+            # Report creation is an LRO - need to poll for completion to get the actual item ID
+            if result and 'operation_id' in result and result.get('status_code') == 202:
+                operation_id = result['operation_id']
+                retry_after = result.get('retry_after', 5)
+                logger.info(f"  Report creation initiated (LRO), waiting for completion...")
+                
+                # Poll the operation until it completes
+                operation_result = self.client.wait_for_operation_completion(
+                    operation_id,
+                    retry_after=retry_after,
+                    max_attempts=10
+                )
+                
+                # Get the report ID from the operation result
+                if operation_result and 'id' in operation_result:
+                    report_id = operation_result['id']
                     logger.info(f"  ✓ Created report '{name}' in 'Reports' folder (ID: {report_id})")
                 else:
                     report_id = 'unknown'
-                    logger.warning(f"  ⚠ Created report '{name}' but could not retrieve ID yet")
-            else:
-                report_id = result.get('id')
+                    logger.warning(f"  ⚠ Report created but ID not in operation result")
+            elif result and 'id' in result:
+                # Immediate response with ID (not an LRO)
+                report_id = result['id']
                 logger.info(f"  ✓ Created report '{name}' in 'Reports' folder (ID: {report_id})")
+            else:
+                report_id = 'unknown'
+                logger.warning(f"  ⚠ Unexpected response from report creation")
         
         # Apply rebinding rules if configured
         self._apply_report_rebinding(name, report_id)

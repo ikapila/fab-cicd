@@ -873,6 +873,42 @@ class FabricClient:
         payload = {"type": refresh_type}
         return self._make_request("POST", endpoint, json_data=payload)
     
+    def get_semantic_model_datasources(self, workspace_id: str, model_id: str) -> List[Dict]:
+        """
+        Get data sources for a semantic model
+        
+        Args:
+            workspace_id: Workspace GUID
+            model_id: Semantic model GUID
+            
+        Returns:
+            List of data source dictionaries
+        """
+        logger.info(f"Getting data sources for semantic model: {model_id}")
+        endpoint = f"/workspaces/{workspace_id}/semanticModels/{model_id}/datasources"
+        response = self._make_request("GET", endpoint)
+        return response.get("value", [])
+    
+    def update_semantic_model_datasource(self, workspace_id: str, model_id: str, datasource_updates: List[Dict]) -> Dict:
+        """
+        Update data source credentials for a semantic model
+        
+        This uses the Power BI REST API to configure authentication for data sources.
+        The semantic model must already exist before updating credentials.
+        
+        Args:
+            workspace_id: Workspace GUID
+            model_id: Semantic model GUID
+            datasource_updates: List of update details with credentialDetails
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating data source credentials for semantic model: {model_id}")
+        endpoint = f"/workspaces/{workspace_id}/semanticModels/{model_id}/Default.UpdateDatasources"
+        payload = {"updateDetails": datasource_updates}
+        return self._make_request("POST", endpoint, json_data=payload)
+    
     # ==================== Power BI Report Operations ====================
     
     def list_reports(self, workspace_id: str) -> List[Dict]:

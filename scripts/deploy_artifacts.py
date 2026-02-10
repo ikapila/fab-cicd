@@ -3189,6 +3189,9 @@ print('Notebook initialized')
             )
             model_id = existing_model['id']
             logger.info(f"  Updated semantic model (ID: {model_id})")
+            
+            # Configure authentication for existing model too
+            self._configure_semantic_model_authentication(name, model_id)
         else:
             # Get or create folder for semantic models
             folder_id = self._get_or_create_folder("Semanticmodels")
@@ -3201,6 +3204,10 @@ print('Notebook initialized')
             )
             model_id = result.get('id') if result else 'unknown'
             logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {model_id})")
+        
+        # Configure data source authentication after deployment
+        if model_id and model_id != 'unknown':
+            self._configure_semantic_model_authentication(name, model_id)
         
         # Apply rebinding rules if configured
         self._apply_semantic_model_rebinding(name, model_id)
@@ -4069,6 +4076,64 @@ print('Notebook initialized')
         
         if rebind_rule and rebind_rule.get("enabled"):
             logger.info(f"  ✓ SQL endpoints transformed during deployment for '{model_name}'")
+    
+    def _configure_semantic_model_authentication(self, model_name: str, model_id: str) -> None:
+        """
+        Configure data source authentication for a semantic model after deployment.
+        
+        This fixes the error: "semantic model uses a default data connection without 
+        explicit connection credentials" by updating the data source to use 
+        Microsoft Entra ID (OAuth2) authentication.
+        
+        Args:
+            model_name: Name of the semantic model
+            model_id: Semantic model GUID
+        """
+        try:
+            # Get the current data sources for the model
+            datasources = self.client.get_semantic_model_datasources(self.workspace_id, model_id)
+            
+            if not datasources:
+                logger.debug(f"  No data sources found for semantic model '{model_name}'")
+                return
+            
+            # Prepare updates for each data source to use OAuth2 (Microsoft Entra ID)
+            updates = []
+            for ds in datasources:
+                datasource_id = ds.get('datasourceId')
+                gateway_id = ds.get('gatewayId')
+                
+                if datasource_id:
+                    update = {
+                        "datasource": {
+                            "datasourceType": ds.get('datasourceType'),
+                            "connectionDetails": ds.get('connectionDetails', {})
+                        },
+                        "credentialDetails": {
+                            "credentialType": "OAuth2",
+                            "encryptedConnection": "Encrypted",
+                            "encryptionAlgorithm": "None",
+                            "privacyLevel": "None",
+                            "useEndUserOAuth2Credentials": False
+                        }
+                    }
+                    
+                    if gateway_id:
+                        update["datasource"]["gatewayId"] = gateway_id
+                    if datasource_id:
+                        update["datasource"]["datasourceId"] = datasource_id
+                    
+                    updates.append(update)
+            
+            if updates:
+                logger.info(f"  Configuring OAuth2 authentication for {len(updates)} data source(s)...")
+                self.client.update_semantic_model_datasource(self.workspace_id, model_id, updates)
+                logger.info(f"  ✓ Data source authentication configured for '{model_name}'")
+            
+        except Exception as e:
+            # Don't fail deployment if credential update fails - user can configure manually
+            logger.warning(f"  ⚠ Could not auto-configure data source credentials: {e}")
+            logger.warning(f"  Please manually configure data source credentials in Fabric portal")
     
     def _apply_report_rebinding(self, report_name: str, report_id: str) -> None:
         """

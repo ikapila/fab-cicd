@@ -3278,18 +3278,32 @@ print('Notebook initialized')
                         
                         # Transform RDL if rebinding is enabled
                         if rebind_rule and rebind_rule.get("enabled"):
-                            # Extract server from connections.sql_connection_string
+                            # Extract server and database from connections.sql_connection_string
                             sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
                             if sql_connection_string:
                                 import re
-                                # Parse server name from connection string
+                                # Parse server and database from connection string
                                 server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
+                                database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
+                                
                                 if server_match:
                                     new_server = server_match.group(1)
-                                    # Replace any fabric SQL endpoint with the new one
-                                    old_pattern = r'Server=[^;]+\\.datawarehouse\\.fabric\\.microsoft\\.com'
-                                    rdl_content = re.sub(old_pattern, f'Server={new_server}', rdl_content)
-                                    logger.info(f"    ✓ Applied connection string transformation to '{new_server}'")
+                                    new_database = database_match.group(1) if database_match else "reporting_gold"
+                                    
+                                    # Build the new connection string for RDL format
+                                    # RDL uses: Data Source=...; Initial Catalog=...; Encrypt=True; etc
+                                    new_connect_string = f"Data Source={new_server};Initial Catalog={new_database};Encrypt=True;Trust Server Certificate=True;Authentication=ActiveDirectoryInteractive"
+                                    
+                                    # Replace the ConnectString element content in RDL XML
+                                    # Pattern: <ConnectString>...</ConnectString>
+                                    connect_string_pattern = r'<ConnectString>.*?</ConnectString>'
+                                    rdl_content = re.sub(
+                                        connect_string_pattern,
+                                        f'<ConnectString>{new_connect_string}</ConnectString>',
+                                        rdl_content,
+                                        flags=re.DOTALL
+                                    )
+                                    logger.info(f"    ✓ Applied connection string transformation to '{new_server}' database '{new_database}'")
                         
                         # Encode all parts with transformed RDL
                         definition = self._encode_paginated_report_parts(folder, rdl_content)

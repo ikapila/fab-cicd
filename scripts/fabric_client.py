@@ -971,6 +971,10 @@ class FabricClient:
         Note: Paginated reports don't support folderId in creation payload.
         The folder must be set after creation using a separate API call.
         
+        IMPORTANT: The Fabric REST API for paginated reports may not be supported
+        in all workspace capacities or SKUs. If you get 'UnsupportedItemType' error,
+        the workspace capacity may not support paginated reports via REST API.
+        
         Args:
             workspace_id: Workspace GUID
             report_name: Name for the report
@@ -981,6 +985,7 @@ class FabricClient:
             Created report details
         """
         logger.info(f"Creating paginated report: {report_name}")
+        logger.info(f"  Note: If 'UnsupportedItemType' error occurs, this workspace may not support paginated reports REST API")
         payload = {
             "displayName": report_name,
             "definition": definition

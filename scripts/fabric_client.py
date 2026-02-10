@@ -966,41 +966,37 @@ class FabricClient:
     
     def create_paginated_report(self, workspace_id: str, report_name: str, definition: Dict, folder_id: str = None) -> Dict:
         """
-        Create a paginated report
+        Create a paginated report using the Fabric Items API
         
-        Note: Paginated reports don't support folderId in creation payload.
-        The folder must be set after creation using a separate API call.
-        
-        IMPORTANT: The Fabric REST API for paginated reports may not be supported
-        in all workspace capacities or SKUs. If you get 'UnsupportedItemType' error,
-        the workspace capacity may not support paginated reports via REST API.
+        According to Fabric REST API documentation, paginated reports should be created
+        using the generic Items endpoint with type="PaginatedReport", not the specialized
+        paginatedReports endpoint.
         
         Args:
             workspace_id: Workspace GUID
             report_name: Name for the report
-            definition: Report definition (.rdl file)
-            folder_id: Optional workspace folder ID (will be applied after creation)
+            definition: Report definition (.rdl file with parts structure)
+            folder_id: Optional workspace folder ID
             
         Returns:
             Created report details
         """
         logger.info(f"Creating paginated report: {report_name}")
-        logger.info(f"  Note: If 'UnsupportedItemType' error occurs, this workspace may not support paginated reports REST API")
+        
+        # Use the Items API with type="PaginatedReport"
         payload = {
             "displayName": report_name,
+            "type": "PaginatedReport",
             "definition": definition
         }
-        # Note: folderId is NOT supported for paginated reports in the creation payload
-        # It must be set via update_item API after creation
-        response = self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports", json_data=payload)
         
-        # If folder_id provided, move the report to the folder after creation
-        if folder_id and response and 'id' in response:
-            try:
-                logger.info(f"  Moving paginated report to folder: {folder_id}")
-                self.move_item_to_folder(workspace_id, response['id'], folder_id)
-            except Exception as e:
-                logger.warning(f"  ⚠ Could not move report to folder: {e}")
+        # Folder ID can be included directly in Items API
+        if folder_id:
+            payload["folderId"] = folder_id
+            logger.info(f"  Including folderId in payload: {folder_id}")
+        
+        # Use the Items endpoint instead of paginatedReports endpoint
+        response = self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
         
         return response
     

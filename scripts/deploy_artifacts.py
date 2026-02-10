@@ -3354,23 +3354,9 @@ print('Notebook initialized')
             # Get or create folder for reports (shared with Power BI reports)
             folder_id = self._get_or_create_folder("Reports")
             
-            try:
-                result = self.client.create_paginated_report(self.workspace_id, name, definition, folder_id=folder_id)
-                report_id = result.get('id') if result else 'unknown'
-                logger.info(f"  ✓ Created paginated report '{name}' in 'Reports' folder (ID: {report_id})")
-            except Exception as e:
-                error_str = str(e)
-                # Check if this is the "UnsupportedItemType" error
-                if "UnsupportedItemType" in error_str or "unsupported" in error_str.lower():
-                    logger.warning(f"  ⚠ Paginated reports are not supported in this workspace capacity")
-                    logger.warning(f"  ⚠ The workspace SKU or capacity doesn't support paginated report REST API")
-                    logger.warning(f"  ⚠ You can manually upload the paginated report via Fabric UI")
-                    logger.warning(f"  ⚠ RDL file location: wsartifacts/Reports/{name}.PaginatedReport/*.rdl")
-                    # Don't fail the deployment for this - just warn
-                    return
-                else:
-                    # For other errors, re-raise
-                    raise
+            result = self.client.create_paginated_report(self.workspace_id, name, definition, folder_id=folder_id)
+            report_id = result.get('id') if result else 'unknown'
+            logger.info(f"  ✓ Created paginated report '{name}' in 'Reports' folder (ID: {report_id})")
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

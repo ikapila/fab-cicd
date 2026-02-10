@@ -1125,6 +1125,32 @@ class FabricDeployer:
         
         parts = []
         
+        # First, extract semantic model name from definition.pbir if it exists
+        semantic_model_name = None
+        semantic_model_id = None
+        pbir_file = report_folder / "definition.pbir"
+        if pbir_file.exists():
+            try:
+                with open(pbir_file, 'rb') as f:
+                    pbir_content = f.read()
+                pbir_str = pbir_content.decode('utf-8')
+                pbir_data = json.loads(pbir_str)
+                
+                if 'datasetReference' in pbir_data and 'byPath' in pbir_data['datasetReference']:
+                    old_path = pbir_data['datasetReference']['byPath']['path']
+                    import re
+                    match = re.search(r'/([^/]+)\.SemanticModel$', old_path)
+                    if match:
+                        semantic_model_name = match.group(1)
+                        # Look up the deployed semantic model ID
+                        existing_models = self.client.list_semantic_models(self.workspace_id)
+                        existing_model = next((m for m in existing_models if m["displayName"] == semantic_model_name), None)
+                        if existing_model:
+                            semantic_model_id = existing_model['id']
+                            logger.info(f"    Found referenced semantic model '{semantic_model_name}' with ID: {semantic_model_id}")
+            except Exception as e:
+                logger.warning(f"    ⚠ Could not extract semantic model reference: {e}")
+        
         # Read all files recursively and encode them
         for file_path in report_folder.rglob("*"):
             if file_path.is_file():
@@ -1135,9 +1161,9 @@ class FabricDeployer:
                 with open(file_path, 'rb') as f:
                     content_bytes = f.read()
                 
-                # Transform PBIR file to update dataset reference from path to deployed model
+                # Transform PBIR file to update dataset reference from path to deployed model ID
                 if file_path.name == "definition.pbir":
-                    content_bytes = self._transform_pbir_dataset_reference(content_bytes)
+                    content_bytes = self._transform_pbir_dataset_reference(content_bytes, semantic_model_id)
                 
                 content_base64 = base64.b64encode(content_bytes).decode('utf-8')
                 
@@ -1151,18 +1177,19 @@ class FabricDeployer:
         
         return {"parts": parts}
     
-    def _transform_pbir_dataset_reference(self, pbir_content: bytes) -> bytes:
+    def _transform_pbir_dataset_reference(self, pbir_content: bytes, dataset_id: str = None) -> bytes:
         """
         Transform PBIR datasetReference from relative Git path to deployed semantic model reference
         
         In Fabric Git format, reports reference semantic models by relative path like:
         "../../Semanticmodels/Finance Summary.SemanticModel"
         
-        After deployment, we need to reference by the actual deployed model in the workspace.
-        We'll extract the model name and use byPath with the workspace model path.
+        After deployment, we need to reference by the actual deployed model ID.
+        We'll use byConnection with the dataset ID instead of byPath.
         
         Args:
             pbir_content: Original PBIR file content as bytes
+            dataset_id: The ID of the deployed semantic model (if known)
             
         Returns:
             Transformed PBIR content as bytes
@@ -1175,18 +1202,30 @@ class FabricDeployer:
             if 'datasetReference' in pbir_data and 'byPath' in pbir_data['datasetReference']:
                 old_path = pbir_data['datasetReference']['byPath']['path']
                 
-                # Extract semantic model name from path like "../../Semanticmodels/Finance Summary.SemanticModel"
+                # Extract semantic model name from path
                 import re
                 match = re.search(r'/([^/]+)\.SemanticModel$', old_path)
                 if match:
                     model_name = match.group(1)
                     
-                    # Update to reference the deployed model in the current workspace
-                    # Using the workspace-relative path format
-                    new_path = f"/Semanticmodels/{model_name}.SemanticModel"
-                    pbir_data['datasetReference']['byPath']['path'] = new_path
-                    
-                    logger.info(f"    ✓ Transformed dataset reference: '{model_name}' (from Git path to workspace path)")
+                    if dataset_id:
+                        # Use byConnection with the actual dataset ID
+                        pbir_data['datasetReference'] = {
+                            "byConnection": {
+                                "connectionString": None,
+                                "pbiServiceModelId": None,
+                                "pbiModelVirtualServerName": "sobe_wowvirtualserver",
+                                "pbiModelDatabaseName": dataset_id,
+                                "name": "EntityDataSource",
+                                "connectionType": "pbiServiceXmlaStyleLive"
+                            }
+                        }
+                        logger.info(f"    ✓ Transformed dataset reference to use byConnection with ID: {dataset_id}")
+                    else:
+                        # Fallback: keep byPath but use workspace-relative path
+                        new_path = f"{model_name}.SemanticModel"
+                        pbir_data['datasetReference']['byPath']['path'] = new_path
+                        logger.info(f"    ✓ Transformed dataset reference: '{model_name}' (using simplified path)")
                     
                     # Return updated PBIR as bytes
                     return json.dumps(pbir_data, indent=2).encode('utf-8')

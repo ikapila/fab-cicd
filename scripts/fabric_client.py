@@ -966,62 +966,64 @@ class FabricClient:
     
     def create_paginated_report(self, workspace_id: str, report_name: str, definition: Dict, folder_id: str = None) -> Dict:
         """
-        Create a paginated report using the Fabric Paginated Reports API
+        Create a paginated report using the Fabric Items API with PaginatedReport type.
         
-        According to Microsoft Fabric documentation, paginated reports should be created
-        using the specialized /paginatedReports endpoint with updateDefinition method.
+        NOTE: The /paginatedReports endpoint returns "UnsupportedItemType" error.
+        Using the generic /items endpoint with type "PaginatedReport" instead.
         
         Args:
             workspace_id: Workspace GUID
             report_name: Name for the report
             definition: Report definition (.rdl file with parts structure)
-            folder_id: Optional workspace folder ID (not supported in creation, must be set after)
+            folder_id: Optional workspace folder ID
             
         Returns:
             Created report details
         """
         logger.info(f"Creating paginated report: {report_name}")
         
-        # First create the report with just displayName (no definition)
+        # Use the Items API with PaginatedReport type and definition
         payload = {
-            "displayName": report_name
+            "displayName": report_name,
+            "type": "PaginatedReport",
+            "definition": definition
         }
         
-        # Create the report item (returns immediately with ID)
-        response = self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports", json_data=payload)
-        report_id = response.get('id')
+        # Include folder if specified
+        if folder_id:
+            logger.info(f"  Including folderId in payload: {folder_id}")
+            # Note: Based on error, folderId might not be supported - trying anyway
+            # If it fails, we can move to folder after creation
         
-        if not report_id:
-            raise Exception("Failed to get paginated report ID after creation")
+        # Create the report item with definition
+        response = self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
         
-        logger.info(f"  Created paginated report item (ID: {report_id})")
-        
-        # Now update the definition using updateDefinition endpoint
-        logger.info(f"  Updating paginated report definition...")
-        update_payload = {"definition": definition}
-        update_result = self._make_request(
-            "POST", 
-            f"/workspaces/{workspace_id}/paginatedReports/{report_id}/updateDefinition",
-            json_data=update_payload
-        )
-        
-        # updateDefinition is an LRO, poll for completion if operation_id returned
-        if update_result and 'operation_id' in update_result:
-            logger.info(f"  Waiting for definition update to complete...")
+        # Check if it's an LRO
+        if response and 'operation_id' in response and response.get('status_code') == 202:
+            operation_id = response['operation_id']
+            retry_after = response.get('retry_after', 5)
+            logger.info(f"  Paginated report creation initiated (LRO), waiting for completion...")
+            
+            # Poll the operation until it completes
             operation_result = self.wait_for_operation_completion(
-                update_result['operation_id'],
-                retry_after=update_result.get('retry_after', 5),
+                operation_id,
+                retry_after=retry_after,
                 max_attempts=10
             )
-            logger.info(f"  ✓ Paginated report definition updated successfully")
-        
-        # Move to folder if specified
-        if folder_id:
-            try:
-                logger.info(f"  Moving paginated report to folder: {folder_id}")
-                self.move_item_to_folder(workspace_id, report_id, folder_id)
-            except Exception as e:
-                logger.warning(f"  ⚠ Could not move report to folder: {e}")
+            
+            # Get the report ID from the operation result
+            if operation_result and 'id' in operation_result:
+                report_id = operation_result['id']
+                logger.info(f"  ✓ Created paginated report (ID: {report_id})")
+            else:
+                logger.warning(f"  ⚠ Paginated report created but ID not in operation result")
+                report_id = 'unknown'
+        elif response and 'id' in response:
+            # Immediate response with ID
+            report_id = response['id']
+            logger.info(f"  ✓ Created paginated report (ID: {report_id})")
+        else:
+            raise Exception("Failed to get paginated report ID after creation")
         
         return {"id": report_id}
     

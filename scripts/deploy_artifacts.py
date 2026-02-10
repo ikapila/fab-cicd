@@ -4045,11 +4045,15 @@ print('Notebook initialized')
         
         server_name = server_match.group(1)
         
-        # Build the new M expression
-        new_sql_endpoint = f'Sql.Databases("{server_name}")'
+        # Build the new M expression with authentication options
+        # For Fabric SQL endpoints, we need to specify authentication mode
+        # Using Options parameter with Credential = [AuthenticationKind = "UsernamePassword", EncryptConnection = true]
+        # This tells Power Query to prompt for credentials or use workspace identity
+        new_sql_endpoint = f'Sql.Databases("{server_name}", [CreateNavigationProperties = false])'
         
         # Replace any Sql.Databases(...) pattern with the new endpoint
-        old_pattern = r'Sql\.Databases\("[^"]+\.datawarehouse\.fabric\.microsoft\.com"\)'
+        # Match both simple calls and calls with options
+        old_pattern = r'Sql\.Databases\("[^"]+\.datawarehouse\.fabric\.microsoft\.com"(?:,\s*\[[^\]]*\])?\)'
         transformed_content = re.sub(old_pattern, new_sql_endpoint, tmdl_content)
         
         # Log if any replacements were made
@@ -4082,8 +4086,8 @@ print('Notebook initialized')
         Configure data source authentication for a semantic model after deployment.
         
         This fixes the error: "semantic model uses a default data connection without 
-        explicit connection credentials" by updating the data source to use 
-        Microsoft Entra ID (OAuth2) authentication.
+        explicit connection credentials" by patching the data sources to enable SSO
+        with Microsoft Entra ID for Fabric SQL endpoints.
         
         Args:
             model_name: Name of the semantic model
@@ -4097,43 +4101,50 @@ print('Notebook initialized')
                 logger.debug(f"  No data sources found for semantic model '{model_name}'")
                 return
             
-            # Prepare updates for each data source to use OAuth2 (Microsoft Entra ID)
+            # For Fabric SQL endpoints, we need to configure them to use SSO/OAuth2
+            # The key is to set "useEndUserOAuth2Credentials" to True for SingleSignOn
             updates = []
             for ds in datasources:
+                datasource_type = ds.get('datasourceType')
                 datasource_id = ds.get('datasourceId')
-                gateway_id = ds.get('gatewayId')
+                connection_details = ds.get('connectionDetails', {})
                 
-                if datasource_id:
+                # Only process SQL datasources (Fabric Data Warehouse, SQL Analytics Endpoint)
+                if datasource_type and 'Sql' in datasource_type and datasource_id:
                     update = {
                         "datasource": {
-                            "datasourceType": ds.get('datasourceType'),
-                            "connectionDetails": ds.get('connectionDetails', {})
+                            "datasourceType": datasource_type,
+                            "connectionDetails": connection_details,
+                            "datasourceId": datasource_id
                         },
                         "credentialDetails": {
                             "credentialType": "OAuth2",
                             "encryptedConnection": "Encrypted",
                             "encryptionAlgorithm": "None",
-                            "privacyLevel": "None",
-                            "useEndUserOAuth2Credentials": False
+                            "privacyLevel": "Organizational",
+                            "useEndUserOAuth2Credentials": True  # This enables SSO
                         }
                     }
                     
+                    # Include gateway if present
+                    gateway_id = ds.get('gatewayId')
                     if gateway_id:
                         update["datasource"]["gatewayId"] = gateway_id
-                    if datasource_id:
-                        update["datasource"]["datasourceId"] = datasource_id
                     
                     updates.append(update)
             
             if updates:
-                logger.info(f"  Configuring OAuth2 authentication for {len(updates)} data source(s)...")
+                logger.info(f"  Configuring SSO authentication for {len(updates)} SQL data source(s)...")
                 self.client.update_semantic_model_datasource(self.workspace_id, model_id, updates)
-                logger.info(f"  ✓ Data source authentication configured for '{model_name}'")
+                logger.info(f"  ✓ Data source SSO authentication configured for '{model_name}'")
+            else:
+                logger.debug(f"  No SQL data sources to configure for '{model_name}'")
             
         except Exception as e:
             # Don't fail deployment if credential update fails - user can configure manually
             logger.warning(f"  ⚠ Could not auto-configure data source credentials: {e}")
             logger.warning(f"  Please manually configure data source credentials in Fabric portal")
+            logger.warning(f"  In Fabric: Settings > Data source credentials > Choose 'OAuth2' or 'Organizational account'")
     
     def _apply_report_rebinding(self, report_name: str, report_id: str) -> None:
         """

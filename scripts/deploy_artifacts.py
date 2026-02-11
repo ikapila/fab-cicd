@@ -4046,9 +4046,9 @@ print('Notebook initialized')
         """
         Configure data source authentication for a semantic model after deployment.
         
-        This fixes the error: "semantic model uses a default data connection without 
-        explicit connection credentials" by patching the data sources to enable SSO
-        with Microsoft Entra ID for Fabric SQL endpoints.
+        This configures Fabric SQL endpoints to use Personal Cloud connection with workspace identity.
+        Personal Cloud connection uses OAuth2 with the workspace's identity automatically,
+        avoiding the "default data connection without explicit connection credentials" error.
         
         Args:
             model_name: Name of the semantic model
@@ -4083,7 +4083,7 @@ print('Notebook initialized')
                             "encryptedConnection": "Encrypted",
                             "encryptionAlgorithm": "None",
                             "privacyLevel": "Organizational",
-                            "useEndUserOAuth2Credentials": True  # This enables SSO
+                            "skipTestConnection": True  # Use workspace identity (Personal Cloud connection)
                         }
                     }
                     
@@ -4095,9 +4095,9 @@ print('Notebook initialized')
                     updates.append(update)
             
             if updates:
-                logger.info(f"  Configuring SSO authentication for {len(updates)} SQL data source(s)...")
+                logger.info(f"  Configuring Personal Cloud connection for {len(updates)} SQL data source(s)...")
                 self.client.update_semantic_model_datasource(self.workspace_id, model_id, updates)
-                logger.info(f"  ✓ Data source SSO authentication configured for '{model_name}'")
+                logger.info(f"  ✓ Personal Cloud connection (workspace identity) configured for '{model_name}'")
             else:
                 logger.debug(f"  No SQL data sources to configure for '{model_name}'")
             
@@ -4105,7 +4105,7 @@ print('Notebook initialized')
             # Don't fail deployment if credential update fails - user can configure manually
             logger.warning(f"  ⚠ Could not auto-configure data source credentials: {e}")
             logger.warning(f"  Please manually configure data source credentials in Fabric portal")
-            logger.warning(f"  In Fabric: Settings > Data source credentials > Choose 'OAuth2' or 'Organizational account'")
+            logger.warning(f"  In Fabric: Settings > Data source credentials > Choose 'OAuth2' with workspace identity (Personal Cloud)")
     
     def _apply_report_rebinding(self, report_name: str, report_id: str) -> None:
         """

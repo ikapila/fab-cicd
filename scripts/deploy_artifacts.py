@@ -4123,123 +4123,64 @@ print('Notebook initialized')
         
         return transformed_content
     
-    def _get_or_create_workspace_connection(self) -> Optional[str]:
+    def _get_semantic_model_connection_id(self) -> Optional[str]:
         """
-        Get or create a shared Fabric connection for all semantic models in workspace.
-        Creates one connection per SQL endpoint per workspace.
-        Uses service principal credentials for authentication.
+        Get the pre-created Fabric connection ID for semantic models from environment config.
+        
+        The connection must be created manually in the Fabric portal (requires capacity admin),
+        then its ID is stored in the environment config file under:
+            connections.semantic_model_connection_id
         
         Returns:
-            Connection ID (GUID) or None if connection cannot be created
+            Connection ID (GUID) or None if not configured
         """
-        try:
-            # Extract connection details from config
-            sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
-            if not sql_connection_string:
-                logger.debug("  No SQL connection string configured")
-                return None
-            
-            # Parse server and database from connection string
-            import re
-            server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
-            database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
-            
-            if not server_match:
-                logger.debug("  Could not parse server from connection string")
-                return None
-            
-            server = server_match.group(1)
-            database = database_match.group(1) if database_match else "default"
-            
-            # Connection name: environment + semantic + server identifier
-            # Example: prod_semantic_lakehouse_connection
-            server_short = server.split('.')[0] if '.' in server else server
-            connection_name = f"{self.config.environment}_semantic_{server_short}_connection"
-            
-            logger.info(f"Setting up shared Fabric connection for semantic models...")
-            logger.info(f"  Connection name: {connection_name}")
-            logger.info(f"  Server: {server}")
-            logger.info(f"  Database: {database}")
-            
-            # Check if connection already exists (tenant-scoped API)
-            existing_connections = self.client.list_connections()
-            existing_connection = next((c for c in existing_connections 
-                                       if c.get("displayName") == connection_name), None)
-            
-            if existing_connection:
-                connection_id = existing_connection['id']
-                logger.info(f"  ✓ Using existing shared connection (ID: {connection_id})")
-                return connection_id
-            
-            # Create new Fabric connection with service principal credentials
-            # Per: https://learn.microsoft.com/en-us/rest/api/fabric/core/connections/create-connection
-            connection_payload = {
-                "connectivityType": "ShareableCloud",
-                "displayName": connection_name,
-                "connectionDetails": {
-                    "type": "SQL",
-                    "parameters": {
-                        "server": server,
-                        "database": database
-                    }
-                },
-                "privacyLevel": "Organizational",
-                "credentialDetails": {
-                    "singleSignOnType": "None",
-                    "connectionEncryption": "NotEncrypted",
-                    "skipTestConnection": False,
-                    "credentials": {
-                        "credentialType": "ServicePrincipal",
-                        "servicePrincipalClientId": self.client.auth.client_id,
-                        "servicePrincipalSecret": self.client.auth.client_secret,
-                        "servicePrincipalTenantId": self.client.auth.tenant_id
-                    }
-                }
-            }
-            
-            result = self.client.create_connection(connection_payload)
-            connection_id = result.get('id')
-            logger.info(f"  ✓ Created shared connection (ID: {connection_id})")
-            logger.info(f"    All semantic models will use this connection")
-            
-            return connection_id
-            
-        except Exception as e:
-            logger.warning(f"  ⚠ Could not create workspace connection: {e}")
+        connection_id = self.config.config.get("connections", {}).get("semantic_model_connection_id", "")
+        
+        if not connection_id or connection_id == "00000000-0000-0000-0000-000000000000":
+            logger.debug("  No semantic_model_connection_id configured (or placeholder value)")
             return None
+        
+        logger.info(f"  Using configured connection ID: {connection_id}")
+        return connection_id
     
     def _configure_shareable_cloud_connection(self, model_name: str, model_id: str) -> None:
         """
-        Configure semantic model to use the shared workspace Fabric connection.
+        Bind semantic model datasources to the pre-created Fabric connection
+        configured in the environment config file (connections.semantic_model_connection_id).
         
-        This method binds the semantic model to the workspace-level shared connection
-        created via _get_or_create_workspace_connection().
+        The connection must be created manually in the Fabric portal before deployment.
+        Set the connection ID in config/{env}.json under connections.semantic_model_connection_id.
         
         Args:
             model_name: Name of the semantic model
             model_id: Semantic model GUID
         """
         try:
-            # Get or create the shared connection (cached per deployment)
-            if not hasattr(self, '_workspace_connection_id'):
-                self._workspace_connection_id = self._get_or_create_workspace_connection()
+            # Get configured connection ID (cached per deployment)
+            if not hasattr(self, '_semantic_model_connection_id'):
+                self._semantic_model_connection_id = self._get_semantic_model_connection_id()
             
-            if not self._workspace_connection_id:
-                logger.info(f"  ℹ No shared connection available for '{model_name}'")
-                logger.info(f"    Connection will be auto-configured on first refresh")
+            if not self._semantic_model_connection_id:
+                logger.info(f"  ℹ No semantic_model_connection_id configured for '{model_name}'")
+                logger.info(f"    Set connections.semantic_model_connection_id in config/{self.config.environment}.json")
                 return
             
-            logger.info(f"  Configuring '{model_name}' to use shared workspace connection...")
-            logger.info(f"    Connection ID: {self._workspace_connection_id}")
+            logger.info(f"  Binding '{model_name}' to connection {self._semantic_model_connection_id}...")
             
-            # Note: The actual binding of semantic model datasources to the Fabric connection
-            # happens automatically when the semantic model is refreshed.
-            # The connection is available for the semantic model to use.
-            # You can also manually configure it in the semantic model settings UI:
-            # Settings > Gateway and cloud connections > select the connection
-            
-            logger.info(f"  ✓ Shared connection configured for '{model_name}'")
-            logger.info(f"    Connection will be used on semantic model refresh")
+            # Bind the semantic model to the configured connection using BindToGateway API
+            # For Fabric connections, the connection ID is used as both gatewayObjectId and datasourceObjectId
+            try:
+                self.client.bind_to_cloud_connection(
+                    self.workspace_id,
+                    model_id,
+                    gateway_id=self._semantic_model_connection_id,
+                    datasource_id=self._semantic_model_connection_id
+                )
+                logger.info(f"  ✓ Bound '{model_name}' to connection {self._semantic_model_connection_id}")
+            except Exception as bind_err:
+                # Binding may fail if model hasn't been refreshed yet - that's OK
+                logger.info(f"  ℹ Could not bind '{model_name}' datasources: {bind_err}")
+                logger.info(f"    Connection can be assigned manually in semantic model settings")
             
         except Exception as e:
             logger.warning(f"  ⚠ Could not configure connection for '{model_name}': {e}")

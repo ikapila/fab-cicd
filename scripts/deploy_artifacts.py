@@ -2038,11 +2038,12 @@ class FabricDeployer:
                     if existing_report:
                         logger.info(f"  ✓ Paginated report '{name}' already exists (ID: {existing_report['id']})")
                     elif create_if_not_exists:
-                        report_definition = self._create_paginated_report_template(name, description, report_def)
-                        result = self.client.create_paginated_report(self.workspace_id, name, report_definition)
-                        logger.info(f"  ✓ Created paginated report '{name}' (ID: {result['id']})")
-                        # Save to local file
-                        self._save_artifact_to_file("Paginatedreports", name, report_definition)
+                        # Paginated reports cannot be created via the Fabric Items API.
+                        # They must be imported via Power BI Imports API with an .rdl file.
+                        # The config-based creation only serves as a placeholder reference.
+                        logger.warning(f"  ⚠ Paginated report '{name}' does not exist in workspace")
+                        logger.warning(f"  Paginated reports must be deployed from .rdl files (Fabric Git format)")
+                        logger.warning(f"  Add the report to wsartifacts/Reports/{name}.PaginatedReport/ folder with .rdl file")
                     else:
                         logger.warning(f"  ⚠ Paginated report '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -3479,6 +3480,7 @@ print('Notebook initialized')
     def _deploy_paginated_report(self, name: str) -> None:
         """Deploy a paginated report - supports both JSON and Fabric Git format"""
         definition = None
+        rdl_content = None
         found = False
         
         # Try JSON file in Paginatedreports folder first (legacy format)
@@ -3546,8 +3548,8 @@ print('Notebook initialized')
                                     )
                                     logger.info(f"    ✓ Applied connection string transformation to '{new_server}' database '{new_database}'")
                         
-                        # Encode all parts with transformed RDL
-                        definition = self._encode_paginated_report_parts(folder, rdl_content)
+                        # RDL content is ready (transformed or original) - no need to encode as base64 parts
+                        # The Power BI Imports API accepts the raw .rdl file directly
                         found = True
                         break
                 
@@ -3557,28 +3559,37 @@ print('Notebook initialized')
         if not found:
             raise FileNotFoundError(f"Paginated report '{name}' not found in JSON or Fabric Git format")
         
-        # For JSON format, apply parameter substitution
-        if isinstance(definition, dict) and "parts" not in definition:
-            definition_str = json.dumps(definition)
-            definition_str = self.config.substitute_parameters(definition_str)
-            definition = json.loads(definition_str)
-        
         # Check if report exists
         existing = self.client.list_paginated_reports(self.workspace_id)
         existing_report = next((r for r in existing if r["displayName"] == name), None)
         
+        # Get the RDL content for import - we need the raw XML string, not base64 parts
+        # The rdl_content was already transformed above for Fabric Git format
+        # For JSON format, rdl_content won't be available so we need to handle that
+        if not rdl_content:
+            # JSON format - definition is the raw JSON, not usable for RDL import
+            logger.warning(f"  ⚠ Paginated report '{name}' is in JSON format - RDL import requires .rdl file")
+            logger.warning(f"  Paginated reports must use Fabric Git format (.PaginatedReport folder with .rdl file)")
+            return
+        
         if existing_report:
-            # Paginated reports don't support update or delete APIs
-            # Since datasource was already transformed in the RDL, just log success
+            # Use Overwrite to update existing paginated report via Power BI Imports API
             logger.info(f"  Paginated report '{name}' already exists (ID: {existing_report['id']})")
-            logger.info(f"  ✓ Datasource transformation already applied - report ready to use")
-            logger.info(f"  Note: Paginated reports don't support updateDefinition API - manual update in Fabric UI if needed")
-            return  # Skip deployment, datasource is already correct
+            logger.info(f"  Updating via Power BI Imports API with Overwrite...")
+            
+            result = self.client.import_paginated_report(
+                self.workspace_id, name, rdl_content, name_conflict="Overwrite"
+            )
+            report_id = result.get('id') if result else existing_report['id']
+            logger.info(f"  ✓ Updated paginated report '{name}' (ID: {report_id})")
         else:
+            # Create new paginated report via Power BI Imports API
             # Get or create folder for reports (shared with Power BI reports)
             folder_id = self._get_or_create_folder("Reports")
             
-            result = self.client.create_paginated_report(self.workspace_id, name, definition, folder_id=folder_id)
+            result = self.client.import_paginated_report(
+                self.workspace_id, name, rdl_content, name_conflict="Abort", folder_id=folder_id
+            )
             report_id = result.get('id') if result else 'unknown'
             logger.info(f"  ✓ Created paginated report '{name}' in 'Reports' folder (ID: {report_id})")
     

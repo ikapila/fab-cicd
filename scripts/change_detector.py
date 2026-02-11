@@ -209,6 +209,13 @@ class ChangeDetector:
                     # Extract name without suffix
                     artifact_name = parts[2][:-(len(artifact_type) + 1)]
                 
+                # Special case: PaginatedReport folders in Reports directory
+                elif artifact_type == "Report" and parts[2].endswith(".PaginatedReport"):
+                    # This is actually a paginated report, not a regular report
+                    # Reclassify it
+                    artifact_type = "PaginatedReport"
+                    artifact_name = parts[2][:-17]  # Remove .PaginatedReport
+                
                 # Check for Git format folder for Variable Library
                 elif artifact_type == "VariableLibrary" and parts[2].endswith(".VariableLibrary"):
                     artifact_name = parts[2][:-16]  # Remove .VariableLibrary

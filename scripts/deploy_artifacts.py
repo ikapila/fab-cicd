@@ -972,11 +972,33 @@ class FabricDeployer:
                         discovered.append(f"{report_name} (Fabric Git)")
                         report_id = platform_data.get("config", {}).get("logicalId", f"report-{report_name}")
                         
+                        # Extract semantic model dependency from definition.pbir
+                        dependencies = []
+                        pbir_file = item / "definition.pbir"
+                        if pbir_file.exists():
+                            try:
+                                with open(pbir_file, 'r') as f:
+                                    pbir_data = json.load(f)
+                                
+                                # Get semantic model reference
+                                dataset_ref = pbir_data.get("datasetReference", {})
+                                by_path = dataset_ref.get("byPath", {})
+                                path = by_path.get("path", "")
+                                
+                                # Parse semantic model name from path like "../../Semanticmodels/Finance Summary.SemanticModel"
+                                if path and "Semanticmodels/" in path:
+                                    model_name = path.split("Semanticmodels/")[1].replace(".SemanticModel", "")
+                                    model_id = f"semanticmodel-{model_name}"
+                                    dependencies.append(model_id)
+                                    logger.debug(f"Report '{report_name}' depends on semantic model '{model_name}'")
+                            except Exception as e:
+                                logger.debug(f"Could not extract semantic model dependency: {e}")
+                        
                         self.resolver.add_artifact(
                             report_id,
                             ArtifactType.POWER_BI_REPORT,
                             report_name,
-                            dependencies=[]
+                            dependencies=dependencies
                         )
                         
                         logger.debug(f"Discovered report (Fabric Git): {report_name} from {item.name}")

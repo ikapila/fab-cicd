@@ -21,6 +21,7 @@
   "connections": {
     "sql_connection_string": "Server=dev-reporting-gold.datawarehouse.fabric.microsoft.com;Database=reporting_gold;",
     "semantic_model_connection": "",
+    "semantic_model_connection_id": "",
     "storage_connection_string": "DefaultEndpointsProtocol=https;AccountName=devstorageaccount;",
     "api_endpoint": "https://dev-api.company.com"
   },

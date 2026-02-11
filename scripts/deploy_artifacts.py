@@ -4234,90 +4234,44 @@ print('Notebook initialized')
     
     def _get_semantic_model_connection(self) -> Optional[Dict]:
         """
-        Look up the Fabric connection for semantic models by name.
+        Get the Fabric connection ID for semantic models directly from config.
         
-        The connection name is configured in the environment config file under:
-            connections.semantic_model_connection
+        The connection ID is configured in the environment config file under:
+            connections.semantic_model_connection_id
         
-        The connection must be created manually in the Fabric portal first,
-        then its display name is set in config/{env}.json.
+        The connection must be created manually in the Fabric portal first.
+        Copy the connection ID from Fabric > Settings > Manage connections and gateways
+        and paste it into config/{env}.json.
         
-        Matching strategy (in order):
-          1. Exact match on displayName
-          2. Case-insensitive match
-          3. Starts-with match (handles truncated names)
-          4. Contains match (partial name)
+        No API lookup is performed — this avoids permission issues where the
+        service principal cannot list tenant-scoped connections.
         
         Returns:
-            Connection dict with 'id' and 'displayName', or None if not found
+            Connection dict with 'id', or None if not configured
         """
-        connection_name = self.config.config.get("connections", {}).get("semantic_model_connection", "")
+        connections_config = self.config.config.get("connections", {})
+        connection_id = connections_config.get("semantic_model_connection_id", "")
+        connection_name = connections_config.get("semantic_model_connection", "")
         
-        if not connection_name:
-            logger.debug("  No semantic_model_connection name configured")
-            return None
-        
-        logger.info(f"  Looking up Fabric connection: '{connection_name}'")
-        
-        try:
-            connections = self.client.list_connections()
-            
-            # Debug: log all returned connection names so we can diagnose mismatches
-            if connections:
-                logger.info(f"  📋 Connections returned by API ({len(connections)} total):")
-                for idx, c in enumerate(connections):
-                    c_name = c.get("displayName", "<no name>")
-                    c_id = c.get("id", "<no id>")
-                    c_type = c.get("connectivityType", c.get("type", "unknown"))
-                    logger.info(f"    [{idx+1}] '{c_name}' (type={c_type}, id={c_id})")
+        if not connection_id:
+            if connection_name:
+                logger.warning(f"  ⚠ 'semantic_model_connection' (name) is set but 'semantic_model_connection_id' is empty")
+                logger.warning(f"    The connection ID is required — copy it from Fabric portal:")
+                logger.warning(f"    Settings > Manage connections and gateways > click connection > copy ID from URL")
             else:
-                logger.warning(f"  ⚠ No connections returned by API (empty list)")
-                logger.warning(f"    Check that the service principal has access to connections")
-                return None
-            
-            # Strategy 1: Exact match
-            match = next((c for c in connections if c.get("displayName") == connection_name), None)
-            if match:
-                logger.info(f"  ✓ Found connection (exact match): '{match['displayName']}' (ID: {match['id']})")
-                return match
-            
-            # Strategy 2: Case-insensitive match
-            search_lower = connection_name.lower()
-            match = next((c for c in connections if c.get("displayName", "").lower() == search_lower), None)
-            if match:
-                logger.info(f"  ✓ Found connection (case-insensitive): '{match['displayName']}' (ID: {match['id']})")
-                return match
-            
-            # Strategy 3: Starts-with match (the configured name starts with the API name, or vice versa)
-            match = next((c for c in connections 
-                         if c.get("displayName", "").lower().startswith(search_lower) 
-                         or search_lower.startswith(c.get("displayName", "").lower())), None)
-            if match:
-                logger.info(f"  ✓ Found connection (starts-with): '{match['displayName']}' (ID: {match['id']})")
-                return match
-            
-            # Strategy 4: Contains match
-            match = next((c for c in connections 
-                         if search_lower in c.get("displayName", "").lower() 
-                         or c.get("displayName", "").lower() in search_lower), None)
-            if match:
-                logger.info(f"  ✓ Found connection (contains): '{match['displayName']}' (ID: {match['id']})")
-                return match
-            
-            logger.warning(f"  ⚠ Connection '{connection_name}' not found in Fabric")
-            logger.warning(f"    None of the {len(connections)} connections matched")
-            logger.warning(f"    Create it manually in Fabric portal, then re-run deployment")
+                logger.debug("  No semantic_model_connection_id configured")
             return None
-        except Exception as e:
-            logger.warning(f"  ⚠ Could not list connections: {e}")
-            return None
+        
+        display = connection_name if connection_name else connection_id
+        logger.info(f"  Using connection from config: '{display}' (ID: {connection_id})")
+        return {"id": connection_id, "displayName": connection_name or connection_id}
     
     def _configure_shareable_cloud_connection(self, model_name: str, model_id: str) -> None:
         """
         Bind semantic model to a pre-created Fabric connection (no gateway required).
         
-        Looks up the connection by name from connections.semantic_model_connection
-        in the environment config file, then binds the semantic model to it.
+        Uses the connection ID directly from config (connections.semantic_model_connection_id).
+        No API lookup is performed — the SP does not need permission to list connections.
         
         The connection must be created manually in the Fabric portal before deployment.
         
@@ -4326,36 +4280,30 @@ print('Notebook initialized')
             model_id: Semantic model GUID
         """
         try:
-            # Look up the connection (cached per deployment)
+            # Get connection from config (cached per deployment)
             if not hasattr(self, '_semantic_model_connection'):
                 self._semantic_model_connection = self._get_semantic_model_connection()
             
             if not self._semantic_model_connection:
-                connection_name = self.config.config.get("connections", {}).get("semantic_model_connection", "")
-                if connection_name:
-                    logger.warning(f"  ⚠ Connection '{connection_name}' not found for '{model_name}'")
-                else:
-                    logger.info(f"  ℹ No semantic_model_connection configured for '{model_name}'")
-                    logger.info(f"    Set connections.semantic_model_connection in config/{self.config.environment}.json")
+                # _get_semantic_model_connection already logged the reason
                 return
             
             connection_id = self._semantic_model_connection['id']
-            connection_name = self._semantic_model_connection['displayName']
+            display_name = self._semantic_model_connection.get('displayName', connection_id)
             
-            logger.info(f"  Binding '{model_name}' to Fabric connection '{connection_name}'...")
+            logger.info(f"  Binding '{model_name}' to Fabric connection '{display_name}'...")
             
-            # Use the Fabric Connections API to bind the connection to the semantic model
-            # No gateway required - this is a direct Fabric connection within the same tenant
+            # Use PATCH items/connections — no gateway required
             try:
                 self.client.bind_semantic_model_to_connection(
                     self.workspace_id,
                     model_id,
                     connection_id
                 )
-                logger.info(f"  ✓ Bound '{model_name}' to connection '{connection_name}'")
+                logger.info(f"  ✓ Bound '{model_name}' to connection '{display_name}'")
             except Exception as bind_err:
                 logger.info(f"  ℹ Could not bind '{model_name}' to connection: {bind_err}")
-                logger.info(f"    Assign connection '{connection_name}' manually in semantic model settings")
+                logger.info(f"    Assign connection manually in semantic model settings")
             
         except Exception as e:
             logger.warning(f"  ⚠ Could not configure connection for '{model_name}': {e}")

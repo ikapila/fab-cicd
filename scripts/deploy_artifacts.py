@@ -3150,9 +3150,6 @@ print('Notebook initialized')
             )
             model_id = existing_model['id']
             logger.info(f"  Updated semantic model (ID: {model_id})")
-            
-            # Configure authentication for existing model too
-            self._configure_semantic_model_authentication(name, model_id)
         else:
             # Get or create folder for semantic models
             folder_id = self._get_or_create_folder("Semanticmodels")
@@ -3165,10 +3162,6 @@ print('Notebook initialized')
             )
             model_id = result.get('id') if result else 'unknown'
             logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {model_id})")
-        
-        # Configure data source authentication after deployment
-        if model_id and model_id != 'unknown':
-            self._configure_semantic_model_authentication(name, model_id)
         
         # Apply rebinding rules if configured
         self._apply_semantic_model_rebinding(name, model_id)

@@ -1021,8 +1021,7 @@ class FabricClient:
         
         # Step 1: Create the paginated report item without definition
         payload = {
-            "displayName": report_name,
-            "type": "PaginatedReport"
+            "displayName": report_name
         }
         
         # Include folder if specified
@@ -1030,8 +1029,8 @@ class FabricClient:
             payload["folderId"] = folder_id
             logger.info(f"  Creating in folder: {folder_id}")
         
-        # Create the report item
-        response = self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
+        # Create the report item using Reports API
+        response = self._make_request("POST", f"/workspaces/{workspace_id}/reports", json_data=payload)
         
         # Check if it's an LRO
         if response and 'operation_id' in response and response.get('status_code') == 202:

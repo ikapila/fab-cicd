@@ -975,6 +975,56 @@ class FabricClient:
         
         return self._make_request("POST", endpoint, json_data=payload)
     
+    # ==================== Connection Operations ====================
+    
+    def list_connections(self, workspace_id: str) -> List[Dict]:
+        """
+        List all connections in a workspace
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            List of connection dictionaries
+        """
+        logger.info(f"Listing connections in workspace: {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/connections")
+        return response.get("value", [])
+    
+    def get_connection(self, workspace_id: str, connection_id: str) -> Dict:
+        """
+        Get connection details
+        
+        Args:
+            workspace_id: Workspace GUID
+            connection_id: Connection GUID
+            
+        Returns:
+            Connection details dictionary
+        """
+        logger.info(f"Getting connection: {connection_id}")
+        return self._make_request("GET", f"/workspaces/{workspace_id}/connections/{connection_id}")
+    
+    def create_connection(self, workspace_id: str, connection_payload: Dict) -> Dict:
+        """
+        Create a new connection in workspace using Fabric Connections API
+        
+        Args:
+            workspace_id: Workspace GUID
+            connection_payload: Connection configuration with:
+                - displayName: Connection name
+                - connectivityType: "ShareableCloud" for cloud connections
+                - connectionDetails: Connection-specific details (type, server, database)
+                - privacyLevel: "None", "Public", "Organizational", or "Private"
+                - credentialDetails: Authentication details with service principal
+                
+        Returns:
+            Created connection details with connection ID
+        """
+        connection_name = connection_payload.get('displayName', 'Unknown')
+        logger.info(f"Creating Fabric connection: {connection_name}")
+        return self._make_request("POST", f"/workspaces/{workspace_id}/connections", json_data=connection_payload)
+    
     # ==================== Power BI Report Operations ====================
     
     def list_reports(self, workspace_id: str) -> List[Dict]:
@@ -1085,22 +1135,18 @@ class FabricClient:
         """
         logger.info(f"Creating paginated report: {report_name}")
         
-        # Create the paginated report with definition using Items API
+        # Step 1: Create the paginated report item WITHOUT definition
         payload = {
             "displayName": report_name,
             "type": "PaginatedReport"
         }
-        
-        # Include definition if provided
-        if definition:
-            payload["definition"] = definition
         
         # Include folder if specified
         if folder_id:
             payload["folderId"] = folder_id
             logger.info(f"  Creating in folder: {folder_id}")
         
-        # Create the report item using Items API (not Reports API)
+        # Create the report item using Items API (without definition)
         response = self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
         
         # Check if it's an LRO
@@ -1119,16 +1165,26 @@ class FabricClient:
             # Get the report ID from the operation result
             if operation_result and 'id' in operation_result:
                 report_id = operation_result['id']
-                logger.info(f"  ✓ Created paginated report (ID: {report_id})")
+                logger.info(f"  ✓ Created paginated report item (ID: {report_id})")
             else:
                 logger.warning(f"  ⚠ Paginated report created but ID not in operation result")
                 report_id = 'unknown'
         elif response and 'id' in response:
             # Immediate response with ID
             report_id = response['id']
-            logger.info(f"  ✓ Created paginated report (ID: {report_id})")
+            logger.info(f"  ✓ Created paginated report item (ID: {report_id})")
         else:
             raise Exception("Failed to get paginated report ID after creation")
+        
+        # Step 2: Upload the definition if provided
+        if definition and report_id != 'unknown':
+            logger.info(f"  Uploading paginated report definition...")
+            try:
+                self.update_paginated_report_definition(workspace_id, report_id, definition)
+                logger.info(f"  ✓ Paginated report definition uploaded successfully")
+            except Exception as e:
+                logger.error(f"  ✗ Failed to upload definition: {e}")
+                raise
         
         return {"id": report_id}
     

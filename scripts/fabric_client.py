@@ -1002,10 +1002,11 @@ class FabricClient:
     
     def create_paginated_report(self, workspace_id: str, report_name: str, definition: Dict, folder_id: str = None) -> Dict:
         """
-        Create a paginated report using the Fabric Items API with PaginatedReport type.
+        Create a paginated report using the Fabric Items API.
         
-        NOTE: The /paginatedReports endpoint returns "UnsupportedItemType" error.
-        Using the generic /items endpoint with type "PaginatedReport" instead.
+        According to Fabric documentation, paginated reports must be created in two steps:
+        1. Create the item without definition (just displayName and type)
+        2. Update the definition using updateDefinition API
         
         Args:
             workspace_id: Workspace GUID
@@ -1018,20 +1019,18 @@ class FabricClient:
         """
         logger.info(f"Creating paginated report: {report_name}")
         
-        # Use the Items API with PaginatedReport type and definition
+        # Step 1: Create the paginated report item without definition
         payload = {
             "displayName": report_name,
-            "type": "PaginatedReport",
-            "definition": definition
+            "type": "PaginatedReport"
         }
         
         # Include folder if specified
         if folder_id:
-            logger.info(f"  Including folderId in payload: {folder_id}")
-            # Note: Based on error, folderId might not be supported - trying anyway
-            # If it fails, we can move to folder after creation
+            payload["folderId"] = folder_id
+            logger.info(f"  Creating in folder: {folder_id}")
         
-        # Create the report item with definition
+        # Create the report item
         response = self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
         
         # Check if it's an LRO
@@ -1061,7 +1060,32 @@ class FabricClient:
         else:
             raise Exception("Failed to get paginated report ID after creation")
         
+        # Step 2: Update the definition if provided
+        if definition and report_id != 'unknown':
+            logger.info(f"  Updating paginated report definition...")
+            try:
+                self.update_paginated_report_definition(workspace_id, report_id, definition)
+                logger.info(f"  ✓ Paginated report definition updated")
+            except Exception as e:
+                logger.warning(f"  ⚠ Failed to update definition: {e}")
+        
         return {"id": report_id}
+    
+    def update_paginated_report_definition(self, workspace_id: str, report_id: str, definition: Dict) -> Dict:
+        """
+        Update paginated report definition using Items API
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Paginated report GUID
+            definition: Report definition with parts structure
+            
+        Returns:
+            Update response
+        """
+        logger.debug(f"Updating paginated report definition: {report_id}")
+        payload = {"definition": definition}
+        return self._make_request("POST", f"/workspaces/{workspace_id}/items/{report_id}/updateDefinition", json_data=payload)
     
     def update_paginated_report(self, workspace_id: str, report_id: str, definition: Dict) -> Dict:
         """

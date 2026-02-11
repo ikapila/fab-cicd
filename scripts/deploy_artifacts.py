@@ -282,6 +282,38 @@ class FabricDeployer:
             else:
                 changed_artifacts[artifact_type] = names
         
+        # Add semantic models when their dependent reports change
+        # Check if any reports changed, and include their semantic model dependencies
+        if "Report" in changed_artifacts:
+            reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
+            if reports_dir.exists():
+                for report_name in changed_artifacts["Report"]:
+                    # Try both formats: folder with .Report suffix and without
+                    for report_folder in [reports_dir / f"{report_name}.Report", reports_dir / report_name]:
+                        if report_folder.exists():
+                            pbir_file = report_folder / "definition.pbir"
+                            if pbir_file.exists():
+                                try:
+                                    with open(pbir_file, 'r') as f:
+                                        pbir_data = json.load(f)
+                                    
+                                    # Extract semantic model reference
+                                    path = pbir_data.get("datasetReference", {}).get("byPath", {}).get("path", "")
+                                    if path and "Semanticmodels/" in path:
+                                        model_name = path.split("Semanticmodels/")[1].replace(".SemanticModel", "")
+                                        
+                                        # Check if semantic model exists in discovered artifacts
+                                        if "SemanticModel" in all_discovered and model_name in all_discovered["SemanticModel"]:
+                                            # Add to changed artifacts
+                                            if "SemanticModel" not in changed_artifacts:
+                                                changed_artifacts["SemanticModel"] = set()
+                                            if model_name not in changed_artifacts["SemanticModel"]:
+                                                changed_artifacts["SemanticModel"].add(model_name)
+                                                logger.info(f"Including semantic model '{model_name}' (report '{report_name}' changed)")
+                                except Exception as e:
+                                    logger.debug(f"Could not check semantic model dependency for report '{report_name}': {e}")
+                            break
+        
         # Filter artifacts to only include changed ones
         filtered_artifacts = []
         skipped_count = 0

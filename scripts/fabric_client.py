@@ -909,6 +909,72 @@ class FabricClient:
         payload = {"updateDetails": datasource_updates}
         return self._make_request("POST", endpoint, json_data=payload)
     
+    def create_cloud_connection(self, connection_name: str, datasource_type: str, server: str, database: str, 
+                                privacy_level: str = "Organizational") -> Dict:
+        """
+        Create a shareable cloud connection for semantic models and paginated reports
+        
+        Args:
+            connection_name: Name for the connection
+            datasource_type: Type of data source (e.g., "Sql", "AnalysisServices")
+            server: Server address
+            database: Database name
+            privacy_level: Privacy level ("None", "Public", "Organizational", "Private")
+            
+        Returns:
+            Created connection details with gatewayId and datasourceId
+        """
+        logger.info(f"Creating shareable cloud connection: {connection_name}")
+        
+        # Use Power BI Gateway API to create cloud connection
+        endpoint = "/gateways"
+        
+        # Create datasource payload for SQL Server
+        datasource_payload = {
+            "datasourceName": connection_name,
+            "datasourceType": datasource_type,
+            "connectionDetails": json.dumps({
+                "server": server,
+                "database": database
+            }),
+            "credentialType": "OAuth2",
+            "credentialDetails": {
+                "credentials": json.dumps({
+                    "credentialData": []
+                }),
+                "encryptedConnection": "Encrypted",
+                "encryptionAlgorithm": "None",
+                "privacyLevel": privacy_level,
+                "useEndUserOAuth2Credentials": "True"
+            }
+        }
+        
+        return self._make_request("POST", endpoint, json_data=datasource_payload)
+    
+    def bind_to_cloud_connection(self, workspace_id: str, semantic_model_id: str, gateway_id: str, datasource_id: str) -> Dict:
+        """
+        Bind a semantic model to an existing shareable cloud connection
+        
+        Args:
+            workspace_id: Workspace GUID
+            semantic_model_id: Semantic model GUID
+            gateway_id: Gateway/connection cluster ID
+            datasource_id: Datasource ID within the gateway
+            
+        Returns:
+            Binding response
+        """
+        logger.info(f"Binding semantic model {semantic_model_id} to cloud connection {datasource_id}")
+        
+        # Use Power BI API to bind semantic model to gateway datasource
+        endpoint = f"/workspaces/{workspace_id}/datasets/{semantic_model_id}/Default.BindToGateway"
+        payload = {
+            "gatewayObjectId": gateway_id,
+            "datasourceObjectIds": [datasource_id]
+        }
+        
+        return self._make_request("POST", endpoint, json_data=payload)
+    
     # ==================== Power BI Report Operations ====================
     
     def list_reports(self, workspace_id: str) -> List[Dict]:
@@ -1019,17 +1085,21 @@ class FabricClient:
         """
         logger.info(f"Creating paginated report: {report_name}")
         
-        # Step 1: Create the paginated report item without definition
+        # Create the paginated report with definition
         payload = {
             "displayName": report_name
         }
+        
+        # Include definition if provided
+        if definition:
+            payload["definition"] = definition
         
         # Include folder if specified
         if folder_id:
             payload["folderId"] = folder_id
             logger.info(f"  Creating in folder: {folder_id}")
         
-        # Create the report item using Reports API
+        # Create the report item using Reports API with definition
         response = self._make_request("POST", f"/workspaces/{workspace_id}/reports", json_data=payload)
         
         # Check if it's an LRO
@@ -1058,15 +1128,6 @@ class FabricClient:
             logger.info(f"  ✓ Created paginated report (ID: {report_id})")
         else:
             raise Exception("Failed to get paginated report ID after creation")
-        
-        # Step 2: Update the definition if provided
-        if definition and report_id != 'unknown':
-            logger.info(f"  Updating paginated report definition...")
-            try:
-                self.update_paginated_report_definition(workspace_id, report_id, definition)
-                logger.info(f"  ✓ Paginated report definition updated")
-            except Exception as e:
-                logger.warning(f"  ⚠ Failed to update definition: {e}")
         
         return {"id": report_id}
     

@@ -1017,14 +1017,15 @@ class FabricDeployer:
                                 by_path = dataset_ref.get("byPath", {})
                                 path = by_path.get("path", "")
                                 
-                                # Parse semantic model name from path like "../../Semanticmodels/Finance Summary.SemanticModel"
+                                # Parse semantic model folder name from path like "../../Semanticmodels/Finance Summary.SemanticModel"
                                 if path and "Semanticmodels/" in path:
                                     model_folder_name = path.split("Semanticmodels/")[1]
                                     
-                                    # Look up the semantic model's actual ID from its .platform file
+                                    # Look up the semantic model's logicalId from its .platform file
                                     models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
                                     model_folder = models_dir / model_folder_name
                                     model_id = None
+                                    model_name = model_folder_name.replace(".SemanticModel", "")
                                     
                                     if model_folder.exists():
                                         model_platform_file = model_folder / ".platform"
@@ -1032,18 +1033,18 @@ class FabricDeployer:
                                             try:
                                                 with open(model_platform_file, 'r') as f:
                                                     model_platform = json.load(f)
-                                                model_id = model_platform.get("config", {}).get("logicalId")
-                                                model_name = model_platform.get("metadata", {}).get("displayName", model_folder_name.replace(".SemanticModel", ""))
+                                                # Use the same ID that was registered during semantic model discovery
+                                                model_id = model_platform.get("config", {}).get("logicalId", f"semanticmodel-{model_name}")
+                                                model_name = model_platform.get("metadata", {}).get("displayName", model_name)
                                             except Exception:
-                                                pass
-                                    
-                                    # Fallback to generated ID if logicalId not found
-                                    if not model_id:
-                                        model_name = model_folder_name.replace(".SemanticModel", "")
+                                                model_id = f"semanticmodel-{model_name}"
+                                        else:
+                                            model_id = f"semanticmodel-{model_name}"
+                                    else:
                                         model_id = f"semanticmodel-{model_name}"
                                     
                                     dependencies.append(model_id)
-                                    logger.debug(f"Report '{report_name}' depends on semantic model '{model_name}' (ID: {model_id})")
+                                    logger.debug(f"Report '{report_name}' depends on semantic model '{model_name}' (dep ID: {model_id})")
                             except Exception as e:
                                 logger.debug(f"Could not extract semantic model dependency: {e}")
                         
@@ -1228,17 +1229,17 @@ class FabricDeployer:
     
     def _transform_pbir_dataset_reference(self, pbir_content: bytes, dataset_id: str = None) -> bytes:
         """
-        Transform PBIR datasetReference from relative Git path to workspace path.
+        Transform PBIR datasetReference to use the actual semantic model ID from the workspace.
         
         In Fabric Git format, reports reference semantic models by relative path like:
         "../../Semanticmodels/Finance Summary.SemanticModel"
         
-        After deployment in the workspace with folder structure (Reports/ and Semanticmodels/),
-        we need to use the relative path: "../Semanticmodels/ModelName.SemanticModel"
+        We need to look up the semantic model by name in the target workspace and use its actual ID,
+        as IDs differ across environments (dev/uat/prod).
         
         Args:
             pbir_content: Original PBIR file content as bytes
-            dataset_id: The ID of the deployed semantic model (not used, kept for compatibility)
+            dataset_id: The ID of the deployed semantic model (optional, can be looked up)
             
         Returns:
             Transformed PBIR content as bytes
@@ -1257,11 +1258,37 @@ class FabricDeployer:
                 if match:
                     model_name = match.group(1)
                     
-                    # Use relative path from Reports folder to Semanticmodels folder
-                    # Reports are in "Reports/" folder, models are in "Semanticmodels/" folder
-                    pbir_data['datasetReference']['byPath']['path'] = f"../Semanticmodels/{model_name}.SemanticModel"
+                    # Look up the semantic model ID from the workspace
+                    if not dataset_id:
+                        try:
+                            semantic_models = self.client.list_semantic_models(self.workspace_id)
+                            model = next((m for m in semantic_models if m.get("displayName") == model_name), None)
+                            
+                            if model:
+                                dataset_id = model.get("id")
+                                logger.debug(f"    Found semantic model '{model_name}' in workspace (ID: {dataset_id})")
+                            else:
+                                logger.warning(f"    ⚠ Semantic model '{model_name}' not found in workspace, using byPath reference")
+                        except Exception as e:
+                            logger.warning(f"    ⚠ Could not look up semantic model '{model_name}': {e}")
                     
-                    logger.info(f"    ✓ Transformed dataset reference path for '{model_name}'")
+                    # Use byConnection with the actual workspace ID if found
+                    if dataset_id:
+                        pbir_data['datasetReference'] = {
+                            "byConnection": {
+                                "connectionString": None,
+                                "pbiServiceModelId": None,
+                                "pbiModelVirtualServerName": "sobe_wowvirtualserver",
+                                "pbiModelDatabaseName": dataset_id,
+                                "name": "EntityDataSource",
+                                "connectionType": "pbiServiceXmlaStyleLive"
+                            }
+                        }
+                        logger.info(f"    ✓ Using byConnection reference for '{model_name}' (ID: {dataset_id})")
+                    else:
+                        # Fallback to byPath with workspace path
+                        pbir_data['datasetReference']['byPath']['path'] = f"../Semanticmodels/{model_name}.SemanticModel"
+                        logger.info(f"    ✓ Using byPath reference for '{model_name}'")
                     
                     # Return updated PBIR as bytes
                     return json.dumps(pbir_data, indent=2).encode('utf-8')

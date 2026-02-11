@@ -1019,10 +1019,31 @@ class FabricDeployer:
                                 
                                 # Parse semantic model name from path like "../../Semanticmodels/Finance Summary.SemanticModel"
                                 if path and "Semanticmodels/" in path:
-                                    model_name = path.split("Semanticmodels/")[1].replace(".SemanticModel", "")
-                                    model_id = f"semanticmodel-{model_name}"
+                                    model_folder_name = path.split("Semanticmodels/")[1]
+                                    
+                                    # Look up the semantic model's actual ID from its .platform file
+                                    models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
+                                    model_folder = models_dir / model_folder_name
+                                    model_id = None
+                                    
+                                    if model_folder.exists():
+                                        model_platform_file = model_folder / ".platform"
+                                        if model_platform_file.exists():
+                                            try:
+                                                with open(model_platform_file, 'r') as f:
+                                                    model_platform = json.load(f)
+                                                model_id = model_platform.get("config", {}).get("logicalId")
+                                                model_name = model_platform.get("metadata", {}).get("displayName", model_folder_name.replace(".SemanticModel", ""))
+                                            except Exception:
+                                                pass
+                                    
+                                    # Fallback to generated ID if logicalId not found
+                                    if not model_id:
+                                        model_name = model_folder_name.replace(".SemanticModel", "")
+                                        model_id = f"semanticmodel-{model_name}"
+                                    
                                     dependencies.append(model_id)
-                                    logger.debug(f"Report '{report_name}' depends on semantic model '{model_name}'")
+                                    logger.debug(f"Report '{report_name}' depends on semantic model '{model_name}' (ID: {model_id})")
                             except Exception as e:
                                 logger.debug(f"Could not extract semantic model dependency: {e}")
                         

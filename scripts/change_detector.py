@@ -214,7 +214,7 @@ class ChangeDetector:
                     # This is actually a paginated report, not a regular report
                     # Reclassify it
                     artifact_type = "PaginatedReport"
-                    artifact_name = parts[2][:-17]  # Remove .PaginatedReport
+                    artifact_name = parts[2][:-(len(".PaginatedReport"))]  # Remove .PaginatedReport (16 chars)
                 
                 # Check for Git format folder for Variable Library
                 elif artifact_type == "VariableLibrary" and parts[2].endswith(".VariableLibrary"):

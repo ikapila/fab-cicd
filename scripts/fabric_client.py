@@ -977,53 +977,53 @@ class FabricClient:
     
     # ==================== Connection Operations ====================
     
-    def list_connections(self, workspace_id: str) -> List[Dict]:
+    def list_connections(self) -> List[Dict]:
         """
-        List all connections in a workspace
+        List all connections (tenant-scoped Fabric Connections API).
+        Endpoint: GET /v1/connections
         
-        Args:
-            workspace_id: Workspace GUID
-            
         Returns:
             List of connection dictionaries
         """
-        logger.info(f"Listing connections in workspace: {workspace_id}")
-        response = self._make_request("GET", f"/workspaces/{workspace_id}/connections")
+        logger.info(f"Listing connections via Fabric Connections API")
+        response = self._make_request("GET", "/connections")
         return response.get("value", [])
     
-    def get_connection(self, workspace_id: str, connection_id: str) -> Dict:
+    def get_connection(self, connection_id: str) -> Dict:
         """
-        Get connection details
+        Get connection details (tenant-scoped Fabric Connections API).
+        Endpoint: GET /v1/connections/{connectionId}
         
         Args:
-            workspace_id: Workspace GUID
             connection_id: Connection GUID
             
         Returns:
             Connection details dictionary
         """
         logger.info(f"Getting connection: {connection_id}")
-        return self._make_request("GET", f"/workspaces/{workspace_id}/connections/{connection_id}")
+        return self._make_request("GET", f"/connections/{connection_id}")
     
-    def create_connection(self, workspace_id: str, connection_payload: Dict) -> Dict:
+    def create_connection(self, connection_payload: Dict) -> Dict:
         """
-        Create a new connection in workspace using Fabric Connections API
+        Create a new connection using Fabric Connections API (tenant-scoped).
+        Endpoint: POST /v1/connections
+        
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/connections/create-connection
         
         Args:
-            workspace_id: Workspace GUID
             connection_payload: Connection configuration with:
-                - displayName: Connection name
                 - connectivityType: "ShareableCloud" for cloud connections
-                - connectionDetails: Connection-specific details (type, server, database)
-                - privacyLevel: "None", "Public", "Organizational", or "Private"
-                - credentialDetails: Authentication details with service principal
+                - displayName: Connection name
+                - connectionDetails: {type, parameters: {server, database}}
+                - privacyLevel: "Organizational", "Private", "Public", or "None"
+                - credentialDetails: {singleSignOnType, connectionEncryption, skipTestConnection, credentials}
                 
         Returns:
             Created connection details with connection ID
         """
         connection_name = connection_payload.get('displayName', 'Unknown')
         logger.info(f"Creating Fabric connection: {connection_name}")
-        return self._make_request("POST", f"/workspaces/{workspace_id}/connections", json_data=connection_payload)
+        return self._make_request("POST", "/connections", json_data=connection_payload)
     
     # ==================== Power BI Report Operations ====================
     

@@ -4161,8 +4161,8 @@ print('Notebook initialized')
             logger.info(f"  Server: {server}")
             logger.info(f"  Database: {database}")
             
-            # Check if connection already exists
-            existing_connections = self.client.list_connections(self.workspace_id)
+            # Check if connection already exists (tenant-scoped API)
+            existing_connections = self.client.list_connections()
             existing_connection = next((c for c in existing_connections 
                                        if c.get("displayName") == connection_name), None)
             
@@ -4172,9 +4172,10 @@ print('Notebook initialized')
                 return connection_id
             
             # Create new Fabric connection with service principal credentials
+            # Per: https://learn.microsoft.com/en-us/rest/api/fabric/core/connections/create-connection
             connection_payload = {
-                "displayName": connection_name,
                 "connectivityType": "ShareableCloud",
+                "displayName": connection_name,
                 "connectionDetails": {
                     "type": "SQL",
                     "parameters": {
@@ -4185,19 +4186,20 @@ print('Notebook initialized')
                 "privacyLevel": "Organizational",
                 "credentialDetails": {
                     "singleSignOnType": "None",
-                    "connectionEncryption": "Encrypted",
+                    "connectionEncryption": "NotEncrypted",
                     "skipTestConnection": False,
                     "credentials": {
                         "credentialType": "ServicePrincipal",
-                        "servicePrincipalObjectId": self.client.authenticator.client_id,
-                        # Service principal credentials will use the same SP used for API calls
+                        "servicePrincipalClientId": self.client.auth.client_id,
+                        "servicePrincipalSecret": self.client.auth.client_secret,
+                        "servicePrincipalTenantId": self.client.auth.tenant_id
                     }
                 }
             }
             
-            result = self.client.create_connection(self.workspace_id, connection_payload)
+            result = self.client.create_connection(connection_payload)
             connection_id = result.get('id')
-            logger.info(f"  ✓ Created shared connection for workspace (ID: {connection_id})")
+            logger.info(f"  ✓ Created shared connection (ID: {connection_id})")
             logger.info(f"    All semantic models will use this connection")
             
             return connection_id

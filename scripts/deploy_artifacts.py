@@ -3477,16 +3477,18 @@ print('Notebook initialized')
         self._apply_report_rebinding(name, report_id)
     
     def _deploy_paginated_report(self, name: str) -> None:
-        """Deploy a paginated report using Fabric Items API.
+        """Deploy a paginated report using delete + re-import strategy.
         
-        Strategy:
-        - For existing reports: delete and recreate with definition, or update definition
-        - For new reports: create item with definition
+        The Fabric Items API does NOT support Create, UpdateDefinition, or Delete
+        via the /paginatedReports endpoint for PaginatedReport items.
         
-        Uses the Fabric Items API (POST /items with definition, POST /items/{id}/updateDefinition)
-        with fallback strategies if certain operations are unsupported.
+        The only supported programmatic approach is:
+        - For existing reports: Delete via generic Items API, then re-import via Power BI Imports API
+        - For new reports: Import directly via Power BI Imports API
+        
+        The Power BI Imports API (POST api.powerbi.com/.../imports) is the Microsoft-recommended
+        way to deploy .rdl files programmatically.
         """
-        definition = None
         rdl_content = None
         report_folder = None
         found = False
@@ -3495,87 +3497,76 @@ print('Notebook initialized')
         report_file = self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports" / f"{name}.json"
         if report_file.exists():
             logger.info(f"  Reading paginated report from JSON: {report_file}")
-            with open(report_file, 'r') as f:
-                definition = json.load(f)
-            found = True
-        else:
-            # Try Fabric Git format in Reports/ or Paginatedreports/ folders
-            git_paths = [
-                self.artifacts_dir / self.artifacts_root_folder / "Reports",
-                self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports"
-            ]
-            
-            for base_path in git_paths:
-                if not base_path.exists():
-                    continue
-                    
-                # Look for *.PaginatedReport folders
-                for folder in base_path.glob("*.PaginatedReport"):
-                    platform_file = folder / ".platform"
-                    if not platform_file.exists():
-                        continue
-                        
-                    with open(platform_file, 'r') as f:
-                        platform_data = json.load(f)
-                    
-                    if platform_data.get("metadata", {}).get("displayName") == name:
-                        logger.info(f"  Reading paginated report from Fabric Git format: {folder}")
-                        
-                        # Get rebind rules for this report
-                        rebind_rule = self.config.get_rebind_rule_for_artifact("paginated_reports", name)
-                        
-                        # Read RDL content
-                        rdl_content, report_folder = self._read_paginated_report_git_format(folder, name)
-                        
-                        # Transform RDL if rebinding is enabled
-                        if rebind_rule and rebind_rule.get("enabled"):
-                            # Extract server and database from connections.sql_connection_string
-                            sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
-                            if sql_connection_string:
-                                import re
-                                # Parse server and database from connection string
-                                server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
-                                database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
-                                
-                                if server_match:
-                                    new_server = server_match.group(1)
-                                    new_database = database_match.group(1) if database_match else "reporting_gold"
-                                    
-                                    # Build the new connection string for RDL format
-                                    # RDL uses: Data Source=...; Initial Catalog=...; Encrypt=True; etc
-                                    new_connect_string = f"Data Source={new_server};Initial Catalog={new_database};Encrypt=True;Trust Server Certificate=True;Authentication=ActiveDirectoryInteractive"
-                                    
-                                    # Replace the ConnectString element content in RDL XML
-                                    # Pattern: <ConnectString>...</ConnectString>
-                                    connect_string_pattern = r'<ConnectString>.*?</ConnectString>'
-                                    rdl_content = re.sub(
-                                        connect_string_pattern,
-                                        f'<ConnectString>{new_connect_string}</ConnectString>',
-                                        rdl_content,
-                                        flags=re.DOTALL
-                                    )
-                                    logger.info(f"    ✓ Applied connection string transformation to '{new_server}' database '{new_database}'")
-                        
-                        found = True
-                        break
-                
-                if found:
-                    break
-        
-        if not found:
-            raise FileNotFoundError(f"Paginated report '{name}' not found in JSON or Fabric Git format")
-        
-        # For JSON format without RDL, we can't deploy
-        if not rdl_content:
+            # JSON format doesn't contain RDL content - can't deploy
             logger.warning(f"  ⚠ Paginated report '{name}' is in JSON format - deployment requires .rdl file")
-            logger.warning(f"  Paginated reports must use Fabric Git format (.PaginatedReport folder with .rdl file)")
+            logger.warning(f"  Use Fabric Git format (.PaginatedReport folder with .rdl file)")
             return
         
-        # Encode the RDL and supporting files as base64 definition parts
-        encoded_definition = self._encode_paginated_report_parts(report_folder, rdl_content)
-        logger.info(f"  Encoded {len(encoded_definition.get('parts', []))} definition parts")
+        # Try Fabric Git format in Reports/ or Paginatedreports/ folders
+        git_paths = [
+            self.artifacts_dir / self.artifacts_root_folder / "Reports",
+            self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports"
+        ]
         
-        # Check if report exists
+        for base_path in git_paths:
+            if not base_path.exists():
+                continue
+                
+            # Look for *.PaginatedReport folders
+            for folder in base_path.glob("*.PaginatedReport"):
+                platform_file = folder / ".platform"
+                if not platform_file.exists():
+                    continue
+                    
+                with open(platform_file, 'r') as f:
+                    platform_data = json.load(f)
+                
+                if platform_data.get("metadata", {}).get("displayName") == name:
+                    logger.info(f"  Reading paginated report from Fabric Git format: {folder}")
+                    
+                    # Get rebind rules for this report
+                    rebind_rule = self.config.get_rebind_rule_for_artifact("paginated_reports", name)
+                    
+                    # Read RDL content
+                    rdl_content, report_folder = self._read_paginated_report_git_format(folder, name)
+                    
+                    # Transform RDL if rebinding is enabled
+                    if rebind_rule and rebind_rule.get("enabled"):
+                        # Extract server and database from connections.sql_connection_string
+                        sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
+                        if sql_connection_string:
+                            import re
+                            # Parse server and database from connection string
+                            server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
+                            database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
+                            
+                            if server_match:
+                                new_server = server_match.group(1)
+                                new_database = database_match.group(1) if database_match else "reporting_gold"
+                                
+                                # Build the new connection string for RDL format
+                                new_connect_string = f"Data Source={new_server};Initial Catalog={new_database};Encrypt=True;Trust Server Certificate=True;Authentication=ActiveDirectoryInteractive"
+                                
+                                # Replace the ConnectString element content in RDL XML
+                                connect_string_pattern = r'<ConnectString>.*?</ConnectString>'
+                                rdl_content = re.sub(
+                                    connect_string_pattern,
+                                    f'<ConnectString>{new_connect_string}</ConnectString>',
+                                    rdl_content,
+                                    flags=re.DOTALL
+                                )
+                                logger.info(f"    ✓ Applied connection string transformation to '{new_server}' database '{new_database}'")
+                    
+                    found = True
+                    break
+            
+            if found:
+                break
+        
+        if not found:
+            raise FileNotFoundError(f"Paginated report '{name}' not found in Fabric Git format (.PaginatedReport folder)")
+        
+        # Check if report already exists
         existing = self.client.list_paginated_reports(self.workspace_id)
         existing_report = next((r for r in existing if r["displayName"] == name), None)
         
@@ -3583,73 +3574,22 @@ print('Notebook initialized')
             report_id = existing_report['id']
             logger.info(f"  Paginated report '{name}' already exists (ID: {report_id})")
             
-            # Strategy for existing reports:
-            # 1. Try updateDefinition first (preferred - no downtime)
-            # 2. If that fails, try delete + recreate with definition
-            try:
-                logger.info(f"  Attempting to update definition via Fabric Items API...")
-                self.client.update_paginated_report_definition(
-                    self.workspace_id, report_id, encoded_definition
-                )
-                logger.info(f"  ✓ Updated paginated report '{name}' via updateDefinition")
-                return
-            except Exception as update_err:
-                error_msg = str(update_err)
-                logger.warning(f"  ⚠ updateDefinition failed: {error_msg}")
-                logger.info(f"  Falling back to delete + recreate strategy...")
-                
-                # Delete existing report
-                try:
-                    self.client.delete_paginated_report(self.workspace_id, report_id)
-                    logger.info(f"  Deleted existing paginated report '{name}'")
-                    import time
-                    time.sleep(3)  # Brief pause after deletion
-                except Exception as del_err:
-                    logger.error(f"  ✗ Failed to delete existing report: {del_err}")
-                    raise
-                
-                # Fall through to create new report below
-                existing_report = None
+            # Delete existing report via generic Items API, then re-import
+            # This is the only supported approach - updateDefinition is NOT supported for PaginatedReport
+            logger.info(f"  Deleting existing report to re-import with updated definition...")
+            self.client.delete_paginated_report(self.workspace_id, report_id)
+            logger.info(f"  ✓ Deleted existing paginated report")
+            
+            import time
+            time.sleep(3)  # Brief pause after deletion
         
-        if not existing_report:
-            # Create new paginated report via Fabric Items API
-            # Strategy:
-            # 1. Try create with definition (preferred)
-            # 2. If that fails, try create empty then updateDefinition
-            try:
-                logger.info(f"  Creating paginated report via Fabric Items API with definition...")
-                result = self.client.create_paginated_report(
-                    self.workspace_id, name, definition=encoded_definition
-                )
-                report_id = result.get('id', 'unknown')
-                logger.info(f"  ✓ Created paginated report '{name}' (ID: {report_id})")
-                return
-            except Exception as create_def_err:
-                error_msg = str(create_def_err)
-                logger.warning(f"  ⚠ Create with definition failed: {error_msg}")
-                
-                # Try create empty then update definition
-                try:
-                    logger.info(f"  Trying create empty item then updateDefinition...")
-                    result = self.client.create_paginated_report(
-                        self.workspace_id, name
-                    )
-                    report_id = result.get('id', 'unknown')
-                    logger.info(f"  Created empty paginated report (ID: {report_id})")
-                    
-                    # Now update with the actual definition
-                    self.client.update_paginated_report_definition(
-                        self.workspace_id, report_id, encoded_definition
-                    )
-                    logger.info(f"  ✓ Created and updated paginated report '{name}' (ID: {report_id})")
-                    return
-                except Exception as create_empty_err:
-                    logger.error(f"  ✗ Create empty + updateDefinition also failed: {create_empty_err}")
-                    logger.error(f"  ✗ Failed to deploy paginated report '{name}'")
-                    logger.error(f"  Note: PaginatedReport creation via Fabric Items API may not be supported.")
-                    logger.error(f"  Consider manually creating the report in the workspace first,")
-                    logger.error(f"  then the pipeline will update it via updateDefinition on subsequent runs.")
-                    raise
+        # Import paginated report via Power BI Imports API (the only supported method)
+        logger.info(f"  Importing paginated report via Power BI Imports API...")
+        result = self.client.import_paginated_report(
+            self.workspace_id, name, rdl_content
+        )
+        report_id = result.get('id', 'unknown')
+        logger.info(f"  ✓ Deployed paginated report '{name}' (ID: {report_id})")
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

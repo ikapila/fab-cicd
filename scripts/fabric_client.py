@@ -1203,91 +1203,136 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/paginatedReports")
         return response.get("value", [])
     
-    def create_paginated_report(self, workspace_id: str, report_name: str, definition: Dict = None) -> Dict:
+    def import_paginated_report(self, workspace_id: str, report_name: str, rdl_content: str) -> Dict:
         """
-        Create a paginated report using the Fabric Items API.
+        Import a paginated report using the Power BI Imports API.
         
-        Attempts to create a PaginatedReport item via POST /items.
-        If a definition is provided, it will be included in the creation request.
+        The Fabric Items API does NOT support Create or UpdateDefinition for
+        PaginatedReport items. The Power BI Imports API is the only supported
+        method for programmatic paginated report deployment.
+        
+        Uses nameConflict=Abort (creates new only). For updates, delete the
+        existing report first via delete_paginated_report(), then re-import.
         
         Args:
             workspace_id: Workspace GUID
-            report_name: Display name for the report
-            definition: Optional definition dict with parts (base64-encoded .rdl, .platform)
+            report_name: Name for the report (without .rdl extension)
+            rdl_content: The RDL XML content as a string
             
         Returns:
-            Created item dict with 'id' field
+            Dict with 'id' and 'name' of the imported report
         """
-        logger.info(f"Creating paginated report via Fabric Items API: {report_name}")
+        import time
         
-        payload = {
-            "displayName": report_name,
-            "type": "PaginatedReport"
+        logger.info(f"Importing paginated report: {report_name}")
+        
+        # Power BI Imports API requires the .rdl extension in the display name
+        display_name = f"{report_name}.rdl"
+        
+        # Build the URL using Power BI API  
+        url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/imports"
+        params = {
+            "datasetDisplayName": display_name,
+            "nameConflict": "Abort"
         }
         
-        if definition:
-            payload["definition"] = definition
-            logger.info(f"  Including definition with {len(definition.get('parts', []))} parts")
+        # Prepare multipart/form-data with the RDL file
+        headers = self.auth.get_auth_headers()
+        # Remove Content-Type - requests will set it with the boundary for multipart
+        headers.pop("Content-Type", None)
         
-        result = self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
+        rdl_bytes = rdl_content.encode('utf-8')
+        files = {
+            'file': (display_name, rdl_bytes, 'application/xml')
+        }
         
-        # Handle LRO (202 Accepted)
-        if result.get("status_code") == 202 and result.get("operation_id"):
-            operation_id = result["operation_id"]
-            retry_after = result.get("retry_after", 5)
-            logger.info(f"  Item creation is async (operation: {operation_id}), polling...")
-            lro_result = self.wait_for_operation_completion(operation_id, retry_after=retry_after)
-            # After LRO completes, list items to find the created report
-            items = self.list_items(workspace_id, item_type="PaginatedReport")
-            created = next((i for i in items if i["displayName"] == report_name), None)
-            if created:
-                logger.info(f"  ✓ Created paginated report '{report_name}' (ID: {created['id']})")
-                return created
+        logger.info(f"  Uploading RDL file ({len(rdl_bytes)} bytes)")
+        
+        try:
+            response = requests.post(
+                url, headers=headers, params=params,
+                files=files, timeout=120
+            )
+            response.raise_for_status()
+            
+            result = response.json()
+            import_id = result.get("id")
+            import_state = result.get("importState", "Unknown")
+            
+            logger.info(f"  Import initiated (ID: {import_id}, State: {import_state})")
+            
+            # If import is not yet complete, poll for completion
+            if response.status_code == 202 or import_state not in ["Succeeded", "Failed"]:
+                result = self._poll_import_completion(workspace_id, import_id)
+            
+            # Extract report ID from the import result
+            reports = result.get("reports", [])
+            if reports:
+                report_id = reports[0].get("id", "unknown")
+                report_name_result = reports[0].get("name", report_name)
+                logger.info(f"  ✓ Paginated report imported successfully (ID: {report_id}, Name: {report_name_result})")
+                return {"id": report_id, "name": report_name_result}
             else:
-                logger.warning(f"  ⚠ LRO completed but report not found in workspace")
-                return lro_result
-        
-        item_id = result.get("id", "unknown")
-        logger.info(f"  ✓ Created paginated report '{report_name}' (ID: {item_id})")
-        return result
+                logger.warning(f"  ⚠ Import completed but no reports in result: {json.dumps(result, indent=2)}")
+                return {"id": "unknown"}
+                
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP Error importing paginated report: {e.response.status_code} - {e.response.text}")
+            try:
+                error_detail = e.response.json()
+                logger.error(f"Error details: {json.dumps(error_detail, indent=2)}")
+            except:
+                pass
+            raise
+        except Exception as e:
+            logger.error(f"Failed to import paginated report: {str(e)}")
+            raise
     
-    def update_paginated_report_definition(self, workspace_id: str, report_id: str, definition: Dict) -> Dict:
+    def _poll_import_completion(self, workspace_id: str, import_id: str, max_attempts: int = 30, retry_after: int = 5) -> Dict:
         """
-        Update the definition of a paginated report using the Fabric Items API.
-        
-        Uses POST /items/{itemId}/updateDefinition to upload .rdl content
-        as base64-encoded definition parts.
+        Poll the Power BI Imports API for import completion.
         
         Args:
             workspace_id: Workspace GUID
-            report_id: Paginated report GUID
-            definition: Definition dict with parts containing base64-encoded .rdl
+            import_id: The import ID to poll
+            max_attempts: Maximum number of polling attempts
+            retry_after: Seconds to wait between polls
             
         Returns:
-            Update response
+            The completed import result
         """
-        logger.info(f"Updating paginated report definition: {report_id}")
-        logger.info(f"  Definition has {len(definition.get('parts', []))} parts")
+        import time
         
-        for part in definition.get("parts", []):
-            logger.info(f"    Part: {part.get('path')} ({len(part.get('payload', ''))} chars base64)")
+        url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/imports/{import_id}"
+        headers = self.auth.get_auth_headers()
         
-        payload = {"definition": definition}
-        result = self._make_request(
-            "POST",
-            f"/workspaces/{workspace_id}/items/{report_id}/updateDefinition",
-            json_data=payload
-        )
+        logger.info(f"  Polling import {import_id} (retry every {retry_after}s, max {max_attempts} attempts)")
         
-        # Handle LRO (202 Accepted)
-        if result.get("status_code") == 202 and result.get("operation_id"):
-            operation_id = result["operation_id"]
-            retry_after = result.get("retry_after", 5)
-            logger.info(f"  Definition update is async (operation: {operation_id}), polling...")
-            self.wait_for_operation_completion(operation_id, retry_after=retry_after)
+        for attempt in range(1, max_attempts + 1):
+            time.sleep(retry_after)
+            
+            response = requests.get(url, headers=headers, timeout=60)
+            response.raise_for_status()
+            
+            result = response.json()
+            state = result.get("importState", "Unknown")
+            
+            logger.info(f"    Attempt {attempt}/{max_attempts}: {state}")
+            
+            if state == "Succeeded":
+                logger.info(f"  ✓ Import completed successfully")
+                return result
+            elif state == "Failed":
+                error = result.get("error", {})
+                error_msg = error.get("code", "Unknown error")
+                error_details = error.get("details", [])
+                logger.error(f"  ✗ Import failed: {error_msg}")
+                if error_details:
+                    for detail in error_details:
+                        logger.error(f"    - {detail.get('message', '')}")
+                raise RuntimeError(f"Import {import_id} failed: {error_msg}")
         
-        logger.info(f"  ✓ Updated paginated report definition")
-        return result
+        raise RuntimeError(f"Import {import_id} timed out after {max_attempts} attempts")
     
     def rebind_paginated_report_datasource(self, workspace_id: str, report_id: str, connection_details: Dict) -> Dict:
         """
@@ -1318,7 +1363,10 @@ class FabricClient:
     
     def delete_paginated_report(self, workspace_id: str, report_id: str) -> Dict:
         """
-        Delete a paginated report
+        Delete a paginated report using the generic Items API.
+        
+        Note: The PaginatedReport-specific endpoint (DELETE /paginatedReports/{id})
+        returns OperationNotSupportedForItem. Must use the generic Items API instead.
         
         Args:
             workspace_id: Workspace GUID
@@ -1328,7 +1376,8 @@ class FabricClient:
             Delete response
         """
         logger.info(f"Deleting paginated report: {report_id}")
-        endpoint = f"/workspaces/{workspace_id}/paginatedReports/{report_id}"
+        # Use generic Items API - the /paginatedReports/ endpoint does NOT support delete
+        endpoint = f"/workspaces/{workspace_id}/items/{report_id}"
         return self._make_request("DELETE", endpoint)
     
     # ==================== Variable Library Operations ===================

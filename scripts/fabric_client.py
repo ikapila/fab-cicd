@@ -975,6 +975,31 @@ class FabricClient:
         
         return self._make_request("POST", endpoint, json_data=payload)
     
+    def bind_semantic_model_to_connection(self, workspace_id: str, semantic_model_id: str, connection_id: str) -> Dict:
+        """
+        Bind a semantic model to a Fabric connection (no gateway required).
+        Uses PATCH /v1/workspaces/{workspaceId}/items/{itemId}/connections
+        to assign a Fabric connection directly to the semantic model.
+        
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/items/update-item-connections
+        
+        Args:
+            workspace_id: Workspace GUID
+            semantic_model_id: Semantic model GUID
+            connection_id: Fabric connection GUID (from /v1/connections)
+            
+        Returns:
+            Response from the API
+        """
+        logger.info(f"Binding semantic model {semantic_model_id} to Fabric connection {connection_id}")
+        
+        endpoint = f"/workspaces/{workspace_id}/items/{semantic_model_id}/connections"
+        payload = {
+            "connectionId": connection_id
+        }
+        
+        return self._make_request("PATCH", endpoint, json_data=payload)
+    
     # ==================== Connection Operations ====================
     
     def list_connections(self) -> List[Dict]:

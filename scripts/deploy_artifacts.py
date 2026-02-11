@@ -4123,64 +4123,86 @@ print('Notebook initialized')
         
         return transformed_content
     
-    def _get_semantic_model_connection_id(self) -> Optional[str]:
+    def _get_semantic_model_connection(self) -> Optional[Dict]:
         """
-        Get the pre-created Fabric connection ID for semantic models from environment config.
+        Look up the Fabric connection for semantic models by name.
         
-        The connection must be created manually in the Fabric portal (requires capacity admin),
-        then its ID is stored in the environment config file under:
-            connections.semantic_model_connection_id
+        The connection name is configured in the environment config file under:
+            connections.semantic_model_connection
+        
+        The connection must be created manually in the Fabric portal first,
+        then its display name is set in config/{env}.json.
         
         Returns:
-            Connection ID (GUID) or None if not configured
+            Connection dict with 'id' and 'displayName', or None if not found
         """
-        connection_id = self.config.config.get("connections", {}).get("semantic_model_connection_id", "")
+        connection_name = self.config.config.get("connections", {}).get("semantic_model_connection", "")
         
-        if not connection_id or connection_id == "00000000-0000-0000-0000-000000000000":
-            logger.debug("  No semantic_model_connection_id configured (or placeholder value)")
+        if not connection_name:
+            logger.debug("  No semantic_model_connection name configured")
             return None
         
-        logger.info(f"  Using configured connection ID: {connection_id}")
-        return connection_id
+        logger.info(f"  Looking up Fabric connection: '{connection_name}'")
+        
+        try:
+            connections = self.client.list_connections()
+            match = next((c for c in connections if c.get("displayName") == connection_name), None)
+            
+            if match:
+                logger.info(f"  ✓ Found connection '{connection_name}' (ID: {match['id']})")
+                return match
+            else:
+                logger.warning(f"  ⚠ Connection '{connection_name}' not found in Fabric")
+                logger.warning(f"    Create it manually in Fabric portal, then re-run deployment")
+                return None
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not list connections: {e}")
+            return None
     
     def _configure_shareable_cloud_connection(self, model_name: str, model_id: str) -> None:
         """
-        Bind semantic model datasources to the pre-created Fabric connection
-        configured in the environment config file (connections.semantic_model_connection_id).
+        Bind semantic model to a pre-created Fabric connection (no gateway required).
+        
+        Looks up the connection by name from connections.semantic_model_connection
+        in the environment config file, then binds the semantic model to it.
         
         The connection must be created manually in the Fabric portal before deployment.
-        Set the connection ID in config/{env}.json under connections.semantic_model_connection_id.
         
         Args:
             model_name: Name of the semantic model
             model_id: Semantic model GUID
         """
         try:
-            # Get configured connection ID (cached per deployment)
-            if not hasattr(self, '_semantic_model_connection_id'):
-                self._semantic_model_connection_id = self._get_semantic_model_connection_id()
+            # Look up the connection (cached per deployment)
+            if not hasattr(self, '_semantic_model_connection'):
+                self._semantic_model_connection = self._get_semantic_model_connection()
             
-            if not self._semantic_model_connection_id:
-                logger.info(f"  ℹ No semantic_model_connection_id configured for '{model_name}'")
-                logger.info(f"    Set connections.semantic_model_connection_id in config/{self.config.environment}.json")
+            if not self._semantic_model_connection:
+                connection_name = self.config.config.get("connections", {}).get("semantic_model_connection", "")
+                if connection_name:
+                    logger.warning(f"  ⚠ Connection '{connection_name}' not found for '{model_name}'")
+                else:
+                    logger.info(f"  ℹ No semantic_model_connection configured for '{model_name}'")
+                    logger.info(f"    Set connections.semantic_model_connection in config/{self.config.environment}.json")
                 return
             
-            logger.info(f"  Binding '{model_name}' to connection {self._semantic_model_connection_id}...")
+            connection_id = self._semantic_model_connection['id']
+            connection_name = self._semantic_model_connection['displayName']
             
-            # Bind the semantic model to the configured connection using BindToGateway API
-            # For Fabric connections, the connection ID is used as both gatewayObjectId and datasourceObjectId
+            logger.info(f"  Binding '{model_name}' to Fabric connection '{connection_name}'...")
+            
+            # Use the Fabric Connections API to bind the connection to the semantic model
+            # No gateway required - this is a direct Fabric connection within the same tenant
             try:
-                self.client.bind_to_cloud_connection(
+                self.client.bind_semantic_model_to_connection(
                     self.workspace_id,
                     model_id,
-                    gateway_id=self._semantic_model_connection_id,
-                    datasource_id=self._semantic_model_connection_id
+                    connection_id
                 )
-                logger.info(f"  ✓ Bound '{model_name}' to connection {self._semantic_model_connection_id}")
+                logger.info(f"  ✓ Bound '{model_name}' to connection '{connection_name}'")
             except Exception as bind_err:
-                # Binding may fail if model hasn't been refreshed yet - that's OK
-                logger.info(f"  ℹ Could not bind '{model_name}' datasources: {bind_err}")
-                logger.info(f"    Connection can be assigned manually in semantic model settings")
+                logger.info(f"  ℹ Could not bind '{model_name}' to connection: {bind_err}")
+                logger.info(f"    Assign connection '{connection_name}' manually in semantic model settings")
             
         except Exception as e:
             logger.warning(f"  ⚠ Could not configure connection for '{model_name}': {e}")

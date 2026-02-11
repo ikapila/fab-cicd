@@ -1,1541 +1,539 @@
-2026-02-11T18:39:57.3322108Z ##[section]Starting: Deploy to Production Workspace (Change Detection Enabled)
-2026-02-11T18:39:57.3330732Z ==============================================================================
-2026-02-11T18:39:57.3330927Z Task         : Command line
-2026-02-11T18:39:57.3331043Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-02-11T18:39:57.3331236Z Version      : 2.268.0
-2026-02-11T18:39:57.3331344Z Author       : Microsoft Corporation
-2026-02-11T18:39:57.3331469Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-02-11T18:39:57.3331629Z ==============================================================================
-2026-02-11T18:39:57.4830077Z Generating script.
-2026-02-11T18:39:57.4844496Z ========================== Starting Command Output ===========================
-2026-02-11T18:39:57.4855044Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/8bd28892-af9b-461e-a034-6a413cbd8124.sh
-2026-02-11T18:39:57.4912584Z ========================================
-2026-02-11T18:39:57.4915061Z DEBUG: Verifying Repository Checkout
-2026-02-11T18:39:57.4915387Z ========================================
-2026-02-11T18:39:57.4920938Z Current directory: /home/vsts/work/1/s
-2026-02-11T18:39:57.4929368Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-02-11T18:39:57.4929504Z 
-2026-02-11T18:39:57.4929777Z Contents of Build.SourcesDirectory:
-2026-02-11T18:39:57.4939647Z total 40
-2026-02-11T18:39:57.4940947Z drwxr-xr-x 8 vsts vsts 4096 Feb 11 18:39 .
-2026-02-11T18:39:57.4941594Z drwxr-xr-x 7 vsts vsts 4096 Feb 11 18:39 ..
-2026-02-11T18:39:57.4943804Z drwxr-xr-x 2 vsts vsts 4096 Feb 11 18:39 .deployment_tracking
-2026-02-11T18:39:57.4944490Z drwxr-xr-x 7 vsts vsts 4096 Feb 11 18:39 .git
-2026-02-11T18:39:57.4948337Z -rw-r--r-- 1 vsts vsts   44 Feb 11 18:39 .gitignore
-2026-02-11T18:39:57.4949132Z -rw-r--r-- 1 vsts vsts  985 Feb 11 18:39 README.md
-2026-02-11T18:39:57.4951837Z drwxr-xr-x 2 vsts vsts 4096 Feb 11 18:39 azure-pipelines
-2026-02-11T18:39:57.4952186Z drwxr-xr-x 2 vsts vsts 4096 Feb 11 18:39 config
-2026-02-11T18:39:57.4952513Z drwxr-xr-x 2 vsts vsts 4096 Feb 11 18:39 scripts
-2026-02-11T18:39:57.4952950Z drwxr-xr-x 8 vsts vsts 4096 Feb 11 18:39 wsartifacts
-2026-02-11T18:39:57.4953097Z 
-2026-02-11T18:39:57.4953358Z Checking for required folders:
-2026-02-11T18:39:57.4953872Z ✓ scripts/ exists
-2026-02-11T18:39:57.4954373Z ✓ config/ exists
-2026-02-11T18:39:57.4954697Z ✓ wsartifacts/ exists
-2026-02-11T18:39:57.4954986Z ========================================
-2026-02-11T18:39:57.4955289Z ========================================
-2026-02-11T18:39:57.4955578Z Deploying to Production Environment
-2026-02-11T18:39:57.4955867Z ========================================
-2026-02-11T18:39:57.4956123Z Features:
-2026-02-11T18:39:57.4956525Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-02-11T18:39:57.4956929Z   📊 Dependency-aware deployment ordering
-2026-02-11T18:39:57.4957337Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-02-11T18:39:57.4957480Z 
-2026-02-11T18:39:57.4957716Z Deployment steps:
-2026-02-11T18:39:57.4957978Z   1. Create artifacts from config file
-2026-02-11T18:39:57.4958267Z   2. Detect changed artifacts using Git diff
-2026-02-11T18:39:57.4958574Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-02-11T18:39:57.4958880Z ========================================
-2026-02-11T18:39:58.2633308Z INFO:__main__:Initializing deployment to prod environment
-2026-02-11T18:39:58.2636420Z INFO:config_manager:Loading configuration from: config/prod.json
-2026-02-11T18:39:58.2637082Z INFO:__main__:Using environment-specific service principal for prod
-2026-02-11T18:39:58.2638805Z INFO:fabric_auth:Using environment-specific secret from: AZURE_CLIENT_SECRET_PROD
-2026-02-11T18:39:58.2639489Z INFO:__main__:Using artifacts root folder: wsartifacts
-2026-02-11T18:39:58.2641252Z INFO:fabric_auth:Using Service Principal authentication (Client ID: ec81f59c-d725-449d-8b8a-922a926457ed)
-2026-02-11T18:39:58.2646511Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/v2.0/.well-known/openid-configuration'
-2026-02-11T18:39:58.2648303Z Request method: 'GET'
-2026-02-11T18:39:58.2650323Z Request headers:
-2026-02-11T18:39:58.2651354Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2026-02-11T18:39:58.2652195Z No body was attached to the request
-2026-02-11T18:39:58.3524615Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2026-02-11T18:39:58.3525470Z Response headers:
-2026-02-11T18:39:58.3526079Z     'Cache-Control': 'max-age=86400, private'
-2026-02-11T18:39:58.3526592Z     'Content-Type': 'application/json; charset=utf-8'
-2026-02-11T18:39:58.3526931Z     'Strict-Transport-Security': 'REDACTED'
-2026-02-11T18:39:58.3527259Z     'X-Content-Type-Options': 'REDACTED'
-2026-02-11T18:39:58.3527557Z     'Access-Control-Allow-Origin': 'REDACTED'
-2026-02-11T18:39:58.3527859Z     'Access-Control-Allow-Methods': 'REDACTED'
-2026-02-11T18:39:58.3528122Z     'P3P': 'REDACTED'
-2026-02-11T18:39:58.3528404Z     'x-ms-request-id': 'd51a7b73-6f4d-44f4-9062-89913bd12500'
-2026-02-11T18:39:58.3528695Z     'x-ms-ests-server': 'REDACTED'
-2026-02-11T18:39:58.3528965Z     'x-ms-srs': 'REDACTED'
-2026-02-11T18:39:58.3529249Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2026-02-11T18:39:58.3529535Z     'X-XSS-Protection': 'REDACTED'
-2026-02-11T18:39:58.3529795Z     'Set-Cookie': 'REDACTED'
-2026-02-11T18:39:58.3530077Z     'Date': 'Wed, 11 Feb 2026 18:39:57 GMT'
-2026-02-11T18:39:58.3530351Z     'Content-Length': '1964'
-2026-02-11T18:39:58.4303867Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
-2026-02-11T18:39:58.4306267Z Request method: 'POST'
-2026-02-11T18:39:58.4306571Z Request headers:
-2026-02-11T18:39:58.4306901Z     'Content-Type': 'application/x-www-form-urlencoded'
-2026-02-11T18:39:58.4307226Z     'Accept': 'application/json'
-2026-02-11T18:39:58.4307530Z     'x-client-sku': 'REDACTED'
-2026-02-11T18:39:58.4307822Z     'x-client-ver': 'REDACTED'
-2026-02-11T18:39:58.4308106Z     'x-client-os': 'REDACTED'
-2026-02-11T18:39:58.4308387Z     'x-ms-lib-capability': 'REDACTED'
-2026-02-11T18:39:58.4308894Z     'client-request-id': 'REDACTED'
-2026-02-11T18:39:58.4309200Z     'x-client-current-telemetry': 'REDACTED'
-2026-02-11T18:39:58.4309518Z     'x-client-last-telemetry': 'REDACTED'
-2026-02-11T18:39:58.4309928Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2026-02-11T18:39:58.4310339Z A body is sent with the request
-2026-02-11T18:39:58.5368123Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2026-02-11T18:39:58.5370378Z Response headers:
-2026-02-11T18:39:58.5370952Z     'Cache-Control': 'no-store, no-cache'
-2026-02-11T18:39:58.5371275Z     'Pragma': 'no-cache'
-2026-02-11T18:39:58.5371607Z     'Content-Type': 'application/json; charset=utf-8'
-2026-02-11T18:39:58.5371949Z     'Expires': '-1'
-2026-02-11T18:39:58.5372290Z     'Strict-Transport-Security': 'REDACTED'
-2026-02-11T18:39:58.5372606Z     'X-Content-Type-Options': 'REDACTED'
-2026-02-11T18:39:58.5372950Z     'P3P': 'REDACTED'
-2026-02-11T18:39:58.5373281Z     'client-request-id': 'REDACTED'
-2026-02-11T18:39:58.5373637Z     'x-ms-request-id': '14bc3f98-c334-4ef2-88f8-c11b17e72700'
-2026-02-11T18:39:58.5374041Z     'x-ms-ests-server': 'REDACTED'
-2026-02-11T18:39:58.5374375Z     'x-ms-clitelem': 'REDACTED'
-2026-02-11T18:39:58.5374698Z     'x-ms-srs': 'REDACTED'
-2026-02-11T18:39:58.5375045Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2026-02-11T18:39:58.5375338Z     'X-XSS-Protection': 'REDACTED'
-2026-02-11T18:39:58.5375620Z     'Set-Cookie': 'REDACTED'
-2026-02-11T18:39:58.5375923Z     'Date': 'Wed, 11 Feb 2026 18:39:57 GMT'
-2026-02-11T18:39:58.5376463Z     'Content-Length': '1696'
-2026-02-11T18:39:58.5378689Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
-2026-02-11T18:39:58.5380652Z INFO:fabric_auth:Successfully obtained access token
-2026-02-11T18:39:58.6891004Z INFO:fabric_auth:Authentication validation successful
-2026-02-11T18:39:58.6898342Z INFO:__main__:Target workspace: AAG-SIT-FWS-REPORTING-01 (68c48a5c-8b88-4559-962d-5dc7f29ab96a)
-2026-02-11T18:39:58.6900427Z INFO:__main__:Running in artifact creation mode
-2026-02-11T18:39:58.6901314Z INFO:__main__:============================================================
-2026-02-11T18:39:58.6902003Z INFO:__main__:Creating artifacts from configuration for prod
-2026-02-11T18:39:58.6904931Z INFO:__main__:============================================================
-2026-02-11T18:39:58.6905305Z INFO:__main__:No artifacts configured for creation
-2026-02-11T18:39:58.6905632Z INFO:__main__:Artifact creation completed successfully
-2026-02-11T18:39:58.6905986Z INFO:__main__:============================================================
-2026-02-11T18:39:58.6906317Z INFO:__main__:ARTIFACT DISCOVERY PHASE
-2026-02-11T18:39:58.6906629Z INFO:__main__:============================================================
-2026-02-11T18:39:58.6907003Z INFO:__main__:Discovering artifacts from file system...
-2026-02-11T18:39:58.6913749Z INFO:__main__:Discovered 1 lakehouse(s): ReportingLakehouse
-2026-02-11T18:39:58.6922059Z INFO:__main__:Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
-2026-02-11T18:39:58.6926196Z INFO:__main__:Discovered 1 Variable Library: ReportingVariables
-2026-02-11T18:39:58.6927813Z INFO:__main__:Discovered 2 semantic model(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
-2026-02-11T18:39:58.6934588Z INFO:__main__:Discovered 2 report(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
-2026-02-11T18:39:58.6936165Z INFO:__main__:Discovered 1 paginated report(s): Aged Debtors (Fabric Git)
-2026-02-11T18:39:58.6943090Z INFO:__main__:============================================================
-2026-02-11T18:39:58.6943729Z INFO:__main__:DISCOVERY COMPLETE: Found 17 total artifacts
-2026-02-11T18:39:58.6945689Z INFO:__main__:============================================================
-2026-02-11T18:39:58.6945976Z INFO:__main__:
-2026-02-11T18:39:58.6946253Z ============================================================
-2026-02-11T18:39:58.6946770Z INFO:__main__:CHANGE DETECTION
-2026-02-11T18:39:58.6947097Z INFO:__main__:============================================================
-2026-02-11T18:39:58.7008158Z INFO:change_detector:Found 70 changed file(s) since 6a96eb77
-2026-02-11T18:39:58.7009651Z INFO:change_detector:Configuration file changed: config/prod.json
-2026-02-11T18:39:58.7011595Z INFO:change_detector:Configuration files changed, deploying all artifacts
-2026-02-11T18:39:58.7012284Z INFO:__main__:Deploying all discovered artifacts
-2026-02-11T18:39:58.7012879Z INFO:__main__:============================================================
-2026-02-11T18:39:58.7013469Z INFO:__main__:Starting deployment to prod environment
-2026-02-11T18:39:58.7014799Z INFO:__main__:============================================================
-2026-02-11T18:39:58.7016092Z INFO:dependency_resolver:✅ All dependencies are valid
-2026-02-11T18:39:58.7016490Z INFO:dependency_resolver:Deployment order determined:
-2026-02-11T18:39:58.7025308Z INFO:dependency_resolver:  1. ReportingVariables (VariableLibrary)
-2026-02-11T18:39:58.7026251Z INFO:dependency_resolver:  2. ReportingLakehouse (Lakehouse)
-2026-02-11T18:39:58.7027046Z INFO:dependency_resolver:  3. 00_AlterByDataEngineeringOnly (SqlView)
-2026-02-11T18:39:58.7027751Z INFO:dependency_resolver:  4. 01_Base_Views (SqlView)
-2026-02-11T18:39:58.7028339Z INFO:dependency_resolver:  5. 02_Reporting_Views (SqlView)
-2026-02-11T18:39:58.7028666Z INFO:dependency_resolver:  6. Welcome (SemanticModel)
-2026-02-11T18:39:58.7028993Z INFO:dependency_resolver:  7. Finance Summary (SemanticModel)
-2026-02-11T18:39:58.7029467Z INFO:dependency_resolver:  8. Notebook 5 (Notebook)
-2026-02-11T18:39:58.7029786Z INFO:dependency_resolver:  9. nb_sample_artifact_creation (Notebook)
-2026-02-11T18:39:58.7030107Z INFO:dependency_resolver:  10. Notebook 3 (Notebook)
-2026-02-11T18:39:58.7030406Z INFO:dependency_resolver:  11. NBT1 (Notebook)
-2026-02-11T18:39:58.7033616Z INFO:dependency_resolver:  12. Notebook 7 (Notebook)
-2026-02-11T18:39:58.7033978Z INFO:dependency_resolver:  13. NBT2 (Notebook)
-2026-02-11T18:39:58.7034315Z INFO:dependency_resolver:  14. Notebook 6 (Notebook)
-2026-02-11T18:39:58.7034649Z INFO:dependency_resolver:  15. Welcome (Report)
-2026-02-11T18:39:58.7034987Z INFO:dependency_resolver:  16. Finance Summary (Report)
-2026-02-11T18:39:58.7035351Z INFO:dependency_resolver:  17. Aged Debtors (PaginatedReport)
-2026-02-11T18:39:58.7035656Z INFO:__main__:
-2026-02-11T18:39:58.7035956Z Deploying: ReportingVariables (VariableLibrary)
-2026-02-11T18:39:58.7036332Z INFO:__main__:  Reading variable library definition from folder: ReportingVariables.VariableLibrary/
-2026-02-11T18:39:58.7036723Z INFO:__main__:  Using .platform file (Git format v2)
-2026-02-11T18:39:58.7037064Z INFO:__main__:  Found valueSets folder - reading Git format structure
-2026-02-11T18:39:58.7037398Z INFO:__main__:  Reading variables.json...
-2026-02-11T18:39:58.7037925Z INFO:__main__:    ✓ Loaded 4 base variable definitions
-2026-02-11T18:39:58.7038262Z INFO:__main__:  Reading settings.json...
-2026-02-11T18:39:58.7038715Z INFO:__main__:    ✓ Loaded valueSetsOrder: ['dev', 'uat', 'prod']
-2026-02-11T18:39:58.7041355Z INFO:__main__:  Available value sets: uat.json, prod.json, dev.json
-2026-02-11T18:39:58.7042007Z INFO:__main__:  Reading value set: uat.json
-2026-02-11T18:39:58.7043614Z INFO:__main__:    ✓ Loaded 4 variable override(s) from 'uat' set
-2026-02-11T18:39:58.7044517Z INFO:__main__:  Reading value set: prod.json
-2026-02-11T18:39:58.7045372Z INFO:__main__:    ✓ Loaded 4 variable override(s) from 'prod' set
-2026-02-11T18:39:58.7045968Z INFO:__main__:  Reading value set: dev.json
-2026-02-11T18:39:58.7047603Z INFO:__main__:    ✓ Loaded 2 variable override(s) from 'dev' set
-2026-02-11T18:39:58.7047950Z INFO:__main__:  Total value sets to deploy: 3
-2026-02-11T18:39:58.7048272Z INFO:__main__:  Total base variables: 4
-2026-02-11T18:39:58.7048635Z INFO:__main__:  NOTE: All value sets will be deployed. You can switch between them in the Fabric UI.
-2026-02-11T18:39:58.7049232Z INFO:fabric_client:Listing Variable Libraries in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:39:58.9161107Z INFO:__main__:  Variable Library 'ReportingVariables' already exists, updating...
-2026-02-11T18:39:58.9163639Z INFO:__main__:  Deploying base variables (4) + 3 value sets + settings...
-2026-02-11T18:39:58.9164447Z INFO:__main__:  DEBUG: variables.json content:
-2026-02-11T18:39:58.9165208Z {
-2026-02-11T18:39:58.9165728Z   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/variables/1.0.0/schema.json",
-2026-02-11T18:39:58.9166067Z   "variables": [
-2026-02-11T18:39:58.9166300Z     {
-2026-02-11T18:39:58.9166523Z       "name": "environment",
-2026-02-11T18:39:58.9166767Z       "note": "x",
-2026-02-11T18:39:58.9167010Z       "type": "String",
-2026-02-11T18:39:58.9167254Z       "value": "dev"
-2026-02-11T18:39:58.9167486Z     },
-2026-02-11T18:39:58.9167710Z     {
-2026-02-11T18:39:58.9167973Z       "name": "reporting_worskpace_id",
-2026-02-11T18:39:58.9168240Z       "note": "x",
-2026-02-11T18:39:58.9168486Z       "type": "String",
-2026-02-11T18:39:58.9168764Z       "value": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb64"
-2026-02-11T18:39:58.9169034Z     },
-2026-02-11T18:39:58.9169248Z     {
-2026-02-11T18:39:58.9169481Z       "name": "engineering_workspace_id",
-2026-02-11T18:39:58.9169765Z       "note": "x",
-2026-02-11T18:39:58.9170017Z       "type": "String",
-2026-02-11T18:39:58.9170293Z       "value": "73079d7b-e1ff-4b80-8cc8-47e9c153d414"
-2026-02-11T18:39:58.9170760Z     },
-2026-02-11T18:39:58.9170991Z     {
-2026-02-11T18:39:58.9171443Z       "name": "gold_lakehouse",
-2026-02-11T18:39:58.9171694Z       "note": "x",
-2026-02-11T18:39:58.9171931Z       "type": "String",
-2026-02-11T18:39:58.9172211Z       "value": "a5324796-c240-448e-97cf-e944179b90eb"
-2026-02-11T18:39:58.9172473Z     }
-2026-02-11T18:39:58.9172692Z   ]
-2026-02-11T18:39:58.9172922Z }
-2026-02-11T18:39:58.9191071Z INFO:__main__:  DEBUG: valueSets/uat.json content:
-2026-02-11T18:39:58.9191364Z {
-2026-02-11T18:39:58.9191680Z   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
-2026-02-11T18:39:58.9192011Z   "name": "uat",
-2026-02-11T18:39:58.9192264Z   "variableOverrides": [
-2026-02-11T18:39:58.9192491Z     {
-2026-02-11T18:39:58.9192729Z       "name": "environment",
-2026-02-11T18:39:58.9192966Z       "value": "uat"
-2026-02-11T18:39:58.9193187Z     },
-2026-02-11T18:39:58.9193399Z     {
-2026-02-11T18:39:58.9193637Z       "name": "reporting_worskpace_id",
-2026-02-11T18:39:58.9193912Z       "value": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb6x"
-2026-02-11T18:39:58.9194181Z     },
-2026-02-11T18:39:58.9194389Z     {
-2026-02-11T18:39:58.9194628Z       "name": "engineering_workspace_id",
-2026-02-11T18:39:58.9194906Z       "value": "73079d7b-e1ff-4b80-8cc8-47e9c153d41x"
-2026-02-11T18:39:58.9195152Z     },
-2026-02-11T18:39:58.9195360Z     {
-2026-02-11T18:39:58.9195644Z       "name": "gold_lakehouse",
-2026-02-11T18:39:58.9195918Z       "value": "a5324796-c240-448e-97cf-e944179b90exx"
-2026-02-11T18:39:58.9196165Z     }
-2026-02-11T18:39:58.9196372Z   ]
-2026-02-11T18:39:58.9196582Z }
-2026-02-11T18:39:58.9196851Z INFO:__main__:  DEBUG: valueSets/prod.json content:
-2026-02-11T18:39:58.9197194Z {
-2026-02-11T18:39:58.9197548Z   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
-2026-02-11T18:39:58.9197975Z   "name": "prod",
-2026-02-11T18:39:58.9198235Z   "variableOverrides": [
-2026-02-11T18:39:58.9198478Z     {
-2026-02-11T18:39:58.9198723Z       "name": "environment",
-2026-02-11T18:39:58.9198987Z       "value": "prod"
-2026-02-11T18:39:58.9199223Z     },
-2026-02-11T18:39:58.9199455Z     {
-2026-02-11T18:39:58.9199710Z       "name": "reporting_worskpace_id",
-2026-02-11T18:39:58.9200012Z       "value": "68c48a5c-8b88-4559-962d-5dc7f29ab96a"
-2026-02-11T18:39:58.9200278Z     },
-2026-02-11T18:39:58.9200739Z     {
-2026-02-11T18:39:58.9201006Z       "name": "engineering_workspace_id",
-2026-02-11T18:39:58.9201468Z       "value": "9fb8885f-d2af-4605-a451-24d7a6253172"
-2026-02-11T18:39:58.9201736Z     },
-2026-02-11T18:39:58.9201960Z     {
-2026-02-11T18:39:58.9202210Z       "name": "gold_lakehouse",
-2026-02-11T18:39:58.9202504Z       "value": "76bf3aeb-c0f0-4ce7-b7b3-578178e0c2e4"
-2026-02-11T18:39:58.9202770Z     }
-2026-02-11T18:39:58.9203004Z   ]
-2026-02-11T18:39:58.9203231Z }
-2026-02-11T18:39:58.9203508Z INFO:__main__:  DEBUG: valueSets/dev.json content:
-2026-02-11T18:39:58.9203783Z {
-2026-02-11T18:39:58.9204115Z   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/valueSet/1.0.0/schema.json",
-2026-02-11T18:39:58.9204467Z   "name": "dev",
-2026-02-11T18:39:58.9204724Z   "variableOverrides": [
-2026-02-11T18:39:58.9204969Z     {
-2026-02-11T18:39:58.9205215Z       "name": "reporting_worskpace_id",
-2026-02-11T18:39:58.9205513Z       "value": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb64"
-2026-02-11T18:39:58.9205785Z     },
-2026-02-11T18:39:58.9206024Z     {
-2026-02-11T18:39:58.9206280Z       "name": "engineering_workspace_id",
-2026-02-11T18:39:58.9206587Z       "value": "73079d7b-e1ff-4b80-8cc8-47e9c153d414"
-2026-02-11T18:39:58.9206848Z     }
-2026-02-11T18:39:58.9207065Z   ]
-2026-02-11T18:39:58.9207272Z }
-2026-02-11T18:39:58.9207538Z INFO:__main__:  DEBUG: settings.json content:
-2026-02-11T18:39:58.9207788Z {
-2026-02-11T18:39:58.9208118Z   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/settings/1.0.0/schema.json",
-2026-02-11T18:39:58.9208446Z   "valueSetsOrder": [
-2026-02-11T18:39:58.9208677Z     "dev",
-2026-02-11T18:39:58.9209027Z     "uat",
-2026-02-11T18:39:58.9209244Z     "prod"
-2026-02-11T18:39:58.9209453Z   ]
-2026-02-11T18:39:58.9209666Z }
-2026-02-11T18:39:58.9209922Z INFO:__main__:  DEBUG: Payload has 5 part(s)
-2026-02-11T18:39:58.9210274Z INFO:fabric_client:Updating Variable Library definition: a48ff49a-7c27-41b6-880e-f6cb02aa5bba
-2026-02-11T18:39:58.9210987Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/VariableLibraries/a48ff49a-7c27-41b6-880e-f6cb02aa5bba/updateDefinition
-2026-02-11T18:39:58.9211453Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:39:58.9211722Z   "definition": {
-2026-02-11T18:39:58.9211952Z     "parts": [
-2026-02-11T18:39:58.9212169Z       {
-2026-02-11T18:39:58.9212404Z         "path": "variables.json",
-2026-02-11T18:39:58.9212660Z         "payloadType": "InlineBase64",
-2026-02-11T18:39:58.9212924Z         "payload_length": 936
-2026-02-11T18:39:58.9213162Z       },
-2026-02-11T18:39:58.9213381Z       {
-2026-02-11T18:39:58.9213631Z         "path": "valueSets/uat.json",
-2026-02-11T18:39:58.9213901Z         "payloadType": "InlineBase64",
-2026-02-11T18:39:58.9214167Z         "payload_length": 740
-2026-02-11T18:39:58.9214410Z       },
-2026-02-11T18:39:58.9214628Z       {
-2026-02-11T18:39:58.9214869Z         "path": "valueSets/prod.json",
-2026-02-11T18:39:58.9215133Z         "payloadType": "InlineBase64",
-2026-02-11T18:39:58.9215392Z         "payload_length": 740
-2026-02-11T18:39:58.9215621Z       },
-2026-02-11T18:39:58.9215829Z       {
-2026-02-11T18:39:58.9216088Z         "path": "valueSets/dev.json",
-2026-02-11T18:39:58.9216343Z         "payloadType": "InlineBase64",
-2026-02-11T18:39:58.9216593Z         "payload_length": 524
-2026-02-11T18:39:58.9216824Z       },
-2026-02-11T18:39:58.9217034Z       {
-2026-02-11T18:39:58.9217265Z         "path": "settings.json",
-2026-02-11T18:39:58.9217533Z         "payloadType": "InlineBase64",
-2026-02-11T18:39:58.9217803Z         "payload_length": 252
-2026-02-11T18:39:58.9218035Z       }
-2026-02-11T18:39:58.9218238Z     ],
-2026-02-11T18:39:58.9218469Z     "format": "VariableLibraryV1"
-2026-02-11T18:39:58.9218694Z   }
-2026-02-11T18:39:58.9218917Z }
-2026-02-11T18:40:00.1968401Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/9c9df817-832e-414a-bf50-3e5b3ccdcf6b
-2026-02-11T18:40:00.1970299Z INFO:fabric_client:  LRO Operation ID: 9c9df817-832e-414a-bf50-3e5b3ccdcf6b
-2026-02-11T18:40:00.1972864Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:40:00.1979344Z INFO:__main__:  DEBUG: API response: {
-2026-02-11T18:40:00.1980005Z   "status": "success",
-2026-02-11T18:40:00.1980266Z   "status_code": 202,
-2026-02-11T18:40:00.1980829Z   "location": "https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/9c9df817-832e-414a-bf50-3e5b3ccdcf6b",
-2026-02-11T18:40:00.1981455Z   "operation_id": "9c9df817-832e-414a-bf50-3e5b3ccdcf6b",
-2026-02-11T18:40:00.1981870Z   "retry_after": 20
-2026-02-11T18:40:00.1982224Z }
-2026-02-11T18:40:00.1982845Z INFO:__main__:  ✓ Updated Variable Library definition for 'ReportingVariables'
-2026-02-11T18:40:00.1983223Z INFO:__main__:  Waiting for definition update to complete...
-2026-02-11T18:40:00.1983615Z INFO:fabric_client:  Polling operation 9c9df817-832e-414a-bf50-3e5b3ccdcf6b (retry every 20s, max 12 attempts)
-2026-02-11T18:40:20.3158361Z INFO:fabric_client:    Attempt 1/12: Succeeded (100% complete)
-2026-02-11T18:40:20.3160707Z INFO:fabric_client:  ✓ Operation completed successfully
-2026-02-11T18:40:20.4801230Z INFO:__main__:  Setting active value set to 'prod'...
-2026-02-11T18:40:20.4812354Z INFO:fabric_client:Setting active value set to 'prod' for Variable Library: a48ff49a-7c27-41b6-880e-f6cb02aa5bba
-2026-02-11T18:40:21.6086518Z INFO:__main__:  ✓ Set active value set to 'prod' for Variable Library 'ReportingVariables'
-2026-02-11T18:40:21.6089228Z INFO:__main__:✅ Successfully deployed: ReportingVariables
-2026-02-11T18:40:21.6089590Z INFO:__main__:
-2026-02-11T18:40:21.6090197Z Deploying: ReportingLakehouse (Lakehouse)
-2026-02-11T18:40:21.6090790Z INFO:__main__:  Reading lakehouse definition from Fabric Git folder: ReportingLakehouse.Lakehouse/
-2026-02-11T18:40:21.6095055Z INFO:__main__:  Using .platform file for metadata
-2026-02-11T18:40:21.6095863Z INFO:fabric_client:Listing lakehouses in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:40:21.9797212Z INFO:__main__:  Lakehouse 'ReportingLakehouse' already exists (ID: 0c353b8f-0a49-4137-88a3-7a73557a452d)
-2026-02-11T18:40:21.9811143Z INFO:__main__:  Deploying lakehouse definition using updateDefinition API...
-2026-02-11T18:40:21.9812838Z INFO:__main__:  Including lakehouse.metadata.json (required)
-2026-02-11T18:40:21.9813200Z INFO:__main__:  Including shortcuts.metadata.json in definition
-2026-02-11T18:40:21.9813557Z INFO:__main__:  Including alm.settings.json in definition
-2026-02-11T18:40:21.9813890Z INFO:__main__:  Including .platform file in definition
-2026-02-11T18:40:21.9814324Z INFO:fabric_client:Updating lakehouse definition - workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a, lakehouse: 0c353b8f-0a49-4137-88a3-7a73557a452d
-2026-02-11T18:40:21.9814767Z INFO:fabric_client:  Including 4 definition part(s)
-2026-02-11T18:40:21.9815241Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/lakehouses/0c353b8f-0a49-4137-88a3-7a73557a452d/updateDefinition
-2026-02-11T18:40:21.9815718Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:40:21.9816015Z   "definition": {
-2026-02-11T18:40:21.9816263Z     "parts": [
-2026-02-11T18:40:21.9816505Z       {
-2026-02-11T18:40:21.9816764Z         "path": "lakehouse.metadata.json",
-2026-02-11T18:40:21.9817054Z         "payloadType": "InlineBase64",
-2026-02-11T18:40:21.9817325Z         "payload_length": 32
-2026-02-11T18:40:21.9817569Z       },
-2026-02-11T18:40:21.9817792Z       {
-2026-02-11T18:40:21.9818048Z         "path": "shortcuts.metadata.json",
-2026-02-11T18:40:21.9818325Z         "payloadType": "InlineBase64",
-2026-02-11T18:40:21.9818613Z         "payload_length": 59756
-2026-02-11T18:40:21.9818862Z       },
-2026-02-11T18:40:21.9819093Z       {
-2026-02-11T18:40:21.9819341Z         "path": "alm.settings.json",
-2026-02-11T18:40:21.9819622Z         "payloadType": "InlineBase64",
-2026-02-11T18:40:21.9819898Z         "payload_length": 1032
-2026-02-11T18:40:21.9820149Z       },
-2026-02-11T18:40:21.9820828Z       {
-2026-02-11T18:40:21.9821073Z         "path": ".platform",
-2026-02-11T18:40:21.9821346Z         "payloadType": "InlineBase64",
-2026-02-11T18:40:21.9821616Z         "payload_length": 468
-2026-02-11T18:40:21.9821847Z       }
-2026-02-11T18:40:21.9822069Z     ],
-2026-02-11T18:40:21.9822324Z     "format": "LakehouseDefinitionV1"
-2026-02-11T18:40:21.9822590Z   }
-2026-02-11T18:40:21.9822810Z }
-2026-02-11T18:40:23.3895454Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/89a4699b-375a-403a-9036-2be5e53cf0e6
-2026-02-11T18:40:23.3895982Z INFO:fabric_client:  LRO Operation ID: 89a4699b-375a-403a-9036-2be5e53cf0e6
-2026-02-11T18:40:23.3896353Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:40:23.3906715Z INFO:fabric_client:Lakehouse definition update accepted (202) - LRO started
-2026-02-11T18:40:23.3908960Z INFO:fabric_client:  Polling operation: 89a4699b-375a-403a-9036-2be5e53cf0e6
-2026-02-11T18:40:23.3909256Z INFO:fabric_client:  Polling operation 89a4699b-375a-403a-9036-2be5e53cf0e6 (retry every 20s, max 12 attempts)
-2026-02-11T18:40:43.6475817Z INFO:fabric_client:    Attempt 1/12: Running (None% complete)
-2026-02-11T18:41:03.8080878Z INFO:fabric_client:    Attempt 2/12: Succeeded (100% complete)
-2026-02-11T18:41:03.8083229Z INFO:fabric_client:  ✓ Operation completed successfully
-2026-02-11T18:41:04.0039744Z INFO:__main__:  ✓ Lakehouse definition updated successfully
-2026-02-11T18:41:04.0043372Z INFO:__main__:✅ Successfully deployed: ReportingLakehouse
-2026-02-11T18:41:04.0043693Z INFO:__main__:
-2026-02-11T18:41:04.0043989Z Deploying: 00_AlterByDataEngineeringOnly (SqlView)
-2026-02-11T18:41:04.0046942Z INFO:fabric_client:Listing items in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:04.1625615Z INFO:__main__:  Connecting to SQL endpoint for lakehouse: ReportingLakehouse
-2026-02-11T18:41:04.1627383Z INFO:fabric_client:Getting SQL endpoint for lakehouse: 0c353b8f-0a49-4137-88a3-7a73557a452d
-2026-02-11T18:41:04.1627828Z INFO:fabric_client:Getting lakehouse: 0c353b8f-0a49-4137-88a3-7a73557a452d
-2026-02-11T18:41:04.5468276Z INFO:fabric_client:Found SQL endpoint from properties: urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com
-2026-02-11T18:41:04.5473754Z INFO:__main__:  Found 5 batch(es) in SQL file
-2026-02-11T18:41:04.5474460Z INFO:__main__:  Processing batch 1 (527 chars)
-2026-02-11T18:41:04.5480394Z INFO:__main__:  Batch 1: Parsed view name 'dbo.vw_asset'
-2026-02-11T18:41:04.5481898Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:04.5488261Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
-2026-02-11T18:41:04.5489005Z Request method: 'POST'
-2026-02-11T18:41:04.5489833Z Request headers:
-2026-02-11T18:41:04.5492449Z     'Content-Type': 'application/x-www-form-urlencoded'
-2026-02-11T18:41:04.5492781Z     'Accept': 'application/json'
-2026-02-11T18:41:04.5493076Z     'x-client-sku': 'REDACTED'
-2026-02-11T18:41:04.5493363Z     'x-client-ver': 'REDACTED'
-2026-02-11T18:41:04.5493643Z     'x-client-os': 'REDACTED'
-2026-02-11T18:41:04.5493927Z     'x-ms-lib-capability': 'REDACTED'
-2026-02-11T18:41:04.5494227Z     'client-request-id': 'REDACTED'
-2026-02-11T18:41:04.5494525Z     'x-client-current-telemetry': 'REDACTED'
-2026-02-11T18:41:04.5494827Z     'x-client-last-telemetry': 'REDACTED'
-2026-02-11T18:41:04.5495254Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2026-02-11T18:41:04.5495674Z A body is sent with the request
-2026-02-11T18:41:04.6397686Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2026-02-11T18:41:04.6399283Z Response headers:
-2026-02-11T18:41:04.6399605Z     'Cache-Control': 'no-store, no-cache'
-2026-02-11T18:41:04.6399912Z     'Pragma': 'no-cache'
-2026-02-11T18:41:04.6400193Z     'Content-Type': 'application/json; charset=utf-8'
-2026-02-11T18:41:04.6401491Z     'Expires': '-1'
-2026-02-11T18:41:04.6401793Z     'Strict-Transport-Security': 'REDACTED'
-2026-02-11T18:41:04.6402064Z     'X-Content-Type-Options': 'REDACTED'
-2026-02-11T18:41:04.6402304Z     'P3P': 'REDACTED'
-2026-02-11T18:41:04.6402582Z     'client-request-id': 'REDACTED'
-2026-02-11T18:41:04.6402914Z     'x-ms-request-id': '613ad9c6-b739-42ec-ae16-e172626e2b00'
-2026-02-11T18:41:04.6403211Z     'x-ms-ests-server': 'REDACTED'
-2026-02-11T18:41:04.6403485Z     'x-ms-clitelem': 'REDACTED'
-2026-02-11T18:41:04.6403760Z     'x-ms-srs': 'REDACTED'
-2026-02-11T18:41:04.6404054Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2026-02-11T18:41:04.6404336Z     'X-XSS-Protection': 'REDACTED'
-2026-02-11T18:41:04.6404585Z     'Set-Cookie': 'REDACTED'
-2026-02-11T18:41:04.6404875Z     'Date': 'Wed, 11 Feb 2026 18:41:04 GMT'
-2026-02-11T18:41:04.6405151Z     'Content-Length': '1777'
-2026-02-11T18:41:04.6405650Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
-2026-02-11T18:41:04.6408996Z INFO:fabric_auth:Successfully obtained SQL Database access token
-2026-02-11T18:41:05.2915950Z INFO:__main__:  View 'dbo.vw_asset' exists, checking if update needed...
-2026-02-11T18:41:05.2916868Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.2964400Z INFO:__main__:  View 'dbo.vw_asset' is up to date, skipping
-2026-02-11T18:41:05.2965037Z INFO:__main__:  Processing batch 2 (1215 chars)
-2026-02-11T18:41:05.2965405Z INFO:__main__:  Batch 2: Parsed view name 'dbo.vw_asset_value'
-2026-02-11T18:41:05.2966102Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.3000935Z INFO:__main__:  View 'dbo.vw_asset_value' exists, checking if update needed...
-2026-02-11T18:41:05.3001482Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.3047290Z INFO:__main__:  View 'dbo.vw_asset_value' is up to date, skipping
-2026-02-11T18:41:05.3049066Z INFO:__main__:  Processing batch 3 (1097 chars)
-2026-02-11T18:41:05.3049457Z INFO:__main__:  Batch 3: Parsed view name 'dbo.vw_book_depreciation'
-2026-02-11T18:41:05.3049812Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.3087493Z INFO:__main__:  View 'dbo.vw_book_depreciation' exists, checking if update needed...
-2026-02-11T18:41:05.3087949Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.3133058Z INFO:__main__:  View 'dbo.vw_book_depreciation' is up to date, skipping
-2026-02-11T18:41:05.3133776Z INFO:__main__:  Processing batch 4 (1094 chars)
-2026-02-11T18:41:05.3134383Z INFO:__main__:  Batch 4: Parsed view name 'dbo.vw_aggregated_odessa_fact_asset_status_latest'
-2026-02-11T18:41:05.3134830Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.3173136Z INFO:__main__:  View 'dbo.vw_aggregated_odessa_fact_asset_status_latest' exists, checking if update needed...
-2026-02-11T18:41:05.3174756Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.3215228Z INFO:__main__:  View 'dbo.vw_aggregated_odessa_fact_asset_status_latest' is up to date, skipping
-2026-02-11T18:41:05.3215969Z INFO:__main__:  Batch 5: Empty, skipping
-2026-02-11T18:41:05.3217286Z INFO:__main__:  All views in '00_AlterByDataEngineeringOnly.sql' are up to date
-2026-02-11T18:41:05.3217921Z INFO:__main__:✅ Successfully deployed: 00_AlterByDataEngineeringOnly
-2026-02-11T18:41:05.3218211Z INFO:__main__:
-2026-02-11T18:41:05.3218471Z Deploying: 01_Base_Views (SqlView)
-2026-02-11T18:41:05.3221859Z INFO:fabric_client:Listing items in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:05.5088872Z INFO:__main__:  Connecting to SQL endpoint for lakehouse: ReportingLakehouse
-2026-02-11T18:41:05.5089370Z INFO:fabric_client:Getting SQL endpoint for lakehouse: 0c353b8f-0a49-4137-88a3-7a73557a452d
-2026-02-11T18:41:05.5089756Z INFO:fabric_client:Getting lakehouse: 0c353b8f-0a49-4137-88a3-7a73557a452d
-2026-02-11T18:41:05.8386102Z INFO:fabric_client:Found SQL endpoint from properties: urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com
-2026-02-11T18:41:05.8397028Z INFO:__main__:  Found 34 batch(es) in SQL file
-2026-02-11T18:41:05.8398254Z INFO:__main__:  Processing batch 1 (19364 chars)
-2026-02-11T18:41:05.8400418Z INFO:__main__:  Batch 1: Parsed view name 'dbo.vw_asset_features'
-2026-02-11T18:41:05.8401466Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8445484Z INFO:__main__:  View 'dbo.vw_asset_features' exists, checking if update needed...
-2026-02-11T18:41:05.8446026Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8495506Z INFO:__main__:  View 'dbo.vw_asset_features' is up to date, skipping
-2026-02-11T18:41:05.8496025Z INFO:__main__:  Processing batch 2 (1716 chars)
-2026-02-11T18:41:05.8496337Z INFO:__main__:  Batch 2: Parsed view name 'dbo.vw_receipts'
-2026-02-11T18:41:05.8496655Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8536475Z INFO:__main__:  View 'dbo.vw_receipts' exists, checking if update needed...
-2026-02-11T18:41:05.8536935Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8583011Z INFO:__main__:  View 'dbo.vw_receipts' is up to date, skipping
-2026-02-11T18:41:05.8583462Z INFO:__main__:  Processing batch 3 (1057 chars)
-2026-02-11T18:41:05.8583892Z INFO:__main__:  Batch 3: Parsed view name 'dbo.vw_contract_assignments'
-2026-02-11T18:41:05.8584368Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8618577Z INFO:__main__:  View 'dbo.vw_contract_assignments' exists, checking if update needed...
-2026-02-11T18:41:05.8619651Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8657454Z INFO:__main__:  View 'dbo.vw_contract_assignments' is up to date, skipping
-2026-02-11T18:41:05.8658807Z INFO:__main__:  Processing batch 4 (2467 chars)
-2026-02-11T18:41:05.8659197Z INFO:__main__:  Batch 4: Parsed view name 'dbo.vw_customer_assignments'
-2026-02-11T18:41:05.8659594Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8702632Z INFO:__main__:  View 'dbo.vw_customer_assignments' exists, checking if update needed...
-2026-02-11T18:41:05.8703115Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8745784Z INFO:__main__:  View 'dbo.vw_customer_assignments' is up to date, skipping
-2026-02-11T18:41:05.8746322Z INFO:__main__:  Processing batch 5 (5718 chars)
-2026-02-11T18:41:05.8746709Z INFO:__main__:  Batch 5: Parsed view name 'dbo.vw_credit_application'
-2026-02-11T18:41:05.8747137Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8788559Z INFO:__main__:  View 'dbo.vw_credit_application' exists, checking if update needed...
-2026-02-11T18:41:05.8788943Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8838586Z INFO:__main__:  View 'dbo.vw_credit_application' is up to date, skipping
-2026-02-11T18:41:05.8839258Z INFO:__main__:  Processing batch 6 (5039 chars)
-2026-02-11T18:41:05.8839653Z INFO:__main__:  Batch 6: Parsed view name 'dbo.vw_lease_finance_detail'
-2026-02-11T18:41:05.8840067Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8875872Z INFO:__main__:  View 'dbo.vw_lease_finance_detail' exists, checking if update needed...
-2026-02-11T18:41:05.8876382Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8918681Z INFO:__main__:  View 'dbo.vw_lease_finance_detail' is up to date, skipping
-2026-02-11T18:41:05.8919148Z INFO:__main__:  Processing batch 7 (46 chars)
-2026-02-11T18:41:05.8920911Z WARNING:__main__:  Could not parse view name from batch 7
-2026-02-11T18:41:05.8921366Z WARNING:__main__:  Batch content (first 200 chars): DROP VIEW IF EXISTS dbo.vw_leases_inc_history;
-2026-02-11T18:41:05.8921691Z INFO:__main__:  Processing batch 8 (4621 chars)
-2026-02-11T18:41:05.8921927Z INFO:__main__:  Batch 8: Parsed view name 'dbo.vw_lease_payments'
-2026-02-11T18:41:05.8922354Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8947711Z INFO:__main__:  View 'dbo.vw_lease_payments' exists, checking if update needed...
-2026-02-11T18:41:05.8948110Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.8986617Z INFO:__main__:  View 'dbo.vw_lease_payments' is up to date, skipping
-2026-02-11T18:41:05.8987230Z INFO:__main__:  Processing batch 9 (423 chars)
-2026-02-11T18:41:05.8987627Z INFO:__main__:  Batch 9: Parsed view name 'dbo.vw_lease_payments_current'
-2026-02-11T18:41:05.8988046Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9024480Z INFO:__main__:  View 'dbo.vw_lease_payments_current' exists, checking if update needed...
-2026-02-11T18:41:05.9024925Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9064181Z INFO:__main__:  View 'dbo.vw_lease_payments_current' is up to date, skipping
-2026-02-11T18:41:05.9064645Z INFO:__main__:  Processing batch 10 (628 chars)
-2026-02-11T18:41:05.9065040Z INFO:__main__:  Batch 10: Parsed view name 'dbo.vw_lease_payment_vat_deferrals'
-2026-02-11T18:41:05.9065473Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9103397Z INFO:__main__:  View 'dbo.vw_lease_payment_vat_deferrals' exists, checking if update needed...
-2026-02-11T18:41:05.9104272Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9146260Z INFO:__main__:  View 'dbo.vw_lease_payment_vat_deferrals' is up to date, skipping
-2026-02-11T18:41:05.9146742Z INFO:__main__:  Processing batch 11 (1276 chars)
-2026-02-11T18:41:05.9147213Z INFO:__main__:  Batch 11: Parsed view name 'dbo.vw_additional_charges_detail'
-2026-02-11T18:41:05.9147480Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9182931Z INFO:__main__:  View 'dbo.vw_additional_charges_detail' exists, checking if update needed...
-2026-02-11T18:41:05.9183369Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9225933Z INFO:__main__:  View 'dbo.vw_additional_charges_detail' is up to date, skipping
-2026-02-11T18:41:05.9226627Z INFO:__main__:  Processing batch 12 (260 chars)
-2026-02-11T18:41:05.9227047Z INFO:__main__:  Batch 12: Parsed view name 'dbo.vw_asset_additional_charges'
-2026-02-11T18:41:05.9227473Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9261207Z INFO:__main__:  View 'dbo.vw_asset_additional_charges' exists, checking if update needed...
-2026-02-11T18:41:05.9261860Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9304000Z INFO:__main__:  View 'dbo.vw_asset_additional_charges' is up to date, skipping
-2026-02-11T18:41:05.9304466Z INFO:__main__:  Processing batch 13 (3783 chars)
-2026-02-11T18:41:05.9304978Z INFO:__main__:  Batch 13: Parsed view name 'dbo.vw_lease_asset_all'
-2026-02-11T18:41:05.9305348Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9335498Z INFO:__main__:  View 'dbo.vw_lease_asset_all' exists, checking if update needed...
-2026-02-11T18:41:05.9336898Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9381381Z INFO:__main__:  View 'dbo.vw_lease_asset_all' is up to date, skipping
-2026-02-11T18:41:05.9382178Z INFO:__main__:  Processing batch 14 (149 chars)
-2026-02-11T18:41:05.9382700Z INFO:__main__:  Batch 14: Parsed view name 'dbo.vw_lease_asset_current'
-2026-02-11T18:41:05.9383142Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9414390Z INFO:__main__:  View 'dbo.vw_lease_asset_current' exists, checking if update needed...
-2026-02-11T18:41:05.9416779Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9453843Z INFO:__main__:  View 'dbo.vw_lease_asset_current' is up to date, skipping
-2026-02-11T18:41:05.9454378Z INFO:__main__:  Processing batch 15 (249 chars)
-2026-02-11T18:41:05.9454777Z INFO:__main__:  Batch 15: Parsed view name 'dbo.vw_lease_additional_charges'
-2026-02-11T18:41:05.9455351Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9485297Z INFO:__main__:  View 'dbo.vw_lease_additional_charges' exists, checking if update needed...
-2026-02-11T18:41:05.9485707Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9527988Z INFO:__main__:  View 'dbo.vw_lease_additional_charges' is up to date, skipping
-2026-02-11T18:41:05.9528397Z INFO:__main__:  Processing batch 16 (2157 chars)
-2026-02-11T18:41:05.9528722Z INFO:__main__:  Batch 16: Parsed view name 'dbo.vw_sundry_details'
-2026-02-11T18:41:05.9529071Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9555658Z INFO:__main__:  View 'dbo.vw_sundry_details' exists, checking if update needed...
-2026-02-11T18:41:05.9556128Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9595362Z INFO:__main__:  View 'dbo.vw_sundry_details' is up to date, skipping
-2026-02-11T18:41:05.9595806Z INFO:__main__:  Processing batch 17 (3736 chars)
-2026-02-11T18:41:05.9596208Z INFO:__main__:  Batch 17: Parsed view name 'dbo.vw_receivable_invoice_detail'
-2026-02-11T18:41:05.9596644Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9630922Z INFO:__main__:  View 'dbo.vw_receivable_invoice_detail' exists, checking if update needed...
-2026-02-11T18:41:05.9631341Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9675445Z INFO:__main__:  View 'dbo.vw_receivable_invoice_detail' is up to date, skipping
-2026-02-11T18:41:05.9675901Z INFO:__main__:  Processing batch 18 (1209 chars)
-2026-02-11T18:41:05.9676531Z INFO:__main__:  Batch 18: Parsed view name 'dbo.vw_receivables'
-2026-02-11T18:41:05.9676860Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9711362Z INFO:__main__:  View 'dbo.vw_receivables' exists, checking if update needed...
-2026-02-11T18:41:05.9712237Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9751719Z INFO:__main__:  View 'dbo.vw_receivables' is up to date, skipping
-2026-02-11T18:41:05.9753760Z INFO:__main__:  Processing batch 19 (3098 chars)
-2026-02-11T18:41:05.9754201Z INFO:__main__:  Batch 19: Parsed view name 'dbo.vw_sundry'
-2026-02-11T18:41:05.9754560Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9782787Z INFO:__main__:  View 'dbo.vw_sundry' exists, checking if update needed...
-2026-02-11T18:41:05.9783306Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9820710Z INFO:__main__:  View 'dbo.vw_sundry' is up to date, skipping
-2026-02-11T18:41:05.9821699Z INFO:__main__:  Processing batch 20 (9327 chars)
-2026-02-11T18:41:05.9822093Z INFO:__main__:  Batch 20: Parsed view name 'dbo.vw_lease_contracts'
-2026-02-11T18:41:05.9822452Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9848090Z INFO:__main__:  View 'dbo.vw_lease_contracts' exists, checking if update needed...
-2026-02-11T18:41:05.9848746Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9891713Z INFO:__main__:  View 'dbo.vw_lease_contracts' is up to date, skipping
-2026-02-11T18:41:05.9892326Z INFO:__main__:  Processing batch 21 (9381 chars)
-2026-02-11T18:41:05.9892769Z INFO:__main__:  Batch 21: Parsed view name 'dbo.vw_in_application'
-2026-02-11T18:41:05.9893233Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9919136Z INFO:__main__:  View 'dbo.vw_in_application' exists, checking if update needed...
-2026-02-11T18:41:05.9919564Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9959604Z INFO:__main__:  View 'dbo.vw_in_application' is up to date, skipping
-2026-02-11T18:41:05.9960183Z INFO:__main__:  Processing batch 22 (3454 chars)
-2026-02-11T18:41:05.9960931Z INFO:__main__:  Batch 22: Parsed view name 'dbo.vw_asset_rentals'
-2026-02-11T18:41:05.9961342Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:05.9988313Z INFO:__main__:  View 'dbo.vw_asset_rentals' exists, checking if update needed...
-2026-02-11T18:41:05.9988722Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0026199Z INFO:__main__:  View 'dbo.vw_asset_rentals' is up to date, skipping
-2026-02-11T18:41:06.0026753Z INFO:__main__:  Processing batch 23 (1422 chars)
-2026-02-11T18:41:06.0027102Z INFO:__main__:  Batch 23: Parsed view name 'dbo.rpt_rental_availability_report'
-2026-02-11T18:41:06.0027458Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0055117Z INFO:__main__:  View 'dbo.rpt_rental_availability_report' exists, checking if update needed...
-2026-02-11T18:41:06.0055544Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0097793Z INFO:__main__:  View 'dbo.rpt_rental_availability_report' is up to date, skipping
-2026-02-11T18:41:06.0098182Z INFO:__main__:  Processing batch 24 (2763 chars)
-2026-02-11T18:41:06.0098523Z INFO:__main__:  Batch 24: Parsed view name 'dbo.Assets_Awaiting_Delivery'
-2026-02-11T18:41:06.0098870Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0130733Z INFO:__main__:  View 'dbo.Assets_Awaiting_Delivery' exists, checking if update needed...
-2026-02-11T18:41:06.0131166Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0177776Z INFO:__main__:  View 'dbo.Assets_Awaiting_Delivery' is up to date, skipping
-2026-02-11T18:41:06.0178684Z INFO:__main__:  Processing batch 25 (1678 chars)
-2026-02-11T18:41:06.0179501Z INFO:__main__:  Batch 25: Parsed view name 'dbo.vw_sundry_recurring_charges'
-2026-02-11T18:41:06.0180906Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0213897Z INFO:__main__:  View 'dbo.vw_sundry_recurring_charges' exists, checking if update needed...
-2026-02-11T18:41:06.0215586Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0260146Z INFO:__main__:  View 'dbo.vw_sundry_recurring_charges' is up to date, skipping
-2026-02-11T18:41:06.0260865Z INFO:__main__:  Processing batch 26 (1518 chars)
-2026-02-11T18:41:06.0261217Z INFO:__main__:  Batch 26: Parsed view name 'dbo.vw_sundry_recurring_charge_details'
-2026-02-11T18:41:06.0261580Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0296296Z INFO:__main__:  View 'dbo.vw_sundry_recurring_charge_details' exists, checking if update needed...
-2026-02-11T18:41:06.0296808Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0334047Z INFO:__main__:  View 'dbo.vw_sundry_recurring_charge_details' is up to date, skipping
-2026-02-11T18:41:06.0334847Z INFO:__main__:  Processing batch 27 (474 chars)
-2026-02-11T18:41:06.0335246Z INFO:__main__:  Batch 27: Parsed view name 'dbo.vw_sundry_recurring_schedule'
-2026-02-11T18:41:06.0335673Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0364673Z INFO:__main__:  View 'dbo.vw_sundry_recurring_schedule' exists, checking if update needed...
-2026-02-11T18:41:06.0365145Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0431285Z INFO:__main__:  View 'dbo.vw_sundry_recurring_schedule' is up to date, skipping
-2026-02-11T18:41:06.0431949Z INFO:__main__:  Processing batch 28 (4226 chars)
-2026-02-11T18:41:06.0432373Z INFO:__main__:  Batch 28: Parsed view name 'dbo.vw_asset_in_application'
-2026-02-11T18:41:06.0432817Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0463720Z INFO:__main__:  View 'dbo.vw_asset_in_application' exists, checking if update needed...
-2026-02-11T18:41:06.0464256Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0516054Z INFO:__main__:  View 'dbo.vw_asset_in_application' is up to date, skipping
-2026-02-11T18:41:06.0516490Z INFO:__main__:  Processing batch 29 (1221 chars)
-2026-02-11T18:41:06.0516893Z INFO:__main__:  Batch 29: Parsed view name 'dbo.vw_receivable_invoices'
-2026-02-11T18:41:06.0517465Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0552017Z INFO:__main__:  View 'dbo.vw_receivable_invoices' exists, checking if update needed...
-2026-02-11T18:41:06.0552449Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0588170Z INFO:__main__:  View 'dbo.vw_receivable_invoices' is up to date, skipping
-2026-02-11T18:41:06.0588745Z INFO:__main__:  Processing batch 30 (1322 chars)
-2026-02-11T18:41:06.0589206Z INFO:__main__:  Batch 30: Parsed view name 'dbo.vw_lease_receivables'
-2026-02-11T18:41:06.0589581Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0615150Z INFO:__main__:  View 'dbo.vw_lease_receivables' exists, checking if update needed...
-2026-02-11T18:41:06.0616660Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0654471Z INFO:__main__:  View 'dbo.vw_lease_receivables' is up to date, skipping
-2026-02-11T18:41:06.0655155Z INFO:__main__:  Processing batch 31 (644 chars)
-2026-02-11T18:41:06.0655976Z INFO:__main__:  Batch 31: Parsed view name 'dbo.vw_customer_receivables'
-2026-02-11T18:41:06.0656408Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0687183Z INFO:__main__:  View 'dbo.vw_customer_receivables' exists, checking if update needed...
-2026-02-11T18:41:06.0687723Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0736597Z INFO:__main__:  View 'dbo.vw_customer_receivables' is up to date, skipping
-2026-02-11T18:41:06.0737199Z INFO:__main__:  Processing batch 32 (2039 chars)
-2026-02-11T18:41:06.0737963Z INFO:__main__:  Batch 32: Parsed view name 'dbo.vw_contract_origination'
-2026-02-11T18:41:06.0738505Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0768396Z INFO:__main__:  View 'dbo.vw_contract_origination' exists, checking if update needed...
-2026-02-11T18:41:06.0769183Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0812643Z INFO:__main__:  View 'dbo.vw_contract_origination' is up to date, skipping
-2026-02-11T18:41:06.0813471Z INFO:__main__:  Processing batch 33 (4360 chars)
-2026-02-11T18:41:06.0813989Z INFO:__main__:  Batch 33: Parsed view name 'dbo.vw_customer'
-2026-02-11T18:41:06.0814478Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0850701Z INFO:__main__:  View 'dbo.vw_customer' exists, checking if update needed...
-2026-02-11T18:41:06.0850991Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.0896566Z INFO:__main__:  View 'dbo.vw_customer' is up to date, skipping
-2026-02-11T18:41:06.0897748Z INFO:__main__:  Batch 34: Empty, skipping
-2026-02-11T18:41:06.0898111Z INFO:__main__:  All views in '01_Base_Views.sql' are up to date
-2026-02-11T18:41:06.0900776Z INFO:__main__:✅ Successfully deployed: 01_Base_Views
-2026-02-11T18:41:06.0901759Z INFO:__main__:
-2026-02-11T18:41:06.0902151Z Deploying: 02_Reporting_Views (SqlView)
-2026-02-11T18:41:06.0904095Z INFO:fabric_client:Listing items in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:06.3036808Z INFO:__main__:  Connecting to SQL endpoint for lakehouse: ReportingLakehouse
-2026-02-11T18:41:06.3045363Z INFO:fabric_client:Getting SQL endpoint for lakehouse: 0c353b8f-0a49-4137-88a3-7a73557a452d
-2026-02-11T18:41:06.3045845Z INFO:fabric_client:Getting lakehouse: 0c353b8f-0a49-4137-88a3-7a73557a452d
-2026-02-11T18:41:06.6823293Z INFO:fabric_client:Found SQL endpoint from properties: urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com
-2026-02-11T18:41:06.6830217Z INFO:__main__:  Found 27 batch(es) in SQL file
-2026-02-11T18:41:06.6831775Z INFO:__main__:  Processing batch 1 (1700 chars)
-2026-02-11T18:41:06.6832305Z INFO:__main__:  Batch 1: Parsed view name 'dbo.rpt_ts_asset_funding_analysis'
-2026-02-11T18:41:06.6832813Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.6875058Z INFO:__main__:  View 'dbo.rpt_ts_asset_funding_analysis' exists, checking if update needed...
-2026-02-11T18:41:06.6875635Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.6921753Z INFO:__main__:  View 'dbo.rpt_ts_asset_funding_analysis' is up to date, skipping
-2026-02-11T18:41:06.6922216Z INFO:__main__:  Processing batch 2 (1336 chars)
-2026-02-11T18:41:06.6922533Z INFO:__main__:  Batch 2: Parsed view name 'dbo.rpt_ts_ls_income_streams'
-2026-02-11T18:41:06.6922889Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.6959411Z INFO:__main__:  View 'dbo.rpt_ts_ls_income_streams' exists, checking if update needed...
-2026-02-11T18:41:06.6959829Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7009605Z INFO:__main__:  View 'dbo.rpt_ts_ls_income_streams' is up to date, skipping
-2026-02-11T18:41:06.7010110Z INFO:__main__:  Processing batch 3 (1108 chars)
-2026-02-11T18:41:06.7010663Z INFO:__main__:  Batch 3: Parsed view name 'dbo.rpt_contracts_terminated_live'
-2026-02-11T18:41:06.7011107Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7047160Z INFO:__main__:  View 'dbo.rpt_contracts_terminated_live' exists, checking if update needed...
-2026-02-11T18:41:06.7047670Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7093715Z INFO:__main__:  View 'dbo.rpt_contracts_terminated_live' is up to date, skipping
-2026-02-11T18:41:06.7094220Z INFO:__main__:  Processing batch 4 (11172 chars)
-2026-02-11T18:41:06.7094681Z INFO:__main__:  Batch 4: Parsed view name 'dbo.rpt_ts_arbuthnot_regulatory_report_v2'
-2026-02-11T18:41:06.7095414Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7133032Z INFO:__main__:  View 'dbo.rpt_ts_arbuthnot_regulatory_report_v2' exists, checking if update needed...
-2026-02-11T18:41:06.7133575Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7180897Z INFO:__main__:  View 'dbo.rpt_ts_arbuthnot_regulatory_report_v2' is up to date, skipping
-2026-02-11T18:41:06.7181509Z INFO:__main__:  Processing batch 5 (2066 chars)
-2026-02-11T18:41:06.7181974Z INFO:__main__:  Batch 5: Parsed view name 'dbo.rpt_ts_contracts_not_activated'
-2026-02-11T18:41:06.7182450Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7218737Z INFO:__main__:  View 'dbo.rpt_ts_contracts_not_activated' exists, checking if update needed...
-2026-02-11T18:41:06.7219142Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7262419Z INFO:__main__:  View 'dbo.rpt_ts_contracts_not_activated' is up to date, skipping
-2026-02-11T18:41:06.7262880Z INFO:__main__:  Processing batch 6 (935 chars)
-2026-02-11T18:41:06.7263305Z INFO:__main__:  Batch 6: Parsed view name 'dbo.rpt_ts_invoices_outstanding'
-2026-02-11T18:41:06.7263799Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7294872Z INFO:__main__:  View 'dbo.rpt_ts_invoices_outstanding' exists, checking if update needed...
-2026-02-11T18:41:06.7295352Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7340283Z INFO:__main__:  View 'dbo.rpt_ts_invoices_outstanding' is up to date, skipping
-2026-02-11T18:41:06.7341164Z INFO:__main__:  Processing batch 7 (3597 chars)
-2026-02-11T18:41:06.7341664Z INFO:__main__:  Batch 7: Parsed view name 'dbo.rpt_annual_reviews_proposed_exposure_greater_than_0'
-2026-02-11T18:41:06.7342185Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7375432Z INFO:__main__:  View 'dbo.rpt_annual_reviews_proposed_exposure_greater_than_0' exists, checking if update needed...
-2026-02-11T18:41:06.7377014Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7417803Z INFO:__main__:  View 'dbo.rpt_annual_reviews_proposed_exposure_greater_than_0' is up to date, skipping
-2026-02-11T18:41:06.7418437Z INFO:__main__:  Processing batch 8 (3115 chars)
-2026-02-11T18:41:06.7418900Z INFO:__main__:  Batch 8: Parsed view name 'dbo.rpt_ts_recharge_for_debt_reporting'
-2026-02-11T18:41:06.7419553Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7456279Z INFO:__main__:  View 'dbo.rpt_ts_recharge_for_debt_reporting' exists, checking if update needed...
-2026-02-11T18:41:06.7457689Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7503434Z INFO:__main__:  View 'dbo.rpt_ts_recharge_for_debt_reporting' is up to date, skipping
-2026-02-11T18:41:06.7504052Z INFO:__main__:  Processing batch 9 (1041 chars)
-2026-02-11T18:41:06.7504622Z INFO:__main__:  Batch 9: Parsed view name 'dbo.rpt_warehouse_assets_inc_stock'
-2026-02-11T18:41:06.7505134Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7542760Z INFO:__main__:  View 'dbo.rpt_warehouse_assets_inc_stock' exists, checking if update needed...
-2026-02-11T18:41:06.7544238Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7583654Z INFO:__main__:  View 'dbo.rpt_warehouse_assets_inc_stock' is up to date, skipping
-2026-02-11T18:41:06.7584380Z INFO:__main__:  Processing batch 10 (1400 chars)
-2026-02-11T18:41:06.7584835Z INFO:__main__:  Batch 10: Parsed view name 'dbo.rpt_rv_rcv_assets_not_hire'
-2026-02-11T18:41:06.7585311Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7616087Z INFO:__main__:  View 'dbo.rpt_rv_rcv_assets_not_hire' exists, checking if update needed...
-2026-02-11T18:41:06.7617738Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7662768Z INFO:__main__:  View 'dbo.rpt_rv_rcv_assets_not_hire' is up to date, skipping
-2026-02-11T18:41:06.7663527Z INFO:__main__:  Processing batch 11 (1986 chars)
-2026-02-11T18:41:06.7664114Z INFO:__main__:  Batch 11: Parsed view name 'dbo.rpt_individual_customers'
-2026-02-11T18:41:06.7664721Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7695187Z INFO:__main__:  View 'dbo.rpt_individual_customers' exists, checking if update needed...
-2026-02-11T18:41:06.7695631Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7739420Z INFO:__main__:  View 'dbo.rpt_individual_customers' is up to date, skipping
-2026-02-11T18:41:06.7739922Z INFO:__main__:  Processing batch 12 (618 chars)
-2026-02-11T18:41:06.7740435Z INFO:__main__:  Batch 12: Parsed view name 'dbo.rpt_arbuthnot_mi_report'
-2026-02-11T18:41:06.7741234Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7768505Z INFO:__main__:  View 'dbo.rpt_arbuthnot_mi_report' exists, checking if update needed...
-2026-02-11T18:41:06.7770030Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7810424Z INFO:__main__:  View 'dbo.rpt_arbuthnot_mi_report' is up to date, skipping
-2026-02-11T18:41:06.7811394Z INFO:__main__:  Processing batch 13 (1207 chars)
-2026-02-11T18:41:06.7811976Z INFO:__main__:  Batch 13: Parsed view name 'dbo.rpt_arbuthnot_loan_agreement'
-2026-02-11T18:41:06.7812519Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7843716Z INFO:__main__:  View 'dbo.rpt_arbuthnot_loan_agreement' exists, checking if update needed...
-2026-02-11T18:41:06.7845210Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7884532Z INFO:__main__:  View 'dbo.rpt_arbuthnot_loan_agreement' is up to date, skipping
-2026-02-11T18:41:06.7885047Z INFO:__main__:  Processing batch 14 (5001 chars)
-2026-02-11T18:41:06.7885452Z INFO:__main__:  Batch 14: Parsed view name 'dbo.rpt_customer_cw_credit_rating'
-2026-02-11T18:41:06.7885879Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7911807Z INFO:__main__:  View 'dbo.rpt_customer_cw_credit_rating' exists, checking if update needed...
-2026-02-11T18:41:06.7913038Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7955122Z INFO:__main__:  View 'dbo.rpt_customer_cw_credit_rating' is up to date, skipping
-2026-02-11T18:41:06.7955904Z INFO:__main__:  Processing batch 15 (4457 chars)
-2026-02-11T18:41:06.7957104Z INFO:__main__:  Batch 15: Parsed view name 'dbo.pbi_cash_collection_totals_by_age_bracket'
-2026-02-11T18:41:06.7957642Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.7990209Z INFO:__main__:  View 'dbo.pbi_cash_collection_totals_by_age_bracket' exists, checking if update needed...
-2026-02-11T18:41:06.7990921Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8109860Z INFO:__main__:  View 'dbo.pbi_cash_collection_totals_by_age_bracket' is up to date, skipping
-2026-02-11T18:41:06.8110850Z INFO:__main__:  Processing batch 16 (790 chars)
-2026-02-11T18:41:06.8111332Z INFO:__main__:  Batch 16: Parsed view name 'dbo.pbi_cash_collections_receipts'
-2026-02-11T18:41:06.8111812Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8152343Z INFO:__main__:  View 'dbo.pbi_cash_collections_receipts' exists, checking if update needed...
-2026-02-11T18:41:06.8153818Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8190396Z INFO:__main__:  View 'dbo.pbi_cash_collections_receipts' is up to date, skipping
-2026-02-11T18:41:06.8191192Z INFO:__main__:  Processing batch 17 (927 chars)
-2026-02-11T18:41:06.8191636Z INFO:__main__:  Batch 17: Parsed view name 'dbo.rpt_incoming_payments'
-2026-02-11T18:41:06.8192101Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8223230Z INFO:__main__:  View 'dbo.rpt_incoming_payments' exists, checking if update needed...
-2026-02-11T18:41:06.8223666Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8270706Z INFO:__main__:  View 'dbo.rpt_incoming_payments' is up to date, skipping
-2026-02-11T18:41:06.8271531Z INFO:__main__:  Processing batch 18 (8532 chars)
-2026-02-11T18:41:06.8272014Z INFO:__main__:  Batch 18: Parsed view name 'dbo.rpt_contracts_with_maintenance_budgets'
-2026-02-11T18:41:06.8272500Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8301454Z INFO:__main__:  View 'dbo.rpt_contracts_with_maintenance_budgets' exists, checking if update needed...
-2026-02-11T18:41:06.8302926Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8347902Z INFO:__main__:  View 'dbo.rpt_contracts_with_maintenance_budgets' is up to date, skipping
-2026-02-11T18:41:06.8349785Z INFO:__main__:  Processing batch 19 (2799 chars)
-2026-02-11T18:41:06.8350207Z INFO:__main__:  Batch 19: Parsed view name 'dbo.rpt_evergreen_leased'
-2026-02-11T18:41:06.8350851Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8388107Z INFO:__main__:  View 'dbo.rpt_evergreen_leased' exists, checking if update needed...
-2026-02-11T18:41:06.8388663Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8426229Z INFO:__main__:  View 'dbo.rpt_evergreen_leased' is up to date, skipping
-2026-02-11T18:41:06.8426953Z INFO:__main__:  Processing batch 20 (2806 chars)
-2026-02-11T18:41:06.8427418Z INFO:__main__:  Batch 20: Parsed view name 'dbo.rpt_evergreen_rental'
-2026-02-11T18:41:06.8427884Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8462196Z INFO:__main__:  View 'dbo.rpt_evergreen_rental' exists, checking if update needed...
-2026-02-11T18:41:06.8462733Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8511003Z INFO:__main__:  View 'dbo.rpt_evergreen_rental' is up to date, skipping
-2026-02-11T18:41:06.8511711Z INFO:__main__:  Processing batch 21 (5247 chars)
-2026-02-11T18:41:06.8512126Z INFO:__main__:  Batch 21: Parsed view name 'dbo.pbi_mot_tracker'
-2026-02-11T18:41:06.8512520Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8544307Z INFO:__main__:  View 'dbo.pbi_mot_tracker' exists, checking if update needed...
-2026-02-11T18:41:06.8544655Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8586956Z INFO:__main__:  View 'dbo.pbi_mot_tracker' is up to date, skipping
-2026-02-11T18:41:06.8587923Z INFO:__main__:  Processing batch 22 (1906 chars)
-2026-02-11T18:41:06.8588227Z INFO:__main__:  Batch 22: Parsed view name 'dbo.rpt_ts_contracts_origination'
-2026-02-11T18:41:06.8588517Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8622507Z INFO:__main__:  View 'dbo.rpt_ts_contracts_origination' exists, checking if update needed...
-2026-02-11T18:41:06.8623068Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8665261Z INFO:__main__:  View 'dbo.rpt_ts_contracts_origination' is up to date, skipping
-2026-02-11T18:41:06.8666302Z INFO:__main__:  Processing batch 23 (3113 chars)
-2026-02-11T18:41:06.8666775Z INFO:__main__:  Batch 23: Parsed view name 'dbo.pbi_fleetspendreporting1'
-2026-02-11T18:41:06.8667246Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8696490Z INFO:__main__:  View 'dbo.pbi_fleetspendreporting1' exists, checking if update needed...
-2026-02-11T18:41:06.8697664Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8737448Z INFO:__main__:  View 'dbo.pbi_fleetspendreporting1' is up to date, skipping
-2026-02-11T18:41:06.8737900Z INFO:__main__:  Processing batch 24 (11072 chars)
-2026-02-11T18:41:06.8738436Z INFO:__main__:  Batch 24: Parsed view name 'dbo.pbi_fleetspendreporting2'
-2026-02-11T18:41:06.8738861Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8767768Z INFO:__main__:  View 'dbo.pbi_fleetspendreporting2' exists, checking if update needed...
-2026-02-11T18:41:06.8768295Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8819811Z INFO:__main__:  View 'dbo.pbi_fleetspendreporting2' is up to date, skipping
-2026-02-11T18:41:06.8820621Z INFO:__main__:  Processing batch 25 (1034 chars)
-2026-02-11T18:41:06.8821106Z INFO:__main__:  Batch 25: Parsed view name 'dbo.pbi_fleetspendreporting2_in_application'
-2026-02-11T18:41:06.8821591Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8853566Z INFO:__main__:  View 'dbo.pbi_fleetspendreporting2_in_application' exists, checking if update needed...
-2026-02-11T18:41:06.8855239Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8902029Z INFO:__main__:  View 'dbo.pbi_fleetspendreporting2_in_application' is up to date, skipping
-2026-02-11T18:41:06.8902522Z INFO:__main__:  Processing batch 26 (4187 chars)
-2026-02-11T18:41:06.8902873Z INFO:__main__:  Batch 26: Parsed view name 'dbo.pbi_fleetspendreporting2_in_inventory'
-2026-02-11T18:41:06.8903146Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8934740Z INFO:__main__:  View 'dbo.pbi_fleetspendreporting2_in_inventory' exists, checking if update needed...
-2026-02-11T18:41:06.8935192Z INFO:fabric_client:Executing SQL command on ReportingLakehouse
-2026-02-11T18:41:06.8974626Z INFO:__main__:  View 'dbo.pbi_fleetspendreporting2_in_inventory' is up to date, skipping
-2026-02-11T18:41:06.8976203Z INFO:__main__:  Batch 27: Empty, skipping
-2026-02-11T18:41:06.8976683Z INFO:__main__:  All views in '02_Reporting_Views.sql' are up to date
-2026-02-11T18:41:06.8977504Z INFO:__main__:✅ Successfully deployed: 02_Reporting_Views
-2026-02-11T18:41:06.8977899Z INFO:__main__:
-2026-02-11T18:41:06.8978243Z Deploying: Welcome (SemanticModel)
-2026-02-11T18:41:06.8981995Z INFO:__main__:  Reading semantic model from Fabric Git format: Welcome.SemanticModel
-2026-02-11T18:41:06.8989246Z INFO:fabric_client:Listing semantic models in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:07.0905496Z INFO:__main__:  Semantic model 'Welcome' already exists, updating...
-2026-02-11T18:41:07.0907209Z INFO:fabric_client:Updating semantic model: 5c66765d-c6db-4263-84c6-41d6d195dba2
-2026-02-11T18:41:07.0908253Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/semanticModels/5c66765d-c6db-4263-84c6-41d6d195dba2/updateDefinition
-2026-02-11T18:41:07.0910196Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:07.0912289Z   "definition": {
-2026-02-11T18:41:07.0912571Z     "parts": [
-2026-02-11T18:41:07.0912826Z       {
-2026-02-11T18:41:07.0913091Z         "path": ".platform",
-2026-02-11T18:41:07.0913375Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.0913661Z         "payload_length": 400
-2026-02-11T18:41:07.0913984Z       },
-2026-02-11T18:41:07.0914283Z       {
-2026-02-11T18:41:07.0914617Z         "path": "definition.pbism",
-2026-02-11T18:41:07.0914986Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.0915358Z         "payload_length": 224
-2026-02-11T18:41:07.0915669Z       },
-2026-02-11T18:41:07.0915892Z       {
-2026-02-11T18:41:07.0916147Z         "path": "definition/model.tmdl",
-2026-02-11T18:41:07.0916429Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.0916700Z         "payload_length": 516
-2026-02-11T18:41:07.0916947Z       },
-2026-02-11T18:41:07.0917178Z       {
-2026-02-11T18:41:07.0917434Z         "path": "definition/database.tmdl",
-2026-02-11T18:41:07.0917722Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.0917996Z         "payload_length": 48
-2026-02-11T18:41:07.0918238Z       },
-2026-02-11T18:41:07.0918460Z       {
-2026-02-11T18:41:07.0918732Z         "path": "definition/tables/Query1.tmdl",
-2026-02-11T18:41:07.0919020Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.0919289Z         "payload_length": 564
-2026-02-11T18:41:07.0919536Z       },
-2026-02-11T18:41:07.0919759Z       {
-2026-02-11T18:41:07.0920023Z         "path": "definition/cultures/en-GB.tmdl",
-2026-02-11T18:41:07.0920318Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.0924053Z         "payload_length": 164
-2026-02-11T18:41:07.0924302Z       }
-2026-02-11T18:41:07.0924530Z     ]
-2026-02-11T18:41:07.0924756Z   }
-2026-02-11T18:41:07.0924981Z }
-2026-02-11T18:41:07.3077675Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/12e0222e-d02f-4ae4-a75e-99df85e88285
-2026-02-11T18:41:07.3082775Z INFO:fabric_client:  LRO Operation ID: 12e0222e-d02f-4ae4-a75e-99df85e88285
-2026-02-11T18:41:07.3083281Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:07.3089467Z INFO:__main__:  Updated semantic model (ID: 5c66765d-c6db-4263-84c6-41d6d195dba2)
-2026-02-11T18:41:07.3091651Z INFO:__main__:  Looking up Fabric connection: 'porod-tmp01-reporting-lakehouse-connection'
-2026-02-11T18:41:07.3092272Z INFO:fabric_client:Listing connections via Fabric Connections API
-2026-02-11T18:41:07.5149409Z INFO:fabric_client:  Retrieved 1 connections total
-2026-02-11T18:41:07.5152518Z INFO:__main__:  📋 Connections returned by API (1 total):
-2026-02-11T18:41:07.5153614Z INFO:__main__:    [1] 'porod-tmp01-reporting-lakehouse-connection' (type=ShareableCloud, id=67f7be26-f59d-4788-8453-16793ec3a1b3)
-2026-02-11T18:41:07.5154577Z INFO:__main__:  ✓ Found connection (exact match): 'porod-tmp01-reporting-lakehouse-connection' (ID: 67f7be26-f59d-4788-8453-16793ec3a1b3)
-2026-02-11T18:41:07.5155050Z INFO:__main__:  Binding 'Welcome' to Fabric connection 'porod-tmp01-reporting-lakehouse-connection'...
-2026-02-11T18:41:07.5155506Z INFO:fabric_client:Binding semantic model 5c66765d-c6db-4263-84c6-41d6d195dba2 to Fabric connection 67f7be26-f59d-4788-8453-16793ec3a1b3
-2026-02-11T18:41:07.6654813Z ERROR:fabric_client:HTTP Error: 404 - {"requestId":"1e60c4c9-1442-470b-8d4f-a535608de724","errorCode":"EntityNotFound","message":"The requested resource could not be found"}
-2026-02-11T18:41:07.6657905Z INFO:__main__:  ℹ Could not bind 'Welcome' to connection: 404 Client Error: Not Found for url: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/items/5c66765d-c6db-4263-84c6-41d6d195dba2/connections
-2026-02-11T18:41:07.6660706Z INFO:__main__:    Assign connection 'porod-tmp01-reporting-lakehouse-connection' manually in semantic model settings
-2026-02-11T18:41:07.6667513Z INFO:__main__:  ✓ SQL endpoints transformed during deployment for 'Welcome'
-2026-02-11T18:41:07.6670857Z INFO:__main__:✅ Successfully deployed: Welcome
-2026-02-11T18:41:07.6671174Z INFO:__main__:
-2026-02-11T18:41:07.6671466Z Deploying: Finance Summary (SemanticModel)
-2026-02-11T18:41:07.6674614Z INFO:__main__:  Reading semantic model from Fabric Git format: Finance Summary.SemanticModel
-2026-02-11T18:41:07.6686022Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com'
-2026-02-11T18:41:07.6688926Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com'
-2026-02-11T18:41:07.6691694Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com'
-2026-02-11T18:41:07.6705813Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com'
-2026-02-11T18:41:07.6710373Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com'
-2026-02-11T18:41:07.6711889Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com'
-2026-02-11T18:41:07.6716443Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com'
-2026-02-11T18:41:07.6722513Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com'
-2026-02-11T18:41:07.6738280Z INFO:fabric_client:Listing semantic models in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:07.8862211Z INFO:__main__:  Semantic model 'Finance Summary' already exists, updating...
-2026-02-11T18:41:07.8863070Z INFO:fabric_client:Updating semantic model: dfae4241-471b-4bdb-80e6-712cf4b295b9
-2026-02-11T18:41:07.8871231Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/semanticModels/dfae4241-471b-4bdb-80e6-712cf4b295b9/updateDefinition
-2026-02-11T18:41:07.8873389Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:07.8874036Z   "definition": {
-2026-02-11T18:41:07.8876496Z     "parts": [
-2026-02-11T18:41:07.8876719Z       {
-2026-02-11T18:41:07.8876945Z         "path": ".platform",
-2026-02-11T18:41:07.8877195Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8877454Z         "payload_length": 408
-2026-02-11T18:41:07.8877681Z       },
-2026-02-11T18:41:07.8877908Z       {
-2026-02-11T18:41:07.8878139Z         "path": "definition.pbism",
-2026-02-11T18:41:07.8878393Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8878639Z         "payload_length": 224
-2026-02-11T18:41:07.8878862Z       },
-2026-02-11T18:41:07.8879067Z       {
-2026-02-11T18:41:07.8879298Z         "path": ".pbi/editorSettings.json",
-2026-02-11T18:41:07.8879557Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8879803Z         "payload_length": 416
-2026-02-11T18:41:07.8880020Z       },
-2026-02-11T18:41:07.8880220Z       {
-2026-02-11T18:41:07.8880629Z         "path": "definition/model.tmdl",
-2026-02-11T18:41:07.8880901Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8881162Z         "payload_length": 3000
-2026-02-11T18:41:07.8881388Z       },
-2026-02-11T18:41:07.8881595Z       {
-2026-02-11T18:41:07.8881833Z         "path": "definition/database.tmdl",
-2026-02-11T18:41:07.8882092Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8882339Z         "payload_length": 48
-2026-02-11T18:41:07.8882572Z       },
-2026-02-11T18:41:07.8882779Z       {
-2026-02-11T18:41:07.8883025Z         "path": "definition/relationships.tmdl",
-2026-02-11T18:41:07.8883294Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8883550Z         "payload_length": 8760
-2026-02-11T18:41:07.8883776Z       },
-2026-02-11T18:41:07.8883995Z       {
-2026-02-11T18:41:07.8884552Z         "path": "definition/tables/LocalDateTable_4cacd077-9657-41f6-95b8-0d8e11b86187.tmdl",
-2026-02-11T18:41:07.8884852Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8885097Z         "payload_length": 3412
-2026-02-11T18:41:07.8885316Z       },
-2026-02-11T18:41:07.8885515Z       {
-2026-02-11T18:41:07.8885800Z         "path": "definition/tables/DateTableTemplate_4ed89777-abcc-4a38-9229-cae44fe8de37.tmdl",
-2026-02-11T18:41:07.8886099Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8886342Z         "payload_length": 3356
-2026-02-11T18:41:07.8886560Z       },
-2026-02-11T18:41:07.8886759Z       {
-2026-02-11T18:41:07.8887042Z         "path": "definition/tables/LocalDateTable_d6e646fd-9351-4392-bb98-f4104f373e09.tmdl",
-2026-02-11T18:41:07.8887348Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8887590Z         "payload_length": 3424
-2026-02-11T18:41:07.8887808Z       },
-2026-02-11T18:41:07.8888008Z       {
-2026-02-11T18:41:07.8888285Z         "path": "definition/tables/LocalDateTable_8e05a108-6fe6-4beb-8a0d-9aa40bc6a5e0.tmdl",
-2026-02-11T18:41:07.8888584Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8888839Z         "payload_length": 3412
-2026-02-11T18:41:07.8889064Z       },
-2026-02-11T18:41:07.8889267Z       {
-2026-02-11T18:41:07.8889515Z         "path": "definition/tables/invoices.tmdl",
-2026-02-11T18:41:07.8889781Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8890030Z         "payload_length": 9868
-2026-02-11T18:41:07.8890271Z       },
-2026-02-11T18:41:07.8896395Z       {
-2026-02-11T18:41:07.8896770Z         "path": "definition/tables/LocalDateTable_800fb5ae-d08e-4b67-8c86-150022748772.tmdl",
-2026-02-11T18:41:07.8897254Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8897512Z         "payload_length": 3400
-2026-02-11T18:41:07.8897743Z       },
-2026-02-11T18:41:07.8897970Z       {
-2026-02-11T18:41:07.8898222Z         "path": "definition/tables/customer.tmdl",
-2026-02-11T18:41:07.8898496Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8898761Z         "payload_length": 12992
-2026-02-11T18:41:07.8898995Z       },
-2026-02-11T18:41:07.8899204Z       {
-2026-02-11T18:41:07.8899504Z         "path": "definition/tables/LocalDateTable_a390c296-8624-4079-97ef-bf642681d1a1.tmdl",
-2026-02-11T18:41:07.8899817Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8900081Z         "payload_length": 3412
-2026-02-11T18:41:07.8900315Z       },
-2026-02-11T18:41:07.8900822Z       {
-2026-02-11T18:41:07.8901090Z         "path": "definition/tables/sundry_charges.tmdl",
-2026-02-11T18:41:07.8901380Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8901647Z         "payload_length": 14492
-2026-02-11T18:41:07.8901886Z       },
-2026-02-11T18:41:07.8902103Z       {
-2026-02-11T18:41:07.8902399Z         "path": "definition/tables/LocalDateTable_4f8745f5-2286-4cff-b90a-2ae0535f32ed.tmdl",
-2026-02-11T18:41:07.8902710Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8902980Z         "payload_length": 3424
-2026-02-11T18:41:07.8903215Z       },
-2026-02-11T18:41:07.8903427Z       {
-2026-02-11T18:41:07.8903712Z         "path": "definition/tables/LocalDateTable_fc720cde-f7a5-48ba-996a-d85bacec89a0.tmdl",
-2026-02-11T18:41:07.8904020Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8904269Z         "payload_length": 3444
-2026-02-11T18:41:07.8904504Z       },
-2026-02-11T18:41:07.8904718Z       {
-2026-02-11T18:41:07.8905006Z         "path": "definition/tables/LocalDateTable_29a7aa3c-1b7e-4546-9c2e-d337c44cff50.tmdl",
-2026-02-11T18:41:07.8905330Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8905605Z         "payload_length": 3424
-2026-02-11T18:41:07.8905849Z       },
-2026-02-11T18:41:07.8906081Z       {
-2026-02-11T18:41:07.8906385Z         "path": "definition/tables/LocalDateTable_b524626c-d6f3-422c-88b8-86f63a882608.tmdl",
-2026-02-11T18:41:07.8906711Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8906983Z         "payload_length": 3436
-2026-02-11T18:41:07.8907225Z       },
-2026-02-11T18:41:07.8907446Z       {
-2026-02-11T18:41:07.8907902Z         "path": "definition/tables/LocalDateTable_7351796f-b9e7-43d6-8359-c0dcf147a214.tmdl",
-2026-02-11T18:41:07.8908228Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8908497Z         "payload_length": 3444
-2026-02-11T18:41:07.8908740Z       },
-2026-02-11T18:41:07.8908967Z       {
-2026-02-11T18:41:07.8909275Z         "path": "definition/tables/LocalDateTable_7fc1bfb3-6927-413d-9944-f572555ef422.tmdl",
-2026-02-11T18:41:07.8909608Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8909878Z         "payload_length": 3416
-2026-02-11T18:41:07.8910120Z       },
-2026-02-11T18:41:07.8910345Z       {
-2026-02-11T18:41:07.8910845Z         "path": "definition/tables/LocalDateTable_e54a4fd8-322c-46ec-9edb-c71bf5e2ccf9.tmdl",
-2026-02-11T18:41:07.8911237Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8911508Z         "payload_length": 3436
-2026-02-11T18:41:07.8911749Z       },
-2026-02-11T18:41:07.8911974Z       {
-2026-02-11T18:41:07.8912232Z         "path": "definition/tables/Date.tmdl",
-2026-02-11T18:41:07.8912521Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8912794Z         "payload_length": 2384
-2026-02-11T18:41:07.8913044Z       },
-2026-02-11T18:41:07.8913266Z       {
-2026-02-11T18:41:07.8913569Z         "path": "definition/tables/LocalDateTable_3b7d84c8-2a4b-48e9-87d0-0d36d14ebc50.tmdl",
-2026-02-11T18:41:07.8913898Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8914167Z         "payload_length": 3428
-2026-02-11T18:41:07.8914418Z       },
-2026-02-11T18:41:07.8914639Z       {
-2026-02-11T18:41:07.8914945Z         "path": "definition/tables/LocalDateTable_13a26fdd-a293-4aed-83e8-d179b8e59b5d.tmdl",
-2026-02-11T18:41:07.8915388Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8915663Z         "payload_length": 3400
-2026-02-11T18:41:07.8915908Z       },
-2026-02-11T18:41:07.8916141Z       {
-2026-02-11T18:41:07.8916413Z         "path": "definition/tables/contracts.tmdl",
-2026-02-11T18:41:07.8916703Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8916978Z         "payload_length": 26324
-2026-02-11T18:41:07.8917223Z       },
-2026-02-11T18:41:07.8917447Z       {
-2026-02-11T18:41:07.8917752Z         "path": "definition/tables/LocalDateTable_a9be32a7-ea5e-4a2a-89c9-e3f439e30843.tmdl",
-2026-02-11T18:41:07.8918086Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8918356Z         "payload_length": 3408
-2026-02-11T18:41:07.8918599Z       },
-2026-02-11T18:41:07.8918818Z       {
-2026-02-11T18:41:07.8919082Z         "path": "definition/tables/receipts.tmdl",
-2026-02-11T18:41:07.8919368Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8919651Z         "payload_length": 9372
-2026-02-11T18:41:07.8919891Z       },
-2026-02-11T18:41:07.8920112Z       {
-2026-02-11T18:41:07.8920361Z         "path": "definition/tables/Payments.tmdl",
-2026-02-11T18:41:07.8920917Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8921164Z         "payload_length": 20392
-2026-02-11T18:41:07.8921380Z       },
-2026-02-11T18:41:07.8921577Z       {
-2026-02-11T18:41:07.8921837Z         "path": "definition/tables/LocalDateTable_b913591e-5c5c-423d-b392-91c05bcbe308.tmdl",
-2026-02-11T18:41:07.8922133Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8922389Z         "payload_length": 3376
-2026-02-11T18:41:07.8922615Z       },
-2026-02-11T18:41:07.8922844Z       {
-2026-02-11T18:41:07.8923112Z         "path": "definition/tables/Origination Dates.tmdl",
-2026-02-11T18:41:07.8923392Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8923659Z         "payload_length": 1988
-2026-02-11T18:41:07.8923895Z       },
-2026-02-11T18:41:07.8924122Z       {
-2026-02-11T18:41:07.8924437Z         "path": "definition/tables/LocalDateTable_a2a7f051-b1b9-4dcd-a680-fbd3e09b008b.tmdl",
-2026-02-11T18:41:07.8924770Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8925034Z         "payload_length": 3420
-2026-02-11T18:41:07.8925256Z       },
-2026-02-11T18:41:07.8925469Z       {
-2026-02-11T18:41:07.8925743Z         "path": "definition/tables/LocalDateTable_f79a6bb1-3117-4555-be3c-9536454e7801.tmdl",
-2026-02-11T18:41:07.8926184Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8926423Z         "payload_length": 3400
-2026-02-11T18:41:07.8926931Z       },
-2026-02-11T18:41:07.8927196Z       {
-2026-02-11T18:41:07.8927469Z         "path": "definition/tables/LocalDateTable_f80953f8-52ea-4878-8fb0-9f7967ddf33c.tmdl",
-2026-02-11T18:41:07.8927777Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8928028Z         "payload_length": 3404
-2026-02-11T18:41:07.8928261Z       },
-2026-02-11T18:41:07.8928472Z       {
-2026-02-11T18:41:07.8928736Z         "path": "definition/tables/lease_receivables.tmdl",
-2026-02-11T18:41:07.8929029Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8929285Z         "payload_length": 6540
-2026-02-11T18:41:07.8929520Z       },
-2026-02-11T18:41:07.8929729Z       {
-2026-02-11T18:41:07.8930018Z         "path": "definition/tables/LocalDateTable_6d35864e-6579-4465-9b1a-131959c4da1b.tmdl",
-2026-02-11T18:41:07.8930341Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8930803Z         "payload_length": 3436
-2026-02-11T18:41:07.8931042Z       },
-2026-02-11T18:41:07.8931257Z       {
-2026-02-11T18:41:07.8931542Z         "path": "definition/tables/LocalDateTable_c9506875-c62c-4cf5-9a2e-d055a0ffa5eb.tmdl",
-2026-02-11T18:41:07.8931857Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8932129Z         "payload_length": 3456
-2026-02-11T18:41:07.8932368Z       },
-2026-02-11T18:41:07.8932586Z       {
-2026-02-11T18:41:07.8932884Z         "path": "definition/tables/LocalDateTable_55c995e9-5f17-4274-bf39-8abf5b7369f9.tmdl",
-2026-02-11T18:41:07.8933356Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8933612Z         "payload_length": 3412
-2026-02-11T18:41:07.8933843Z       },
-2026-02-11T18:41:07.8934053Z       {
-2026-02-11T18:41:07.8934341Z         "path": "definition/tables/LocalDateTable_6091144c-a56f-4d8e-ba6a-c09a95647ae9.tmdl",
-2026-02-11T18:41:07.8934661Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8934924Z         "payload_length": 3408
-2026-02-11T18:41:07.8935142Z       },
-2026-02-11T18:41:07.8935354Z       {
-2026-02-11T18:41:07.8935636Z         "path": "definition/tables/LocalDateTable_8d388dc9-7379-4833-af99-49606daad1ac.tmdl",
-2026-02-11T18:41:07.8935964Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8936217Z         "payload_length": 3400
-2026-02-11T18:41:07.8936352Z       },
-2026-02-11T18:41:07.8936472Z       {
-2026-02-11T18:41:07.8936615Z         "path": "definition/tables/lease_finance.tmdl",
-2026-02-11T18:41:07.8936772Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8936927Z         "payload_length": 17140
-2026-02-11T18:41:07.8937057Z       },
-2026-02-11T18:41:07.8937172Z       {
-2026-02-11T18:41:07.8937333Z         "path": "definition/tables/LocalDateTable_bcd20351-072f-4e5b-ad62-20caaa6a4f5d.tmdl",
-2026-02-11T18:41:07.8937579Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8937722Z         "payload_length": 3400
-2026-02-11T18:41:07.8937865Z       },
-2026-02-11T18:41:07.8937984Z       {
-2026-02-11T18:41:07.8938122Z         "path": "definition/cultures/en-GB.tmdl",
-2026-02-11T18:41:07.8938275Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:07.8938419Z         "payload_length": 363856
-2026-02-11T18:41:07.8938549Z       }
-2026-02-11T18:41:07.8938675Z     ]
-2026-02-11T18:41:07.8938795Z   }
-2026-02-11T18:41:07.8938916Z }
-2026-02-11T18:41:08.1606293Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/2922436e-65ca-4a39-b425-34937d08cbb8
-2026-02-11T18:41:08.1607091Z INFO:fabric_client:  LRO Operation ID: 2922436e-65ca-4a39-b425-34937d08cbb8
-2026-02-11T18:41:08.1607696Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:08.1616474Z INFO:__main__:  Updated semantic model (ID: dfae4241-471b-4bdb-80e6-712cf4b295b9)
-2026-02-11T18:41:08.1617867Z INFO:__main__:  Binding 'Finance Summary' to Fabric connection 'porod-tmp01-reporting-lakehouse-connection'...
-2026-02-11T18:41:08.1618992Z INFO:fabric_client:Binding semantic model dfae4241-471b-4bdb-80e6-712cf4b295b9 to Fabric connection 67f7be26-f59d-4788-8453-16793ec3a1b3
-2026-02-11T18:41:08.3281452Z ERROR:fabric_client:HTTP Error: 404 - {"requestId":"27bf4697-5301-4c20-96d3-d366f443c14c","errorCode":"EntityNotFound","message":"The requested resource could not be found"}
-2026-02-11T18:41:08.3283118Z INFO:__main__:  ℹ Could not bind 'Finance Summary' to connection: 404 Client Error: Not Found for url: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/items/dfae4241-471b-4bdb-80e6-712cf4b295b9/connections
-2026-02-11T18:41:08.3283952Z INFO:__main__:    Assign connection 'porod-tmp01-reporting-lakehouse-connection' manually in semantic model settings
-2026-02-11T18:41:08.3292630Z INFO:__main__:  ✓ SQL endpoints transformed during deployment for 'Finance Summary'
-2026-02-11T18:41:08.3295477Z INFO:__main__:✅ Successfully deployed: Finance Summary
-2026-02-11T18:41:08.3295850Z INFO:__main__:
-2026-02-11T18:41:08.3296140Z Deploying: Notebook 5 (Notebook)
-2026-02-11T18:41:08.3300965Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:08.5258526Z INFO:__main__:  Notebook 'Notebook 5' already exists, updating...
-2026-02-11T18:41:08.5259754Z INFO:fabric_client:Updating notebook: dd8ac7f1-28ec-418e-8296-26d288ebe841
-2026-02-11T18:41:08.5262020Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/dd8ac7f1-28ec-418e-8296-26d288ebe841/updateDefinition
-2026-02-11T18:41:08.5263817Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:08.5265408Z   "definition": {
-2026-02-11T18:41:08.5266310Z     "parts": [
-2026-02-11T18:41:08.5266986Z       {
-2026-02-11T18:41:08.5267768Z         "path": "notebook-content.py",
-2026-02-11T18:41:08.5268613Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:08.5269425Z         "payload_length": 840
-2026-02-11T18:41:08.5270102Z       }
-2026-02-11T18:41:08.5270810Z     ]
-2026-02-11T18:41:08.5271563Z   }
-2026-02-11T18:41:08.5272184Z }
-2026-02-11T18:41:08.5272977Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/dd8ac7f1-28ec-418e-8296-26d288ebe841/updateDefinition
-2026-02-11T18:41:08.5274151Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:08.5274447Z   "definition": {
-2026-02-11T18:41:08.5274690Z     "parts": [
-2026-02-11T18:41:08.5274918Z       {
-2026-02-11T18:41:08.5275168Z         "path": "notebook-content.py",
-2026-02-11T18:41:08.5275445Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:08.5275717Z         "payload_length": 840
-2026-02-11T18:41:08.5275968Z       }
-2026-02-11T18:41:08.5276191Z     ]
-2026-02-11T18:41:08.5276412Z   }
-2026-02-11T18:41:08.5276632Z }
-2026-02-11T18:41:08.9368706Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/db363921-ede5-4a65-8977-c922eedd7440
-2026-02-11T18:41:08.9371009Z INFO:fabric_client:  LRO Operation ID: db363921-ede5-4a65-8977-c922eedd7440
-2026-02-11T18:41:08.9371466Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:08.9379137Z INFO:__main__:  ✓ Updated notebook 'Notebook 5' (ID: dd8ac7f1-28ec-418e-8296-26d288ebe841)
-2026-02-11T18:41:08.9381341Z INFO:__main__:✅ Successfully deployed: Notebook 5
-2026-02-11T18:41:08.9382076Z INFO:__main__:
-2026-02-11T18:41:08.9382497Z Deploying: nb_sample_artifact_creation (Notebook)
-2026-02-11T18:41:08.9389155Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:09.1505146Z INFO:__main__:  Notebook 'nb_sample_artifact_creation' already exists, updating...
-2026-02-11T18:41:09.1506021Z INFO:fabric_client:Updating notebook: 261e4c6e-4353-48de-ba65-486d9ca45764
-2026-02-11T18:41:09.1508143Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/261e4c6e-4353-48de-ba65-486d9ca45764/updateDefinition
-2026-02-11T18:41:09.1509400Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:09.1509819Z   "definition": {
-2026-02-11T18:41:09.1510041Z     "parts": [
-2026-02-11T18:41:09.1510248Z       {
-2026-02-11T18:41:09.1510651Z         "path": "notebook-content.py",
-2026-02-11T18:41:09.1510911Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:09.1511166Z         "payload_length": 8472
-2026-02-11T18:41:09.1511404Z       }
-2026-02-11T18:41:09.1511625Z     ]
-2026-02-11T18:41:09.1511857Z   }
-2026-02-11T18:41:09.1512089Z }
-2026-02-11T18:41:09.1512499Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/261e4c6e-4353-48de-ba65-486d9ca45764/updateDefinition
-2026-02-11T18:41:09.1513208Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:09.1524530Z   "definition": {
-2026-02-11T18:41:09.1525319Z     "parts": [
-2026-02-11T18:41:09.1525578Z       {
-2026-02-11T18:41:09.1525818Z         "path": "notebook-content.py",
-2026-02-11T18:41:09.1526091Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:09.1526343Z         "payload_length": 8472
-2026-02-11T18:41:09.1526590Z       }
-2026-02-11T18:41:09.1526830Z     ]
-2026-02-11T18:41:09.1527054Z   }
-2026-02-11T18:41:09.1527278Z }
-2026-02-11T18:41:09.5470946Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/203981e5-0e06-4002-9d0f-7f50896e383f
-2026-02-11T18:41:09.5472893Z INFO:fabric_client:  LRO Operation ID: 203981e5-0e06-4002-9d0f-7f50896e383f
-2026-02-11T18:41:09.5476262Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:09.5485663Z INFO:__main__:  ✓ Updated notebook 'nb_sample_artifact_creation' (ID: 261e4c6e-4353-48de-ba65-486d9ca45764)
-2026-02-11T18:41:09.5488228Z INFO:__main__:✅ Successfully deployed: nb_sample_artifact_creation
-2026-02-11T18:41:09.5490700Z INFO:__main__:
-2026-02-11T18:41:09.5491758Z Deploying: Notebook 3 (Notebook)
-2026-02-11T18:41:09.5493966Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:09.7372670Z INFO:__main__:  Notebook 'Notebook 3' already exists, updating...
-2026-02-11T18:41:09.7373753Z INFO:fabric_client:Updating notebook: e1951542-6f5b-49fc-801b-8fd3ef75be58
-2026-02-11T18:41:09.7374981Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/e1951542-6f5b-49fc-801b-8fd3ef75be58/updateDefinition
-2026-02-11T18:41:09.7375915Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:09.7377149Z   "definition": {
-2026-02-11T18:41:09.7377636Z     "parts": [
-2026-02-11T18:41:09.7378017Z       {
-2026-02-11T18:41:09.7378538Z         "path": "notebook-content.py",
-2026-02-11T18:41:09.7379235Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:09.7379736Z         "payload_length": 820
-2026-02-11T18:41:09.7380236Z       }
-2026-02-11T18:41:09.7381008Z     ]
-2026-02-11T18:41:09.7381459Z   }
-2026-02-11T18:41:09.7381951Z }
-2026-02-11T18:41:09.7384260Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/e1951542-6f5b-49fc-801b-8fd3ef75be58/updateDefinition
-2026-02-11T18:41:09.7384849Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:09.7385197Z   "definition": {
-2026-02-11T18:41:09.7385496Z     "parts": [
-2026-02-11T18:41:09.7385792Z       {
-2026-02-11T18:41:09.7386107Z         "path": "notebook-content.py",
-2026-02-11T18:41:09.7386453Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:09.7386786Z         "payload_length": 820
-2026-02-11T18:41:09.7387094Z       }
-2026-02-11T18:41:09.7387367Z     ]
-2026-02-11T18:41:09.7387650Z   }
-2026-02-11T18:41:09.7387923Z }
-2026-02-11T18:41:10.1189736Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/e620e9a2-2c3e-46b9-a057-ced27929f0bc
-2026-02-11T18:41:10.1192821Z INFO:fabric_client:  LRO Operation ID: e620e9a2-2c3e-46b9-a057-ced27929f0bc
-2026-02-11T18:41:10.1193885Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:10.1204646Z INFO:__main__:  ✓ Updated notebook 'Notebook 3' (ID: e1951542-6f5b-49fc-801b-8fd3ef75be58)
-2026-02-11T18:41:10.1206244Z INFO:__main__:✅ Successfully deployed: Notebook 3
-2026-02-11T18:41:10.1207384Z INFO:__main__:
-2026-02-11T18:41:10.1207981Z Deploying: NBT1 (Notebook)
-2026-02-11T18:41:10.1214313Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:10.2931236Z INFO:__main__:  Notebook 'NBT1' already exists, updating...
-2026-02-11T18:41:10.2932360Z INFO:fabric_client:Updating notebook: 1c204970-73fd-4255-a8e5-2bc8872c57d0
-2026-02-11T18:41:10.2933565Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/1c204970-73fd-4255-a8e5-2bc8872c57d0/updateDefinition
-2026-02-11T18:41:10.2934512Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:10.2935164Z   "definition": {
-2026-02-11T18:41:10.2935918Z     "parts": [
-2026-02-11T18:41:10.2936675Z       {
-2026-02-11T18:41:10.2937707Z         "path": "notebook-content.py",
-2026-02-11T18:41:10.2938837Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:10.2940407Z         "payload_length": 688
-2026-02-11T18:41:10.2941498Z       }
-2026-02-11T18:41:10.2942058Z     ]
-2026-02-11T18:41:10.2942551Z   }
-2026-02-11T18:41:10.2943085Z }
-2026-02-11T18:41:10.2945375Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/1c204970-73fd-4255-a8e5-2bc8872c57d0/updateDefinition
-2026-02-11T18:41:10.2946155Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:10.2946445Z   "definition": {
-2026-02-11T18:41:10.2946690Z     "parts": [
-2026-02-11T18:41:10.2946919Z       {
-2026-02-11T18:41:10.2947173Z         "path": "notebook-content.py",
-2026-02-11T18:41:10.2947453Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:10.2947722Z         "payload_length": 688
-2026-02-11T18:41:10.2947975Z       }
-2026-02-11T18:41:10.2948205Z     ]
-2026-02-11T18:41:10.2948430Z   }
-2026-02-11T18:41:10.2948652Z }
-2026-02-11T18:41:10.7138058Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/8a9b07ba-9178-4f08-96e6-0c3971b2135e
-2026-02-11T18:41:10.7138648Z INFO:fabric_client:  LRO Operation ID: 8a9b07ba-9178-4f08-96e6-0c3971b2135e
-2026-02-11T18:41:10.7139112Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:10.7151249Z INFO:__main__:  ✓ Updated notebook 'NBT1' (ID: 1c204970-73fd-4255-a8e5-2bc8872c57d0)
-2026-02-11T18:41:10.7152134Z INFO:__main__:✅ Successfully deployed: NBT1
-2026-02-11T18:41:10.7152705Z INFO:__main__:
-2026-02-11T18:41:10.7153316Z Deploying: Notebook 7 (Notebook)
-2026-02-11T18:41:10.7159899Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:10.9061272Z INFO:__main__:  Notebook 'Notebook 7' already exists, updating...
-2026-02-11T18:41:10.9064490Z INFO:fabric_client:Updating notebook: 34e9ccb8-fbbe-4802-9910-c96f5d9d736b
-2026-02-11T18:41:10.9065460Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/34e9ccb8-fbbe-4802-9910-c96f5d9d736b/updateDefinition
-2026-02-11T18:41:10.9066786Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:10.9067359Z   "definition": {
-2026-02-11T18:41:10.9067821Z     "parts": [
-2026-02-11T18:41:10.9070295Z       {
-2026-02-11T18:41:10.9070761Z         "path": "notebook-content.py",
-2026-02-11T18:41:10.9071059Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:10.9071350Z         "payload_length": 844
-2026-02-11T18:41:10.9071591Z       }
-2026-02-11T18:41:10.9071815Z     ]
-2026-02-11T18:41:10.9072038Z   }
-2026-02-11T18:41:10.9072264Z }
-2026-02-11T18:41:10.9072698Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/34e9ccb8-fbbe-4802-9910-c96f5d9d736b/updateDefinition
-2026-02-11T18:41:10.9073483Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:10.9073770Z   "definition": {
-2026-02-11T18:41:10.9074013Z     "parts": [
-2026-02-11T18:41:10.9074243Z       {
-2026-02-11T18:41:10.9074495Z         "path": "notebook-content.py",
-2026-02-11T18:41:10.9074781Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:10.9075048Z         "payload_length": 844
-2026-02-11T18:41:10.9075291Z       }
-2026-02-11T18:41:10.9075513Z     ]
-2026-02-11T18:41:10.9075736Z   }
-2026-02-11T18:41:10.9075956Z }
-2026-02-11T18:41:11.3475378Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/c42cd834-0415-416e-a98a-5b751ac2fb73
-2026-02-11T18:41:11.3479351Z INFO:fabric_client:  LRO Operation ID: c42cd834-0415-416e-a98a-5b751ac2fb73
-2026-02-11T18:41:11.3479852Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:11.3487735Z INFO:__main__:  ✓ Updated notebook 'Notebook 7' (ID: 34e9ccb8-fbbe-4802-9910-c96f5d9d736b)
-2026-02-11T18:41:11.3489899Z INFO:__main__:✅ Successfully deployed: Notebook 7
-2026-02-11T18:41:11.3490941Z INFO:__main__:
-2026-02-11T18:41:11.3491487Z Deploying: NBT2 (Notebook)
-2026-02-11T18:41:11.3499676Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:11.5094655Z INFO:__main__:  Notebook 'NBT2' already exists, updating...
-2026-02-11T18:41:11.5098363Z INFO:fabric_client:Updating notebook: 7b98be9e-386c-4195-894a-fa92d8477ac1
-2026-02-11T18:41:11.5098935Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/7b98be9e-386c-4195-894a-fa92d8477ac1/updateDefinition
-2026-02-11T18:41:11.5099672Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:11.5099954Z   "definition": {
-2026-02-11T18:41:11.5100210Z     "parts": [
-2026-02-11T18:41:11.5100705Z       {
-2026-02-11T18:41:11.5101010Z         "path": "notebook-content.py",
-2026-02-11T18:41:11.5101336Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:11.5101643Z         "payload_length": 688
-2026-02-11T18:41:11.5101917Z       }
-2026-02-11T18:41:11.5102174Z     ]
-2026-02-11T18:41:11.5102431Z   }
-2026-02-11T18:41:11.5102681Z }
-2026-02-11T18:41:11.5103172Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/7b98be9e-386c-4195-894a-fa92d8477ac1/updateDefinition
-2026-02-11T18:41:11.5103698Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:11.5104014Z   "definition": {
-2026-02-11T18:41:11.5104296Z     "parts": [
-2026-02-11T18:41:11.5104554Z       {
-2026-02-11T18:41:11.5104843Z         "path": "notebook-content.py",
-2026-02-11T18:41:11.5105156Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:11.5105461Z         "payload_length": 688
-2026-02-11T18:41:11.5105734Z       }
-2026-02-11T18:41:11.5105988Z     ]
-2026-02-11T18:41:11.5106248Z   }
-2026-02-11T18:41:11.5106499Z }
-2026-02-11T18:41:11.9096772Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/fd332fa0-95ce-469c-bf52-608584c2cf4f
-2026-02-11T18:41:11.9097652Z INFO:fabric_client:  LRO Operation ID: fd332fa0-95ce-469c-bf52-608584c2cf4f
-2026-02-11T18:41:11.9099538Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:11.9108820Z INFO:__main__:  ✓ Updated notebook 'NBT2' (ID: 7b98be9e-386c-4195-894a-fa92d8477ac1)
-2026-02-11T18:41:11.9110777Z INFO:__main__:✅ Successfully deployed: NBT2
-2026-02-11T18:41:11.9111530Z INFO:__main__:
-2026-02-11T18:41:11.9111919Z Deploying: Notebook 6 (Notebook)
-2026-02-11T18:41:11.9119200Z INFO:fabric_client:Listing notebooks in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:12.1240929Z INFO:__main__:  Notebook 'Notebook 6' already exists, updating...
-2026-02-11T18:41:12.1243476Z INFO:fabric_client:Updating notebook: a941aaa2-357c-49af-b434-f3d3a39da228
-2026-02-11T18:41:12.1247691Z INFO:fabric_client:Updating notebook - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/a941aaa2-357c-49af-b434-f3d3a39da228/updateDefinition
-2026-02-11T18:41:12.1248632Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:12.1249028Z   "definition": {
-2026-02-11T18:41:12.1249332Z     "parts": [
-2026-02-11T18:41:12.1249616Z       {
-2026-02-11T18:41:12.1249914Z         "path": "notebook-content.py",
-2026-02-11T18:41:12.1250275Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:12.1250780Z         "payload_length": 844
-2026-02-11T18:41:12.1251026Z       }
-2026-02-11T18:41:12.1251251Z     ]
-2026-02-11T18:41:12.1251475Z   }
-2026-02-11T18:41:12.1251708Z }
-2026-02-11T18:41:12.1252138Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/notebooks/a941aaa2-357c-49af-b434-f3d3a39da228/updateDefinition
-2026-02-11T18:41:12.1252604Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:12.1252882Z   "definition": {
-2026-02-11T18:41:12.1253137Z     "parts": [
-2026-02-11T18:41:12.1253365Z       {
-2026-02-11T18:41:12.1253618Z         "path": "notebook-content.py",
-2026-02-11T18:41:12.1253906Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:12.1254244Z         "payload_length": 844
-2026-02-11T18:41:12.1254484Z       }
-2026-02-11T18:41:12.1254706Z     ]
-2026-02-11T18:41:12.1254928Z   }
-2026-02-11T18:41:12.1255152Z }
-2026-02-11T18:41:12.5589995Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/b17ee2e1-d785-44d0-84de-cdc9828408db
-2026-02-11T18:41:12.5593128Z INFO:fabric_client:  LRO Operation ID: b17ee2e1-d785-44d0-84de-cdc9828408db
-2026-02-11T18:41:12.5593841Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:12.5602651Z INFO:__main__:  ✓ Updated notebook 'Notebook 6' (ID: a941aaa2-357c-49af-b434-f3d3a39da228)
-2026-02-11T18:41:12.5604380Z INFO:__main__:✅ Successfully deployed: Notebook 6
-2026-02-11T18:41:12.5605660Z INFO:__main__:
-2026-02-11T18:41:12.5605991Z Deploying: Welcome (Report)
-2026-02-11T18:41:12.5608821Z INFO:__main__:  Reading report from Fabric Git format: Welcome.Report
-2026-02-11T18:41:12.5613161Z INFO:fabric_client:Listing semantic models in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:12.7694878Z INFO:__main__:    ✓ Using byConnection reference for 'Welcome' (ID: 5c66765d-c6db-4263-84c6-41d6d195dba2)
-2026-02-11T18:41:12.7702649Z INFO:fabric_client:Listing reports in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:12.8916078Z INFO:__main__:  Power BI report 'Welcome' already exists, updating...
-2026-02-11T18:41:12.8917292Z INFO:fabric_client:Updating Power BI report: e5004bc4-fdeb-40de-8573-f482e7fb2461
-2026-02-11T18:41:12.8917924Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/reports/e5004bc4-fdeb-40de-8573-f482e7fb2461/updateDefinition
-2026-02-11T18:41:12.8921537Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:12.8922069Z   "definition": {
-2026-02-11T18:41:12.8922529Z     "parts": [
-2026-02-11T18:41:12.8923012Z       {
-2026-02-11T18:41:12.8923490Z         "path": ".platform",
-2026-02-11T18:41:12.8923972Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:12.8924514Z         "payload_length": 388
-2026-02-11T18:41:12.8925110Z       },
-2026-02-11T18:41:12.8925610Z       {
-2026-02-11T18:41:12.8926054Z         "path": "definition.pbir",
-2026-02-11T18:41:12.8926433Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:12.8927347Z         "payload_length": 636
-2026-02-11T18:41:12.8930375Z       },
-2026-02-11T18:41:12.8931685Z       {
-2026-02-11T18:41:12.8931955Z         "path": "report.json",
-2026-02-11T18:41:12.8932230Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:12.8932505Z         "payload_length": 4640
-2026-02-11T18:41:12.8932748Z       },
-2026-02-11T18:41:12.8932970Z       {
-2026-02-11T18:41:12.8933266Z         "path": "StaticResources/RegisteredResources/New_Logo718942607170964.png",
-2026-02-11T18:41:12.8933782Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:12.8934057Z         "payload_length": 33984
-2026-02-11T18:41:12.8934309Z       },
-2026-02-11T18:41:12.8934532Z       {
-2026-02-11T18:41:12.8934823Z         "path": "StaticResources/SharedResources/BaseThemes/CY24SU10.json",
-2026-02-11T18:41:12.8935135Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:12.8935415Z         "payload_length": 17900
-2026-02-11T18:41:12.8935663Z       }
-2026-02-11T18:41:12.8935887Z     ]
-2026-02-11T18:41:12.8936114Z   }
-2026-02-11T18:41:12.8936336Z }
-2026-02-11T18:41:13.1133441Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/cf52b8ed-6bea-46ef-8713-59b676a52181
-2026-02-11T18:41:13.1137224Z INFO:fabric_client:  LRO Operation ID: cf52b8ed-6bea-46ef-8713-59b676a52181
-2026-02-11T18:41:13.1137869Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:13.1143392Z INFO:__main__:  Updated report (ID: e5004bc4-fdeb-40de-8573-f482e7fb2461)
-2026-02-11T18:41:13.1145513Z INFO:__main__:  ✓ Dataset reference transformed during deployment for 'Welcome'
-2026-02-11T18:41:13.1146952Z INFO:__main__:✅ Successfully deployed: Welcome
-2026-02-11T18:41:13.1148609Z INFO:__main__:
-2026-02-11T18:41:13.1149246Z Deploying: Finance Summary (Report)
-2026-02-11T18:41:13.1156653Z INFO:__main__:  Reading report from Fabric Git format: Finance Summary.Report
-2026-02-11T18:41:13.1157352Z INFO:fabric_client:Listing semantic models in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:13.2677101Z INFO:__main__:    ✓ Using byConnection reference for 'Finance Summary' (ID: dfae4241-471b-4bdb-80e6-712cf4b295b9)
-2026-02-11T18:41:13.2695220Z INFO:fabric_client:Listing reports in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:13.3914235Z INFO:__main__:  Power BI report 'Finance Summary' already exists, updating...
-2026-02-11T18:41:13.3915055Z INFO:fabric_client:Updating Power BI report: 10862614-b913-49b0-a55e-df38e2aa1be8
-2026-02-11T18:41:13.3921616Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/reports/10862614-b913-49b0-a55e-df38e2aa1be8/updateDefinition
-2026-02-11T18:41:13.3922416Z INFO:fabric_client:Payload structure: {
-2026-02-11T18:41:13.3923557Z   "definition": {
-2026-02-11T18:41:13.3924169Z     "parts": [
-2026-02-11T18:41:13.3926332Z       {
-2026-02-11T18:41:13.3926599Z         "path": ".platform",
-2026-02-11T18:41:13.3926881Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3927156Z         "payload_length": 400
-2026-02-11T18:41:13.3927398Z       },
-2026-02-11T18:41:13.3927643Z       {
-2026-02-11T18:41:13.3927896Z         "path": "definition.pbir",
-2026-02-11T18:41:13.3928173Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3928453Z         "payload_length": 636
-2026-02-11T18:41:13.3928698Z       },
-2026-02-11T18:41:13.3928922Z       {
-2026-02-11T18:41:13.3929213Z         "path": "StaticResources/SharedResources/BaseThemes/CY24SU10.json",
-2026-02-11T18:41:13.3929532Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3929807Z         "payload_length": 17900
-2026-02-11T18:41:13.3930058Z       },
-2026-02-11T18:41:13.3930280Z       {
-2026-02-11T18:41:13.3939226Z         "path": "definition/report.json",
-2026-02-11T18:41:13.3939558Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3939838Z         "payload_length": 1948
-2026-02-11T18:41:13.3940092Z       },
-2026-02-11T18:41:13.3940647Z       {
-2026-02-11T18:41:13.3940913Z         "path": "definition/version.json",
-2026-02-11T18:41:13.3941195Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3941478Z         "payload_length": 200
-2026-02-11T18:41:13.3941719Z       },
-2026-02-11T18:41:13.3941938Z       {
-2026-02-11T18:41:13.3942196Z         "path": "definition/pages/pages.json",
-2026-02-11T18:41:13.3942486Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3942760Z         "payload_length": 292
-2026-02-11T18:41:13.3943000Z       },
-2026-02-11T18:41:13.3943228Z       {
-2026-02-11T18:41:13.3943721Z         "path": "definition/pages/b6c42040fec78e9b914a/page.json",
-2026-02-11T18:41:13.3944020Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3944287Z         "payload_length": 328
-2026-02-11T18:41:13.3944528Z       },
-2026-02-11T18:41:13.3944738Z       {
-2026-02-11T18:41:13.3945045Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/e5eb24c638bb1f032b26/visual.json",
-2026-02-11T18:41:13.3945352Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3945625Z         "payload_length": 13908
-2026-02-11T18:41:13.3945860Z       },
-2026-02-11T18:41:13.3946093Z       {
-2026-02-11T18:41:13.3946398Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/0523a88ac23452ae9e6b/visual.json",
-2026-02-11T18:41:13.3946718Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3946975Z         "payload_length": 1792
-2026-02-11T18:41:13.3947211Z       },
-2026-02-11T18:41:13.3947422Z       {
-2026-02-11T18:41:13.3947713Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/de01cbde24b2199323d8/visual.json",
-2026-02-11T18:41:13.3948029Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3948288Z         "payload_length": 10860
-2026-02-11T18:41:13.3948526Z       },
-2026-02-11T18:41:13.3948737Z       {
-2026-02-11T18:41:13.3949030Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/f7c4ad813300f32f44ef/visual.json",
-2026-02-11T18:41:13.3949349Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3949605Z         "payload_length": 12572
-2026-02-11T18:41:13.3949843Z       },
-2026-02-11T18:41:13.3950073Z       {
-2026-02-11T18:41:13.3950379Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/46e549cc5f43e9475f58/visual.json",
-2026-02-11T18:41:13.3951063Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3951326Z         "payload_length": 14060
-2026-02-11T18:41:13.3951561Z       },
-2026-02-11T18:41:13.3951773Z       {
-2026-02-11T18:41:13.3952078Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/25760f426e0c3e92eaa0/visual.json",
-2026-02-11T18:41:13.3952398Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3952651Z         "payload_length": 9092
-2026-02-11T18:41:13.3952881Z       },
-2026-02-11T18:41:13.3953097Z       {
-2026-02-11T18:41:13.3953404Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/03b5e05028d4e9948b9a/visual.json",
-2026-02-11T18:41:13.3953715Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3953968Z         "payload_length": 12540
-2026-02-11T18:41:13.3954201Z       },
-2026-02-11T18:41:13.3954422Z       {
-2026-02-11T18:41:13.3954710Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/ef72739d0231e84f532a/visual.json",
-2026-02-11T18:41:13.3955032Z         "payloadType": "InlineBase64",
-2026-02-11T18:41:13.3955225Z         "payload_length": 10344
-2026-02-11T18:41:13.3955355Z       }
-2026-02-11T18:41:13.3955475Z     ]
-2026-02-11T18:41:13.3955597Z   }
-2026-02-11T18:41:13.3955716Z }
-2026-02-11T18:41:13.6347281Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/8939620c-e1e6-4b42-b4fb-5e9ce14b036e
-2026-02-11T18:41:13.6349307Z INFO:fabric_client:  LRO Operation ID: 8939620c-e1e6-4b42-b4fb-5e9ce14b036e
-2026-02-11T18:41:13.6349756Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-11T18:41:13.6360920Z INFO:__main__:  Updated report (ID: 10862614-b913-49b0-a55e-df38e2aa1be8)
-2026-02-11T18:41:13.6362923Z INFO:__main__:  ✓ Dataset reference transformed during deployment for 'Finance Summary'
-2026-02-11T18:41:13.6364328Z INFO:__main__:✅ Successfully deployed: Finance Summary
-2026-02-11T18:41:13.6364644Z INFO:__main__:
-2026-02-11T18:41:13.6364927Z Deploying: Aged Debtors (PaginatedReport)
-2026-02-11T18:41:13.6367881Z INFO:__main__:  Reading paginated report from Fabric Git format: wsartifacts/Reports/Aged Debtors.PaginatedReport
-2026-02-11T18:41:13.6377721Z INFO:__main__:    ✓ Applied connection string transformation to 'urucevsjhkyejogdndw7poe5fi-lsfmi2eirnmulfrnlxd7fgvzni.datawarehouse.fabric.microsoft.com' database 'ReportingLakehouse'
-2026-02-11T18:41:13.6384325Z INFO:fabric_client:Listing paginated reports in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:13.7910172Z INFO:fabric_client:Listing folders in workspace: 68c48a5c-8b88-4559-962d-5dc7f29ab96a
-2026-02-11T18:41:13.9254734Z INFO:fabric_client:Creating paginated report: Aged Debtors
-2026-02-11T18:41:13.9257277Z INFO:fabric_client:  Creating in folder: 1b5f932c-edf3-47ce-92ec-48f055298899
-2026-02-11T18:41:14.0568430Z ERROR:fabric_client:HTTP Error: 400 - {"requestId":"bbfbd0bc-f806-4952-8706-16d950e943e3","errorCode":"UnsupportedItemType","message":"Requested item type 'PaginatedReport' is unsupported."}
-2026-02-11T18:41:14.0582120Z ERROR:__main__:❌ Failed to deploy Aged Debtors: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/68c48a5c-8b88-4559-962d-5dc7f29ab96a/items
-2026-02-11T18:41:14.0587000Z INFO:__main__:
-2026-02-11T18:41:14.0587731Z ============================================================
-2026-02-11T18:41:14.0589197Z INFO:__main__:DEPLOYMENT SUMMARY
-2026-02-11T18:41:14.0590294Z INFO:__main__:============================================================
-2026-02-11T18:41:14.0590827Z INFO:__main__:Total artifacts: 17
-2026-02-11T18:41:14.0591091Z INFO:__main__:Successful: 16
-2026-02-11T18:41:14.0591345Z INFO:__main__:Failed: 1
-2026-02-11T18:41:14.0591644Z INFO:__main__:============================================================
-2026-02-11T18:41:14.0958866Z 
-2026-02-11T18:41:14.1001547Z ##[error]Bash exited with code '1'.
-2026-02-11T18:41:14.1046442Z ##[section]Finishing: Deploy to Production Workspace (Change Detection Enabled)
+2026-02-11T19:09:46.1648961Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-02-11T19:09:46.1657220Z ==============================================================================
+2026-02-11T19:09:46.1657405Z Task         : Command line
+2026-02-11T19:09:46.1657523Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-02-11T19:09:46.1657707Z Version      : 2.268.0
+2026-02-11T19:09:46.1657830Z Author       : Microsoft Corporation
+2026-02-11T19:09:46.1657951Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-02-11T19:09:46.1658111Z ==============================================================================
+2026-02-11T19:09:46.3135667Z Generating script.
+2026-02-11T19:09:46.3143996Z ========================== Starting Command Output ===========================
+2026-02-11T19:09:46.3171047Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/e3a5cc89-652f-4e19-a030-d548ec13da67.sh
+2026-02-11T19:09:46.3256756Z ========================================
+2026-02-11T19:09:46.3257099Z DEBUG: Verifying Repository Checkout
+2026-02-11T19:09:46.3257421Z ========================================
+2026-02-11T19:09:46.3269813Z Current directory: /home/vsts/work/1/s
+2026-02-11T19:09:46.3270492Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-02-11T19:09:46.3270743Z 
+2026-02-11T19:09:46.3271036Z Contents of Build.SourcesDirectory:
+2026-02-11T19:09:46.3289861Z total 40
+2026-02-11T19:09:46.3290199Z drwxr-xr-x 8 vsts vsts 4096 Feb 11 19:09 .
+2026-02-11T19:09:46.3290715Z drwxr-xr-x 7 vsts vsts 4096 Feb 11 19:09 ..
+2026-02-11T19:09:46.3291047Z drwxr-xr-x 2 vsts vsts 4096 Feb 11 19:09 .deployment_tracking
+2026-02-11T19:09:46.3291380Z drwxr-xr-x 7 vsts vsts 4096 Feb 11 19:09 .git
+2026-02-11T19:09:46.3291699Z -rw-r--r-- 1 vsts vsts   44 Feb 11 19:09 .gitignore
+2026-02-11T19:09:46.3292014Z -rw-r--r-- 1 vsts vsts  985 Feb 11 19:09 README.md
+2026-02-11T19:09:46.3292363Z drwxr-xr-x 2 vsts vsts 4096 Feb 11 19:09 azure-pipelines
+2026-02-11T19:09:46.3292709Z drwxr-xr-x 2 vsts vsts 4096 Feb 11 19:09 config
+2026-02-11T19:09:46.3293053Z drwxr-xr-x 2 vsts vsts 4096 Feb 11 19:09 scripts
+2026-02-11T19:09:46.3293711Z drwxr-xr-x 8 vsts vsts 4096 Feb 11 19:09 wsartifacts
+2026-02-11T19:09:46.3296997Z 
+2026-02-11T19:09:46.3301014Z Checking for required folders:
+2026-02-11T19:09:46.3306992Z ✓ scripts/ exists
+2026-02-11T19:09:46.3308519Z ✓ config/ exists
+2026-02-11T19:09:46.3308873Z ✓ wsartifacts/ exists
+2026-02-11T19:09:46.3309159Z ========================================
+2026-02-11T19:09:46.3309468Z ========================================
+2026-02-11T19:09:46.3309745Z Deploying to Dev Environment
+2026-02-11T19:09:46.3310031Z ========================================
+2026-02-11T19:09:46.3310478Z Features:
+2026-02-11T19:09:46.3310906Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-02-11T19:09:46.3311308Z   📊 Dependency-aware deployment ordering
+2026-02-11T19:09:46.3320800Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-02-11T19:09:46.3321014Z 
+2026-02-11T19:09:46.3321351Z Deployment steps:
+2026-02-11T19:09:46.3321639Z   1. Create artifacts from config file
+2026-02-11T19:09:46.3321989Z   2. Detect changed artifacts using Git diff
+2026-02-11T19:09:46.3322324Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-02-11T19:09:46.3322671Z ========================================
+2026-02-11T19:09:46.8278432Z INFO:__main__:Initializing deployment to dev environment
+2026-02-11T19:09:46.8284987Z INFO:config_manager:Loading configuration from: config/dev.json
+2026-02-11T19:09:46.8285837Z INFO:__main__:Using environment-specific service principal for dev
+2026-02-11T19:09:46.8286389Z INFO:fabric_auth:Using environment-specific secret from: AZURE_CLIENT_SECRET_DEV
+2026-02-11T19:09:46.8286753Z INFO:__main__:Using artifacts root folder: wsartifacts
+2026-02-11T19:09:46.8287123Z INFO:fabric_auth:Using Service Principal authentication (Client ID: 0c296168-ffc5-447a-83bc-bdaf8979d8da)
+2026-02-11T19:09:46.8295591Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/v2.0/.well-known/openid-configuration'
+2026-02-11T19:09:46.8296885Z Request method: 'GET'
+2026-02-11T19:09:46.8297415Z Request headers:
+2026-02-11T19:09:46.8297839Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
+2026-02-11T19:09:46.8298226Z No body was attached to the request
+2026-02-11T19:09:46.9136076Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
+2026-02-11T19:09:46.9136883Z Response headers:
+2026-02-11T19:09:46.9137344Z     'Cache-Control': 'max-age=86400, private'
+2026-02-11T19:09:46.9137658Z     'Content-Type': 'application/json; charset=utf-8'
+2026-02-11T19:09:46.9137956Z     'Strict-Transport-Security': 'REDACTED'
+2026-02-11T19:09:46.9138294Z     'X-Content-Type-Options': 'REDACTED'
+2026-02-11T19:09:46.9138579Z     'Access-Control-Allow-Origin': 'REDACTED'
+2026-02-11T19:09:46.9138886Z     'Access-Control-Allow-Methods': 'REDACTED'
+2026-02-11T19:09:46.9139154Z     'P3P': 'REDACTED'
+2026-02-11T19:09:46.9139442Z     'x-ms-request-id': 'f3efccc6-d44d-4614-ad38-eb8269412900'
+2026-02-11T19:09:46.9139735Z     'x-ms-ests-server': 'REDACTED'
+2026-02-11T19:09:46.9140000Z     'x-ms-srs': 'REDACTED'
+2026-02-11T19:09:46.9140441Z     'Content-Security-Policy-Report-Only': 'REDACTED'
+2026-02-11T19:09:46.9140739Z     'X-XSS-Protection': 'REDACTED'
+2026-02-11T19:09:46.9141025Z     'Set-Cookie': 'REDACTED'
+2026-02-11T19:09:46.9141305Z     'Date': 'Wed, 11 Feb 2026 19:09:46 GMT'
+2026-02-11T19:09:46.9141579Z     'Content-Length': '1964'
+2026-02-11T19:09:46.9279347Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
+2026-02-11T19:09:46.9279807Z Request method: 'POST'
+2026-02-11T19:09:46.9280085Z Request headers:
+2026-02-11T19:09:46.9280645Z     'Content-Type': 'application/x-www-form-urlencoded'
+2026-02-11T19:09:46.9280969Z     'Accept': 'application/json'
+2026-02-11T19:09:46.9281263Z     'x-client-sku': 'REDACTED'
+2026-02-11T19:09:46.9281544Z     'x-client-ver': 'REDACTED'
+2026-02-11T19:09:46.9281822Z     'x-client-os': 'REDACTED'
+2026-02-11T19:09:46.9282314Z     'x-ms-lib-capability': 'REDACTED'
+2026-02-11T19:09:46.9282617Z     'client-request-id': 'REDACTED'
+2026-02-11T19:09:46.9282918Z     'x-client-current-telemetry': 'REDACTED'
+2026-02-11T19:09:46.9283235Z     'x-client-last-telemetry': 'REDACTED'
+2026-02-11T19:09:46.9283665Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.11.0-1018-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
+2026-02-11T19:09:46.9284235Z A body is sent with the request
+2026-02-11T19:09:46.9973147Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
+2026-02-11T19:09:46.9974149Z Response headers:
+2026-02-11T19:09:46.9974633Z     'Cache-Control': 'no-store, no-cache'
+2026-02-11T19:09:46.9975186Z     'Pragma': 'no-cache'
+2026-02-11T19:09:46.9975699Z     'Content-Type': 'application/json; charset=utf-8'
+2026-02-11T19:09:46.9976643Z     'Expires': '-1'
+2026-02-11T19:09:46.9977207Z     'Strict-Transport-Security': 'REDACTED'
+2026-02-11T19:09:46.9977768Z     'X-Content-Type-Options': 'REDACTED'
+2026-02-11T19:09:46.9979182Z     'P3P': 'REDACTED'
+2026-02-11T19:09:46.9979480Z     'client-request-id': 'REDACTED'
+2026-02-11T19:09:46.9979809Z     'x-ms-request-id': '4a225ebd-e7c1-4d78-9c97-ae42a4f81200'
+2026-02-11T19:09:46.9980127Z     'x-ms-ests-server': 'REDACTED'
+2026-02-11T19:09:46.9980631Z     'x-ms-clitelem': 'REDACTED'
+2026-02-11T19:09:46.9980923Z     'x-ms-srs': 'REDACTED'
+2026-02-11T19:09:46.9981218Z     'Content-Security-Policy-Report-Only': 'REDACTED'
+2026-02-11T19:09:46.9981527Z     'X-XSS-Protection': 'REDACTED'
+2026-02-11T19:09:46.9981811Z     'Set-Cookie': 'REDACTED'
+2026-02-11T19:09:46.9982125Z     'Date': 'Wed, 11 Feb 2026 19:09:46 GMT'
+2026-02-11T19:09:46.9982638Z     'Content-Length': '1705'
+2026-02-11T19:09:46.9983002Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
+2026-02-11T19:09:46.9983389Z INFO:fabric_auth:Successfully obtained access token
+2026-02-11T19:09:47.1829964Z INFO:fabric_auth:Authentication validation successful
+2026-02-11T19:09:47.1839508Z INFO:__main__:Target workspace: AAG-SIT-FWS-ENGINEERING-01 (d7faf1fa-0e7e-4061-b3e5-50fa3873eb64)
+2026-02-11T19:09:47.1844894Z INFO:__main__:Running in artifact creation mode
+2026-02-11T19:09:47.1845286Z INFO:__main__:============================================================
+2026-02-11T19:09:47.1845645Z INFO:__main__:Creating artifacts from configuration for dev
+2026-02-11T19:09:47.1846003Z INFO:__main__:============================================================
+2026-02-11T19:09:47.1846317Z INFO:__main__:No artifacts configured for creation
+2026-02-11T19:09:47.1846647Z INFO:__main__:Artifact creation completed successfully
+2026-02-11T19:09:47.1847079Z INFO:__main__:============================================================
+2026-02-11T19:09:47.1847422Z INFO:__main__:ARTIFACT DISCOVERY PHASE
+2026-02-11T19:09:47.1847753Z INFO:__main__:============================================================
+2026-02-11T19:09:47.1848102Z INFO:__main__:Discovering artifacts from file system...
+2026-02-11T19:09:47.1850771Z INFO:__main__:Discovered 1 lakehouse(s): ReportingLakehouse
+2026-02-11T19:09:47.1861244Z INFO:__main__:Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
+2026-02-11T19:09:47.1864471Z INFO:__main__:Discovered 1 Variable Library: ReportingVariables
+2026-02-11T19:09:47.1868202Z INFO:__main__:Discovered 2 semantic model(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
+2026-02-11T19:09:47.1873513Z INFO:__main__:Discovered 2 report(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
+2026-02-11T19:09:47.1875574Z INFO:__main__:Discovered 1 paginated report(s): Aged Debtors (Fabric Git)
+2026-02-11T19:09:47.1880144Z INFO:__main__:============================================================
+2026-02-11T19:09:47.1881564Z INFO:__main__:DISCOVERY COMPLETE: Found 17 total artifacts
+2026-02-11T19:09:47.1883751Z INFO:__main__:============================================================
+2026-02-11T19:09:47.1885032Z INFO:__main__:
+2026-02-11T19:09:47.1885556Z ============================================================
+2026-02-11T19:09:47.1886029Z INFO:__main__:CHANGE DETECTION
+2026-02-11T19:09:47.1886519Z INFO:__main__:============================================================
+2026-02-11T19:09:47.1939237Z INFO:change_detector:Found 13 changed file(s) since 71fccc04
+2026-02-11T19:09:47.1941328Z INFO:change_detector:Change detection: 3 artifact(s) changed
+2026-02-11T19:09:47.1943099Z INFO:change_detector:  PaginatedReport: Aged Debtors
+2026-02-11T19:09:47.1943857Z INFO:change_detector:  Report: Finance Summary
+2026-02-11T19:09:47.1949394Z INFO:change_detector:  SemanticModel: Finance Summary
+2026-02-11T19:09:47.1949768Z INFO:__main__:Changed artifacts: 3
+2026-02-11T19:09:47.1950101Z INFO:__main__:  PaginatedReport: Aged Debtors
+2026-02-11T19:09:47.1950675Z INFO:__main__:  Report: Finance Summary
+2026-02-11T19:09:47.1951017Z INFO:__main__:  SemanticModel: Finance Summary
+2026-02-11T19:09:47.1951346Z INFO:__main__:Skipped (unchanged): 14
+2026-02-11T19:09:47.1951726Z INFO:__main__:============================================================
+2026-02-11T19:09:47.1952125Z INFO:__main__:============================================================
+2026-02-11T19:09:47.1952497Z INFO:__main__:Starting deployment to dev environment
+2026-02-11T19:09:47.1952871Z INFO:__main__:============================================================
+2026-02-11T19:09:47.1953547Z INFO:dependency_resolver:✅ All dependencies are valid
+2026-02-11T19:09:47.1953915Z INFO:dependency_resolver:Deployment order determined:
+2026-02-11T19:09:47.1954293Z INFO:dependency_resolver:  1. Finance Summary (SemanticModel)
+2026-02-11T19:09:47.1954649Z INFO:dependency_resolver:  2. Finance Summary (Report)
+2026-02-11T19:09:47.1955180Z INFO:dependency_resolver:  3. Aged Debtors (PaginatedReport)
+2026-02-11T19:09:47.1955494Z INFO:__main__:
+2026-02-11T19:09:47.1955794Z Deploying: Finance Summary (SemanticModel)
+2026-02-11T19:09:47.1960709Z INFO:__main__:  Reading semantic model from Fabric Git format: Finance Summary.SemanticModel
+2026-02-11T19:09:47.1968187Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-02-11T19:09:47.1972231Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-02-11T19:09:47.1975990Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-02-11T19:09:47.1984818Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-02-11T19:09:47.1988494Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-02-11T19:09:47.1991613Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-02-11T19:09:47.1997225Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-02-11T19:09:47.2003257Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-02-11T19:09:47.2019691Z INFO:fabric_client:Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-11T19:09:47.4425690Z INFO:__main__:  Semantic model 'Finance Summary' already exists, updating...
+2026-02-11T19:09:47.4426125Z INFO:fabric_client:Updating semantic model: 3a26df55-9888-425d-833d-2c05a7b83788
+2026-02-11T19:09:47.4429468Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/semanticModels/3a26df55-9888-425d-833d-2c05a7b83788/updateDefinition
+2026-02-11T19:09:47.4439649Z INFO:fabric_client:Payload structure: {
+2026-02-11T19:09:47.4439953Z   "definition": {
+2026-02-11T19:09:47.4440187Z     "parts": [
+2026-02-11T19:09:47.4440605Z       {
+2026-02-11T19:09:47.4440835Z         "path": ".platform",
+2026-02-11T19:09:47.4441083Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4441337Z         "payload_length": 408
+2026-02-11T19:09:47.4441557Z       },
+2026-02-11T19:09:47.4441768Z       {
+2026-02-11T19:09:47.4441995Z         "path": "definition.pbism",
+2026-02-11T19:09:47.4442250Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4442501Z         "payload_length": 224
+2026-02-11T19:09:47.4442717Z       },
+2026-02-11T19:09:47.4442916Z       {
+2026-02-11T19:09:47.4443154Z         "path": ".pbi/editorSettings.json",
+2026-02-11T19:09:47.4443408Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4443655Z         "payload_length": 416
+2026-02-11T19:09:47.4443872Z       },
+2026-02-11T19:09:47.4444071Z       {
+2026-02-11T19:09:47.4444298Z         "path": "definition/model.tmdl",
+2026-02-11T19:09:47.4444554Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4444799Z         "payload_length": 3000
+2026-02-11T19:09:47.4445021Z       },
+2026-02-11T19:09:47.4445228Z       {
+2026-02-11T19:09:47.4445460Z         "path": "definition/database.tmdl",
+2026-02-11T19:09:47.4445713Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4445954Z         "payload_length": 48
+2026-02-11T19:09:47.4446171Z       },
+2026-02-11T19:09:47.4446371Z       {
+2026-02-11T19:09:47.4446609Z         "path": "definition/relationships.tmdl",
+2026-02-11T19:09:47.4446878Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4447124Z         "payload_length": 8760
+2026-02-11T19:09:47.4447502Z       },
+2026-02-11T19:09:47.4447701Z       {
+2026-02-11T19:09:47.4447982Z         "path": "definition/tables/LocalDateTable_4cacd077-9657-41f6-95b8-0d8e11b86187.tmdl",
+2026-02-11T19:09:47.4448295Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4448549Z         "payload_length": 3412
+2026-02-11T19:09:47.4448791Z       },
+2026-02-11T19:09:47.4448998Z       {
+2026-02-11T19:09:47.4449287Z         "path": "definition/tables/DateTableTemplate_4ed89777-abcc-4a38-9229-cae44fe8de37.tmdl",
+2026-02-11T19:09:47.4449599Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4449850Z         "payload_length": 3356
+2026-02-11T19:09:47.4450074Z       },
+2026-02-11T19:09:47.4454687Z       {
+2026-02-11T19:09:47.4455035Z         "path": "definition/tables/LocalDateTable_d6e646fd-9351-4392-bb98-f4104f373e09.tmdl",
+2026-02-11T19:09:47.4455345Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4455599Z         "payload_length": 3424
+2026-02-11T19:09:47.4455837Z       },
+2026-02-11T19:09:47.4456055Z       {
+2026-02-11T19:09:47.4456345Z         "path": "definition/tables/LocalDateTable_8e05a108-6fe6-4beb-8a0d-9aa40bc6a5e0.tmdl",
+2026-02-11T19:09:47.4456659Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4456926Z         "payload_length": 3412
+2026-02-11T19:09:47.4457161Z       },
+2026-02-11T19:09:47.4457376Z       {
+2026-02-11T19:09:47.4457632Z         "path": "definition/tables/invoices.tmdl",
+2026-02-11T19:09:47.4457913Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4458169Z         "payload_length": 9868
+2026-02-11T19:09:47.4458405Z       },
+2026-02-11T19:09:47.4458632Z       {
+2026-02-11T19:09:47.4458929Z         "path": "definition/tables/LocalDateTable_800fb5ae-d08e-4b67-8c86-150022748772.tmdl",
+2026-02-11T19:09:47.4459244Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4459513Z         "payload_length": 3400
+2026-02-11T19:09:47.4459755Z       },
+2026-02-11T19:09:47.4459972Z       {
+2026-02-11T19:09:47.4460228Z         "path": "definition/tables/customer.tmdl",
+2026-02-11T19:09:47.4460798Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4461072Z         "payload_length": 12992
+2026-02-11T19:09:47.4461314Z       },
+2026-02-11T19:09:47.4461529Z       {
+2026-02-11T19:09:47.4461829Z         "path": "definition/tables/LocalDateTable_a390c296-8624-4079-97ef-bf642681d1a1.tmdl",
+2026-02-11T19:09:47.4462282Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4462549Z         "payload_length": 3412
+2026-02-11T19:09:47.4462783Z       },
+2026-02-11T19:09:47.4462989Z       {
+2026-02-11T19:09:47.4463241Z         "path": "definition/tables/sundry_charges.tmdl",
+2026-02-11T19:09:47.4463512Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4463776Z         "payload_length": 14492
+2026-02-11T19:09:47.4464013Z       },
+2026-02-11T19:09:47.4464223Z       {
+2026-02-11T19:09:47.4464535Z         "path": "definition/tables/LocalDateTable_4f8745f5-2286-4cff-b90a-2ae0535f32ed.tmdl",
+2026-02-11T19:09:47.4464865Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4465142Z         "payload_length": 3424
+2026-02-11T19:09:47.4465382Z       },
+2026-02-11T19:09:47.4465603Z       {
+2026-02-11T19:09:47.4465910Z         "path": "definition/tables/LocalDateTable_fc720cde-f7a5-48ba-996a-d85bacec89a0.tmdl",
+2026-02-11T19:09:47.4466237Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4466520Z         "payload_length": 3444
+2026-02-11T19:09:47.4466763Z       },
+2026-02-11T19:09:47.4467001Z       {
+2026-02-11T19:09:47.4467307Z         "path": "definition/tables/LocalDateTable_29a7aa3c-1b7e-4546-9c2e-d337c44cff50.tmdl",
+2026-02-11T19:09:47.4467633Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4467902Z         "payload_length": 3424
+2026-02-11T19:09:47.4468144Z       },
+2026-02-11T19:09:47.4468377Z       {
+2026-02-11T19:09:47.4468682Z         "path": "definition/tables/LocalDateTable_b524626c-d6f3-422c-88b8-86f63a882608.tmdl",
+2026-02-11T19:09:47.4469004Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4469271Z         "payload_length": 3436
+2026-02-11T19:09:47.4469639Z       },
+2026-02-11T19:09:47.4469861Z       {
+2026-02-11T19:09:47.4470166Z         "path": "definition/tables/LocalDateTable_7351796f-b9e7-43d6-8359-c0dcf147a214.tmdl",
+2026-02-11T19:09:47.4470683Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4470960Z         "payload_length": 3444
+2026-02-11T19:09:47.4471199Z       },
+2026-02-11T19:09:47.4471419Z       {
+2026-02-11T19:09:47.4471723Z         "path": "definition/tables/LocalDateTable_7fc1bfb3-6927-413d-9944-f572555ef422.tmdl",
+2026-02-11T19:09:47.4472050Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4472331Z         "payload_length": 3416
+2026-02-11T19:09:47.4472582Z       },
+2026-02-11T19:09:47.4472800Z       {
+2026-02-11T19:09:47.4473109Z         "path": "definition/tables/LocalDateTable_e54a4fd8-322c-46ec-9edb-c71bf5e2ccf9.tmdl",
+2026-02-11T19:09:47.4473435Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4473703Z         "payload_length": 3436
+2026-02-11T19:09:47.4473945Z       },
+2026-02-11T19:09:47.4474179Z       {
+2026-02-11T19:09:47.4474437Z         "path": "definition/tables/Date.tmdl",
+2026-02-11T19:09:47.4474720Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4474990Z         "payload_length": 2384
+2026-02-11T19:09:47.4475232Z       },
+2026-02-11T19:09:47.4475461Z       {
+2026-02-11T19:09:47.4475769Z         "path": "definition/tables/LocalDateTable_3b7d84c8-2a4b-48e9-87d0-0d36d14ebc50.tmdl",
+2026-02-11T19:09:47.4476111Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4476381Z         "payload_length": 3428
+2026-02-11T19:09:47.4476624Z       },
+2026-02-11T19:09:47.4476844Z       {
+2026-02-11T19:09:47.4477148Z         "path": "definition/tables/LocalDateTable_13a26fdd-a293-4aed-83e8-d179b8e59b5d.tmdl",
+2026-02-11T19:09:47.4477475Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4477747Z         "payload_length": 3400
+2026-02-11T19:09:47.4477994Z       },
+2026-02-11T19:09:47.4478217Z       {
+2026-02-11T19:09:47.4478481Z         "path": "definition/tables/contracts.tmdl",
+2026-02-11T19:09:47.4478772Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4479045Z         "payload_length": 26324
+2026-02-11T19:09:47.4479289Z       },
+2026-02-11T19:09:47.4479507Z       {
+2026-02-11T19:09:47.4479802Z         "path": "definition/tables/LocalDateTable_a9be32a7-ea5e-4a2a-89c9-e3f439e30843.tmdl",
+2026-02-11T19:09:47.4480419Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4480816Z         "payload_length": 3408
+2026-02-11T19:09:47.4481060Z       },
+2026-02-11T19:09:47.4481270Z       {
+2026-02-11T19:09:47.4481523Z         "path": "definition/tables/receipts.tmdl",
+2026-02-11T19:09:47.4481814Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4482094Z         "payload_length": 9372
+2026-02-11T19:09:47.4482340Z       },
+2026-02-11T19:09:47.4482565Z       {
+2026-02-11T19:09:47.4482821Z         "path": "definition/tables/Payments.tmdl",
+2026-02-11T19:09:47.4483097Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4483347Z         "payload_length": 20392
+2026-02-11T19:09:47.4483582Z       },
+2026-02-11T19:09:47.4483786Z       {
+2026-02-11T19:09:47.4484070Z         "path": "definition/tables/LocalDateTable_b913591e-5c5c-423d-b392-91c05bcbe308.tmdl",
+2026-02-11T19:09:47.4484366Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4484607Z         "payload_length": 3376
+2026-02-11T19:09:47.4484837Z       },
+2026-02-11T19:09:47.4485036Z       {
+2026-02-11T19:09:47.4485268Z         "path": "definition/tables/Origination Dates.tmdl",
+2026-02-11T19:09:47.4485524Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4485769Z         "payload_length": 1988
+2026-02-11T19:09:47.4485990Z       },
+2026-02-11T19:09:47.4486199Z       {
+2026-02-11T19:09:47.4486489Z         "path": "definition/tables/LocalDateTable_a2a7f051-b1b9-4dcd-a680-fbd3e09b008b.tmdl",
+2026-02-11T19:09:47.4486802Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4487058Z         "payload_length": 3420
+2026-02-11T19:09:47.4487294Z       },
+2026-02-11T19:09:47.4487646Z       {
+2026-02-11T19:09:47.4487938Z         "path": "definition/tables/LocalDateTable_f79a6bb1-3117-4555-be3c-9536454e7801.tmdl",
+2026-02-11T19:09:47.4488248Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4488505Z         "payload_length": 3400
+2026-02-11T19:09:47.4488737Z       },
+2026-02-11T19:09:47.4488951Z       {
+2026-02-11T19:09:47.4489251Z         "path": "definition/tables/LocalDateTable_f80953f8-52ea-4878-8fb0-9f7967ddf33c.tmdl",
+2026-02-11T19:09:47.4489564Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4489825Z         "payload_length": 3404
+2026-02-11T19:09:47.4490055Z       },
+2026-02-11T19:09:47.4490458Z       {
+2026-02-11T19:09:47.4490735Z         "path": "definition/tables/lease_receivables.tmdl",
+2026-02-11T19:09:47.4491028Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4491300Z         "payload_length": 6540
+2026-02-11T19:09:47.4491607Z       },
+2026-02-11T19:09:47.4491823Z       {
+2026-02-11T19:09:47.4492115Z         "path": "definition/tables/LocalDateTable_6d35864e-6579-4465-9b1a-131959c4da1b.tmdl",
+2026-02-11T19:09:47.4492432Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4492697Z         "payload_length": 3436
+2026-02-11T19:09:47.4492925Z       },
+2026-02-11T19:09:47.4493138Z       {
+2026-02-11T19:09:47.4493429Z         "path": "definition/tables/LocalDateTable_c9506875-c62c-4cf5-9a2e-d055a0ffa5eb.tmdl",
+2026-02-11T19:09:47.4493765Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4494009Z         "payload_length": 3456
+2026-02-11T19:09:47.4494240Z       },
+2026-02-11T19:09:47.4494452Z       {
+2026-02-11T19:09:47.4494749Z         "path": "definition/tables/LocalDateTable_55c995e9-5f17-4274-bf39-8abf5b7369f9.tmdl",
+2026-02-11T19:09:47.4494988Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4495138Z         "payload_length": 3412
+2026-02-11T19:09:47.4495270Z       },
+2026-02-11T19:09:47.4495390Z       {
+2026-02-11T19:09:47.4495552Z         "path": "definition/tables/LocalDateTable_6091144c-a56f-4d8e-ba6a-c09a95647ae9.tmdl",
+2026-02-11T19:09:47.4495733Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4495885Z         "payload_length": 3408
+2026-02-11T19:09:47.4496013Z       },
+2026-02-11T19:09:47.4496134Z       {
+2026-02-11T19:09:47.4496386Z         "path": "definition/tables/LocalDateTable_8d388dc9-7379-4833-af99-49606daad1ac.tmdl",
+2026-02-11T19:09:47.4496683Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4496827Z         "payload_length": 3400
+2026-02-11T19:09:47.4496954Z       },
+2026-02-11T19:09:47.4497080Z       {
+2026-02-11T19:09:47.4497223Z         "path": "definition/tables/lease_finance.tmdl",
+2026-02-11T19:09:47.4497379Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4497524Z         "payload_length": 17140
+2026-02-11T19:09:47.4497653Z       },
+2026-02-11T19:09:47.4497771Z       {
+2026-02-11T19:09:47.4497935Z         "path": "definition/tables/LocalDateTable_bcd20351-072f-4e5b-ad62-20caaa6a4f5d.tmdl",
+2026-02-11T19:09:47.4498115Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4498261Z         "payload_length": 3400
+2026-02-11T19:09:47.4498388Z       },
+2026-02-11T19:09:47.4498507Z       {
+2026-02-11T19:09:47.4498648Z         "path": "definition/cultures/en-GB.tmdl",
+2026-02-11T19:09:47.4498801Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:47.4498947Z         "payload_length": 363856
+2026-02-11T19:09:47.4499083Z       }
+2026-02-11T19:09:47.4499205Z     ]
+2026-02-11T19:09:47.4499324Z   }
+2026-02-11T19:09:47.4499444Z }
+2026-02-11T19:09:48.1655012Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/d28f963c-3ed8-4c63-84bd-f1446b775cce
+2026-02-11T19:09:48.1658679Z INFO:fabric_client:  LRO Operation ID: d28f963c-3ed8-4c63-84bd-f1446b775cce
+2026-02-11T19:09:48.1659059Z INFO:fabric_client:  Retry-After: 20 seconds
+2026-02-11T19:09:48.1668983Z INFO:__main__:  Updated semantic model (ID: 3a26df55-9888-425d-833d-2c05a7b83788)
+2026-02-11T19:09:48.1672584Z INFO:__main__:  Looking up Fabric connection: 'dev-tmp01-reporting-lakehouse-connection'
+2026-02-11T19:09:48.1673814Z INFO:fabric_client:Listing connections via Fabric Connections API
+2026-02-11T19:09:48.3725815Z INFO:fabric_client:  Retrieved 1 connections total
+2026-02-11T19:09:48.3726577Z INFO:__main__:  📋 Connections returned by API (1 total)
+2026-02-11T19:09:48.3727055Z INFO:__main__:    [1] 'dev-tmp01-reporting-lakehouse-connection' (type=ShareableCloud, id=e9b9c6ba-8e33-41c5-b5fc-b34af2865502)
+2026-02-11T19:09:48.3727715Z INFO:__main__:  ✓ Found connection: 'dev-tmp01-reporting-lakehouse-connection' (ID: e9b9c6ba-8e33-41c5-b5fc-b34af2865502)
+2026-02-11T19:09:48.3728226Z INFO:__main__:  Binding 'Finance Summary' to Fabric connection 'dev-tmp01-reporting-lakehouse-connection'...
+2026-02-11T19:09:48.3728750Z INFO:fabric_client:Binding semantic model 3a26df55-9888-425d-833d-2c05a7b83788 to Fabric connection e9b9c6ba-8e33-41c5-b5fc-b34af2865502
+2026-02-11T19:09:48.5781519Z ERROR:fabric_client:HTTP Error: 404 - {"requestId":"105d8e18-9026-4da7-a298-346c9c4b6cfb","errorCode":"EntityNotFound","message":"The requested resource could not be found"}
+2026-02-11T19:09:48.5783051Z INFO:__main__:  ℹ Could not bind 'Finance Summary' to connection: 404 Client Error: Not Found for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/items/3a26df55-9888-425d-833d-2c05a7b83788/connections
+2026-02-11T19:09:48.5783880Z INFO:__main__:    Assign connection 'dev-tmp01-reporting-lakehouse-connection' manually in semantic model settings
+2026-02-11T19:09:48.5789465Z INFO:__main__:  ✓ SQL endpoints transformed during deployment for 'Finance Summary'
+2026-02-11T19:09:48.5793397Z INFO:__main__:✅ Successfully deployed: Finance Summary
+2026-02-11T19:09:48.5793726Z INFO:__main__:
+2026-02-11T19:09:48.5793999Z Deploying: Finance Summary (Report)
+2026-02-11T19:09:48.5799382Z INFO:__main__:  Reading report from Fabric Git format: Finance Summary.Report
+2026-02-11T19:09:48.5801397Z INFO:fabric_client:Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-11T19:09:48.7705693Z INFO:__main__:    ✓ Using byConnection reference for 'Finance Summary' (ID: 3a26df55-9888-425d-833d-2c05a7b83788)
+2026-02-11T19:09:48.7720763Z INFO:fabric_client:Listing reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-11T19:09:48.9269994Z INFO:__main__:  Power BI report 'Finance Summary' already exists, updating...
+2026-02-11T19:09:48.9271242Z INFO:fabric_client:Updating Power BI report: 2c5f3913-8dee-4fd1-a64a-9f4ceea23e46
+2026-02-11T19:09:48.9273583Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/reports/2c5f3913-8dee-4fd1-a64a-9f4ceea23e46/updateDefinition
+2026-02-11T19:09:48.9277677Z INFO:fabric_client:Payload structure: {
+2026-02-11T19:09:48.9278015Z   "definition": {
+2026-02-11T19:09:48.9278284Z     "parts": [
+2026-02-11T19:09:48.9278523Z       {
+2026-02-11T19:09:48.9278808Z         "path": ".platform",
+2026-02-11T19:09:48.9279083Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9279401Z         "payload_length": 400
+2026-02-11T19:09:48.9279674Z       },
+2026-02-11T19:09:48.9279914Z       {
+2026-02-11T19:09:48.9280180Z         "path": "definition.pbir",
+2026-02-11T19:09:48.9280690Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9280998Z         "payload_length": 636
+2026-02-11T19:09:48.9281237Z       },
+2026-02-11T19:09:48.9281462Z       {
+2026-02-11T19:09:48.9281743Z         "path": "StaticResources/SharedResources/BaseThemes/CY24SU10.json",
+2026-02-11T19:09:48.9282060Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9282335Z         "payload_length": 17900
+2026-02-11T19:09:48.9282580Z       },
+2026-02-11T19:09:48.9282806Z       {
+2026-02-11T19:09:48.9283071Z         "path": "definition/report.json",
+2026-02-11T19:09:48.9283356Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9283628Z         "payload_length": 1948
+2026-02-11T19:09:48.9283872Z       },
+2026-02-11T19:09:48.9284093Z       {
+2026-02-11T19:09:48.9284624Z         "path": "definition/version.json",
+2026-02-11T19:09:48.9284905Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9285182Z         "payload_length": 200
+2026-02-11T19:09:48.9285426Z       },
+2026-02-11T19:09:48.9285653Z       {
+2026-02-11T19:09:48.9285916Z         "path": "definition/pages/pages.json",
+2026-02-11T19:09:48.9286209Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9286474Z         "payload_length": 292
+2026-02-11T19:09:48.9286716Z       },
+2026-02-11T19:09:48.9286946Z       {
+2026-02-11T19:09:48.9287220Z         "path": "definition/pages/b6c42040fec78e9b914a/page.json",
+2026-02-11T19:09:48.9287522Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9287790Z         "payload_length": 328
+2026-02-11T19:09:48.9288031Z       },
+2026-02-11T19:09:48.9288251Z       {
+2026-02-11T19:09:48.9288560Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/e5eb24c638bb1f032b26/visual.json",
+2026-02-11T19:09:48.9288900Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9289177Z         "payload_length": 13908
+2026-02-11T19:09:48.9289431Z       },
+2026-02-11T19:09:48.9289654Z       {
+2026-02-11T19:09:48.9289961Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/0523a88ac23452ae9e6b/visual.json",
+2026-02-11T19:09:48.9292571Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9292913Z         "payload_length": 1792
+2026-02-11T19:09:48.9293175Z       },
+2026-02-11T19:09:48.9293404Z       {
+2026-02-11T19:09:48.9293720Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/de01cbde24b2199323d8/visual.json",
+2026-02-11T19:09:48.9294054Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9294332Z         "payload_length": 10860
+2026-02-11T19:09:48.9294577Z       },
+2026-02-11T19:09:48.9294801Z       {
+2026-02-11T19:09:48.9295120Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/f7c4ad813300f32f44ef/visual.json",
+2026-02-11T19:09:48.9295453Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9295724Z         "payload_length": 12572
+2026-02-11T19:09:48.9295975Z       },
+2026-02-11T19:09:48.9296195Z       {
+2026-02-11T19:09:48.9296503Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/46e549cc5f43e9475f58/visual.json",
+2026-02-11T19:09:48.9296842Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9297267Z         "payload_length": 14060
+2026-02-11T19:09:48.9297505Z       },
+2026-02-11T19:09:48.9297730Z       {
+2026-02-11T19:09:48.9298043Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/25760f426e0c3e92eaa0/visual.json",
+2026-02-11T19:09:48.9298361Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9298631Z         "payload_length": 9092
+2026-02-11T19:09:48.9298888Z       },
+2026-02-11T19:09:48.9299114Z       {
+2026-02-11T19:09:48.9299415Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/03b5e05028d4e9948b9a/visual.json",
+2026-02-11T19:09:48.9299743Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9300008Z         "payload_length": 12540
+2026-02-11T19:09:48.9300251Z       },
+2026-02-11T19:09:48.9300675Z       {
+2026-02-11T19:09:48.9300961Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/ef72739d0231e84f532a/visual.json",
+2026-02-11T19:09:48.9301265Z         "payloadType": "InlineBase64",
+2026-02-11T19:09:48.9301512Z         "payload_length": 10344
+2026-02-11T19:09:48.9301745Z       }
+2026-02-11T19:09:48.9301966Z     ]
+2026-02-11T19:09:48.9302165Z   }
+2026-02-11T19:09:48.9302356Z }
+2026-02-11T19:09:49.1832349Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/c15aa798-a2a4-41de-815c-066db69be943
+2026-02-11T19:09:49.1832815Z INFO:fabric_client:  LRO Operation ID: c15aa798-a2a4-41de-815c-066db69be943
+2026-02-11T19:09:49.1833143Z INFO:fabric_client:  Retry-After: 20 seconds
+2026-02-11T19:09:49.1844435Z INFO:__main__:  Updated report (ID: 2c5f3913-8dee-4fd1-a64a-9f4ceea23e46)
+2026-02-11T19:09:49.1845727Z INFO:__main__:  ✓ Dataset reference transformed during deployment for 'Finance Summary'
+2026-02-11T19:09:49.1846886Z INFO:__main__:✅ Successfully deployed: Finance Summary
+2026-02-11T19:09:49.1847511Z INFO:__main__:
+2026-02-11T19:09:49.1847793Z Deploying: Aged Debtors (PaginatedReport)
+2026-02-11T19:09:49.1851332Z INFO:__main__:  Reading paginated report from Fabric Git format: wsartifacts/Reports/Aged Debtors.PaginatedReport
+2026-02-11T19:09:49.1862529Z INFO:__main__:    ✓ Applied connection string transformation to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com' database 'ReportingLakehouse'
+2026-02-11T19:09:49.1864568Z INFO:fabric_client:Listing paginated reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-11T19:09:49.3777874Z INFO:__main__:  Paginated report 'Aged Debtors' already exists (ID: 29d59cb3-f2c4-42c7-a9e2-3c022c21cfb8)
+2026-02-11T19:09:49.3778955Z INFO:__main__:  Updating via Power BI Imports API with Overwrite...
+2026-02-11T19:09:49.3781871Z INFO:fabric_client:Importing paginated report via Power BI Imports API: Aged Debtors
+2026-02-11T19:09:49.3785679Z INFO:fabric_client:  Uploading RDL file (108034 bytes) with nameConflict=Overwrite
+2026-02-11T19:09:49.7606467Z ERROR:fabric_client:HTTP Error importing paginated report: 404 - {"error":{"code":"DuplicatePackageNotFoundError","pbi.error":{"code":"DuplicatePackageNotFoundError","parameters":{"DuplicatePackagesFullMatch":null},"details":[],"exceptionCulprit":1}}}
+2026-02-11T19:09:49.7610981Z ERROR:fabric_client:Error details: {
+2026-02-11T19:09:49.7611244Z   "error": {
+2026-02-11T19:09:49.7611499Z     "code": "DuplicatePackageNotFoundError",
+2026-02-11T19:09:49.7611767Z     "pbi.error": {
+2026-02-11T19:09:49.7612014Z       "code": "DuplicatePackageNotFoundError",
+2026-02-11T19:09:49.7612729Z       "parameters": {
+2026-02-11T19:09:49.7612994Z         "DuplicatePackagesFullMatch": null
+2026-02-11T19:09:49.7613237Z       },
+2026-02-11T19:09:49.7613557Z       "details": [],
+2026-02-11T19:09:49.7613807Z       "exceptionCulprit": 1
+2026-02-11T19:09:49.7614023Z     }
+2026-02-11T19:09:49.7614237Z   }
+2026-02-11T19:09:49.7614446Z }
+2026-02-11T19:09:49.7615385Z ERROR:__main__:❌ Failed to deploy Aged Debtors: 404 Client Error: Not Found for url: https://api.powerbi.com/v1.0/myorg/groups/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/imports?datasetDisplayName=Aged+Debtors.rdl&nameConflict=Overwrite
+2026-02-11T19:09:49.7621102Z INFO:__main__:
+2026-02-11T19:09:49.7623435Z ============================================================
+2026-02-11T19:09:49.7623985Z INFO:__main__:DEPLOYMENT SUMMARY
+2026-02-11T19:09:49.7624450Z INFO:__main__:============================================================
+2026-02-11T19:09:49.7624979Z INFO:__main__:Total artifacts: 3
+2026-02-11T19:09:49.7625412Z INFO:__main__:Successful: 2
+2026-02-11T19:09:49.7626601Z INFO:__main__:Failed: 1
+2026-02-11T19:09:49.7627173Z INFO:__main__:============================================================
+2026-02-11T19:09:49.7960023Z 
+2026-02-11T19:09:49.7997387Z ##[error]Bash exited with code '1'.
+2026-02-11T19:09:49.8031905Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

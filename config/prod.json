@@ -186,5 +186,10 @@
         "description": "Sales analytics views for production environment"
       }
     ]
+  },
+  "git_integration": {
+    "auto_update_from_git": false,
+    "conflict_resolution_policy": "PreferRemote",
+    "allow_override_items": true
   }
 }

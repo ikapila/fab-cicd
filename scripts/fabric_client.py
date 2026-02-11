@@ -909,72 +909,6 @@ class FabricClient:
         payload = {"updateDetails": datasource_updates}
         return self._make_request("POST", endpoint, json_data=payload)
     
-    def create_cloud_connection(self, connection_name: str, datasource_type: str, server: str, database: str, 
-                                privacy_level: str = "Organizational") -> Dict:
-        """
-        Create a shareable cloud connection for semantic models and paginated reports
-        
-        Args:
-            connection_name: Name for the connection
-            datasource_type: Type of data source (e.g., "Sql", "AnalysisServices")
-            server: Server address
-            database: Database name
-            privacy_level: Privacy level ("None", "Public", "Organizational", "Private")
-            
-        Returns:
-            Created connection details with gatewayId and datasourceId
-        """
-        logger.info(f"Creating shareable cloud connection: {connection_name}")
-        
-        # Use Power BI Gateway API to create cloud connection
-        endpoint = "/gateways"
-        
-        # Create datasource payload for SQL Server
-        datasource_payload = {
-            "datasourceName": connection_name,
-            "datasourceType": datasource_type,
-            "connectionDetails": json.dumps({
-                "server": server,
-                "database": database
-            }),
-            "credentialType": "OAuth2",
-            "credentialDetails": {
-                "credentials": json.dumps({
-                    "credentialData": []
-                }),
-                "encryptedConnection": "Encrypted",
-                "encryptionAlgorithm": "None",
-                "privacyLevel": privacy_level,
-                "useEndUserOAuth2Credentials": "True"
-            }
-        }
-        
-        return self._make_request("POST", endpoint, json_data=datasource_payload)
-    
-    def bind_to_cloud_connection(self, workspace_id: str, semantic_model_id: str, gateway_id: str, datasource_id: str) -> Dict:
-        """
-        Bind a semantic model to an existing shareable cloud connection
-        
-        Args:
-            workspace_id: Workspace GUID
-            semantic_model_id: Semantic model GUID
-            gateway_id: Gateway/connection cluster ID
-            datasource_id: Datasource ID within the gateway
-            
-        Returns:
-            Binding response
-        """
-        logger.info(f"Binding semantic model {semantic_model_id} to cloud connection {datasource_id}")
-        
-        # Use Power BI API to bind semantic model to gateway datasource
-        endpoint = f"/workspaces/{workspace_id}/datasets/{semantic_model_id}/Default.BindToGateway"
-        payload = {
-            "gatewayObjectId": gateway_id,
-            "datasourceObjectIds": [datasource_id]
-        }
-        
-        return self._make_request("POST", endpoint, json_data=payload)
-    
     def bind_semantic_model_to_connection(self, workspace_id: str, semantic_model_id: str, connection_id: str) -> Dict:
         """
         Bind a semantic model to a Fabric connection (no gateway required).
@@ -1007,12 +941,37 @@ class FabricClient:
         List all connections (tenant-scoped Fabric Connections API).
         Endpoint: GET /v1/connections
         
+        Handles pagination via continuationToken/continuationUri.
+        
         Returns:
             List of connection dictionaries
         """
         logger.info(f"Listing connections via Fabric Connections API")
-        response = self._make_request("GET", "/connections")
-        return response.get("value", [])
+        all_connections = []
+        endpoint = "/connections"
+        
+        while endpoint:
+            response = self._make_request("GET", endpoint)
+            connections = response.get("value", [])
+            all_connections.extend(connections)
+            
+            # Handle pagination
+            continuation_uri = response.get("continuationUri")
+            continuation_token = response.get("continuationToken")
+            
+            if continuation_uri:
+                # continuationUri is a full URL — extract the path after base URL
+                if continuation_uri.startswith(self.BASE_URL):
+                    endpoint = continuation_uri[len(self.BASE_URL):]
+                else:
+                    endpoint = continuation_uri
+            elif continuation_token:
+                endpoint = f"/connections?continuationToken={continuation_token}"
+            else:
+                endpoint = None
+        
+        logger.info(f"  Retrieved {len(all_connections)} connections total")
+        return all_connections
     
     def get_connection(self, connection_id: str) -> Dict:
         """
@@ -1049,6 +1008,109 @@ class FabricClient:
         connection_name = connection_payload.get('displayName', 'Unknown')
         logger.info(f"Creating Fabric connection: {connection_name}")
         return self._make_request("POST", "/connections", json_data=connection_payload)
+    
+    # ==================== Git Integration Operations ====================
+    
+    def get_git_status(self, workspace_id: str) -> Dict:
+        """
+        Get the Git sync status of a workspace.
+        Endpoint: GET /v1/workspaces/{workspaceId}/git/status
+        
+        Returns the current workspace head, remote commit hash, and a list
+        of changes between the workspace and the connected Git branch.
+        
+        This may be a long-running operation (LRO) returning 202.
+        
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/git/get-status
+        
+        Args:
+            workspace_id: Workspace GUID
+            
+        Returns:
+            GitStatusResponse with workspaceHead, remoteCommitHash, and changes[]
+        """
+        logger.info(f"Getting Git status for workspace {workspace_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/git/status")
+        
+        # If it's an LRO (202), poll for completion
+        if response.get("status_code") == 202 and response.get("operation_id"):
+            operation_id = response["operation_id"]
+            retry_after = response.get("retry_after", 5)
+            logger.info(f"  Git status is a long-running operation, polling...")
+            result = self.wait_for_operation_completion(operation_id, retry_after=retry_after, max_attempts=12)
+            return result
+        
+        return response
+    
+    def update_from_git(self, workspace_id: str, remote_commit_hash: str, 
+                        workspace_head: str = None, 
+                        conflict_resolution_policy: str = "PreferRemote",
+                        allow_override_items: bool = True) -> Dict:
+        """
+        Update the workspace with commits pushed to the connected Git branch.
+        Endpoint: POST /v1/workspaces/{workspaceId}/git/updateFromGit
+        
+        This is a long-running operation (LRO).
+        
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/git/update-from-git
+        
+        Args:
+            workspace_id: Workspace GUID
+            remote_commit_hash: Full SHA of the remote commit to update to
+            workspace_head: Full SHA the workspace is currently synced to (optional)
+            conflict_resolution_policy: "PreferRemote" or "PreferWorkspace"
+            allow_override_items: Whether to allow overriding incoming items
+            
+        Returns:
+            Operation result or success status
+        """
+        logger.info(f"Updating workspace {workspace_id} from Git (commit: {remote_commit_hash[:12]}...)")
+        
+        payload = {
+            "remoteCommitHash": remote_commit_hash,
+            "conflictResolution": {
+                "conflictResolutionType": "Workspace",
+                "conflictResolutionPolicy": conflict_resolution_policy
+            },
+            "options": {
+                "allowOverrideItems": allow_override_items
+            }
+        }
+        
+        if workspace_head:
+            payload["workspaceHead"] = workspace_head
+        
+        response = self._make_request("POST", f"/workspaces/{workspace_id}/git/updateFromGit", json_data=payload)
+        
+        # Handle LRO (202 Accepted)
+        if response.get("status_code") == 202 and response.get("operation_id"):
+            operation_id = response["operation_id"]
+            retry_after = response.get("retry_after", 30)
+            logger.info(f"  Update from Git in progress (operation: {operation_id}), polling...")
+            
+            import time
+            # Poll until completion — updateFromGit has no result body, just status
+            for attempt in range(1, 25):  # Up to ~12 minutes with 30s intervals
+                time.sleep(retry_after)
+                state = self.poll_operation_state(operation_id)
+                status = state.get("status")
+                percent = state.get("percentComplete", 0)
+                logger.info(f"    Poll {attempt}: {status} ({percent}% complete)")
+                
+                if status == "Succeeded":
+                    logger.info(f"  ✓ Update from Git completed successfully")
+                    return {"status": "success", "operation_id": operation_id}
+                elif status == "Failed":
+                    error = state.get("error", {})
+                    error_msg = error.get("message", "Unknown error")
+                    logger.error(f"  ✗ Update from Git failed: {error_msg}")
+                    raise RuntimeError(f"Update from Git failed: {error_msg}")
+            
+            raise RuntimeError(f"Update from Git timed out after polling")
+        
+        # 200 = completed immediately
+        logger.info(f"  ✓ Update from Git completed")
+        return response
     
     # ==================== Power BI Report Operations ====================
     

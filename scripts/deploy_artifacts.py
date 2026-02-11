@@ -393,6 +393,111 @@ class FabricDeployer:
         logger.info(f"Found {len(filtered_artifacts)} artifact(s) to deploy")
         logger.info("="*60)
     
+    def _update_source_control(self) -> bool:
+        """
+        Update the Fabric workspace from its connected Git branch (source control sync).
+        
+        After deployment, the connected Git branch may have newer commits that need
+        to be synced to the workspace. This automates the "Update all" action in the
+        Fabric Source Control panel.
+        
+        The feature is controlled by the config setting:
+            git_integration.auto_update_from_git  (default: True)
+        
+        Flow:
+          1. GET /git/status → get workspaceHead, remoteCommitHash, and changes
+          2. If remoteCommitHash != workspaceHead → updates are available
+          3. POST /git/updateFromGit → sync workspace from Git
+        
+        Returns:
+            True if update succeeded or was not needed, False on failure
+        """
+        # Check if auto-update is enabled (default: True)
+        git_config = self.config.config.get("git_integration", {})
+        auto_update = git_config.get("auto_update_from_git", True)
+        
+        if not auto_update:
+            logger.info("  ℹ Git auto-update is disabled (git_integration.auto_update_from_git = false)")
+            return True
+        
+        logger.info("\n" + "-"*60)
+        logger.info("SOURCE CONTROL SYNC")
+        logger.info("-"*60)
+        logger.info("Checking for pending Git updates in workspace...")
+        
+        try:
+            # Step 1: Get the current Git status
+            status = self.client.get_git_status(self.workspace_id)
+            
+            workspace_head = status.get("workspaceHead")
+            remote_commit = status.get("remoteCommitHash")
+            changes = status.get("changes", [])
+            
+            logger.info(f"  Workspace head:   {workspace_head[:12] if workspace_head else 'None'}...")
+            logger.info(f"  Remote commit:    {remote_commit[:12] if remote_commit else 'None'}...")
+            
+            if not remote_commit:
+                logger.info("  ℹ Workspace is not connected to Git (no remote commit)")
+                logger.info("    Connect the workspace to Git in Fabric portal to enable auto-sync")
+                return True
+            
+            # Check if there are remote changes to apply
+            remote_changes = [c for c in changes if c.get("remoteChange")]
+            
+            if workspace_head == remote_commit and not remote_changes:
+                logger.info("  ✓ Workspace is up to date with Git — no updates needed")
+                return True
+            
+            # Log the pending changes
+            if remote_changes:
+                logger.info(f"  📦 {len(remote_changes)} update(s) available from Git:")
+                for change in remote_changes:
+                    item = change.get("itemMetadata", {})
+                    name = item.get("displayName", "Unknown")
+                    item_type = item.get("itemType", "Unknown")
+                    change_type = change.get("remoteChange", "Unknown")
+                    conflict = change.get("conflictType", "None")
+                    conflict_str = f" ⚠ CONFLICT" if conflict == "Conflict" else ""
+                    logger.info(f"    - {name} ({item_type}): {change_type}{conflict_str}")
+            else:
+                logger.info(f"  📦 Commits available: workspace is behind remote")
+            
+            # Step 2: Update from Git
+            conflict_policy = git_config.get("conflict_resolution_policy", "PreferRemote")
+            allow_override = git_config.get("allow_override_items", True)
+            
+            logger.info(f"  Updating workspace from Git (policy: {conflict_policy})...")
+            
+            self.client.update_from_git(
+                workspace_id=self.workspace_id,
+                remote_commit_hash=remote_commit,
+                workspace_head=workspace_head,
+                conflict_resolution_policy=conflict_policy,
+                allow_override_items=allow_override
+            )
+            
+            logger.info("  ✓ Source control sync completed — workspace updated from Git")
+            return True
+            
+        except Exception as e:
+            error_msg = str(e)
+            if "WorkspaceNotConnectedToGit" in error_msg:
+                logger.info("  ℹ Workspace is not connected to Git — skipping source control sync")
+                logger.info("    To enable: connect the workspace to Git in Fabric portal")
+                return True
+            elif "InsufficientPrivileges" in error_msg:
+                logger.warning("  ⚠ Service principal lacks Git permissions for this workspace")
+                logger.warning("    Grant Contributor role and Workspace.GitUpdate.All scope")
+                return False
+            elif "PrincipalTypeNotSupported" in error_msg:
+                logger.warning("  ⚠ Service principal is not supported for Git operations on some item types")
+                logger.warning("    Update source control manually in Fabric portal")
+                return False
+            else:
+                logger.warning(f"  ⚠ Source control sync failed: {e}")
+                logger.warning("    Update source control manually in Fabric portal")
+                return False
+    
     def _save_deployment_state(self) -> None:
         """
         Save the current deployment state (commit hash)
@@ -2499,6 +2604,10 @@ print('Notebook initialized')
         if failure_count == 0:
             self._save_deployment_state()
         
+        # Sync workspace source control from Git (auto "Update all")
+        if failure_count == 0 and not dry_run:
+            self._update_source_control()
+        
         return failure_count == 0
     
     def _deploy_artifact(self, artifact: Dict) -> None:
@@ -4133,6 +4242,12 @@ print('Notebook initialized')
         The connection must be created manually in the Fabric portal first,
         then its display name is set in config/{env}.json.
         
+        Matching strategy (in order):
+          1. Exact match on displayName
+          2. Case-insensitive match
+          3. Starts-with match (handles truncated names)
+          4. Contains match (partial name)
+        
         Returns:
             Connection dict with 'id' and 'displayName', or None if not found
         """
@@ -4146,15 +4261,53 @@ print('Notebook initialized')
         
         try:
             connections = self.client.list_connections()
-            match = next((c for c in connections if c.get("displayName") == connection_name), None)
             
-            if match:
-                logger.info(f"  ✓ Found connection '{connection_name}' (ID: {match['id']})")
-                return match
+            # Debug: log all returned connection names so we can diagnose mismatches
+            if connections:
+                logger.info(f"  📋 Connections returned by API ({len(connections)} total):")
+                for idx, c in enumerate(connections):
+                    c_name = c.get("displayName", "<no name>")
+                    c_id = c.get("id", "<no id>")
+                    c_type = c.get("connectivityType", c.get("type", "unknown"))
+                    logger.info(f"    [{idx+1}] '{c_name}' (type={c_type}, id={c_id})")
             else:
-                logger.warning(f"  ⚠ Connection '{connection_name}' not found in Fabric")
-                logger.warning(f"    Create it manually in Fabric portal, then re-run deployment")
+                logger.warning(f"  ⚠ No connections returned by API (empty list)")
+                logger.warning(f"    Check that the service principal has access to connections")
                 return None
+            
+            # Strategy 1: Exact match
+            match = next((c for c in connections if c.get("displayName") == connection_name), None)
+            if match:
+                logger.info(f"  ✓ Found connection (exact match): '{match['displayName']}' (ID: {match['id']})")
+                return match
+            
+            # Strategy 2: Case-insensitive match
+            search_lower = connection_name.lower()
+            match = next((c for c in connections if c.get("displayName", "").lower() == search_lower), None)
+            if match:
+                logger.info(f"  ✓ Found connection (case-insensitive): '{match['displayName']}' (ID: {match['id']})")
+                return match
+            
+            # Strategy 3: Starts-with match (the configured name starts with the API name, or vice versa)
+            match = next((c for c in connections 
+                         if c.get("displayName", "").lower().startswith(search_lower) 
+                         or search_lower.startswith(c.get("displayName", "").lower())), None)
+            if match:
+                logger.info(f"  ✓ Found connection (starts-with): '{match['displayName']}' (ID: {match['id']})")
+                return match
+            
+            # Strategy 4: Contains match
+            match = next((c for c in connections 
+                         if search_lower in c.get("displayName", "").lower() 
+                         or c.get("displayName", "").lower() in search_lower), None)
+            if match:
+                logger.info(f"  ✓ Found connection (contains): '{match['displayName']}' (ID: {match['id']})")
+                return match
+            
+            logger.warning(f"  ⚠ Connection '{connection_name}' not found in Fabric")
+            logger.warning(f"    None of the {len(connections)} connections matched")
+            logger.warning(f"    Create it manually in Fabric portal, then re-run deployment")
+            return None
         except Exception as e:
             logger.warning(f"  ⚠ Could not list connections: {e}")
             return None
@@ -4269,11 +4422,6 @@ print('Notebook initialized')
                             "skipTestConnection": True  # Use workspace identity (Personal Cloud connection)
                         }
                     }
-                    
-                    # Include gateway if present
-                    gateway_id = ds.get('gatewayId')
-                    if gateway_id:
-                        update["datasource"]["gatewayId"] = gateway_id
                     
                     updates.append(update)
             

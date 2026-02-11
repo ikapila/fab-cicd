@@ -185,5 +185,10 @@
         "description": "Sales analytics views for development environment"
       }
     ]
+  },
+  "git_integration": {
+    "auto_update_from_git": true,
+    "conflict_resolution_policy": "PreferRemote",
+    "allow_override_items": true
   }
 }

@@ -3566,30 +3566,38 @@ print('Notebook initialized')
         if not found:
             raise FileNotFoundError(f"Paginated report '{name}' not found in Fabric Git format (.PaginatedReport folder)")
         
-        # Check if report already exists
-        existing = self.client.list_paginated_reports(self.workspace_id)
-        existing_report = next((r for r in existing if r["displayName"] == name), None)
-        
-        if existing_report:
-            report_id = existing_report['id']
-            logger.info(f"  Paginated report '{name}' already exists (ID: {report_id})")
-            
-            # Delete existing report via generic Items API, then re-import
-            # This is the only supported approach - updateDefinition is NOT supported for PaginatedReport
-            logger.info(f"  Deleting existing report to re-import with updated definition...")
-            self.client.delete_paginated_report(self.workspace_id, report_id)
-            logger.info(f"  ✓ Deleted existing paginated report")
-            
-            import time
-            time.sleep(3)  # Brief pause after deletion
-        
         # Import paginated report via Power BI Imports API (the only supported method)
+        # Uses nameConflict=CreateOrOverwrite - works for both new and existing reports
         logger.info(f"  Importing paginated report via Power BI Imports API...")
-        result = self.client.import_paginated_report(
-            self.workspace_id, name, rdl_content
-        )
-        report_id = result.get('id', 'unknown')
-        logger.info(f"  ✓ Deployed paginated report '{name}' (ID: {report_id})")
+        try:
+            result = self.client.import_paginated_report(
+                self.workspace_id, name, rdl_content
+            )
+            report_id = result.get('id', 'unknown')
+            logger.info(f"  ✓ Deployed paginated report '{name}' (ID: {report_id})")
+        except Exception as import_err:
+            # If CreateOrOverwrite fails, try delete + re-import as fallback
+            logger.warning(f"  ⚠ Direct import failed: {import_err}")
+            
+            existing = self.client.list_paginated_reports(self.workspace_id)
+            existing_report = next((r for r in existing if r["displayName"] == name), None)
+            
+            if existing_report:
+                report_id = existing_report['id']
+                logger.info(f"  Falling back to delete + re-import for existing report (ID: {report_id})...")
+                self.client.delete_paginated_report(self.workspace_id, report_id)
+                logger.info(f"  ✓ Deleted existing paginated report")
+                
+                import time
+                time.sleep(3)
+                
+                result = self.client.import_paginated_report(
+                    self.workspace_id, name, rdl_content
+                )
+                report_id = result.get('id', 'unknown')
+                logger.info(f"  ✓ Deployed paginated report '{name}' via fallback (ID: {report_id})")
+            else:
+                raise
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

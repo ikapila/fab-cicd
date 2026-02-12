@@ -1203,7 +1203,7 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/paginatedReports")
         return response.get("value", [])
     
-    def import_paginated_report(self, workspace_id: str, report_name: str, rdl_content: str) -> Dict:
+    def import_paginated_report(self, workspace_id: str, report_name: str, rdl_content: str, max_retries: int = 3) -> Dict:
         """
         Import a paginated report using the Power BI Imports API.
         
@@ -1211,13 +1211,17 @@ class FabricClient:
         PaginatedReport items. The Power BI Imports API is the only supported
         method for programmatic paginated report deployment.
         
-        Uses nameConflict=Abort (creates new only). For updates, delete the
-        existing report first via delete_paginated_report(), then re-import.
+        Uses nameConflict=CreateOrOverwrite which will create the report if it
+        doesn't exist, or overwrite it if it does (matching by display name).
+        
+        When used after delete_paginated_report(), includes retry logic to
+        handle the case where the deletion hasn't fully propagated yet.
         
         Args:
             workspace_id: Workspace GUID
             report_name: Name for the report (without .rdl extension)
             rdl_content: The RDL XML content as a string
+            max_retries: Maximum retries if import fails due to conflict (default 3)
             
         Returns:
             Dict with 'id' and 'name' of the imported report
@@ -1226,67 +1230,88 @@ class FabricClient:
         
         logger.info(f"Importing paginated report: {report_name}")
         
-        # Power BI Imports API requires the .rdl extension in the display name
-        display_name = f"{report_name}.rdl"
+        # datasetDisplayName = the display name shown in the workspace (no .rdl extension)
+        # file name in multipart = includes .rdl extension (required by the API)
+        file_name = f"{report_name}.rdl"
         
         # Build the URL using Power BI API  
         url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/imports"
         params = {
-            "datasetDisplayName": display_name,
-            "nameConflict": "Abort"
+            "datasetDisplayName": report_name,
+            "nameConflict": "CreateOrOverwrite"
         }
-        
-        # Prepare multipart/form-data with the RDL file
-        headers = self.auth.get_auth_headers()
-        # Remove Content-Type - requests will set it with the boundary for multipart
-        headers.pop("Content-Type", None)
         
         rdl_bytes = rdl_content.encode('utf-8')
-        files = {
-            'file': (display_name, rdl_bytes, 'application/xml')
-        }
         
-        logger.info(f"  Uploading RDL file ({len(rdl_bytes)} bytes)")
+        logger.info(f"  Uploading RDL file ({len(rdl_bytes)} bytes) as '{file_name}'")
+        logger.info(f"  datasetDisplayName='{report_name}', nameConflict=CreateOrOverwrite")
         
-        try:
-            response = requests.post(
-                url, headers=headers, params=params,
-                files=files, timeout=120
-            )
-            response.raise_for_status()
-            
-            result = response.json()
-            import_id = result.get("id")
-            import_state = result.get("importState", "Unknown")
-            
-            logger.info(f"  Import initiated (ID: {import_id}, State: {import_state})")
-            
-            # If import is not yet complete, poll for completion
-            if response.status_code == 202 or import_state not in ["Succeeded", "Failed"]:
-                result = self._poll_import_completion(workspace_id, import_id)
-            
-            # Extract report ID from the import result
-            reports = result.get("reports", [])
-            if reports:
-                report_id = reports[0].get("id", "unknown")
-                report_name_result = reports[0].get("name", report_name)
-                logger.info(f"  ✓ Paginated report imported successfully (ID: {report_id}, Name: {report_name_result})")
-                return {"id": report_id, "name": report_name_result}
-            else:
-                logger.warning(f"  ⚠ Import completed but no reports in result: {json.dumps(result, indent=2)}")
-                return {"id": "unknown"}
-                
-        except requests.exceptions.HTTPError as e:
-            logger.error(f"HTTP Error importing paginated report: {e.response.status_code} - {e.response.text}")
+        last_error = None
+        for attempt in range(1, max_retries + 1):
             try:
-                error_detail = e.response.json()
-                logger.error(f"Error details: {json.dumps(error_detail, indent=2)}")
-            except:
-                pass
-            raise
-        except Exception as e:
-            logger.error(f"Failed to import paginated report: {str(e)}")
-            raise
+                headers = self.auth.get_auth_headers()
+                # Remove Content-Type - requests will set it with the boundary for multipart
+                headers.pop("Content-Type", None)
+                
+                files = {
+                    'file': (file_name, rdl_bytes, 'application/xml')
+                }
+                
+                response = requests.post(
+                    url, headers=headers, params=params,
+                    files=files, timeout=120
+                )
+                response.raise_for_status()
+                
+                result = response.json()
+                import_id = result.get("id")
+                import_state = result.get("importState", "Unknown")
+                
+                logger.info(f"  Import initiated (ID: {import_id}, State: {import_state})")
+                
+                # If import is not yet complete, poll for completion
+                if response.status_code == 202 or import_state not in ["Succeeded", "Failed"]:
+                    result = self._poll_import_completion(workspace_id, import_id)
+                
+                # Extract report ID from the import result
+                reports = result.get("reports", [])
+                if reports:
+                    report_id = reports[0].get("id", "unknown")
+                    report_name_result = reports[0].get("name", report_name)
+                    logger.info(f"  ✓ Paginated report imported successfully (ID: {report_id}, Name: {report_name_result})")
+                    return {"id": report_id, "name": report_name_result}
+                else:
+                    logger.warning(f"  ⚠ Import completed but no reports in result: {json.dumps(result, indent=2)}")
+                    return {"id": "unknown"}
+                    
+            except requests.exceptions.HTTPError as e:
+                last_error = e
+                status_code = e.response.status_code if e.response is not None else 0
+                error_text = e.response.text if e.response is not None else str(e)
+                
+                logger.warning(f"  ⚠ Import attempt {attempt}/{max_retries} failed: {status_code} - {error_text}")
+                try:
+                    error_detail = e.response.json()
+                    logger.warning(f"  Error details: {json.dumps(error_detail, indent=2)}")
+                except:
+                    pass
+                
+                # Retry on 409 Conflict (name still in use after delete) or 429 (rate limit)
+                if status_code in [409, 429] and attempt < max_retries:
+                    wait_time = 5 * attempt  # Progressive backoff: 5s, 10s, 15s
+                    logger.info(f"  Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                
+                # Non-retryable error or max retries exceeded
+                logger.error(f"HTTP Error importing paginated report: {status_code} - {error_text}")
+                raise
+            except Exception as e:
+                logger.error(f"Failed to import paginated report: {str(e)}")
+                raise
+        
+        # Should not reach here, but just in case
+        raise last_error or RuntimeError(f"Failed to import paginated report '{report_name}' after {max_retries} attempts")
     
     def _poll_import_completion(self, workspace_id: str, import_id: str, max_attempts: int = 30, retry_after: int = 5) -> Dict:
         """
@@ -1361,16 +1386,20 @@ class FabricClient:
         endpoint = f"/workspaces/{workspace_id}/paginatedReports/{report_id}/rebindDatasource"
         return self._make_request("POST", endpoint, json_data=connection_details)
     
-    def delete_paginated_report(self, workspace_id: str, report_id: str) -> Dict:
+    def delete_paginated_report(self, workspace_id: str, report_id: str, wait_for_completion: bool = True) -> Dict:
         """
         Delete a paginated report using the generic Items API.
         
         Note: The PaginatedReport-specific endpoint (DELETE /paginatedReports/{id})
         returns OperationNotSupportedForItem. Must use the generic Items API instead.
         
+        If the delete returns 202 (async), optionally waits for the LRO to
+        complete to avoid race conditions with subsequent re-import.
+        
         Args:
             workspace_id: Workspace GUID
             report_id: Paginated report GUID
+            wait_for_completion: Wait for async delete to finish (default True)
             
         Returns:
             Delete response
@@ -1378,7 +1407,21 @@ class FabricClient:
         logger.info(f"Deleting paginated report: {report_id}")
         # Use generic Items API - the /paginatedReports/ endpoint does NOT support delete
         endpoint = f"/workspaces/{workspace_id}/items/{report_id}"
-        return self._make_request("DELETE", endpoint)
+        result = self._make_request("DELETE", endpoint)
+        
+        # If delete returned 202 with LRO, poll until complete
+        if wait_for_completion and result.get("status_code") == 202:
+            operation_id = result.get("operation_id")
+            if operation_id:
+                logger.info(f"  Delete is async (operation: {operation_id}), waiting for completion...")
+                self.wait_for_operation_completion(
+                    operation_id,
+                    retry_after=result.get("retry_after", 3),
+                    max_attempts=20
+                )
+                logger.info(f"  ✓ Async delete completed")
+        
+        return result
     
     # ==================== Variable Library Operations ===================
     

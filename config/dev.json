@@ -191,5 +191,16 @@
     "auto_update_from_git": true,
     "conflict_resolution_policy": "PreferRemote",
     "allow_override_items": true
+  },
+  "deployment_pipeline": {
+    "enabled": false,
+    "pipeline_name": "DataEng-Pipeline",
+    "description": "Dev workspace uses Git sync for all artifacts. Deployment pipeline is used only for promoting to UAT/Prod.",
+    "artifact_types": ["PaginatedReport"],
+    "data_source_mapping": {
+      "description": "Data source connection details for the Dev environment. Used as the source when promoting via deployment pipeline.",
+      "sql_server": "dev-reporting-gold.datawarehouse.fabric.microsoft.com",
+      "sql_database": "reporting_gold"
+    }
   }
 }

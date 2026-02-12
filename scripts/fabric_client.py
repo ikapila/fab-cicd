@@ -1939,6 +1939,272 @@ class FabricClient:
         return result[0]['definition'] if result else None
 
 
+    # ==================== Deployment Pipeline Operations ====================
+
+    def list_deployment_pipelines(self) -> List[Dict]:
+        """
+        List all deployment pipelines the service principal has access to.
+        
+        Returns:
+            List of deployment pipeline objects with id, displayName, description
+        """
+        result = self._make_request("GET", "/deploymentPipelines")
+        return result.get("value", [])
+
+    def get_deployment_pipeline(self, pipeline_id: str) -> Dict:
+        """
+        Get deployment pipeline metadata.
+        
+        Args:
+            pipeline_id: The deployment pipeline ID
+            
+        Returns:
+            Pipeline metadata dict
+        """
+        return self._make_request("GET", f"/deploymentPipelines/{pipeline_id}")
+
+    def list_deployment_pipeline_stages(self, pipeline_id: str) -> List[Dict]:
+        """
+        List stages of a deployment pipeline.
+        
+        Each stage has: id, order, displayName, description, workspaceId, workspaceName, isPublic
+        
+        Args:
+            pipeline_id: The deployment pipeline ID
+            
+        Returns:
+            List of stage objects
+        """
+        result = self._make_request("GET", f"/deploymentPipelines/{pipeline_id}/stages")
+        return result.get("value", [])
+
+    def list_deployment_pipeline_stage_items(self, pipeline_id: str, stage_id: str) -> List[Dict]:
+        """
+        List supported items in a deployment pipeline stage.
+        
+        Args:
+            pipeline_id: The deployment pipeline ID
+            stage_id: The stage ID
+            
+        Returns:
+            List of item objects with itemId, itemDisplayName, itemType, etc.
+        """
+        result = self._make_request(
+            "GET",
+            f"/deploymentPipelines/{pipeline_id}/stages/{stage_id}/items"
+        )
+        return result.get("value", [])
+
+    def deploy_stage_content(
+        self,
+        pipeline_id: str,
+        source_stage_id: str,
+        target_stage_id: str,
+        items: Optional[List[Dict]] = None,
+        note: str = "",
+        options: Optional[Dict] = None
+    ) -> Dict:
+        """
+        Deploy items from one pipeline stage to another.
+        
+        This is an LRO (long-running operation). Returns operation details
+        that can be polled for completion.
+        
+        Args:
+            pipeline_id: The deployment pipeline ID
+            source_stage_id: Source stage ID
+            target_stage_id: Target stage ID
+            items: Optional list of specific items to deploy. Each item has:
+                   - sourceItemId: The item ID in the source stage
+                   - itemType: The Fabric item type (e.g. "PaginatedReport", "Report")
+                   If not provided, ALL supported items are deployed.
+            note: Optional deployment note (max 1024 chars)
+            options: Optional deployment options (e.g. allowCrossRegionDeployment)
+            
+        Returns:
+            Dict with operation_id, deployment_id, status, etc.
+        """
+        payload = {
+            "sourceStageId": source_stage_id,
+            "targetStageId": target_stage_id
+        }
+        
+        if items:
+            payload["items"] = items
+        
+        if note:
+            payload["note"] = note[:1024]
+        
+        if options:
+            payload["options"] = options
+        
+        logger.info(f"Deploying from stage {source_stage_id} to {target_stage_id}")
+        if items:
+            logger.info(f"  Deploying {len(items)} specific item(s)")
+            for item in items:
+                logger.info(f"    - {item.get('itemType')}: {item.get('sourceItemId')}")
+        else:
+            logger.info(f"  Deploying all supported items")
+        
+        result = self._make_request(
+            "POST",
+            f"/deploymentPipelines/{pipeline_id}/deploy",
+            json_data=payload
+        )
+        
+        # Capture deployment-id header if present in LRO response
+        if "deployment_id" not in result and result.get("status_code") == 202:
+            logger.info("  Deployment initiated (LRO)")
+        
+        return result
+
+    def get_deployment_pipeline_operation(self, pipeline_id: str, operation_id: str) -> Dict:
+        """
+        Get the details of a specific deployment operation, including execution plan.
+        
+        Args:
+            pipeline_id: The deployment pipeline ID
+            operation_id: The operation ID from the deploy response
+            
+        Returns:
+            Operation details with status, executionPlan, etc.
+        """
+        return self._make_request(
+            "GET",
+            f"/deploymentPipelines/{pipeline_id}/operations/{operation_id}"
+        )
+
+    def wait_for_deployment_completion(
+        self,
+        pipeline_id: str,
+        operation_id: str,
+        retry_after: int = 30,
+        max_attempts: int = 40
+    ) -> Dict:
+        """
+        Poll a deployment pipeline operation until it completes.
+        
+        Args:
+            pipeline_id: The deployment pipeline ID
+            operation_id: The operation ID to poll
+            retry_after: Seconds between polls (default 30)
+            max_attempts: Maximum poll attempts (default 40 = ~20 min)
+            
+        Returns:
+            Final operation result
+            
+        Raises:
+            RuntimeError: If deployment fails or times out
+        """
+        import time
+        
+        logger.info(f"  Waiting for deployment to complete (polling every {retry_after}s, max {max_attempts} attempts)")
+        
+        for attempt in range(1, max_attempts + 1):
+            time.sleep(retry_after)
+            
+            operation = self.get_deployment_pipeline_operation(pipeline_id, operation_id)
+            status = operation.get("status", "Unknown")
+            
+            logger.info(f"    Attempt {attempt}/{max_attempts}: {status}")
+            
+            if status == "Succeeded":
+                logger.info(f"  ✓ Deployment completed successfully")
+                
+                # Log execution plan summary
+                exec_plan = operation.get("executionPlan", {})
+                steps = exec_plan.get("steps", [])
+                for step in steps:
+                    src_target = step.get("sourceAndTarget", {})
+                    src_name = src_target.get("sourceItemDisplayName", "Unknown")
+                    item_type = src_target.get("itemType", "Unknown")
+                    step_status = step.get("status", "Unknown")
+                    diff_state = step.get("preDeploymentDiffState", "Unknown")
+                    logger.info(f"    ✓ {src_name} ({item_type}): {step_status} [was: {diff_state}]")
+                
+                return operation
+                
+            elif status == "Failed":
+                exec_plan = operation.get("executionPlan", {})
+                steps = exec_plan.get("steps", [])
+                
+                error_details = []
+                for step in steps:
+                    step_status = step.get("status", "Unknown")
+                    if step_status == "Failed":
+                        error = step.get("error", {})
+                        src_target = step.get("sourceAndTarget", {})
+                        src_name = src_target.get("sourceItemDisplayName", "Unknown")
+                        error_msg = error.get("message", "Unknown error")
+                        error_details.append(f"{src_name}: {error_msg}")
+                        logger.error(f"    ✗ {src_name}: {error_msg}")
+                
+                raise RuntimeError(
+                    f"Deployment failed: {'; '.join(error_details) if error_details else 'Unknown error'}"
+                )
+            
+            elif status not in ["NotStarted", "Running"]:
+                logger.warning(f"  Unexpected deployment status: {status}")
+        
+        raise RuntimeError(
+            f"Deployment timed out after {max_attempts * retry_after}s"
+        )
+
+    def find_deployment_pipeline_by_name(self, pipeline_name: str) -> Optional[Dict]:
+        """
+        Find a deployment pipeline by its display name.
+        
+        Args:
+            pipeline_name: The display name of the pipeline
+            
+        Returns:
+            Pipeline dict if found, None otherwise
+        """
+        pipelines = self.list_deployment_pipelines()
+        for pipeline in pipelines:
+            if pipeline.get("displayName") == pipeline_name:
+                return pipeline
+        return None
+
+    def find_stage_by_workspace_id(
+        self,
+        pipeline_id: str,
+        workspace_id: str
+    ) -> Optional[Dict]:
+        """
+        Find a pipeline stage by the workspace ID assigned to it.
+        
+        Args:
+            pipeline_id: The deployment pipeline ID
+            workspace_id: The workspace ID to search for
+            
+        Returns:
+            Stage dict if found, None otherwise
+        """
+        stages = self.list_deployment_pipeline_stages(pipeline_id)
+        for stage in stages:
+            if stage.get("workspaceId") == workspace_id:
+                return stage
+        return None
+
+    def find_stage_by_order(self, pipeline_id: str, order: int) -> Optional[Dict]:
+        """
+        Find a pipeline stage by its order (0=Development, 1=Test, 2=Production, etc.).
+        
+        Args:
+            pipeline_id: The deployment pipeline ID
+            order: The stage order (0-based)
+            
+        Returns:
+            Stage dict if found, None otherwise
+        """
+        stages = self.list_deployment_pipeline_stages(pipeline_id)
+        for stage in stages:
+            if stage.get("order") == order:
+                return stage
+        return None
+
+
 def main():
     """Test Fabric client"""
     print("Testing Fabric Client...")

@@ -192,5 +192,21 @@
     "auto_update_from_git": false,
     "conflict_resolution_policy": "PreferRemote",
     "allow_override_items": true
+  },
+  "deployment_pipeline": {
+    "enabled": true,
+    "pipeline_name": "DataEng-Pipeline",
+    "source_stage_order": 1,
+    "target_stage_order": 2,
+    "artifact_types": ["PaginatedReport"],
+    "allow_create_artifact": true,
+    "allow_overwrite_artifact": true,
+    "allow_overwrite_target_artifact_label": true,
+    "allow_skip_tiles_with_missing_prerequisites": true,
+    "data_source_mapping": {
+      "description": "Data source rules applied automatically when deploying to Prod. Maps UAT data sources to Prod equivalents.",
+      "sql_server": "prod-reporting-gold.datawarehouse.fabric.microsoft.com",
+      "sql_database": "reporting_gold"
+    }
   }
 }

@@ -1241,6 +1241,12 @@ class FabricClient:
             "nameConflict": "CreateOrOverwrite"
         }
         
+        # Strip UTF-8 BOM if present - the BOM (\ufeff) causes the Power BI
+        # Imports API to return RequestedFileIsEncryptedOrCorrupted
+        if rdl_content.startswith('\ufeff'):
+            rdl_content = rdl_content[1:]
+            logger.info(f"  Stripped UTF-8 BOM from RDL content")
+        
         rdl_bytes = rdl_content.encode('utf-8')
         
         logger.info(f"  Uploading RDL file ({len(rdl_bytes)} bytes) as '{file_name}'")
@@ -1388,40 +1394,49 @@ class FabricClient:
     
     def delete_paginated_report(self, workspace_id: str, report_id: str, wait_for_completion: bool = True) -> Dict:
         """
-        Delete a paginated report using the generic Items API.
+        Delete a paginated report using the Power BI Reports API.
         
-        Note: The PaginatedReport-specific endpoint (DELETE /paginatedReports/{id})
-        returns OperationNotSupportedForItem. Must use the generic Items API instead.
+        Neither the Fabric PaginatedReport endpoint (DELETE /paginatedReports/{id})
+        nor the generic Items API (DELETE /items/{id}) support deleting paginated
+        reports — both return OperationNotSupportedForItem.
         
-        If the delete returns 202 (async), optionally waits for the LRO to
-        complete to avoid race conditions with subsequent re-import.
+        The Power BI Reports API (DELETE /groups/{id}/reports/{id}) works for
+        all report types including paginated reports.
         
         Args:
             workspace_id: Workspace GUID
             report_id: Paginated report GUID
-            wait_for_completion: Wait for async delete to finish (default True)
+            wait_for_completion: Pause briefly after delete to allow propagation
             
         Returns:
-            Delete response
+            Delete response dict
         """
         logger.info(f"Deleting paginated report: {report_id}")
-        # Use generic Items API - the /paginatedReports/ endpoint does NOT support delete
-        endpoint = f"/workspaces/{workspace_id}/items/{report_id}"
-        result = self._make_request("DELETE", endpoint)
         
-        # If delete returned 202 with LRO, poll until complete
-        if wait_for_completion and result.get("status_code") == 202:
-            operation_id = result.get("operation_id")
-            if operation_id:
-                logger.info(f"  Delete is async (operation: {operation_id}), waiting for completion...")
-                self.wait_for_operation_completion(
-                    operation_id,
-                    retry_after=result.get("retry_after", 3),
-                    max_attempts=20
-                )
-                logger.info(f"  ✓ Async delete completed")
+        # Use Power BI Reports API - both Fabric endpoints fail for paginated reports:
+        #   DELETE /paginatedReports/{id} → OperationNotSupportedForItem
+        #   DELETE /items/{id}            → OperationNotSupportedForItem
+        url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/reports/{report_id}"
+        headers = self.auth.get_auth_headers()
         
-        return result
+        try:
+            response = requests.delete(url, headers=headers, timeout=60)
+            response.raise_for_status()
+            logger.info(f"  ✓ Deleted paginated report via Power BI API")
+            
+            # Brief pause to allow deletion to propagate before re-import
+            if wait_for_completion:
+                import time
+                time.sleep(3)
+            
+            return {"status": "success", "status_code": response.status_code}
+            
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP Error deleting paginated report: {e.response.status_code} - {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to delete paginated report: {str(e)}")
+            raise
     
     # ==================== Variable Library Operations ===================
     

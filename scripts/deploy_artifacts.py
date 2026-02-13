@@ -2634,6 +2634,18 @@ print('Notebook initialized')
             else:
                 failure_count += len(pipeline_artifacts)
         
+        # Phase 4: Post-deployment Git sync
+        # After API deployment (Phase 2), workspace items may differ from Git,
+        # causing "Update Required" indicators in the Fabric Source Control UI.
+        # Re-sync from Git to align the workspace with the remote branch.
+        if not dry_run and api_artifacts:
+            git_config = self.config.config.get("git_integration", {})
+            auto_update = git_config.get("auto_update_from_git", True)
+            if auto_update:
+                logger.info("\n--- Phase 4: Post-deployment Source Control Sync ---")
+                logger.info("Re-syncing workspace with Git to clear pending updates...")
+                self._update_source_control()
+        
         # Summary
         total_artifacts = len(api_artifacts) + len(pipeline_artifacts)
         logger.info("\n" + "="*60)
@@ -3761,7 +3773,7 @@ print('Notebook initialized')
         
         # For Dev environment with Git sync, paginated reports are synced from Git
         git_config = self.config.config.get("git_integration", {})
-        if git_config.get("auto_update_from_git", False):
+        if git_config.get("auto_update_from_git", True):
             logger.info(f"  ⏭ Skipping '{name}' — synced from Git via source control update")
             return
         rdl_content = None

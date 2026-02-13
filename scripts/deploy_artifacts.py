@@ -441,10 +441,11 @@ class FabricDeployer:
                 logger.info("    Connect the workspace to Git in Fabric portal to enable auto-sync")
                 return True
             
-            # Check if there are remote changes to apply
+            # Check if there are remote changes or workspace changes to resolve
             remote_changes = [c for c in changes if c.get("remoteChange")]
+            workspace_changes = [c for c in changes if c.get("workspaceChange")]
             
-            if workspace_head == remote_commit and not remote_changes:
+            if workspace_head == remote_commit and not remote_changes and not workspace_changes:
                 logger.info("  ✓ Workspace is up to date with Git — no updates needed")
                 return True
             
@@ -459,7 +460,17 @@ class FabricDeployer:
                     conflict = change.get("conflictType", "None")
                     conflict_str = f" ⚠ CONFLICT" if conflict == "Conflict" else ""
                     logger.info(f"    - {name} ({item_type}): {change_type}{conflict_str}")
-            else:
+            
+            if workspace_changes:
+                logger.info(f"  📦 {len(workspace_changes)} workspace change(s) to revert (overwrite with Git):")
+                for change in workspace_changes:
+                    item = change.get("itemMetadata", {})
+                    name = item.get("displayName", "Unknown")
+                    item_type = item.get("itemType", "Unknown")
+                    change_type = change.get("workspaceChange", "Unknown")
+                    logger.info(f"    - {name} ({item_type}): {change_type}")
+            
+            if not remote_changes and not workspace_changes:
                 logger.info(f"  📦 Commits available: workspace is behind remote")
             
             # Step 2: Update from Git
@@ -2591,50 +2602,40 @@ print('Notebook initialized')
         else:
             api_artifacts = deployment_order
         
-        # Phase 1: Sync workspace from Git FIRST (for Dev with auto_update_from_git)
-        # For Git-connected workspaces, the Git sync IS the deployment — it pulls all
-        # committed artifact changes into the workspace.  We then skip Phase 2 API
-        # deployment to avoid overwriting Git-synced items and creating drift that
-        # leaves "Update Required" indicators in the Fabric Source Control UI.
-        git_sync_is_deployment = False
+        # Phase 1: Sync workspace from Git (for Dev with auto_update_from_git)
+        # This pulls Git-tracked items (reports, semantic models, etc.) into the
+        # workspace BEFORE API deployment of non-Git items (shortcuts, variable libs).
         if not dry_run:
             git_config = self.config.config.get("git_integration", {})
             auto_update = git_config.get("auto_update_from_git", True)
             if auto_update:
-                logger.info("\n--- Phase 1: Source Control Sync ---")
+                logger.info("\n--- Phase 1: Source Control Sync (pre-deployment) ---")
                 self._update_source_control()
-                git_sync_is_deployment = True
         
         # Phase 2: Deploy API artifacts in dependency order
-        # Skipped when Git sync is the deployment strategy — the workspace is already
-        # up to date from Phase 1, and API deployment would create workspace drift.
+        # This deploys items that require API calls (shortcuts, variable libraries,
+        # SQL views, lakehouses, environments, etc.).
         success_count = 0
         failure_count = 0
         
-        if git_sync_is_deployment and api_artifacts:
-            logger.info(f"\n--- Phase 2: API Deployment — SKIPPED ---")
-            logger.info(f"  ℹ {len(api_artifacts)} artifact(s) already synced from Git in Phase 1")
-            logger.info(f"  Skipping API deployment to avoid overwriting Git-synced items")
-            success_count = len(api_artifacts)
-        else:
-            if api_artifacts:
-                logger.info(f"\n--- Phase 2: API Deployment ({len(api_artifacts)} artifacts) ---")
-            
-            for artifact in api_artifacts:
-                try:
-                    logger.info(f"\nDeploying: {artifact['name']} ({artifact['type'].value})")
-                    
-                    if not dry_run:
-                        self._deploy_artifact(artifact)
-                    else:
-                        logger.info(f"  [DRY RUN] Would deploy {artifact['name']}")
-                    
-                    success_count += 1
-                    logger.info(f"✅ Successfully deployed: {artifact['name']}")
-                    
-                except Exception as e:
-                    failure_count += 1
-                    logger.error(f"❌ Failed to deploy {artifact['name']}: {str(e)}")
+        if api_artifacts:
+            logger.info(f"\n--- Phase 2: API Deployment ({len(api_artifacts)} artifacts) ---")
+        
+        for artifact in api_artifacts:
+            try:
+                logger.info(f"\nDeploying: {artifact['name']} ({artifact['type'].value})")
+                
+                if not dry_run:
+                    self._deploy_artifact(artifact)
+                else:
+                    logger.info(f"  [DRY RUN] Would deploy {artifact['name']}")
+                
+                success_count += 1
+                logger.info(f"✅ Successfully deployed: {artifact['name']}")
+                
+            except Exception as e:
+                failure_count += 1
+                logger.error(f"❌ Failed to deploy {artifact['name']}: {str(e)}")
         
         # Phase 3: Deploy pipeline artifacts via Fabric Deployment Pipeline
         pipeline_success = True
@@ -2646,16 +2647,25 @@ print('Notebook initialized')
             else:
                 failure_count += len(pipeline_artifacts)
         
+        # Phase 4: Post-deployment Git sync
+        # API deployment (Phase 2) may modify Git-tracked items (e.g. semantic models,
+        # reports), creating workspace changes that show as "Update Required" in the
+        # Fabric Source Control UI.  Re-sync from Git to overwrite those changes and
+        # keep the workspace aligned with the Git branch.
+        if not dry_run:
+            git_config = self.config.config.get("git_integration", {})
+            auto_update = git_config.get("auto_update_from_git", True)
+            if auto_update:
+                logger.info("\n--- Phase 4: Post-deployment Source Control Sync ---")
+                self._update_source_control()
+        
         # Summary
         total_artifacts = len(api_artifacts) + len(pipeline_artifacts)
         logger.info("\n" + "="*60)
         logger.info("DEPLOYMENT SUMMARY")
         logger.info("="*60)
         logger.info(f"Total artifacts: {total_artifacts}")
-        if git_sync_is_deployment and api_artifacts:
-            logger.info(f"  Git synced: {len(api_artifacts)}")
-        else:
-            logger.info(f"  API deployed: {len(api_artifacts)}")
+        logger.info(f"  API deployed: {len(api_artifacts)}")
         if pipeline_artifacts:
             logger.info(f"  Pipeline promoted: {len(pipeline_artifacts)} ({'✅' if pipeline_success else '❌'})")
         logger.info(f"Successful: {success_count}")

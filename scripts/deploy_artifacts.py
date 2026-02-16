@@ -1473,7 +1473,9 @@ class FabricDeployer:
         rdl_file = rdl_files[0]
         
         # Read RDL content as text for potential transformation
-        with open(rdl_file, 'r', encoding='utf-8') as f:
+        # Use utf-8-sig to auto-strip BOM (the Power BI Imports API rejects
+        # content with BOM — returns RequestedFileIsEncryptedOrCorrupted)
+        with open(rdl_file, 'r', encoding='utf-8-sig') as f:
             rdl_content = f.read()
         
         # Return rdl_content for transformation and folder for full read after transformation
@@ -3389,13 +3391,24 @@ print('Notebook initialized')
         
         if existing_model:
             logger.info(f"  Semantic model '{name}' already exists, updating...")
-            self.client.update_semantic_model(
+            update_result = self.client.update_semantic_model(
                 self.workspace_id,
                 existing_model['id'],
                 definition
             )
             model_id = existing_model['id']
             logger.info(f"  Updated semantic model (ID: {model_id})")
+            
+            # Wait for the updateDefinition LRO to complete before binding connections.
+            # Without this, the model is in a transitional state and connection binding
+            # returns 404 EntityNotFound.
+            if update_result and update_result.get('status_code') == 202 and 'operation_id' in update_result:
+                operation_id = update_result['operation_id']
+                retry_after = update_result.get('retry_after', 5)
+                logger.info(f"  Waiting for definition update to complete...")
+                self.client.wait_for_operation_completion(
+                    operation_id, retry_after=retry_after, max_attempts=15
+                )
         else:
             # Get or create folder for semantic models
             folder_id = self._get_or_create_folder("Semanticmodels")
@@ -3651,36 +3664,20 @@ print('Notebook initialized')
             self.client.update_paginated_report(self.workspace_id, report_id, definition)
             logger.info(f"  ✓ Updated paginated report '{name}' (ID: {report_id})")
         else:
-            # Create via Fabric Items API: create item first, then updateDefinition.
-            # The Power BI Imports API does not work with Fabric Git format RDL files
-            # (returns RequestedFileIsEncryptedOrCorrupted).
-            logger.info(f"  Paginated report '{name}' not found, creating via Fabric Items API...")
-            folder_id = self._get_or_create_folder("Reports")
-            result = self.client.create_paginated_report(
-                self.workspace_id, name, folder_id=folder_id
+            # Create via Power BI Imports API with CreateOrOverwrite.
+            # The generic Fabric Items API (POST /items) does NOT support PaginatedReport
+            # creation (returns UnsupportedItemType). The Imports API is the only way to
+            # create a new paginated report programmatically.
+            #
+            # Note: The RDL content is standard XML from Fabric Git format. BOM stripping
+            # is handled inside import_paginated_report() to avoid the
+            # "RequestedFileIsEncryptedOrCorrupted" error.
+            logger.info(f"  Paginated report '{name}' not found, creating via Power BI Imports API...")
+            result = self.client.import_paginated_report(
+                self.workspace_id, name, rdl_content
             )
-            
-            # Handle LRO if creation returns 202
-            if result and 'operation_id' in result and result.get('status_code') == 202:
-                operation_id = result['operation_id']
-                retry_after = result.get('retry_after', 5)
-                logger.info(f"  Paginated report creation initiated (LRO), waiting for completion...")
-                operation_result = self.client.wait_for_operation_completion(
-                    operation_id, retry_after=retry_after, max_attempts=10
-                )
-                if operation_result and 'id' in operation_result:
-                    report_id = operation_result['id']
-                else:
-                    report_id = result.get('id', 'unknown')
-                    logger.warning(f"  ⚠ Paginated report created but ID not in operation result")
-            elif result and 'id' in result:
-                report_id = result['id']
-            else:
-                raise RuntimeError(f"Failed to create paginated report '{name}': unexpected response")
-            
-            logger.info(f"  Created paginated report '{name}' (ID: {report_id}), uploading definition...")
-            self.client.update_paginated_report(self.workspace_id, report_id, definition)
-            logger.info(f"  ✓ Created and deployed paginated report '{name}' (ID: {report_id})")
+            report_id = result.get('id', 'unknown')
+            logger.info(f"  ✓ Created paginated report '{name}' (ID: {report_id})")
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

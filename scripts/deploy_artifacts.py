@@ -3660,8 +3660,18 @@ print('Notebook initialized')
         
         if existing_report:
             report_id = existing_report['id']
-            logger.info(f"  Paginated report '{name}' already exists, updating definition...")
-            self.client.update_paginated_report(self.workspace_id, report_id, definition)
+            logger.info(f"  Paginated report '{name}' already exists (ID: {report_id}), updating via Imports API...")
+            # The Fabric updateDefinition endpoint does NOT support paginated reports
+            # (returns OperationNotSupportedForItem). Instead, use the Power BI
+            # Imports API with nameConflict=Overwrite to replace the existing report.
+            result = self.client.import_paginated_report(
+                self.workspace_id, name, rdl_content, overwrite=True
+            )
+            # The Imports API may return a different ID if it recreates the item
+            new_id = result.get('id')
+            if new_id and new_id != report_id:
+                logger.info(f"  ℹ Report ID changed from {report_id} to {new_id} after overwrite")
+                report_id = new_id
             logger.info(f"  ✓ Updated paginated report '{name}' (ID: {report_id})")
         else:
             # Create via the dedicated Fabric PaginatedReports API with definition.

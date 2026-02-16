@@ -150,6 +150,10 @@ class FabricClient:
                 
                 return result
             
+            # Handle 200 with empty body (e.g. bindConnection returns 200 with no content)
+            if not response.text or not response.text.strip():
+                return {"status": "success", "status_code": response.status_code}
+            
             return response.json()
             
         except requests.exceptions.HTTPError as e:
@@ -1347,11 +1351,11 @@ class FabricClient:
         """
         Update paginated report definition via Fabric Items API.
         
-        Uses POST /workspaces/{id}/paginatedReports/{id}/updateDefinition
-        which is supported per the Fabric Items API support matrix.
+        Uses POST /workspaces/{id}/paginatedReports/{id}/updateDefinition.
         
-        The definition should contain parts with base64-encoded content,
-        including the .rdl file, .platform file, and any other report files.
+        NOTE: As of 2026-02, this endpoint returns OperationNotSupportedForItem
+        for paginated reports. Use import_paginated_report() with overwrite=True
+        instead to update existing paginated reports.
         
         Args:
             workspace_id: Workspace GUID
@@ -1401,9 +1405,9 @@ class FabricClient:
         """
         Import a paginated report using the Power BI Imports API.
         
-        Legacy method — the Fabric Items API now supports UpdateDefinition for
-        PaginatedReport items. Prefer update_paginated_report() for existing
-        reports. This method is kept as a fallback for edge cases.
+        This is the primary method for deploying paginated reports because the
+        Fabric Items API does not support create or updateDefinition for
+        PaginatedReport items (returns UnsupportedItemType / OperationNotSupportedForItem).
         
         For RDL files the supported nameConflict values are:
           - Abort: Fail if a report with the same name exists (use for new reports)

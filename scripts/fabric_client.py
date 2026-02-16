@@ -223,9 +223,26 @@ class FabricClient:
             
             if status == "Succeeded":
                 logger.info(f"  ✓ Operation completed successfully")
-                # Get the actual result
-                result = self.get_operation_result(operation_id)
-                return result
+                # Try to get the actual result.
+                # Note: updateDefinition operations do NOT produce a result resource —
+                # only create operations do. The API returns 400 OperationHasNoResult
+                # for updates. We handle this gracefully since the operation itself succeeded.
+                try:
+                    result = self.get_operation_result(operation_id)
+                    return result
+                except requests.exceptions.HTTPError as e:
+                    if e.response is not None and e.response.status_code == 400:
+                        resp_body = {}
+                        try:
+                            resp_body = e.response.json()
+                        except Exception:
+                            pass
+                        error_code = resp_body.get("errorCode", "")
+                        if error_code == "OperationHasNoResult":
+                            logger.info(f"  ℹ Operation has no result (expected for update operations)")
+                            return {}
+                    # Re-raise if it's a different 400 error or non-400
+                    raise
             elif status == "Failed":
                 error = state.get("error", {})
                 error_msg = error.get("message", "Unknown error")
@@ -1225,16 +1242,22 @@ class FabricClient:
         payload = {"definition": definition}
         return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports/{report_id}/updateDefinition", json_data=payload)
 
-    def create_paginated_report(self, workspace_id: str, report_name: str, folder_id: str = None) -> Dict:
+    def create_paginated_report(self, workspace_id: str, report_name: str, definition: Dict = None, folder_id: str = None) -> Dict:
         """
-        Create a paginated report item (without definition) via Fabric Items API.
+        Create a paginated report via the dedicated Fabric PaginatedReports API.
         
-        Creates the item shell first; use update_paginated_report() afterwards
-        to upload the RDL definition.
+        Uses POST /workspaces/{id}/paginatedReports (dedicated endpoint) instead
+        of POST /workspaces/{id}/items (generic endpoint which returns
+        UnsupportedItemType for PaginatedReport).
+        
+        If definition is provided, creates the report with the RDL definition
+        included. Otherwise creates a shell item — use update_paginated_report()
+        afterwards to upload the RDL definition.
         
         Args:
             workspace_id: Workspace GUID
             report_name: Display name for the paginated report
+            definition: Optional definition dict with base64-encoded parts
             folder_id: Optional workspace folder ID
             
         Returns:
@@ -1243,11 +1266,12 @@ class FabricClient:
         logger.info(f"Creating paginated report: {report_name}")
         payload = {
             "displayName": report_name,
-            "type": "PaginatedReport"
         }
+        if definition:
+            payload["definition"] = definition
         if folder_id:
             payload["folderId"] = folder_id
-        return self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
+        return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports", json_data=payload)
 
     def import_paginated_report(self, workspace_id: str, report_name: str, rdl_content: str, max_retries: int = 3) -> Dict:
         """
@@ -1257,8 +1281,12 @@ class FabricClient:
         PaginatedReport items. Prefer update_paginated_report() for existing
         reports. This method is kept as a fallback for edge cases.
         
-        Uses nameConflict=CreateOrOverwrite which will create the report if it
-        doesn't exist, or overwrite it if it does (matching by display name).
+        Uses nameConflict=Overwrite (for RDL files only Abort and Overwrite
+        are supported — not CreateOrOverwrite or other modes).
+        
+        The datasetDisplayName MUST include the .rdl extension so the API
+        recognises the upload as a paginated report. Without it, the API
+        treats it as a .pbix and returns RequestedFileIsEncryptedOrCorrupted.
         
         When used after delete_paginated_report(), includes retry logic to
         handle the case where the deletion hasn't fully propagated yet.
@@ -1276,15 +1304,20 @@ class FabricClient:
         
         logger.info(f"Importing paginated report: {report_name}")
         
-        # datasetDisplayName = the display name shown in the workspace (no .rdl extension)
-        # file name in multipart = includes .rdl extension (required by the API)
+        # The Power BI Imports API requires the .rdl extension in BOTH the
+        # datasetDisplayName parameter AND the multipart file name.
+        # Without .rdl in datasetDisplayName, the API doesn't recognise the
+        # upload as a paginated report and returns RequestedFileIsEncryptedOrCorrupted.
+        # See: https://learn.microsoft.com/en-us/rest/api/power-bi/imports/post-import-in-group
         file_name = f"{report_name}.rdl"
+        display_name = f"{report_name}.rdl"
         
         # Build the URL using Power BI API  
         url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/imports"
+        # For RDL files only Abort and Overwrite are supported — NOT CreateOrOverwrite
         params = {
-            "datasetDisplayName": report_name,
-            "nameConflict": "CreateOrOverwrite"
+            "datasetDisplayName": display_name,
+            "nameConflict": "Overwrite"
         }
         
         # Strip UTF-8 BOM if present - the BOM (\ufeff) causes the Power BI
@@ -1296,7 +1329,7 @@ class FabricClient:
         rdl_bytes = rdl_content.encode('utf-8')
         
         logger.info(f"  Uploading RDL file ({len(rdl_bytes)} bytes) as '{file_name}'")
-        logger.info(f"  datasetDisplayName='{report_name}', nameConflict=CreateOrOverwrite")
+        logger.info(f"  datasetDisplayName='{display_name}', nameConflict=Overwrite")
         
         last_error = None
         for attempt in range(1, max_retries + 1):

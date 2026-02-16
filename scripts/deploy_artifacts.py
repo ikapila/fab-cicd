@@ -3664,20 +3664,78 @@ print('Notebook initialized')
             self.client.update_paginated_report(self.workspace_id, report_id, definition)
             logger.info(f"  ✓ Updated paginated report '{name}' (ID: {report_id})")
         else:
-            # Create via Power BI Imports API with CreateOrOverwrite.
-            # The generic Fabric Items API (POST /items) does NOT support PaginatedReport
-            # creation (returns UnsupportedItemType). The Imports API is the only way to
-            # create a new paginated report programmatically.
+            # Create via the dedicated Fabric PaginatedReports API with definition.
             #
-            # Note: The RDL content is standard XML from Fabric Git format. BOM stripping
-            # is handled inside import_paginated_report() to avoid the
-            # "RequestedFileIsEncryptedOrCorrupted" error.
-            logger.info(f"  Paginated report '{name}' not found, creating via Power BI Imports API...")
-            result = self.client.import_paginated_report(
-                self.workspace_id, name, rdl_content
-            )
-            report_id = result.get('id', 'unknown')
-            logger.info(f"  ✓ Created paginated report '{name}' (ID: {report_id})")
+            # Strategy:
+            #   1. Try POST /paginatedReports with definition (single-step create)
+            #   2. If that fails, try create shell (no definition) + updateDefinition (two-step)
+            #   3. If both fail, fall back to Power BI Imports API (legacy, only works for
+            #      non-Fabric-native RDL files)
+            #
+            # The Power BI Imports API rejects Fabric-native RDL files that use the
+            # 2016/01/reportdefinition schema with MustUnderstand="df" extensions,
+            # returning RequestedFileIsEncryptedOrCorrupted.
+            logger.info(f"  Paginated report '{name}' not found, creating via Fabric PaginatedReports API...")
+            report_id = None
+            
+            try:
+                # Option A: Create with definition in one step
+                result = self.client.create_paginated_report(
+                    self.workspace_id, name, definition=definition
+                )
+                
+                # Handle LRO if creation returns 202
+                if result.get("status_code") == 202 and result.get("operation_id"):
+                    operation_id = result["operation_id"]
+                    retry_after = result.get("retry_after", 5)
+                    logger.info(f"  Creation initiated (LRO), waiting for completion...")
+                    operation_result = self.client.wait_for_operation_completion(
+                        operation_id, retry_after=retry_after
+                    )
+                    report_id = operation_result.get("id", "unknown")
+                else:
+                    report_id = result.get('id', 'unknown')
+                
+                logger.info(f"  ✓ Created paginated report '{name}' (ID: {report_id})")
+                
+            except Exception as e:
+                logger.warning(f"  ⚠ Create with definition failed: {str(e)}")
+                logger.info(f"  Trying two-step approach: create shell + updateDefinition...")
+                
+                try:
+                    # Option B: Create empty shell, then upload definition
+                    result = self.client.create_paginated_report(
+                        self.workspace_id, name
+                    )
+                    
+                    # Handle LRO
+                    if result.get("status_code") == 202 and result.get("operation_id"):
+                        operation_id = result["operation_id"]
+                        retry_after = result.get("retry_after", 5)
+                        logger.info(f"  Shell creation initiated (LRO), waiting for completion...")
+                        operation_result = self.client.wait_for_operation_completion(
+                            operation_id, retry_after=retry_after
+                        )
+                        report_id = operation_result.get("id", "unknown")
+                    else:
+                        report_id = result.get('id', 'unknown')
+                    
+                    logger.info(f"  Shell created (ID: {report_id}), uploading RDL definition...")
+                    
+                    # Upload the definition
+                    self.client.update_paginated_report(self.workspace_id, report_id, definition)
+                    logger.info(f"  ✓ Created paginated report '{name}' via two-step (ID: {report_id})")
+                    
+                except Exception as e2:
+                    logger.warning(f"  ⚠ Two-step creation also failed: {str(e2)}")
+                    logger.info(f"  Falling back to Power BI Imports API...")
+                    
+                    # Option C: Legacy Power BI Imports API (works for non-Fabric-native RDL only)
+                    result = self.client.import_paginated_report(
+                        self.workspace_id, name, rdl_content
+                    )
+                    report_id = result.get('id', 'unknown')
+                    logger.info(f"  ✓ Created paginated report '{name}' via Imports API (ID: {report_id})")
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

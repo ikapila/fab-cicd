@@ -3680,6 +3680,7 @@ print('Notebook initialized')
             
             try:
                 # Option A: Create with definition in one step
+                # Uses POST /items with type=PaginatedReport (the generic Items API)
                 result = self.client.create_paginated_report(
                     self.workspace_id, name, definition=definition
                 )
@@ -3703,7 +3704,7 @@ print('Notebook initialized')
                 logger.info(f"  Trying two-step approach: create shell + updateDefinition...")
                 
                 try:
-                    # Option B: Create empty shell, then upload definition
+                    # Option B: Create empty shell via POST /items, then upload definition
                     result = self.client.create_paginated_report(
                         self.workspace_id, name
                     )
@@ -3730,9 +3731,12 @@ print('Notebook initialized')
                     logger.warning(f"  ⚠ Two-step creation also failed: {str(e2)}")
                     logger.info(f"  Falling back to Power BI Imports API...")
                     
-                    # Option C: Legacy Power BI Imports API (works for non-Fabric-native RDL only)
+                    # Option C: Legacy Power BI Imports API
+                    # Use overwrite=False (nameConflict=Abort) for NEW reports —
+                    # Overwrite causes DuplicatePackageNotFoundError when the report
+                    # doesn't already exist in the Power BI Imports format.
                     result = self.client.import_paginated_report(
-                        self.workspace_id, name, rdl_content
+                        self.workspace_id, name, rdl_content, overwrite=False
                     )
                     report_id = result.get('id', 'unknown')
                     logger.info(f"  ✓ Created paginated report '{name}' via Imports API (ID: {report_id})")
@@ -4469,15 +4473,20 @@ print('Notebook initialized')
             
             logger.info(f"  Binding '{model_name}' to Fabric connection '{connection_name}'...")
             
-            # Use the Fabric Connections API to bind the connection to the semantic model
-            # No gateway required - this is a direct Fabric connection within the same tenant
+            # Use the Fabric Connections API to bind the connection to the semantic model.
+            # The method first takes over ownership (TakeOver), then attempts to
+            # discover gateways and bind. If binding isn't possible via the API,
+            # the connection must be assigned manually in the Fabric portal.
             try:
-                self.client.bind_semantic_model_to_connection(
+                result = self.client.bind_semantic_model_to_connection(
                     self.workspace_id,
                     model_id,
                     connection_id
                 )
-                logger.info(f"  ✓ Bound '{model_name}' to connection '{connection_name}'")
+                if result and result.get("status") == "bound":
+                    logger.info(f"  ✓ Bound '{model_name}' to connection '{connection_name}'")
+                else:
+                    logger.info(f"  ℹ SP now owns '{model_name}'. Assign connection '{connection_name}' manually in semantic model settings if needed.")
             except Exception as bind_err:
                 logger.info(f"  ℹ Could not bind '{model_name}' to connection: {bind_err}")
                 logger.info(f"    Assign connection '{connection_name}' manually in semantic model settings")

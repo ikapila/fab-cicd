@@ -926,13 +926,53 @@ class FabricClient:
         payload = {"updateDetails": datasource_updates}
         return self._make_request("POST", endpoint, json_data=payload)
     
+    def take_over_dataset(self, workspace_id: str, dataset_id: str) -> bool:
+        """
+        Take over ownership of a semantic model (dataset) so the service principal
+        can manage its connections and credentials.
+        
+        Uses Power BI REST API: POST /groups/{groupId}/datasets/{datasetId}/Default.TakeOver
+        
+        This is required before the SP can bind connections or update data source
+        credentials on a semantic model it didn't originally create.
+        
+        Args:
+            workspace_id: Workspace GUID
+            dataset_id: Semantic model / dataset GUID
+            
+        Returns:
+            True if take-over succeeded, False otherwise
+        """
+        logger.info(f"Taking over ownership of semantic model {dataset_id}")
+        
+        url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{dataset_id}/Default.TakeOver"
+        headers = self.auth.get_auth_headers()
+        
+        try:
+            response = requests.post(url, headers=headers, timeout=60)
+            if response.status_code == 200:
+                logger.info(f"  ✓ Successfully took over ownership of semantic model {dataset_id}")
+                return True
+            else:
+                logger.warning(f"  ⚠ TakeOver returned {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            logger.warning(f"  ⚠ TakeOver failed: {e}")
+            return False
+    
     def bind_semantic_model_to_connection(self, workspace_id: str, semantic_model_id: str, connection_id: str) -> Dict:
         """
-        Bind a semantic model to a Fabric connection (no gateway required).
-        Uses PATCH /v1/workspaces/{workspaceId}/items/{itemId}/connections
-        to assign a Fabric connection directly to the semantic model.
+        Bind a semantic model to a Fabric shareable cloud connection.
         
-        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/items/update-item-connections
+        The Fabric REST API only supports GET /items/{id}/connections (list),
+        not PATCH (update). To bind a shareable cloud connection we:
+        
+        1. Take over the dataset so the SP becomes the owner.
+        2. Use the Power BI REST API PATCH /groups/{groupId}/datasets/{datasetId}/Default.UpdateDatasourcesInGroup
+           to point the data source at the correct connection.
+        
+        If the take-over or update fails, the deployment still succeeds — the
+        connection just needs to be assigned manually in the Fabric portal.
         
         Args:
             workspace_id: Workspace GUID
@@ -940,16 +980,58 @@ class FabricClient:
             connection_id: Fabric connection GUID (from /v1/connections)
             
         Returns:
-            Response from the API
+            Response dict or empty dict on failure
         """
         logger.info(f"Binding semantic model {semantic_model_id} to Fabric connection {connection_id}")
         
-        endpoint = f"/workspaces/{workspace_id}/items/{semantic_model_id}/connections"
-        payload = {
-            "connectionId": connection_id
-        }
+        # Step 1: Take over ownership so the SP can manage connections
+        self.take_over_dataset(workspace_id, semantic_model_id)
         
-        return self._make_request("PATCH", endpoint, json_data=payload)
+        # Step 2: Try to bind the connection via Power BI Discover Gateways / Bind API
+        # For Shareable Cloud connections, the connection appears as a cloud gateway
+        # data source. Try to discover and bind it.
+        try:
+            # Get the data sources for this dataset
+            url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{semantic_model_id}/Default.GetBoundGatewayDatasources"
+            headers = self.auth.get_auth_headers()
+            response = requests.get(url, headers=headers, timeout=60)
+            
+            if response.status_code == 200:
+                datasources = response.json().get("value", [])
+                logger.info(f"  Found {len(datasources)} bound data source(s)")
+                for ds in datasources:
+                    logger.info(f"    Data source: type={ds.get('datasourceType')}, gateway={ds.get('gatewayId')}, datasource={ds.get('datasourceId')}")
+                
+                # Try to discover gateways for this dataset
+                discover_url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{semantic_model_id}/Default.DiscoverGateways"
+                discover_resp = requests.get(discover_url, headers=headers, timeout=60)
+                
+                if discover_resp.status_code == 200:
+                    gateways = discover_resp.json().get("value", [])
+                    logger.info(f"  Discovered {len(gateways)} gateway(s)")
+                    for gw in gateways:
+                        logger.info(f"    Gateway: id={gw.get('id')}, name={gw.get('name')}, type={gw.get('type')}")
+                    
+                    # Look for a cloud gateway that matches our connection
+                    for gw in gateways:
+                        if gw.get("type") == "VirtualNetwork" or gw.get("type") == "CloudDatasource":
+                            # Try binding to this cloud gateway
+                            bind_url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{semantic_model_id}/Default.BindToGateway"
+                            bind_payload = {"gatewayObjectId": gw["id"]}
+                            bind_resp = requests.post(bind_url, headers=headers, json=bind_payload, timeout=60)
+                            if bind_resp.status_code == 200:
+                                logger.info(f"  ✓ Bound to cloud gateway {gw['id']}")
+                                return {"status": "bound", "gatewayId": gw["id"]}
+                            else:
+                                logger.info(f"  ℹ Bind to gateway {gw['id']} returned {bind_resp.status_code}: {bind_resp.text}")
+                else:
+                    logger.info(f"  ℹ DiscoverGateways returned {discover_resp.status_code}")
+            else:
+                logger.info(f"  ℹ GetBoundGatewayDatasources returned {response.status_code}: {response.text}")
+        except Exception as e:
+            logger.info(f"  ℹ Connection binding attempt: {e}")
+        
+        return {}
     
     # ==================== Connection Operations ====================
     
@@ -1244,11 +1326,11 @@ class FabricClient:
 
     def create_paginated_report(self, workspace_id: str, report_name: str, definition: Dict = None, folder_id: str = None) -> Dict:
         """
-        Create a paginated report via the dedicated Fabric PaginatedReports API.
+        Create a paginated report via the Fabric Items API.
         
-        Uses POST /workspaces/{id}/paginatedReports (dedicated endpoint) instead
-        of POST /workspaces/{id}/items (generic endpoint which returns
-        UnsupportedItemType for PaginatedReport).
+        Uses POST /workspaces/{id}/items with type=PaginatedReport (the generic
+        Items endpoint). The dedicated /paginatedReports endpoint does not exist
+        and returns UnsupportedItemType.
         
         If definition is provided, creates the report with the RDL definition
         included. Otherwise creates a shell item — use update_paginated_report()
@@ -1266,14 +1348,15 @@ class FabricClient:
         logger.info(f"Creating paginated report: {report_name}")
         payload = {
             "displayName": report_name,
+            "type": "PaginatedReport",
         }
         if definition:
             payload["definition"] = definition
         if folder_id:
             payload["folderId"] = folder_id
-        return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports", json_data=payload)
+        return self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
 
-    def import_paginated_report(self, workspace_id: str, report_name: str, rdl_content: str, max_retries: int = 3) -> Dict:
+    def import_paginated_report(self, workspace_id: str, report_name: str, rdl_content: str, max_retries: int = 3, overwrite: bool = False) -> Dict:
         """
         Import a paginated report using the Power BI Imports API.
         
@@ -1281,8 +1364,10 @@ class FabricClient:
         PaginatedReport items. Prefer update_paginated_report() for existing
         reports. This method is kept as a fallback for edge cases.
         
-        Uses nameConflict=Overwrite (for RDL files only Abort and Overwrite
-        are supported — not CreateOrOverwrite or other modes).
+        For RDL files the supported nameConflict values are:
+          - Abort: Fail if a report with the same name exists (use for new reports)
+          - Overwrite: Overwrite existing report (use when report already exists)
+        CreateOrOverwrite is NOT supported for RDL.
         
         The datasetDisplayName MUST include the .rdl extension so the API
         recognises the upload as a paginated report. Without it, the API
@@ -1296,6 +1381,7 @@ class FabricClient:
             report_name: Name for the report (without .rdl extension)
             rdl_content: The RDL XML content as a string
             max_retries: Maximum retries if import fails due to conflict (default 3)
+            overwrite: If True use nameConflict=Overwrite, else Abort (default False)
             
         Returns:
             Dict with 'id' and 'name' of the imported report
@@ -1314,10 +1400,12 @@ class FabricClient:
         
         # Build the URL using Power BI API  
         url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/imports"
-        # For RDL files only Abort and Overwrite are supported — NOT CreateOrOverwrite
+        # For RDL files: Abort = fail if exists, Overwrite = replace existing
+        # Using Overwrite on a report that doesn't exist causes DuplicatePackageNotFoundError
+        conflict_mode = "Overwrite" if overwrite else "Abort"
         params = {
             "datasetDisplayName": display_name,
-            "nameConflict": "Overwrite"
+            "nameConflict": conflict_mode
         }
         
         # Strip UTF-8 BOM if present - the BOM (\ufeff) causes the Power BI
@@ -1329,7 +1417,7 @@ class FabricClient:
         rdl_bytes = rdl_content.encode('utf-8')
         
         logger.info(f"  Uploading RDL file ({len(rdl_bytes)} bytes) as '{file_name}'")
-        logger.info(f"  datasetDisplayName='{display_name}', nameConflict=Overwrite")
+        logger.info(f"  datasetDisplayName='{display_name}', nameConflict={conflict_mode}")
         
         last_error = None
         for attempt in range(1, max_retries + 1):

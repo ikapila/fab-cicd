@@ -1395,16 +1395,16 @@ class FabricDeployer:
                     
                     # Step 3: Transform to byConnection or fail
                     if dataset_id:
+                        # PBIR v2.0.0 schema: byConnection only allows connectionString
+                        # See: https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json
                         pbir_data['datasetReference'] = {
                             "byConnection": {
-                                "connectionString": None,
-                                "pbiServiceModelId": None,
-                                "pbiModelVirtualServerName": "sobe_wowvirtualserver",
-                                "pbiModelDatabaseName": dataset_id,
-                                "name": "EntityDataSource",
-                                "connectionType": "pbiServiceXmlaStyleLive"
+                                "connectionString": f"semanticmodelid={dataset_id}"
                             }
                         }
+                        # Ensure schema + version are set for PBIR v2
+                        pbir_data.setdefault('$schema', 'https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json')
+                        pbir_data.setdefault('version', '4.0')
                         logger.info(f"    ✓ Using byConnection reference for '{model_name}' (ID: {dataset_id})")
                     else:
                         # byPath is always rejected by Fabric REST API — fail with clear message
@@ -3651,14 +3651,36 @@ print('Notebook initialized')
             self.client.update_paginated_report(self.workspace_id, report_id, definition)
             logger.info(f"  ✓ Updated paginated report '{name}' (ID: {report_id})")
         else:
-            # Fabric API does not support Create with definition for PaginatedReport.
-            # Fall back to Power BI Imports API for initial creation only.
-            logger.info(f"  Paginated report '{name}' not found, creating via Power BI Imports API...")
-            result = self.client.import_paginated_report(
-                self.workspace_id, name, rdl_content
+            # Create via Fabric Items API: create item first, then updateDefinition.
+            # The Power BI Imports API does not work with Fabric Git format RDL files
+            # (returns RequestedFileIsEncryptedOrCorrupted).
+            logger.info(f"  Paginated report '{name}' not found, creating via Fabric Items API...")
+            folder_id = self._get_or_create_folder("Reports")
+            result = self.client.create_paginated_report(
+                self.workspace_id, name, folder_id=folder_id
             )
-            report_id = result.get('id', 'unknown')
-            logger.info(f"  ✓ Created paginated report '{name}' (ID: {report_id})")
+            
+            # Handle LRO if creation returns 202
+            if result and 'operation_id' in result and result.get('status_code') == 202:
+                operation_id = result['operation_id']
+                retry_after = result.get('retry_after', 5)
+                logger.info(f"  Paginated report creation initiated (LRO), waiting for completion...")
+                operation_result = self.client.wait_for_operation_completion(
+                    operation_id, retry_after=retry_after, max_attempts=10
+                )
+                if operation_result and 'id' in operation_result:
+                    report_id = operation_result['id']
+                else:
+                    report_id = result.get('id', 'unknown')
+                    logger.warning(f"  ⚠ Paginated report created but ID not in operation result")
+            elif result and 'id' in result:
+                report_id = result['id']
+            else:
+                raise RuntimeError(f"Failed to create paginated report '{name}': unexpected response")
+            
+            logger.info(f"  Created paginated report '{name}' (ID: {report_id}), uploading definition...")
+            self.client.update_paginated_report(self.workspace_id, report_id, definition)
+            logger.info(f"  ✓ Created and deployed paginated report '{name}' (ID: {report_id})")
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

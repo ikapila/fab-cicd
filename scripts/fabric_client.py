@@ -1225,6 +1225,30 @@ class FabricClient:
         payload = {"definition": definition}
         return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports/{report_id}/updateDefinition", json_data=payload)
 
+    def create_paginated_report(self, workspace_id: str, report_name: str, folder_id: str = None) -> Dict:
+        """
+        Create a paginated report item (without definition) via Fabric Items API.
+        
+        Creates the item shell first; use update_paginated_report() afterwards
+        to upload the RDL definition.
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_name: Display name for the paginated report
+            folder_id: Optional workspace folder ID
+            
+        Returns:
+            Created item details (may include operation_id for LRO)
+        """
+        logger.info(f"Creating paginated report: {report_name}")
+        payload = {
+            "displayName": report_name,
+            "type": "PaginatedReport"
+        }
+        if folder_id:
+            payload["folderId"] = folder_id
+        return self._make_request("POST", f"/workspaces/{workspace_id}/items", json_data=payload)
+
     def import_paginated_report(self, workspace_id: str, report_name: str, rdl_content: str, max_retries: int = 3) -> Dict:
         """
         Import a paginated report using the Power BI Imports API.

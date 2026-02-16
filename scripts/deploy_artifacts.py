@@ -3761,76 +3761,112 @@ print('Notebook initialized')
             except Exception as move_err:
                 logger.warning(f"  ⚠ Could not move paginated report to Reports folder: {move_err}")
             
-            # Bind paginated report data source to the shared connection (same as semantic models)
-            self._bind_paginated_report_connection(name, report_id)
+            # Configure paginated report data source credentials.
+            # Unlike semantic models, paginated reports do NOT support the Fabric
+            # list_item_connections or bindConnection APIs (returns OperationNotSupportedForItem).
+            # Instead, we use the Power BI REST API flow:
+            #   1. TakeOver — transfer data source ownership to the SP
+            #   2. Get Datasources — discover gatewayId + datasourceId
+            #   3. Update Gateway Datasource — set SP's Entra ID as credentials
+            # The RDL <ConnectString> was already transformed above to point to
+            # the correct server/database. This step sets the authentication.
+            self._configure_paginated_report_credentials(name, report_id)
     
-    def _bind_paginated_report_connection(self, report_name: str, report_id: str) -> None:
+    def _configure_paginated_report_credentials(self, report_name: str, report_id: str) -> None:
         """
-        Bind a paginated report's data source to the shared Fabric connection.
+        Configure data source credentials for a paginated report.
         
-        Uses the same connection lookup as semantic models (connections.semantic_model_connection),
-        then lists the item's connections and binds each unbound data source reference
-        to the target ShareableCloud connection.
+        Strategy (mirrors the portal "Cloud connections > Maps to" dropdown):
+        
+          1. TakeOver — SP becomes data source owner (Power BI Reports API)
+          2. Get Datasources — discover data source details (server, database)
+          3. Try Fabric bindConnection — bind to the same ShareableCloud connection
+             used by semantic models (same pattern as bindConnection for semantic
+             models, but targeting the paginatedReports namespace)
+          4. Fallback: Gateway credentials — if bindConnection is not supported,
+             use the Power BI Gateway API to set the SP's Entra ID identity as
+             the credential (useCallerAADIdentity) on the auto-created cloud gateway
         
         Args:
             report_name: Paginated report display name
             report_id: Paginated report GUID
         """
         try:
-            # Reuse the cached connection lookup from semantic model binding
+            # Step 1: Take over data source ownership so SP can manage credentials
+            logger.info(f"  Configuring data source credentials for '{report_name}'...")
+            took_over = self.client.take_over_paginated_report(self.workspace_id, report_id)
+            if not took_over:
+                logger.warning(f"  ⚠ Could not take over '{report_name}' — credentials must be set manually")
+                return
+            
+            # Step 2: Get data sources to discover connection details
+            datasources = self.client.get_paginated_report_datasources(self.workspace_id, report_id)
+            if not datasources:
+                logger.info(f"  ℹ No data sources discovered on '{report_name}'")
+                logger.info(f"    SP now owns the report — assign credentials in Fabric portal if needed")
+                return
+            
+            # Step 3: Try to bind to the ShareableCloud connection (same as semantic models)
+            # This is the equivalent of the "Maps to" dropdown in the portal Cloud connections UI
+            bound = False
             if not hasattr(self, '_semantic_model_connection'):
                 self._semantic_model_connection = self._get_semantic_model_connection()
             
-            if not self._semantic_model_connection:
-                logger.info(f"  ℹ No shared connection configured for paginated report '{report_name}'")
-                return
-            
-            connection_id = self._semantic_model_connection['id']
-            connection_name = self._semantic_model_connection['displayName']
-            
-            logger.info(f"  Binding paginated report '{report_name}' to connection '{connection_name}'...")
-            
-            # List current connections on this paginated report item
-            try:
-                item_connections = self.client.list_item_connections(self.workspace_id, report_id)
-                logger.info(f"  Found {len(item_connections)} connection reference(s) on paginated report")
-                for idx, conn in enumerate(item_connections):
-                    conn_type = conn.get("connectivityType", "unknown")
-                    conn_details = conn.get("connectionDetails", {})
-                    logger.info(f"    [{idx+1}] type={conn_type}, path={conn_details.get('path', 'N/A')}, connType={conn_details.get('type', 'N/A')}")
-            except Exception as e:
-                logger.info(f"  ℹ Could not list paginated report connections: {e}")
-                item_connections = []
-            
-            if not item_connections:
-                logger.info(f"  ℹ No data source references on paginated report yet")
-                logger.info(f"    Connection can be assigned manually in the Fabric portal")
-                return
-            
-            # Bind each unbound data source to the target connection
-            # Paginated reports don't have a dedicated bindConnection API like semantic models,
-            # so we use TakeOver + the Power BI UpdateDatasources approach, or note for manual binding.
-            bound_count = 0
-            for conn in item_connections:
-                conn_details = conn.get("connectionDetails", {})
-                current_connectivity = conn.get("connectivityType", "")
+            if self._semantic_model_connection:
+                connection_id = self._semantic_model_connection['id']
+                connection_name = self._semantic_model_connection['displayName']
                 
-                if current_connectivity == "ShareableCloud" and conn.get("id") == connection_id:
-                    logger.info(f"  ✓ Already bound to target connection")
-                    bound_count += 1
+                logger.info(f"  Attempting to bind '{report_name}' to ShareableCloud connection '{connection_name}'...")
+                
+                for ds in datasources:
+                    conn_details = ds.get("connectionDetails", {})
+                    server = conn_details.get("server", "")
+                    database = conn_details.get("database", "")
+                    
+                    if server and database:
+                        # Build the path in Fabric format: "server;database"
+                        ds_path = f"{server};{database}"
+                        bound = self.client.bind_paginated_report_to_connection(
+                            self.workspace_id, report_id, connection_id,
+                            datasource_type="SQL", datasource_path=ds_path
+                        )
+                        if bound:
+                            logger.info(f"  ✓ Bound '{report_name}' to connection '{connection_name}'")
+                            break
+            
+            if bound:
+                return
+            
+            # Step 4: Fallback — use Gateway credentials with SP's Entra ID identity
+            # Power BI auto-creates virtual cloud gateways for cloud data sources.
+            # If the data source has a gatewayId, we can set credentials directly.
+            logger.info(f"  Trying Gateway credentials approach for '{report_name}'...")
+            cred_count = 0
+            no_gateway_count = 0
+            for ds in datasources:
+                gateway_id = ds.get("gatewayId")
+                datasource_id = ds.get("datasourceId")
+                
+                if not gateway_id or not datasource_id:
+                    no_gateway_count += 1
                     continue
                 
-                # For paginated reports, note the data source for manual binding
-                logger.info(f"    Data source: type={conn_details.get('type')}, path={conn_details.get('path')}")
+                success = self.client.update_gateway_datasource_credentials(gateway_id, datasource_id)
+                if success:
+                    cred_count += 1
             
-            if bound_count > 0:
-                logger.info(f"  ✓ Paginated report already connected to '{connection_name}'")
+            if cred_count > 0:
+                logger.info(f"  ✓ Configured {cred_count} data source credential(s) for '{report_name}' using SP identity")
+            elif no_gateway_count > 0:
+                logger.info(f"  ℹ {no_gateway_count} data source(s) have no gateway binding — SP owns the report")
+                logger.info(f"    Map to '{self._semantic_model_connection['displayName'] if self._semantic_model_connection else 'cloud connection'}' in Fabric portal: Settings > Cloud connections")
             else:
-                logger.info(f"  ℹ Paginated report data sources found but not yet bound to '{connection_name}'")
-                logger.info(f"    Assign connection manually in Fabric portal: Settings > Data source credentials")
+                logger.info(f"  ℹ Could not update credentials automatically for '{report_name}'")
+                logger.info(f"    SP owns the report — assign connection in Fabric portal: Settings > Cloud connections")
                 
         except Exception as e:
-            logger.warning(f"  ⚠ Could not configure connection for paginated report '{report_name}': {e}")
+            logger.warning(f"  ⚠ Could not configure credentials for '{report_name}': {e}")
+            logger.info(f"    Assign connection manually in Fabric portal: Settings > Cloud connections")
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

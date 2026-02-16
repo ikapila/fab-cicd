@@ -1577,6 +1577,183 @@ class FabricClient:
         
         raise RuntimeError(f"Import {import_id} timed out after {max_attempts} attempts")
     
+    def bind_paginated_report_to_connection(self, workspace_id: str, report_id: str, 
+                                               connection_id: str, datasource_type: str, 
+                                               datasource_path: str) -> bool:
+        """
+        Bind a paginated report to a Fabric shareable cloud connection.
+        
+        Tries the same bindConnection pattern that works for semantic models but
+        adapted for paginated reports. This maps the report's data source to a
+        shared cloud connection (visible as "Maps to" in the portal Cloud connections UI).
+        
+        Endpoint: POST /v1/workspaces/{workspaceId}/paginatedReports/{reportId}/bindConnection
+        
+        Note: This endpoint may not be supported by the Fabric API yet.
+        If it fails, the caller should fall back to the Gateway credentials approach.
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Paginated report GUID
+            connection_id: Fabric shareable cloud connection GUID
+            datasource_type: Data source type (e.g. "SQL")
+            datasource_path: Data source path (e.g. "server;database")
+            
+        Returns:
+            True if binding succeeded, False otherwise
+        """
+        logger.info(f"  Attempting to bind paginated report {report_id} to ShareableCloud connection {connection_id}")
+        
+        bind_endpoint = f"/workspaces/{workspace_id}/paginatedReports/{report_id}/bindConnection"
+        payload = {
+            "connectionBinding": {
+                "id": connection_id,
+                "connectivityType": "ShareableCloud",
+                "connectionDetails": {
+                    "type": datasource_type,
+                    "path": datasource_path
+                }
+            }
+        }
+        
+        try:
+            result = self._make_request("POST", bind_endpoint, json_data=payload)
+            logger.info(f"  ✓ Successfully bound paginated report to ShareableCloud connection")
+            return True
+        except Exception as e:
+            logger.info(f"  ℹ Fabric bindConnection not available for paginated reports: {e}")
+            return False
+    
+    def take_over_paginated_report(self, workspace_id: str, report_id: str) -> bool:
+        """
+        Take over ownership of a paginated report's data sources so the service
+        principal can manage credentials.
+        
+        Uses Power BI REST API: POST /groups/{groupId}/reports/{reportId}/Default.TakeOver
+        
+        This is the paginated report equivalent of take_over_dataset() for semantic
+        models. After TakeOver, the SP becomes the data source owner and can update
+        credentials via the Gateway Datasource API.
+        
+        See: https://learn.microsoft.com/en-us/rest/api/power-bi/reports/take-over-in-group
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Paginated report GUID
+            
+        Returns:
+            True if take-over succeeded, False otherwise
+        """
+        logger.info(f"Taking over ownership of paginated report {report_id}")
+        
+        url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/reports/{report_id}/Default.TakeOver"
+        headers = self.auth.get_auth_headers()
+        
+        try:
+            response = requests.post(url, headers=headers, timeout=60)
+            if response.status_code == 200:
+                logger.info(f"  ✓ Successfully took over ownership of paginated report {report_id}")
+                return True
+            else:
+                logger.warning(f"  ⚠ TakeOver returned {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            logger.warning(f"  ⚠ TakeOver failed: {e}")
+            return False
+    
+    def get_paginated_report_datasources(self, workspace_id: str, report_id: str) -> List[Dict]:
+        """
+        Get data sources for a paginated report (RDL).
+        
+        Uses Power BI REST API: GET /groups/{groupId}/reports/{reportId}/datasources
+        
+        Returns data source info including gatewayId and datasourceId, which are
+        needed to update credentials via the Gateway Datasource API.
+        
+        See: https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-datasources-in-group
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Paginated report GUID
+            
+        Returns:
+            List of data source dicts with gatewayId, datasourceId, connectionDetails, etc.
+        """
+        logger.info(f"Getting data sources for paginated report: {report_id}")
+        
+        url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/reports/{report_id}/datasources"
+        headers = self.auth.get_auth_headers()
+        
+        try:
+            response = requests.get(url, headers=headers, timeout=60)
+            response.raise_for_status()
+            data = response.json()
+            datasources = data.get("value", [])
+            logger.info(f"  Found {len(datasources)} data source(s) on paginated report")
+            for idx, ds in enumerate(datasources):
+                ds_type = ds.get("datasourceType", "unknown")
+                gw_id = ds.get("gatewayId", "none")
+                ds_id = ds.get("datasourceId", "none")
+                conn = ds.get("connectionDetails", {})
+                logger.info(f"    [{idx+1}] type={ds_type}, gateway={gw_id}, datasource={ds_id}, server={conn.get('server', 'N/A')}, database={conn.get('database', 'N/A')}")
+            return datasources
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not get paginated report datasources: {e}")
+            return []
+    
+    def update_gateway_datasource_credentials(self, gateway_id: str, datasource_id: str, use_caller_identity: bool = True) -> bool:
+        """
+        Update credentials for a gateway data source.
+        
+        Uses Power BI REST API: PATCH /gateways/{gatewayId}/datasources/{datasourceId}
+        
+        For cloud data sources (e.g. Fabric Lakehouse SQL endpoints), sets
+        useCallerAADIdentity=True so the SP's Entra ID identity is used for
+        authentication. This creates a PersonalCloud connection bound to the SP.
+        
+        Prerequisites:
+        - The caller must be the data source owner (use TakeOver first)
+        - For paginated reports: use take_over_paginated_report()
+        - For semantic models: use take_over_dataset()
+        
+        See: https://learn.microsoft.com/en-us/rest/api/power-bi/gateways/update-datasource
+        
+        Args:
+            gateway_id: Gateway GUID (from get_paginated_report_datasources)
+            datasource_id: Data source GUID (from get_paginated_report_datasources)
+            use_caller_identity: If True, use the SP's Entra ID identity (default)
+            
+        Returns:
+            True on success, False on failure
+        """
+        logger.info(f"Updating credentials for gateway datasource (gateway={gateway_id}, datasource={datasource_id})")
+        
+        url = f"https://api.powerbi.com/v1.0/myorg/gateways/{gateway_id}/datasources/{datasource_id}"
+        headers = self.auth.get_auth_headers()
+        
+        payload = {
+            "credentialDetails": {
+                "credentialType": "OAuth2",
+                "credentials": '{"credentialData":""}',
+                "encryptedConnection": "Encrypted",
+                "encryptionAlgorithm": "None",
+                "privacyLevel": "Organizational",
+                "useCallerAADIdentity": use_caller_identity
+            }
+        }
+        
+        try:
+            response = requests.patch(url, headers=headers, json=payload, timeout=60)
+            if response.status_code == 200:
+                logger.info(f"  ✓ Successfully updated data source credentials (using SP identity)")
+                return True
+            else:
+                logger.warning(f"  ⚠ Update credentials returned {response.status_code}: {response.text}")
+                return False
+        except Exception as e:
+            logger.warning(f"  ⚠ Failed to update credentials: {e}")
+            return False
+    
     def rebind_paginated_report_datasource(self, workspace_id: str, report_id: str, connection_details: Dict) -> Dict:
         """
         Rebind paginated report data source connection

@@ -2571,34 +2571,13 @@ print('Notebook initialized')
             logger.warning("No artifacts to deploy")
             return True
         
-        # Split artifacts into pipeline-deployed vs API-deployed groups
-        pipeline_artifact_types = self._get_pipeline_artifact_types()
-        api_artifacts = []
-        pipeline_artifacts = []
-        
-        if pipeline_artifact_types:
-            for artifact in deployment_order:
-                if artifact["type"].value in pipeline_artifact_types:
-                    pipeline_artifacts.append(artifact)
-                else:
-                    api_artifacts.append(artifact)
-            
-            if pipeline_artifacts:
-                logger.info(f"\nDeployment strategy:")
-                logger.info(f"  API deployment: {len(api_artifacts)} artifact(s)")
-                logger.info(f"  Pipeline promotion: {len(pipeline_artifacts)} artifact(s) "
-                          f"({', '.join(pipeline_artifact_types)})")
-        else:
-            api_artifacts = deployment_order
-        
-        # Deploy API artifacts in dependency order
+        # Deploy all artifacts via API in dependency order
         success_count = 0
         failure_count = 0
         
-        if api_artifacts:
-            logger.info(f"\n--- API Deployment ({len(api_artifacts)} artifacts) ---")
+        logger.info(f"\n--- Deploying {len(deployment_order)} artifact(s) ---")
         
-        for artifact in api_artifacts:
+        for artifact in deployment_order:
             try:
                 logger.info(f"\nDeploying: {artifact['name']} ({artifact['type'].value})")
                 
@@ -2614,25 +2593,12 @@ print('Notebook initialized')
                 failure_count += 1
                 logger.error(f"❌ Failed to deploy {artifact['name']}: {str(e)}")
         
-        # Phase 3: Deploy pipeline artifacts via Fabric Deployment Pipeline
-        pipeline_success = True
-        if pipeline_artifacts:
-            logger.info(f"\n--- Deployment Pipeline Promotion ({len(pipeline_artifacts)} artifacts) ---")
-            pipeline_success = self._deploy_via_pipeline(pipeline_artifacts, dry_run=dry_run)
-            if pipeline_success:
-                success_count += len(pipeline_artifacts)
-            else:
-                failure_count += len(pipeline_artifacts)
-        
         # Summary
-        total_artifacts = len(api_artifacts) + len(pipeline_artifacts)
+        total_artifacts = len(deployment_order)
         logger.info("\n" + "="*60)
         logger.info("DEPLOYMENT SUMMARY")
         logger.info("="*60)
         logger.info(f"Total artifacts: {total_artifacts}")
-        logger.info(f"  API deployed: {len(api_artifacts)}")
-        if pipeline_artifacts:
-            logger.info(f"  Pipeline promoted: {len(pipeline_artifacts)} ({'✅' if pipeline_success else '❌'})")
         logger.info(f"Successful: {success_count}")
         logger.info(f"Failed: {failure_count}")
         logger.info("="*60)
@@ -3516,251 +3482,25 @@ print('Notebook initialized')
         # Apply rebinding rules if configured
         self._apply_report_rebinding(name, report_id)
     
-    # ==================== Deployment Pipeline Operations ====================
-    
-    def _get_pipeline_artifact_types(self) -> List[str]:
-        """
-        Get the list of artifact types configured for deployment pipeline promotion.
-        
-        Returns:
-            List of artifact type strings (e.g., ["PaginatedReport"]) from config,
-            or empty list if pipeline deployment is disabled.
-        """
-        pipeline_config = self.config.config.get("deployment_pipeline", {})
-        if not pipeline_config.get("enabled", False):
-            return []
-        return pipeline_config.get("artifact_types", [])
-    
-    def _is_pipeline_artifact(self, artifact_type: 'ArtifactType') -> bool:
-        """
-        Check if an artifact type should be deployed via deployment pipeline.
-        
-        Args:
-            artifact_type: The ArtifactType enum value
-            
-        Returns:
-            True if this type is configured for pipeline deployment
-        """
-        pipeline_types = self._get_pipeline_artifact_types()
-        return artifact_type.value in pipeline_types
-    
-    def _deploy_via_pipeline(self, artifacts: List[Dict], dry_run: bool = False) -> bool:
-        """
-        Deploy artifacts via Fabric Deployment Pipeline (selective deploy).
-        
-        This method:
-        1. Finds the deployment pipeline by name from config
-        2. Identifies source and target stages by order
-        3. Lists items in the source stage
-        4. Matches artifacts to source stage items by name and type
-        5. Deploys matched items from source to target stage
-        6. Polls for completion
-        
-        Deployment rules (data source mapping) are configured once in the Fabric portal
-        on the target stage. They persist and apply automatically on every deployment.
-        The data_source_mapping in our config serves as the source of truth for what
-        those rules should be set to.
-        
-        Args:
-            artifacts: List of artifact dicts with 'name' and 'type' keys
-            dry_run: If True, only simulate deployment
-            
-        Returns:
-            True if deployment succeeded, False otherwise
-        """
-        pipeline_config = self.config.config.get("deployment_pipeline", {})
-        pipeline_name = pipeline_config.get("pipeline_name")
-        source_stage_order = pipeline_config.get("source_stage_order")
-        target_stage_order = pipeline_config.get("target_stage_order")
-        
-        if not pipeline_name:
-            logger.error("  ❌ deployment_pipeline.pipeline_name not configured")
-            return False
-        
-        if source_stage_order is None or target_stage_order is None:
-            logger.error("  ❌ deployment_pipeline.source_stage_order and target_stage_order must be configured")
-            return False
-        
-        logger.info("\n" + "="*60)
-        logger.info("DEPLOYMENT PIPELINE PROMOTION")
-        logger.info("="*60)
-        logger.info(f"Pipeline: {pipeline_name}")
-        logger.info(f"Stage: {source_stage_order} → {target_stage_order}")
-        logger.info(f"Artifacts to promote: {len(artifacts)}")
-        for a in artifacts:
-            logger.info(f"  - {a['name']} ({a['type'].value})")
-        
-        if dry_run:
-            logger.info("[DRY RUN] Would deploy via deployment pipeline")
-            return True
-        
-        try:
-            # Step 1: Find the deployment pipeline
-            pipeline = self.client.find_deployment_pipeline_by_name(pipeline_name)
-            if not pipeline:
-                logger.error(f"  ❌ Deployment pipeline '{pipeline_name}' not found")
-                logger.error(f"    Ensure the pipeline exists and the service principal has access")
-                return False
-            
-            pipeline_id = pipeline["id"]
-            logger.info(f"  Found pipeline: {pipeline_name} (ID: {pipeline_id})")
-            
-            # Step 2: Find source and target stages
-            source_stage = self.client.find_stage_by_order(pipeline_id, source_stage_order)
-            target_stage = self.client.find_stage_by_order(pipeline_id, target_stage_order)
-            
-            if not source_stage:
-                logger.error(f"  ❌ Source stage (order={source_stage_order}) not found in pipeline")
-                return False
-            if not target_stage:
-                logger.error(f"  ❌ Target stage (order={target_stage_order}) not found in pipeline")
-                return False
-            
-            source_stage_id = source_stage["id"]
-            target_stage_id = target_stage["id"]
-            source_workspace_id = source_stage.get("workspaceId", "N/A")
-            target_workspace_id = target_stage.get("workspaceId", "N/A")
-            
-            logger.info(f"  Source stage: {source_stage.get('displayName', 'Unknown')} "
-                        f"(workspace: {source_workspace_id})")
-            logger.info(f"  Target stage: {target_stage.get('displayName', 'Unknown')} "
-                        f"(workspace: {target_workspace_id})")
-            
-            # Step 3: List items in source stage to find IDs
-            source_items = self.client.list_deployment_pipeline_stage_items(
-                pipeline_id, source_stage_id
-            )
-            
-            logger.info(f"  Source stage has {len(source_items)} supported item(s)")
-            
-            # Step 4: Match artifacts to source stage items
-            items_to_deploy = []
-            not_found = []
-            
-            for artifact in artifacts:
-                artifact_name = artifact["name"]
-                artifact_type = artifact["type"].value  # e.g., "PaginatedReport"
-                
-                # Find matching item in source stage by display name and type
-                matched = None
-                for source_item in source_items:
-                    if (source_item.get("itemDisplayName") == artifact_name and
-                            source_item.get("itemType") == artifact_type):
-                        matched = source_item
-                        break
-                
-                if matched:
-                    items_to_deploy.append({
-                        "sourceItemId": matched["itemId"],
-                        "itemType": artifact_type
-                    })
-                    logger.info(f"    ✓ Matched: {artifact_name} ({artifact_type}) → {matched['itemId']}")
-                else:
-                    not_found.append(f"{artifact_name} ({artifact_type})")
-                    logger.warning(f"    ⚠ Not found in source stage: {artifact_name} ({artifact_type})")
-            
-            if not items_to_deploy:
-                if not_found:
-                    logger.error(f"  ❌ No matching items found in source stage for deployment")
-                    logger.error(f"    Missing items: {', '.join(not_found)}")
-                    logger.error(f"    Ensure these items exist in the source workspace via Git sync")
-                else:
-                    logger.info(f"  ℹ No items to deploy via pipeline")
-                return len(not_found) == 0
-            
-            if not_found:
-                logger.warning(f"  ⚠ {len(not_found)} item(s) not found in source stage, "
-                             f"deploying {len(items_to_deploy)} matched item(s)")
-            
-            # Step 5: Build deployment options
-            options = {}
-            if pipeline_config.get("allow_create_artifact", True):
-                options["allowCreateArtifact"] = True
-            if pipeline_config.get("allow_overwrite_artifact", True):
-                options["allowOverwriteArtifact"] = True
-            if pipeline_config.get("allow_overwrite_target_artifact_label", True):
-                options["allowOverwriteTargetArtifactLabel"] = True
-            if pipeline_config.get("allow_skip_tiles_with_missing_prerequisites", True):
-                options["allowSkipTilesWithMissingPrerequisites"] = True
-            
-            # Step 6: Deploy
-            note = (f"Automated deployment from CI/CD pipeline - "
-                    f"{self.environment} environment - "
-                    f"{len(items_to_deploy)} item(s)")
-            
-            logger.info(f"  Deploying {len(items_to_deploy)} item(s) via deployment pipeline...")
-            
-            result = self.client.deploy_stage_content(
-                pipeline_id=pipeline_id,
-                source_stage_id=source_stage_id,
-                target_stage_id=target_stage_id,
-                items=items_to_deploy,
-                note=note,
-                options=options if options else None
-            )
-            
-            # Step 7: Wait for completion
-            operation_id = result.get("operation_id")
-            if operation_id:
-                retry_after = result.get("retry_after", 30)
-                final_result = self.client.wait_for_deployment_completion(
-                    pipeline_id=pipeline_id,
-                    operation_id=operation_id,
-                    retry_after=retry_after
-                )
-                logger.info(f"  ✅ Deployment pipeline promotion completed successfully")
-            else:
-                # Check if the response indicates immediate success
-                if result.get("status") == "success":
-                    logger.info(f"  ✅ Deployment pipeline promotion completed (immediate)")
-                else:
-                    logger.warning(f"  ⚠ Deployment initiated but no operation_id returned")
-                    logger.warning(f"    Response: {result}")
-            
-            # Log data source mapping reminder
-            data_source_mapping = pipeline_config.get("data_source_mapping", {})
-            if data_source_mapping:
-                sql_server = data_source_mapping.get("sql_server", "")
-                sql_database = data_source_mapping.get("sql_database", "")
-                if sql_server:
-                    logger.info(f"  ℹ Data source mapping (configured in Fabric portal):")
-                    logger.info(f"    SQL Server: {sql_server}")
-                    logger.info(f"    Database: {sql_database}")
-                    logger.info(f"    If data sources are incorrect, verify deployment rules in Fabric portal")
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"  ❌ Deployment pipeline promotion failed: {e}")
-            logger.error(f"    Verify pipeline '{pipeline_name}' exists and service principal has Pipeline.Deploy permission")
-            return False
-    
     def _deploy_paginated_report(self, name: str) -> None:
-        """Deploy a paginated report.
+        """Deploy a paginated report via Fabric Items API.
         
-        Deployment strategy depends on the environment configuration:
+        Uses the Fabric REST API updateDefinition endpoint for paginated reports:
+          POST /workspaces/{id}/paginatedReports/{id}/updateDefinition
         
-        1. If deployment_pipeline is enabled for PaginatedReport:
-           - Skip individual API deployment — the report will be promoted via
-             Fabric Deployment Pipeline in the pipeline phase of deploy_all().
-           - Data source rules configured in the Fabric portal will automatically
-             remap connections during pipeline promotion.
+        This sends the RDL definition (with connection string transformation
+        applied per environment config) directly to the target workspace.
+        No deployment pipeline or report ownership requirements.
         
-        2. If deployment_pipeline is NOT enabled (e.g., Dev environment):
-           - For Git-connected workspaces: paginated reports sync via Git
-             (handled by _update_source_control)
-           - Falls back to legacy Power BI Imports API as last resort
+        For Git-connected workspaces (e.g., Dev): paginated reports sync via Git,
+        so API deployment is skipped.
         """
-        # Check if this artifact type is handled by deployment pipeline
-        if self._is_pipeline_artifact(ArtifactType.PAGINATED_REPORT):
-            logger.info(f"  ⏭ Skipping '{name}' — will be deployed via Deployment Pipeline")
-            return
-        
         # For Dev environment with Git sync, paginated reports are synced from Git
         git_config = self.config.config.get("git_integration", {})
         if git_config.get("auto_update_from_git", True):
             logger.info(f"  ⏭ Skipping '{name}' — synced from Git via source control update")
             return
+
         rdl_content = None
         report_folder = None
         found = False
@@ -3769,7 +3509,6 @@ print('Notebook initialized')
         report_file = self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports" / f"{name}.json"
         if report_file.exists():
             logger.info(f"  Reading paginated report from JSON: {report_file}")
-            # JSON format doesn't contain RDL content - can't deploy
             logger.warning(f"  ⚠ Paginated report '{name}' is in JSON format - deployment requires .rdl file")
             logger.warning(f"  Use Fabric Git format (.PaginatedReport folder with .rdl file)")
             return
@@ -3802,13 +3541,11 @@ print('Notebook initialized')
                     # Read RDL content
                     rdl_content, report_folder = self._read_paginated_report_git_format(folder, name)
                     
-                    # Transform RDL if rebinding is enabled
+                    # Transform RDL connection string if rebinding is enabled
                     if rebind_rule and rebind_rule.get("enabled"):
-                        # Extract server and database from connections.sql_connection_string
                         sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
                         if sql_connection_string:
                             import re
-                            # Parse server and database from connection string
                             server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
                             database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
                             
@@ -3816,10 +3553,8 @@ print('Notebook initialized')
                                 new_server = server_match.group(1)
                                 new_database = database_match.group(1) if database_match else "reporting_gold"
                                 
-                                # Build the new connection string for RDL format
                                 new_connect_string = f"Data Source={new_server};Initial Catalog={new_database};Encrypt=True;Trust Server Certificate=True;Authentication=ActiveDirectoryInteractive"
                                 
-                                # Replace the ConnectString element content in RDL XML
                                 connect_string_pattern = r'<ConnectString>.*?</ConnectString>'
                                 rdl_content = re.sub(
                                     connect_string_pattern,
@@ -3838,38 +3573,27 @@ print('Notebook initialized')
         if not found:
             raise FileNotFoundError(f"Paginated report '{name}' not found in Fabric Git format (.PaginatedReport folder)")
         
-        # Import paginated report via Power BI Imports API (the only supported method)
-        # Uses nameConflict=CreateOrOverwrite - works for both new and existing reports
-        logger.info(f"  Importing paginated report via Power BI Imports API...")
-        try:
+        # Build definition with base64-encoded parts (RDL + supporting files)
+        definition = self._encode_paginated_report_parts(report_folder, rdl_content)
+        
+        # Find existing report in workspace
+        existing = self.client.list_paginated_reports(self.workspace_id)
+        existing_report = next((r for r in existing if r["displayName"] == name), None)
+        
+        if existing_report:
+            report_id = existing_report['id']
+            logger.info(f"  Paginated report '{name}' already exists, updating definition...")
+            self.client.update_paginated_report(self.workspace_id, report_id, definition)
+            logger.info(f"  ✓ Updated paginated report '{name}' (ID: {report_id})")
+        else:
+            # Fabric API does not support Create with definition for PaginatedReport.
+            # Fall back to Power BI Imports API for initial creation only.
+            logger.info(f"  Paginated report '{name}' not found, creating via Power BI Imports API...")
             result = self.client.import_paginated_report(
                 self.workspace_id, name, rdl_content
             )
             report_id = result.get('id', 'unknown')
-            logger.info(f"  ✓ Deployed paginated report '{name}' (ID: {report_id})")
-        except Exception as import_err:
-            # If CreateOrOverwrite fails, try delete + re-import as fallback
-            logger.warning(f"  ⚠ Direct import failed: {import_err}")
-            
-            existing = self.client.list_paginated_reports(self.workspace_id)
-            existing_report = next((r for r in existing if r["displayName"] == name), None)
-            
-            if existing_report:
-                report_id = existing_report['id']
-                logger.info(f"  Falling back to delete + re-import for existing report (ID: {report_id})...")
-                self.client.delete_paginated_report(self.workspace_id, report_id)
-                logger.info(f"  ✓ Deleted existing paginated report")
-                
-                import time
-                time.sleep(3)
-                
-                result = self.client.import_paginated_report(
-                    self.workspace_id, name, rdl_content
-                )
-                report_id = result.get('id', 'unknown')
-                logger.info(f"  ✓ Deployed paginated report '{name}' via fallback (ID: {report_id})")
-            else:
-                raise
+            logger.info(f"  ✓ Created paginated report '{name}' (ID: {report_id})")
     
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

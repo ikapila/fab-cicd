@@ -1203,13 +1203,35 @@ class FabricClient:
         response = self._make_request("GET", f"/workspaces/{workspace_id}/paginatedReports")
         return response.get("value", [])
     
+    def update_paginated_report(self, workspace_id: str, report_id: str, definition: Dict) -> Dict:
+        """
+        Update paginated report definition via Fabric Items API.
+        
+        Uses POST /workspaces/{id}/paginatedReports/{id}/updateDefinition
+        which is supported per the Fabric Items API support matrix.
+        
+        The definition should contain parts with base64-encoded content,
+        including the .rdl file, .platform file, and any other report files.
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Paginated report GUID
+            definition: Definition dict with 'parts' list
+            
+        Returns:
+            Update response
+        """
+        logger.info(f"Updating paginated report: {report_id}")
+        payload = {"definition": definition}
+        return self._make_request("POST", f"/workspaces/{workspace_id}/paginatedReports/{report_id}/updateDefinition", json_data=payload)
+
     def import_paginated_report(self, workspace_id: str, report_name: str, rdl_content: str, max_retries: int = 3) -> Dict:
         """
         Import a paginated report using the Power BI Imports API.
         
-        The Fabric Items API does NOT support Create or UpdateDefinition for
-        PaginatedReport items. The Power BI Imports API is the only supported
-        method for programmatic paginated report deployment.
+        Legacy method — the Fabric Items API now supports UpdateDefinition for
+        PaginatedReport items. Prefer update_paginated_report() for existing
+        reports. This method is kept as a fallback for edge cases.
         
         Uses nameConflict=CreateOrOverwrite which will create the report if it
         doesn't exist, or overwrite it if it does (matching by display name).

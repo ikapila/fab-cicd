@@ -81,6 +81,10 @@ class FabricDeployer:
         # Cache for workspace folder IDs
         self._folder_cache = {}
         
+        # Cache for deployed semantic model IDs (name → id)
+        # Used by report deployment to resolve byConnection references
+        self._deployed_semantic_model_ids = {}
+        
         # Track artifacts created in this run to avoid immediate update attempts
         self._created_in_this_run = set()
         
@@ -1334,13 +1338,17 @@ class FabricDeployer:
     
     def _transform_pbir_dataset_reference(self, pbir_content: bytes, dataset_id: str = None) -> bytes:
         """
-        Transform PBIR datasetReference to use the actual semantic model ID from the workspace.
+        Transform PBIR datasetReference to use byConnection with the actual
+        semantic model ID from the workspace.
         
-        In Fabric Git format, reports reference semantic models by relative path like:
-        "../../Semanticmodels/Finance Summary.SemanticModel"
+        The Fabric REST API only supports byConnection references — byPath
+        references are always rejected. This method:
         
-        We need to look up the semantic model by name in the target workspace and use its actual ID,
-        as IDs differ across environments (dev/uat/prod).
+        1. Checks the deployment cache (_deployed_semantic_model_ids) first,
+           which covers models deployed earlier in the same run.
+        2. Falls back to list_semantic_models API lookup.
+        3. Raises an error if the model cannot be found (instead of silently
+           falling back to byPath which always fails).
         
         Args:
             pbir_content: Original PBIR file content as bytes
@@ -1353,6 +1361,11 @@ class FabricDeployer:
             pbir_str = pbir_content.decode('utf-8')
             pbir_data = json.loads(pbir_str)
             
+            # If already using byConnection, no transformation needed
+            if 'datasetReference' in pbir_data and 'byConnection' in pbir_data['datasetReference']:
+                logger.info(f"    ✓ Report already uses byConnection reference")
+                return pbir_content
+            
             # Check if there's a datasetReference with byPath
             if 'datasetReference' in pbir_data and 'byPath' in pbir_data['datasetReference']:
                 old_path = pbir_data['datasetReference']['byPath']['path']
@@ -1363,7 +1376,12 @@ class FabricDeployer:
                 if match:
                     model_name = match.group(1)
                     
-                    # Look up the semantic model ID from the workspace
+                    # Step 1: Check deployment cache (covers models created in this run)
+                    if not dataset_id and model_name in self._deployed_semantic_model_ids:
+                        dataset_id = self._deployed_semantic_model_ids[model_name]
+                        logger.info(f"    Found semantic model '{model_name}' in deployment cache (ID: {dataset_id})")
+                    
+                    # Step 2: Look up from workspace API
                     if not dataset_id:
                         try:
                             semantic_models = self.client.list_semantic_models(self.workspace_id)
@@ -1371,13 +1389,11 @@ class FabricDeployer:
                             
                             if model:
                                 dataset_id = model.get("id")
-                                logger.debug(f"    Found semantic model '{model_name}' in workspace (ID: {dataset_id})")
-                            else:
-                                logger.warning(f"    ⚠ Semantic model '{model_name}' not found in workspace, using byPath reference")
+                                logger.info(f"    Found semantic model '{model_name}' in workspace (ID: {dataset_id})")
                         except Exception as e:
                             logger.warning(f"    ⚠ Could not look up semantic model '{model_name}': {e}")
                     
-                    # Use byConnection with the actual workspace ID if found
+                    # Step 3: Transform to byConnection or fail
                     if dataset_id:
                         pbir_data['datasetReference'] = {
                             "byConnection": {
@@ -1391,9 +1407,12 @@ class FabricDeployer:
                         }
                         logger.info(f"    ✓ Using byConnection reference for '{model_name}' (ID: {dataset_id})")
                     else:
-                        # Fallback to byPath with workspace path
-                        pbir_data['datasetReference']['byPath']['path'] = f"../Semanticmodels/{model_name}.SemanticModel"
-                        logger.info(f"    ✓ Using byPath reference for '{model_name}'")
+                        # byPath is always rejected by Fabric REST API — fail with clear message
+                        raise RuntimeError(
+                            f"Cannot deploy report: semantic model '{model_name}' not found in workspace "
+                            f"or deployment cache. Ensure the semantic model is deployed before the report. "
+                            f"The Fabric REST API only supports byConnection references."
+                        )
                     
                     # Return updated PBIR as bytes
                     return json.dumps(pbir_data, indent=2).encode('utf-8')
@@ -1401,6 +1420,8 @@ class FabricDeployer:
             # No transformation needed
             return pbir_content
             
+        except RuntimeError:
+            raise  # Re-raise our own error
         except Exception as e:
             logger.warning(f"    ⚠ Could not transform PBIR dataset reference: {e}")
             return pbir_content
@@ -3377,11 +3398,38 @@ print('Notebook initialized')
                 definition, 
                 folder_id=folder_id
             )
-            model_id = result.get('id') if result else 'unknown'
-            logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {model_id})")
+            
+            # Semantic model creation is an LRO — poll to get the actual item ID
+            if result and 'operation_id' in result and result.get('status_code') == 202:
+                operation_id = result['operation_id']
+                retry_after = result.get('retry_after', 5)
+                logger.info(f"  Semantic model creation initiated (LRO), waiting for completion...")
+                
+                operation_result = self.client.wait_for_operation_completion(
+                    operation_id,
+                    retry_after=retry_after,
+                    max_attempts=10
+                )
+                
+                if operation_result and 'id' in operation_result:
+                    model_id = operation_result['id']
+                    logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {model_id})")
+                else:
+                    model_id = 'unknown'
+                    logger.warning(f"  ⚠ Semantic model created but ID not in operation result")
+            elif result and 'id' in result:
+                model_id = result['id']
+                logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {model_id})")
+            else:
+                model_id = 'unknown'
+                logger.warning(f"  ⚠ Unexpected response from semantic model creation")
+        
+        # Cache the model ID so report deployment can resolve byConnection references
+        if model_id and model_id not in ('unknown', None):
+            self._deployed_semantic_model_ids[name] = model_id
         
         # Configure shareable cloud connection for the semantic model
-        if model_id and model_id != 'unknown':
+        if model_id and model_id not in ('unknown', None):
             self._configure_shareable_cloud_connection(name, model_id)
         
         # Apply rebinding rules if configured

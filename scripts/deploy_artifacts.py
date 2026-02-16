@@ -3337,6 +3337,14 @@ print('Notebook initialized')
     
     def _deploy_semantic_model(self, name: str) -> None:
         """Deploy a semantic model (JSON or Fabric Git format)"""
+        # For Git-synced workspaces (e.g., Dev), semantic models sync via Git.
+        # API deployment would be overwritten by updateFromGit anyway, and the
+        # byConnection transform on dependent reports creates workspace diffs.
+        git_config = self.config.config.get("git_integration", {})
+        if git_config.get("auto_update_from_git", True):
+            logger.info(f"  ⏭ Skipping '{name}' — synced from Git via source control update")
+            return
+
         models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
         
         # Check for JSON file first
@@ -3437,6 +3445,15 @@ print('Notebook initialized')
     
     def _deploy_report(self, name: str) -> None:
         """Deploy a Power BI report (JSON or Fabric Git format)"""
+        # For Git-synced workspaces (e.g., Dev), reports sync via Git.
+        # API deployment with byConnection transform would be overwritten by
+        # updateFromGit (which restores byPath from Git), causing Fabric to
+        # auto-resolve and show a workspace diff needing commit.
+        git_config = self.config.config.get("git_integration", {})
+        if git_config.get("auto_update_from_git", True):
+            logger.info(f"  ⏭ Skipping '{name}' — synced from Git via source control update")
+            return
+
         reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
         
         # Check for JSON file first

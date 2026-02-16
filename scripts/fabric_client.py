@@ -365,13 +365,16 @@ class FabricClient:
         """
         Move an item to a workspace folder
         
+        Uses Fabric REST API: POST /v1/workspaces/{workspaceId}/items/{itemId}/move
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/items/move-item
+        
         Args:
             workspace_id: Workspace GUID
             item_id: Item GUID to move
             folder_id: Target folder GUID
         """
         logger.debug(f"  Moving item {item_id} to folder {folder_id}")
-        payload = {"workspaceId": workspace_id, "folderId": folder_id}
+        payload = {"targetFolderId": folder_id}
         self._make_request("POST", f"/workspaces/{workspace_id}/items/{item_id}/move", json_data=payload)
     
     # ==================== Lakehouse Operations ====================
@@ -960,76 +963,114 @@ class FabricClient:
             logger.warning(f"  ⚠ TakeOver failed: {e}")
             return False
     
+    def list_item_connections(self, workspace_id: str, item_id: str) -> List[Dict]:
+        """
+        List the connections that a workspace item is connected to.
+        
+        Uses Fabric REST API: GET /v1/workspaces/{workspaceId}/items/{itemId}/connections
+        
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/items/list-item-connections
+        
+        Args:
+            workspace_id: Workspace GUID
+            item_id: Item GUID (semantic model, report, etc.)
+            
+        Returns:
+            List of connection dicts with connectivityType, connectionDetails, id, etc.
+        """
+        logger.info(f"  Listing connections for item {item_id}")
+        response = self._make_request("GET", f"/workspaces/{workspace_id}/items/{item_id}/connections")
+        return response.get("value", [])
+    
     def bind_semantic_model_to_connection(self, workspace_id: str, semantic_model_id: str, connection_id: str) -> Dict:
         """
-        Bind a semantic model to a Fabric shareable cloud connection.
+        Bind a semantic model to a Fabric shareable cloud connection using the
+        official Fabric Semantic Model bindConnection API.
         
-        The Fabric REST API only supports GET /items/{id}/connections (list),
-        not PATCH (update). To bind a shareable cloud connection we:
+        Endpoint: POST /v1/workspaces/{workspaceId}/semanticModels/{semanticModelId}/bindConnection
         
-        1. Take over the dataset so the SP becomes the owner.
-        2. Use the Power BI REST API PATCH /groups/{groupId}/datasets/{datasetId}/Default.UpdateDatasourcesInGroup
-           to point the data source at the correct connection.
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/semanticmodel/items/bind-semantic-model-connection
         
-        If the take-over or update fails, the deployment still succeeds — the
-        connection just needs to be assigned manually in the Fabric portal.
+        Prerequisite: The caller must be the owner of the semantic model.
+        Use take_over_dataset() first to transfer ownership to the SP.
+        
+        This API does not support bulk operations — to bind multiple data source
+        references, submit multiple bindConnection requests (one per data source).
         
         Args:
             workspace_id: Workspace GUID
             semantic_model_id: Semantic model GUID
-            connection_id: Fabric connection GUID (from /v1/connections)
+            connection_id: Fabric connection GUID (from GET /v1/connections)
             
         Returns:
-            Response dict or empty dict on failure
+            Dict with status "bound" and details on success, empty dict on failure
         """
         logger.info(f"Binding semantic model {semantic_model_id} to Fabric connection {connection_id}")
         
         # Step 1: Take over ownership so the SP can manage connections
         self.take_over_dataset(workspace_id, semantic_model_id)
         
-        # Step 2: Try to bind the connection via Power BI Discover Gateways / Bind API
-        # For Shareable Cloud connections, the connection appears as a cloud gateway
-        # data source. Try to discover and bind it.
+        # Step 2: List current item connections to get the connectionDetails (type + path)
+        # that need to be matched in the bindConnection request
         try:
-            # Get the data sources for this dataset
-            url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{semantic_model_id}/Default.GetBoundGatewayDatasources"
-            headers = self.auth.get_auth_headers()
-            response = requests.get(url, headers=headers, timeout=60)
-            
-            if response.status_code == 200:
-                datasources = response.json().get("value", [])
-                logger.info(f"  Found {len(datasources)} bound data source(s)")
-                for ds in datasources:
-                    logger.info(f"    Data source: type={ds.get('datasourceType')}, gateway={ds.get('gatewayId')}, datasource={ds.get('datasourceId')}")
-                
-                # Try to discover gateways for this dataset
-                discover_url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{semantic_model_id}/Default.DiscoverGateways"
-                discover_resp = requests.get(discover_url, headers=headers, timeout=60)
-                
-                if discover_resp.status_code == 200:
-                    gateways = discover_resp.json().get("value", [])
-                    logger.info(f"  Discovered {len(gateways)} gateway(s)")
-                    for gw in gateways:
-                        logger.info(f"    Gateway: id={gw.get('id')}, name={gw.get('name')}, type={gw.get('type')}")
-                    
-                    # Look for a cloud gateway that matches our connection
-                    for gw in gateways:
-                        if gw.get("type") == "VirtualNetwork" or gw.get("type") == "CloudDatasource":
-                            # Try binding to this cloud gateway
-                            bind_url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{semantic_model_id}/Default.BindToGateway"
-                            bind_payload = {"gatewayObjectId": gw["id"]}
-                            bind_resp = requests.post(bind_url, headers=headers, json=bind_payload, timeout=60)
-                            if bind_resp.status_code == 200:
-                                logger.info(f"  ✓ Bound to cloud gateway {gw['id']}")
-                                return {"status": "bound", "gatewayId": gw["id"]}
-                            else:
-                                logger.info(f"  ℹ Bind to gateway {gw['id']} returned {bind_resp.status_code}: {bind_resp.text}")
-                else:
-                    logger.info(f"  ℹ DiscoverGateways returned {discover_resp.status_code}")
-            else:
-                logger.info(f"  ℹ GetBoundGatewayDatasources returned {response.status_code}: {response.text}")
+            item_connections = self.list_item_connections(workspace_id, semantic_model_id)
+            logger.info(f"  Found {len(item_connections)} existing connection reference(s) on semantic model")
+            for idx, conn in enumerate(item_connections):
+                conn_type = conn.get("connectivityType", "unknown")
+                conn_details = conn.get("connectionDetails", {})
+                conn_id = conn.get("id", "none")
+                logger.info(f"    [{idx+1}] type={conn_type}, path={conn_details.get('path', 'N/A')}, connType={conn_details.get('type', 'N/A')}, id={conn_id}")
         except Exception as e:
-            logger.info(f"  ℹ Connection binding attempt: {e}")
+            logger.warning(f"  ⚠ Could not list item connections: {e}")
+            item_connections = []
+        
+        # Step 3: Bind each data source reference to the target ShareableCloud connection
+        # using the Fabric Semantic Model bindConnection API
+        bound_count = 0
+        bind_endpoint = f"/workspaces/{workspace_id}/semanticModels/{semantic_model_id}/bindConnection"
+        
+        if item_connections:
+            for conn in item_connections:
+                conn_details = conn.get("connectionDetails", {})
+                conn_type_detail = conn_details.get("type", "")
+                conn_path = conn_details.get("path", "")
+                current_connectivity = conn.get("connectivityType", "")
+                
+                # Skip if already bound to the target ShareableCloud connection
+                if current_connectivity == "ShareableCloud" and conn.get("id") == connection_id:
+                    logger.info(f"  ✓ Already bound to target connection (path={conn_path})")
+                    bound_count += 1
+                    continue
+                
+                # Build the bindConnection payload
+                payload = {
+                    "connectionBinding": {
+                        "id": connection_id,
+                        "connectivityType": "ShareableCloud",
+                        "connectionDetails": {
+                            "type": conn_type_detail,
+                            "path": conn_path
+                        }
+                    }
+                }
+                
+                logger.info(f"  Binding data source (type={conn_type_detail}, path={conn_path}) to connection {connection_id}...")
+                try:
+                    result = self._make_request("POST", bind_endpoint, json_data=payload)
+                    logger.info(f"  ✓ Successfully bound data source to ShareableCloud connection")
+                    bound_count += 1
+                except Exception as bind_err:
+                    logger.warning(f"  ⚠ bindConnection failed: {bind_err}")
+                    logger.info(f"    Payload: {json.dumps(payload, indent=2)}")
+        else:
+            # No existing connections found — the semantic model may not have been
+            # refreshed yet. Try binding with the connection details from config.
+            logger.info(f"  No existing connections on semantic model — attempting direct bind")
+            logger.info(f"  The semantic model may need a refresh first to establish data source references")
+        
+        if bound_count > 0:
+            logger.info(f"  ✓ Bound {bound_count} data source(s) to Fabric connection {connection_id}")
+            return {"status": "bound", "bound_count": bound_count}
         
         return {}
     

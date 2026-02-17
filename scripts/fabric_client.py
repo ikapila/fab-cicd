@@ -1155,6 +1155,118 @@ class FabricClient:
     
     # ==================== Git Integration Operations ====================
 
+    def get_git_connection(self, workspace_id: str) -> Dict:
+        """
+        Get the Git connection details for a workspace.
+        
+        Endpoint: GET /v1/workspaces/{workspaceId}/git/connection
+        
+        Returns the Git provider details (org, project, repo, branch),
+        sync details, and connection state.
+        
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/git/get-connection
+        """
+        logger.info(f"Getting Git connection for workspace {workspace_id}")
+        return self._make_request("GET", f"/workspaces/{workspace_id}/git/connection")
+
+    def create_ado_git_connection(self, repo_url: str, display_name: str,
+                                  client_id: str, tenant_id: str, client_secret: str) -> Dict:
+        """
+        Create an Azure DevOps Source Control connection for Git integration.
+        
+        This creates a ShareableCloud connection of type AzureDevOpsSourceControl
+        using the SP's credentials, which can then be used with Update My Git
+        Credentials to enable Git operations for the SP.
+        
+        Endpoint: POST /v1/connections
+        
+        See: https://learn.microsoft.com/en-us/fabric/cicd/git-integration/git-automation#create-a-new-connection-that-stores-your-git-credentials
+        
+        Args:
+            repo_url: Azure DevOps repo URL (e.g., https://dev.azure.com/org/project/_git/repo)
+            display_name: Display name for the connection
+            client_id: Service principal application (client) ID
+            tenant_id: Service principal tenant (directory) ID
+            client_secret: Service principal secret
+            
+        Returns:
+            Created connection with 'id'
+        """
+        logger.info(f"Creating Azure DevOps Git connection: '{display_name}'")
+        
+        payload = {
+            "connectivityType": "ShareableCloud",
+            "displayName": display_name,
+            "connectionDetails": {
+                "type": "AzureDevOpsSourceControl",
+                "creationMethod": "AzureDevOpsSourceControl.Contents",
+                "parameters": [
+                    {
+                        "dataType": "Text",
+                        "name": "url",
+                        "value": repo_url
+                    }
+                ]
+            },
+            "credentialDetails": {
+                "credentials": {
+                    "credentialType": "ServicePrincipal",
+                    "tenantId": tenant_id,
+                    "servicePrincipalClientId": client_id,
+                    "servicePrincipalSecret": client_secret
+                }
+            }
+        }
+        
+        return self.create_connection(payload)
+
+    def update_paginated_report_datasources(self, workspace_id: str, report_id: str,
+                                             update_details: List[Dict]) -> bool:
+        """
+        Update data sources of a paginated report (RDL).
+        
+        Endpoint: POST /v1.0/myorg/groups/{groupId}/reports/{reportId}/Default.UpdateDatasources
+        
+        Changes the server/database for named data sources in the paginated report.
+        The caller must be the data source owner (call TakeOver first).
+        
+        Limitations:
+          - Only supports paginated reports
+          - Cannot change data source type
+          - ODBC sources not supported
+          - Both original and new data source must have the same schema
+        
+        See: https://learn.microsoft.com/en-us/rest/api/power-bi/reports/update-datasources-in-group
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Paginated report GUID
+            update_details: List of dicts with:
+                - datasourceName: Name of the data source in the RDL
+                - connectionDetails: {server, database}
+            
+        Returns:
+            True on success, False on failure
+        """
+        logger.info(f"Updating data sources for paginated report: {report_id}")
+        
+        url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/reports/{report_id}/Default.UpdateDatasources"
+        headers = self.auth.get_auth_headers()
+        
+        payload = {"updateDetails": update_details}
+        
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=60)
+            response.raise_for_status()
+            logger.info(f"  ✓ Updated {len(update_details)} data source(s) via UpdateDatasources API")
+            return True
+        except requests.exceptions.HTTPError as e:
+            logger.warning(f"  ⚠ UpdateDatasources failed: {e.response.status_code} - {e.response.text}")
+            return False
+        except Exception as e:
+            logger.warning(f"  ⚠ UpdateDatasources error: {e}")
+            return False
+
     def get_git_credentials(self, workspace_id: str) -> Dict:
         """
         Get the current user's (or SP's) Git credentials configuration.

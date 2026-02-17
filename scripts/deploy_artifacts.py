@@ -518,15 +518,16 @@ class FabricDeployer:
         Ensure the SP's Git credentials are configured for the workspace.
         
         Service principals cannot use "Automatic" Git credentials (blocked by the API).
-        They must use "ConfiguredConnection" with a connection ID that provides access
-        to the Git provider (e.g., an Azure DevOps connection).
+        They must use "ConfiguredConnection" pointing to an AzureDevOpsSourceControl
+        connection created with the SP's credentials.
         
-        Auto-discovery flow:
+        Flow:
           1. Check if credentials are already configured → skip if so
-          2. Look for git_integration.git_credentials_connection_id in config
-          3. If not in config, auto-discover by scanning the SP's connections
-             for an AzureDevOpsSourceControl type connection
-          4. Use the first matching connection to configure credentials
+          2. Search existing connections for an AzureDevOpsSourceControl connection
+          3. If none found, auto-create one using:
+             - GET /git/connection to discover the repo URL
+             - POST /connections with the SP's client ID/tenant/secret
+          4. PATCH /git/myGitCredentials with ConfiguredConnection
         
         See: https://learn.microsoft.com/en-us/fabric/cicd/git-integration/git-automation
         """
@@ -538,14 +539,14 @@ class FabricDeployer:
                 logger.info(f"  Git credentials already configured (source: {source})")
                 return
             
-            # Credentials are not configured — find a connection to use
-            logger.info("  Git credentials not configured for SP, auto-discovering...")
+            logger.info("  Git credentials not configured for SP, resolving...")
+            connection_id = None
             
-            # Option 1: Explicit connection ID in config
+            # Step 1: Check for explicit connection ID in config
             git_config = self.config.config.get("git_integration", {})
             connection_id = git_config.get("git_credentials_connection_id", "")
             
-            # Option 2: Auto-discover AzureDevOps connection from SP's connections
+            # Step 2: Search existing connections for AzureDevOpsSourceControl
             if not connection_id:
                 try:
                     connections = self.client.list_connections()
@@ -556,14 +557,47 @@ class FabricDeployer:
                     if ado_connections:
                         connection_id = ado_connections[0]["id"]
                         conn_name = ado_connections[0].get("displayName", "unknown")
-                        logger.info(f"  Auto-discovered Azure DevOps connection: '{conn_name}' (ID: {connection_id})")
-                    else:
-                        logger.warning("  ⚠ No AzureDevOpsSourceControl connection found")
-                        logger.warning("    Create one via Fabric portal or API, or set git_credentials_connection_id in config")
-                        return
+                        logger.info(f"  Found existing Azure DevOps connection: '{conn_name}' (ID: {connection_id})")
                 except Exception as disc_err:
-                    logger.warning(f"  ⚠ Could not auto-discover Git connection: {disc_err}")
+                    logger.warning(f"  ⚠ Could not search connections: {disc_err}")
+            
+            # Step 3: Auto-create ADO connection from workspace Git details + SP creds
+            if not connection_id:
+                try:
+                    git_conn = self.client.get_git_connection(self.workspace_id)
+                    provider = git_conn.get("gitProviderDetails", {})
+                    
+                    if not provider or provider.get("gitProviderType") != "AzureDevOps":
+                        logger.warning("  ⚠ Workspace is not connected to Azure DevOps Git")
+                        return
+                    
+                    org = provider.get("organizationName", "")
+                    project = provider.get("projectName", "")
+                    repo = provider.get("repositoryName", "")
+                    repo_url = f"https://dev.azure.com/{org}/{project}/_git/{repo}"
+                    
+                    conn_name = f"fabcicd-{org}-{repo}-sp-git"
+                    logger.info(f"  Creating Azure DevOps Git connection: '{conn_name}'")
+                    logger.info(f"  Repo URL: {repo_url}")
+                    
+                    result = self.client.create_ado_git_connection(
+                        repo_url=repo_url,
+                        display_name=conn_name,
+                        client_id=self.client.auth.client_id,
+                        tenant_id=self.client.auth.tenant_id,
+                        client_secret=self.client.auth.client_secret
+                    )
+                    connection_id = result.get("id")
+                    logger.info(f"  ✓ Created Azure DevOps connection (ID: {connection_id})")
+                    
+                except Exception as create_err:
+                    logger.warning(f"  ⚠ Could not auto-create Git connection: {create_err}")
+                    logger.warning("    Create an AzureDevOpsSourceControl connection manually")
                     return
+            
+            if not connection_id:
+                logger.warning("  ⚠ No Git connection available — cannot configure credentials")
+                return
             
             logger.info(f"  Configuring Git credentials with connection: {connection_id}")
             self.client.update_git_credentials(
@@ -3846,33 +3880,17 @@ print('Notebook initialized')
             except Exception as move_err:
                 logger.warning(f"  ⚠ Could not move paginated report to Reports folder: {move_err}")
             
-            # Configure paginated report data source credentials.
+            # Post-deployment: update data sources via the Power BI API.
             #
-            # When the SP imports a paginated report via the Power BI Imports API,
-            # Fabric auto-creates a PersonalCloud connection (OAuth2) bound to the
-            # SP's identity. This connection is already functional — the SP can
-            # authenticate to the Lakehouse SQL endpoint using its Entra ID token.
+            # The Imports API creates the report with the RDL's embedded ConnectString.
+            # We also call the UpdateDatasources API to ensure the server/database
+            # are correct for this environment — this is a belt-and-braces approach
+            # alongside the RDL XML transform done earlier.
             #
-            # DO NOT call TakeOver or try to rebind to a ShareableCloud connection:
-            #   - TakeOver is unnecessary (SP already owns the report it just created)
-            #   - TakeOver can break the auto-created PersonalCloud connection
-            #   - bindConnection is not supported for paginated reports (404)
-            #   - Gateway credential update fails with OAuth2 type conflicts
-            #
-            # The RDL <ConnectString> was already transformed above to point to the
-            # correct server/database. The PersonalCloud connection handles auth.
-            logger.info(f"  ℹ Paginated report uses auto-created PersonalCloud connection (OAuth2) — no credential config needed")
-            
-            # Log ownership note if a preferred owner is configured
-            paginated_config = self.config.config.get("paginated_reports", {})
-            preferred_owner = paginated_config.get("owner", "")
-            if preferred_owner:
-                logger.info(f"  ℹ Report is owned by the service principal.")
-                logger.info(f"    To transfer ownership to '{preferred_owner}':")
-                logger.info(f"    → Fabric portal > Settings > Reports > '{name}' > Take over")
-                logger.info(f"    The PersonalCloud connection will continue to work under the new owner.")
-            else:
-                logger.info(f"  ℹ Report is owned by the service principal (connection works as-is)")
+            # After import, Fabric auto-creates a PersonalCloud connection (OAuth2)
+            # bound to the SP's identity. This connection already works — no TakeOver
+            # or manual credential configuration needed.
+            self._update_paginated_report_datasources(name, report_id, rdl_content)
     
     def _configure_paginated_report_credentials(self, report_name: str, report_id: str) -> None:
         """
@@ -3976,7 +3994,98 @@ print('Notebook initialized')
         except Exception as e:
             logger.warning(f"  ⚠ Could not configure credentials for '{report_name}': {e}")
             logger.info(f"    Assign connection manually in Fabric portal: Settings > Cloud connections")
-    
+
+    def _update_paginated_report_datasources(self, report_name: str, report_id: str, rdl_content: str) -> None:
+        """
+        Update paginated report data sources to the target environment's server/database.
+        
+        Uses the Power BI Reports API:
+          POST /groups/{id}/reports/{id}/Default.UpdateDatasources
+        
+        This API is specifically designed for paginated reports (RDL). It changes the
+        server/database for named data sources without affecting the report's structure.
+        
+        The RDL XML transform done during import already sets the ConnectString,
+        but this API call acts as a belt-and-braces confirmation that the data source
+        points to the correct environment.
+        
+        After import, Fabric auto-creates a PersonalCloud connection (OAuth2) bound
+        to the SP. This connection handles authentication automatically — no TakeOver
+        or credential configuration needed.
+        
+        Data source names are parsed from the RDL XML (<DataSource Name="xxx">)
+        because the GetDatasources API does NOT return the data source name field.
+        
+        Prerequisites:
+          - The caller must be the data source owner (SP is already the owner after import)
+          - connections.sql_connection_string must be set in config
+        
+        Args:
+            report_name: Paginated report display name
+            report_id: Paginated report GUID
+            rdl_content: Raw RDL XML string used to extract <DataSource Name="..."> values
+        """
+        import re
+        
+        sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
+        if not sql_connection_string:
+            logger.info(f"  ℹ No sql_connection_string configured — skipping datasource update")
+            return
+        
+        server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
+        database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
+        
+        if not server_match:
+            logger.info(f"  ℹ Could not parse server from sql_connection_string — skipping datasource update")
+            return
+        
+        new_server = server_match.group(1)
+        new_database = database_match.group(1) if database_match else "reporting_gold"
+        
+        # Parse data source names from the RDL XML.
+        # The GetDatasources API returns datasourceType/connectionDetails/gatewayId/datasourceId
+        # but does NOT return the data source name. The UpdateDatasources API requires
+        # datasourceName which is the <DataSource Name="xxx"> value from the RDL.
+        ds_names = re.findall(r'<DataSource\s+Name="([^"]+)"', rdl_content)
+        
+        if not ds_names:
+            logger.info(f"  ℹ No <DataSource Name=\"...\"> elements found in RDL — skipping datasource update")
+            return
+        
+        logger.info(f"  Found {len(ds_names)} data source(s) in RDL: {', '.join(ds_names)}")
+        
+        try:
+            # TakeOver — required by UpdateDatasources API (caller must be data source owner).
+            # SP already owns the report after import, but TakeOver ensures ownership
+            # of the data sources specifically.
+            self.client.take_over_paginated_report(self.workspace_id, report_id)
+            
+            update_details = []
+            for ds_name in ds_names:
+                update_details.append({
+                    "datasourceName": ds_name,
+                    "connectionDetails": {
+                        "server": new_server,
+                        "database": new_database
+                    }
+                })
+                logger.info(f"    Updating datasource '{ds_name}' → server='{new_server}', database='{new_database}'")
+            
+            success = self.client.update_paginated_report_datasources(
+                self.workspace_id, report_id, update_details
+            )
+            
+            if success:
+                logger.info(f"  ✓ Updated data sources for '{report_name}' via UpdateDatasources API")
+                logger.info(f"  ℹ PersonalCloud connection (OAuth2) handles authentication automatically")
+            else:
+                logger.info(f"  ℹ UpdateDatasources not available — RDL ConnectString transform was applied during import")
+                logger.info(f"  ℹ PersonalCloud connection (OAuth2) handles authentication automatically")
+                
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not update data sources for '{report_name}': {e}")
+            logger.info(f"    RDL ConnectString transform was applied during import — report should still work")
+
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""
         library_dir = self.artifacts_dir / self.artifacts_root_folder / "Variablelibraries"

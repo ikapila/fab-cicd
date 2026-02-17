@@ -1514,8 +1514,9 @@ class FabricClient:
                 except:
                     pass
                 
-                # Retry on 409 Conflict (name still in use after delete) or 429 (rate limit)
-                if status_code in [409, 429] and attempt < max_retries:
+                # Retry on 409 Conflict (name still in use after delete),
+                # 404 (delete not yet propagated), or 429 (rate limit)
+                if status_code in [404, 409, 429] and attempt < max_retries:
                     wait_time = 5 * attempt  # Progressive backoff: 5s, 10s, 15s
                     logger.info(f"  Retrying in {wait_time}s...")
                     time.sleep(wait_time)

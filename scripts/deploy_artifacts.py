@@ -3660,19 +3660,30 @@ print('Notebook initialized')
         
         if existing_report:
             report_id = existing_report['id']
-            logger.info(f"  Paginated report '{name}' already exists (ID: {report_id}), updating via Imports API...")
+            logger.info(f"  Paginated report '{name}' already exists (ID: {report_id}), replacing via delete + re-import...")
             # The Fabric updateDefinition endpoint does NOT support paginated reports
-            # (returns OperationNotSupportedForItem). Instead, use the Power BI
-            # Imports API with nameConflict=Overwrite to replace the existing report.
+            # (returns OperationNotSupportedForItem).
+            # The Power BI Imports API with nameConflict=Overwrite also fails:
+            #   404 DuplicatePackageNotFoundError (DuplicatePackagesFullMatch: null)
+            # because the Imports API can't match the existing workspace item name back
+            # to a previously-imported package.
+            #
+            # Reliable approach: DELETE the existing report, then re-import fresh
+            # with nameConflict=Abort. The delete_paginated_report() method uses the
+            # Power BI Reports API (DELETE /groups/{id}/reports/{id}) which works for
+            # paginated reports and includes a propagation wait.
+            try:
+                self.client.delete_paginated_report(self.workspace_id, report_id)
+                logger.info(f"  ✓ Deleted existing paginated report '{name}' (ID: {report_id})")
+            except Exception as del_err:
+                logger.error(f"  ✗ Failed to delete existing paginated report: {del_err}")
+                raise
+
             result = self.client.import_paginated_report(
-                self.workspace_id, name, rdl_content, overwrite=True
+                self.workspace_id, name, rdl_content, overwrite=False
             )
-            # The Imports API may return a different ID if it recreates the item
-            new_id = result.get('id')
-            if new_id and new_id != report_id:
-                logger.info(f"  ℹ Report ID changed from {report_id} to {new_id} after overwrite")
-                report_id = new_id
-            logger.info(f"  ✓ Updated paginated report '{name}' (ID: {report_id})")
+            report_id = result.get('id', 'unknown')
+            logger.info(f"  ✓ Re-imported paginated report '{name}' (ID: {report_id})")
         else:
             # Create via the dedicated Fabric PaginatedReports API with definition.
             #

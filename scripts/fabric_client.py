@@ -1741,53 +1741,6 @@ class FabricClient:
         
         raise RuntimeError(f"Import {import_id} timed out after {max_attempts} attempts")
     
-    def bind_paginated_report_to_connection(self, workspace_id: str, report_id: str, 
-                                               connection_id: str, datasource_type: str, 
-                                               datasource_path: str) -> bool:
-        """
-        Bind a paginated report to a Fabric shareable cloud connection.
-        
-        Tries the same bindConnection pattern that works for semantic models but
-        adapted for paginated reports. This maps the report's data source to a
-        shared cloud connection (visible as "Maps to" in the portal Cloud connections UI).
-        
-        Endpoint: POST /v1/workspaces/{workspaceId}/paginatedReports/{reportId}/bindConnection
-        
-        Note: This endpoint may not be supported by the Fabric API yet.
-        If it fails, the caller should fall back to the Gateway credentials approach.
-        
-        Args:
-            workspace_id: Workspace GUID
-            report_id: Paginated report GUID
-            connection_id: Fabric shareable cloud connection GUID
-            datasource_type: Data source type (e.g. "SQL")
-            datasource_path: Data source path (e.g. "server;database")
-            
-        Returns:
-            True if binding succeeded, False otherwise
-        """
-        logger.info(f"  Attempting to bind paginated report {report_id} to ShareableCloud connection {connection_id}")
-        
-        bind_endpoint = f"/workspaces/{workspace_id}/paginatedReports/{report_id}/bindConnection"
-        payload = {
-            "connectionBinding": {
-                "id": connection_id,
-                "connectivityType": "ShareableCloud",
-                "connectionDetails": {
-                    "type": datasource_type,
-                    "path": datasource_path
-                }
-            }
-        }
-        
-        try:
-            result = self._make_request("POST", bind_endpoint, json_data=payload)
-            logger.info(f"  ✓ Successfully bound paginated report to ShareableCloud connection")
-            return True
-        except Exception as e:
-            logger.info(f"  ℹ Fabric bindConnection not available for paginated reports: {e}")
-            return False
-    
     def take_over_paginated_report(self, workspace_id: str, report_id: str) -> bool:
         """
         Take over ownership of a paginated report's data sources so the service

@@ -88,6 +88,12 @@ class FabricDeployer:
         # Track artifacts created in this run to avoid immediate update attempts
         self._created_in_this_run = set()
         
+        # Paginated reports deferred to Git sync.
+        # _deploy_paginated_report() records each report here; after
+        # _update_source_control() completes, deploy_all() runs TakeOver +
+        # UpdateDatasources on each entry to fix connection strings.
+        self._pending_paginated_report_updates: List[Dict] = []
+        
         # Build set of config-managed artifact names (config is source of truth for these)
         self._config_managed_artifacts = self._get_config_managed_artifacts()
         
@@ -500,13 +506,15 @@ class FabricDeployer:
                 logger.warning("    Grant Contributor role and Workspace.GitUpdate.All scope")
                 return False
             elif "PrincipalTypeNotSupported" in error_msg:
-                # Paginated reports (rdlreport) don't support SP-based Git sync.
                 # The updateFromGit API is all-or-nothing — it fails if ANY changed
-                # item doesn't support SPs.
+                # item uses a type that doesn't support SP-based Git sync (e.g.
+                # rdlreport / paginatedreport).
                 #
-                # Check if there are non-paginated remote changes that also failed:
-                # - If only paginated reports changed: no action needed (deployed via API)
-                # - If other items also changed: those couldn't sync either, log them
+                # Strategy: identify the unsupported items.
+                # - If ONLY paginated reports blocked the sync, treat as success
+                #   (they are skipped; post-sync datasource updates still run
+                #   for reports already in the workspace).
+                # - If other item types also failed, log and return False.
                 unsupported_types = {"rdlreport", "paginatedreport"}
                 try:
                     status = self.client.get_git_status(self.workspace_id)
@@ -523,18 +531,19 @@ class FabricDeployer:
                     
                     if paginated:
                         pag_names = [c.get("itemMetadata", {}).get("displayName", "?") for c in paginated]
-                        logger.info(f"  ℹ Paginated report(s) skipped for Git sync (SP not supported): {', '.join(pag_names)}")
-                        logger.info(f"    These were deployed via the Power BI Imports API instead")
+                        logger.info(f"  ℹ Paginated report(s) skipped in Git sync (SP not supported): {', '.join(pag_names)}")
+                        logger.info(f"    These will be handled by post-sync datasource updates if already in workspace")
                     
                     if non_paginated:
                         np_names = [f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})" for c in non_paginated]
-                        logger.warning(f"  ⚠ {len(non_paginated)} non-paginated item(s) could not sync from Git:")
+                        logger.warning(f"  ⚠ {len(non_paginated)} non-paginated item(s) also could not sync from Git:")
                         for np_name in np_names:
                             logger.warning(f"    - {np_name}")
                         logger.warning(f"    Sync these manually in Fabric portal: Source control > Update all")
                         return False
                     else:
-                        logger.info(f"  ✓ All remote changes were paginated reports — deployed via API, Git sync not needed")
+                        # Only paginated reports were unsupported — skip them, treat as success
+                        logger.info(f"  ✓ All unsupported items are paginated reports — skipping, Git sync otherwise up to date")
                         return True
                 except Exception:
                     logger.warning("  ⚠ Service principal is not supported for Git operations on some item types")
@@ -646,6 +655,94 @@ class FabricDeployer:
             
         except Exception as e:
             logger.warning(f"  ⚠ Could not check/configure Git credentials: {e}")
+
+    def _process_paginated_reports_after_git_sync(self) -> None:
+        """
+        Post-Git-sync processing for paginated reports.
+        
+        After updateFromGit has landed the RDL definitions in the workspace,
+        run TakeOver + UpdateDatasources on each paginated report so the
+        connection string points to the correct server/database for this
+        environment.
+        
+        Called from deploy_all() after _update_source_control() completes.
+        """
+        import re
+        
+        logger.info("\n" + "-"*60)
+        logger.info("POST-GIT-SYNC: PAGINATED REPORT DATASOURCE UPDATE")
+        logger.info("-"*60)
+        
+        sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
+        if not sql_connection_string:
+            logger.info("  ℹ No sql_connection_string configured — skipping post-sync datasource update")
+            return
+        
+        server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
+        database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
+        
+        if not server_match:
+            logger.info("  ℹ Could not parse server from sql_connection_string — skipping")
+            return
+        
+        new_server = server_match.group(1)
+        new_database = database_match.group(1) if database_match else "reporting_gold"
+        
+        # List paginated reports in the workspace to resolve IDs
+        existing_reports = self.client.list_paginated_reports(self.workspace_id)
+        
+        for entry in self._pending_paginated_report_updates:
+            name = entry["name"]
+            rdl_content = entry.get("rdl_content", "")
+            
+            report_match = next((r for r in existing_reports if r["displayName"] == name), None)
+            
+            if not report_match:
+                logger.warning(f"  ⚠ Paginated report '{name}' not found in workspace after Git sync")
+                logger.warning(f"    Check that the report exists in the Git branch and updateFromGit succeeded")
+                continue
+            
+            report_id = report_match["id"]
+            logger.info(f"  Processing '{name}' (ID: {report_id})")
+            
+            # Parse datasource names from the local RDL XML
+            ds_names = re.findall(r'<DataSource\s+Name="([^"]+)"', rdl_content) if rdl_content else []
+            
+            if not ds_names:
+                logger.info(f"    ℹ No <DataSource Name=\"...\"> elements found in RDL — skipping")
+                continue
+            
+            logger.info(f"    Found {len(ds_names)} data source(s) in RDL: {', '.join(ds_names)}")
+            
+            try:
+                # TakeOver — SP becomes data source owner so it can call UpdateDatasources
+                self.client.take_over_paginated_report(self.workspace_id, report_id)
+                
+                # UpdateDatasources — set the correct server/database for this environment
+                update_details = []
+                for ds_name in ds_names:
+                    update_details.append({
+                        "datasourceName": ds_name,
+                        "connectionDetails": {
+                            "server": new_server,
+                            "database": new_database
+                        }
+                    })
+                    logger.info(f"    Updating datasource '{ds_name}' → server='{new_server}', database='{new_database}'")
+                
+                success = self.client.update_paginated_report_datasources(
+                    self.workspace_id, report_id, update_details
+                )
+                
+                if success:
+                    logger.info(f"  ✓ Updated data sources for '{name}'")
+                else:
+                    logger.warning(f"  ⚠ UpdateDatasources returned False for '{name}'")
+                    
+            except Exception as e:
+                logger.warning(f"  ⚠ Could not update data sources for '{name}': {e}")
+        
+        logger.info(f"  Done — processed {len(self._pending_paginated_report_updates)} paginated report(s)")
 
     def _save_deployment_state(self) -> None:
         """
@@ -2775,16 +2872,19 @@ print('Notebook initialized')
         if failure_count == 0:
             self._save_deployment_state()
         
-        # Source control sync from Git is no longer needed.
-        # All artifacts (semantic models, reports, paginated reports) are now
-        # deployed via the Fabric/Power BI REST APIs directly, eliminating the
-        # dependency on updateFromGit. The Git sync was unreliable for SPs because
-        # the updateFromGit API fails with PrincipalTypeNotSupported when paginated
-        # reports are among the changed items (the API is all-or-nothing).
-        #
-        # To re-enable Git sync, uncomment the line below:
-        # if failure_count == 0 and not dry_run:
-        #     self._update_source_control()
+        # Source control sync from Git (dev only — controlled by
+        # git_integration.auto_update_from_git).  Syncs items from the remote
+        # Git branch into the workspace ("Update all").  Skips unsupported
+        # items (paginated reports) gracefully.
+        if failure_count == 0 and not dry_run:
+            self._update_source_control()
+            
+            # Post-Git-sync: fix paginated report connection strings (dev only).
+            # _pending_paginated_report_updates is only populated when
+            # auto_update_from_git=true.  UAT/prod paginated reports are
+            # deployed via API and handled in _deploy_paginated_report directly.
+            if self._pending_paginated_report_updates:
+                self._process_paginated_reports_after_git_sync()
         
         return failure_count == 0
     
@@ -3707,34 +3807,37 @@ print('Notebook initialized')
         self._apply_report_rebinding(name, report_id)
     
     def _deploy_paginated_report(self, name: str) -> None:
-        """Deploy a paginated report via Fabric Items API.
+        """Deploy a paginated report.
         
-        Uses the Fabric REST API updateDefinition endpoint for paginated reports:
-          POST /workspaces/{id}/paginatedReports/{id}/updateDefinition
+        Deployment strategy depends on git_integration.auto_update_from_git:
         
-        This sends the RDL definition (with connection string transformation
-        applied per environment config) directly to the target workspace.
-        No deployment pipeline or report ownership requirements.
+        - True  (dev):  Deferred to Git sync (updateFromGit).  The report is
+                        synced from the connected Git branch by
+                        _update_source_control().  After sync, TakeOver +
+                        UpdateDatasources fixes connection strings for the
+                        target environment.
         
-        Paginated reports are NOT synced via Git for Service Principals because
-        the Fabric updateFromGit API returns PrincipalTypeNotSupported for
-        PaginatedReport items. They are always deployed via the Power BI
-        Imports API regardless of Git connectivity.
+        - False (uat/prod):  Deployed via the Power BI Imports API.  The RDL
+                        connection string is transformed in-memory before
+                        import, and TakeOver + UpdateDatasources is called
+                        immediately after import as a belt-and-braces step.
         """
+        import re
 
         rdl_content = None
         report_folder = None
         found = False
         
-        # Try JSON file in Paginatedreports folder first (legacy format)
+        # ── locate the local RDL ──
+        
+        # JSON file in Paginatedreports/ (legacy format — not deployable)
         report_file = self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports" / f"{name}.json"
         if report_file.exists():
             logger.info(f"  Reading paginated report from JSON: {report_file}")
-            logger.warning(f"  ⚠ Paginated report '{name}' is in JSON format - deployment requires .rdl file")
-            logger.warning(f"  Use Fabric Git format (.PaginatedReport folder with .rdl file)")
+            logger.warning(f"  ⚠ Paginated report '{name}' is in JSON format — Git format (.PaginatedReport folder) required")
             return
         
-        # Try Fabric Git format in Reports/ or Paginatedreports/ folders
+        # Fabric Git format in Reports/ or Paginatedreports/
         git_paths = [
             self.artifacts_dir / self.artifacts_root_folder / "Reports",
             self.artifacts_dir / self.artifacts_root_folder / "Paginatedreports"
@@ -3744,7 +3847,6 @@ print('Notebook initialized')
             if not base_path.exists():
                 continue
                 
-            # Look for *.PaginatedReport folders
             for folder in base_path.glob("*.PaginatedReport"):
                 platform_file = folder / ".platform"
                 if not platform_file.exists():
@@ -3754,37 +3856,8 @@ print('Notebook initialized')
                     platform_data = json.load(f)
                 
                 if platform_data.get("metadata", {}).get("displayName") == name:
-                    logger.info(f"  Reading paginated report from Fabric Git format: {folder}")
-                    
-                    # Get rebind rules for this report
-                    rebind_rule = self.config.get_rebind_rule_for_artifact("paginated_reports", name)
-                    
-                    # Read RDL content
+                    logger.info(f"  Found paginated report in Git format: {folder}")
                     rdl_content, report_folder = self._read_paginated_report_git_format(folder, name)
-                    
-                    # Transform RDL connection string if rebinding is enabled
-                    if rebind_rule and rebind_rule.get("enabled"):
-                        sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
-                        if sql_connection_string:
-                            import re
-                            server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
-                            database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
-                            
-                            if server_match:
-                                new_server = server_match.group(1)
-                                new_database = database_match.group(1) if database_match else "reporting_gold"
-                                
-                                new_connect_string = f"Data Source={new_server};Initial Catalog={new_database};Encrypt=True;Trust Server Certificate=True;Authentication=ActiveDirectoryInteractive"
-                                
-                                connect_string_pattern = r'<ConnectString>.*?</ConnectString>'
-                                rdl_content = re.sub(
-                                    connect_string_pattern,
-                                    f'<ConnectString>{new_connect_string}</ConnectString>',
-                                    rdl_content,
-                                    flags=re.DOTALL
-                                )
-                                logger.info(f"    ✓ Applied connection string transformation to '{new_server}' database '{new_database}'")
-                    
                     found = True
                     break
             
@@ -3793,6 +3866,49 @@ print('Notebook initialized')
         
         if not found:
             raise FileNotFoundError(f"Paginated report '{name}' not found in Fabric Git format (.PaginatedReport folder)")
+        
+        # ── check deployment strategy ──
+        git_config = self.config.config.get("git_integration", {})
+        use_git_sync = git_config.get("auto_update_from_git", False)
+        
+        if use_git_sync:
+            # ── DEV path: defer to Git sync ──
+            logger.info(f"  📦 Paginated report '{name}' will be synced from Git (updateFromGit)")
+            logger.info(f"    Post-sync: TakeOver + UpdateDatasources will fix connection strings")
+            
+            self._pending_paginated_report_updates.append({
+                "name": name,
+                "rdl_content": rdl_content,
+            })
+            return
+        
+        # ── UAT / PROD path: deploy via API ──
+        logger.info(f"  Deploying paginated report '{name}' via Power BI Imports API")
+        
+        # Get rebind rules for this report
+        rebind_rule = self.config.get_rebind_rule_for_artifact("paginated_reports", name)
+        
+        # Transform RDL connection string if rebinding is enabled
+        if rebind_rule and rebind_rule.get("enabled"):
+            sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
+            if sql_connection_string:
+                server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
+                database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
+                
+                if server_match:
+                    new_server = server_match.group(1)
+                    new_database = database_match.group(1) if database_match else "reporting_gold"
+                    
+                    new_connect_string = f"Data Source={new_server};Initial Catalog={new_database};Encrypt=True;Trust Server Certificate=True;Authentication=ActiveDirectoryInteractive"
+                    
+                    connect_string_pattern = r'<ConnectString>.*?</ConnectString>'
+                    rdl_content = re.sub(
+                        connect_string_pattern,
+                        f'<ConnectString>{new_connect_string}</ConnectString>',
+                        rdl_content,
+                        flags=re.DOTALL
+                    )
+                    logger.info(f"    ✓ Applied connection string transformation to '{new_server}' database '{new_database}'")
         
         # Build definition with base64-encoded parts (RDL + supporting files)
         definition = self._encode_paginated_report_parts(report_folder, rdl_content)
@@ -3804,17 +3920,6 @@ print('Notebook initialized')
         if existing_report:
             report_id = existing_report['id']
             logger.info(f"  Paginated report '{name}' already exists (ID: {report_id}), replacing via delete + re-import...")
-            # The Fabric updateDefinition endpoint does NOT support paginated reports
-            # (returns OperationNotSupportedForItem).
-            # The Power BI Imports API with nameConflict=Overwrite also fails:
-            #   404 DuplicatePackageNotFoundError (DuplicatePackagesFullMatch: null)
-            # because the Imports API can't match the existing workspace item name back
-            # to a previously-imported package.
-            #
-            # Reliable approach: DELETE the existing report, then re-import fresh
-            # with nameConflict=Abort. The delete_paginated_report() method uses the
-            # Power BI Reports API (DELETE /groups/{id}/reports/{id}) which works for
-            # paginated reports and includes a propagation wait.
             try:
                 self.client.delete_paginated_report(self.workspace_id, report_id)
                 logger.info(f"  ✓ Deleted existing paginated report '{name}' (ID: {report_id})")
@@ -3828,28 +3933,14 @@ print('Notebook initialized')
             report_id = result.get('id', 'unknown')
             logger.info(f"  ✓ Re-imported paginated report '{name}' (ID: {report_id})")
         else:
-            # Create via the dedicated Fabric PaginatedReports API with definition.
-            #
-            # Strategy:
-            #   1. Try POST /paginatedReports with definition (single-step create)
-            #   2. If that fails, try create shell (no definition) + updateDefinition (two-step)
-            #   3. If both fail, fall back to Power BI Imports API (legacy, only works for
-            #      non-Fabric-native RDL files)
-            #
-            # The Power BI Imports API rejects Fabric-native RDL files that use the
-            # 2016/01/reportdefinition schema with MustUnderstand="df" extensions,
-            # returning RequestedFileIsEncryptedOrCorrupted.
             logger.info(f"  Paginated report '{name}' not found, creating via Fabric PaginatedReports API...")
             report_id = None
             
             try:
-                # Option A: Create with definition in one step
-                # Uses POST /items with type=PaginatedReport (the generic Items API)
                 result = self.client.create_paginated_report(
                     self.workspace_id, name, definition=definition
                 )
                 
-                # Handle LRO if creation returns 202
                 if result.get("status_code") == 202 and result.get("operation_id"):
                     operation_id = result["operation_id"]
                     retry_after = result.get("retry_after", 5)
@@ -3868,12 +3959,10 @@ print('Notebook initialized')
                 logger.info(f"  Trying two-step approach: create shell + updateDefinition...")
                 
                 try:
-                    # Option B: Create empty shell via POST /items, then upload definition
                     result = self.client.create_paginated_report(
                         self.workspace_id, name
                     )
                     
-                    # Handle LRO
                     if result.get("status_code") == 202 and result.get("operation_id"):
                         operation_id = result["operation_id"]
                         retry_after = result.get("retry_after", 5)
@@ -3887,7 +3976,6 @@ print('Notebook initialized')
                     
                     logger.info(f"  Shell created (ID: {report_id}), uploading RDL definition...")
                     
-                    # Upload the definition
                     self.client.update_paginated_report(self.workspace_id, report_id, definition)
                     logger.info(f"  ✓ Created paginated report '{name}' via two-step (ID: {report_id})")
                     
@@ -3895,17 +3983,13 @@ print('Notebook initialized')
                     logger.warning(f"  ⚠ Two-step creation also failed: {str(e2)}")
                     logger.info(f"  Falling back to Power BI Imports API...")
                     
-                    # Option C: Legacy Power BI Imports API
-                    # Use overwrite=False (nameConflict=Abort) for NEW reports —
-                    # Overwrite causes DuplicatePackageNotFoundError when the report
-                    # doesn't already exist in the Power BI Imports format.
                     result = self.client.import_paginated_report(
                         self.workspace_id, name, rdl_content, overwrite=False
                     )
                     report_id = result.get('id', 'unknown')
                     logger.info(f"  ✓ Created paginated report '{name}' via Imports API (ID: {report_id})")
         
-        # Move the paginated report into the "Reports" folder (applies to both new and existing)
+        # Move into the "Reports" folder and update data sources
         if report_id and report_id != 'unknown':
             try:
                 folder_id = self._get_or_create_folder("Reports")
@@ -3915,148 +3999,22 @@ print('Notebook initialized')
             except Exception as move_err:
                 logger.warning(f"  ⚠ Could not move paginated report to Reports folder: {move_err}")
             
-            # Post-deployment: update data sources via the Power BI API.
-            #
-            # The Imports API creates the report with the RDL's embedded ConnectString.
-            # We also call the UpdateDatasources API to ensure the server/database
-            # are correct for this environment — this is a belt-and-braces approach
-            # alongside the RDL XML transform done earlier.
-            #
-            # After import, Fabric auto-creates a PersonalCloud connection (OAuth2)
-            # bound to the SP's identity. This connection already works — no TakeOver
-            # or manual credential configuration needed.
-            self._update_paginated_report_datasources(name, report_id, rdl_content)
-    
-    def _configure_paginated_report_credentials(self, report_name: str, report_id: str) -> None:
-        """
-        [DEPRECATED] Configure data source credentials for a paginated report.
-        
-        This method is NO LONGER CALLED. When the SP imports a paginated report
-        via the Power BI Imports API, Fabric auto-creates a PersonalCloud
-        connection (OAuth2) bound to the SP's identity. This works out of the box
-        — no TakeOver, bindConnection, or gateway credential update needed.
-        
-        The TakeOver was actually counterproductive: it could break the
-        auto-created PersonalCloud connection. The Fabric bindConnection
-        endpoint returns 404 for paginated reports, and the Gateway credential
-        update fails with "UseCallerOAuthIdentity requires credential type OAuth2".
-        
-        Kept for reference in case manual credential configuration is ever needed.
-        
-        Original strategy:
-          1. TakeOver — SP becomes data source owner (Power BI Reports API)
-          2. Get Datasources — discover data source details (server, database)
-          3. Try Fabric bindConnection — not supported for paginated reports (404)
-          4. Fallback: Gateway credentials — fails with OAuth2 type conflict
-        
-        Args:
-            report_name: Paginated report display name
-            report_id: Paginated report GUID
-        """
-        try:
-            # Step 1: Take over data source ownership so SP can manage credentials
-            logger.info(f"  Configuring data source credentials for '{report_name}'...")
-            took_over = self.client.take_over_paginated_report(self.workspace_id, report_id)
-            if not took_over:
-                logger.warning(f"  ⚠ Could not take over '{report_name}' — credentials must be set manually")
-                return
-            
-            # Step 2: Get data sources to discover connection details
-            datasources = self.client.get_paginated_report_datasources(self.workspace_id, report_id)
-            if not datasources:
-                logger.info(f"  ℹ No data sources discovered on '{report_name}'")
-                logger.info(f"    SP now owns the report — assign credentials in Fabric portal if needed")
-                return
-            
-            # Step 3: Try to bind to the ShareableCloud connection (same as semantic models)
-            # This is the equivalent of the "Maps to" dropdown in the portal Cloud connections UI
-            bound = False
-            if not hasattr(self, '_semantic_model_connection'):
-                self._semantic_model_connection = self._get_semantic_model_connection()
-            
-            if self._semantic_model_connection:
-                connection_id = self._semantic_model_connection['id']
-                connection_name = self._semantic_model_connection['displayName']
-                
-                logger.info(f"  Attempting to bind '{report_name}' to ShareableCloud connection '{connection_name}'...")
-                
-                for ds in datasources:
-                    conn_details = ds.get("connectionDetails", {})
-                    server = conn_details.get("server", "")
-                    database = conn_details.get("database", "")
-                    
-                    if server and database:
-                        # Build the path in Fabric format: "server;database"
-                        ds_path = f"{server};{database}"
-                        bound = self.client.bind_paginated_report_to_connection(
-                            self.workspace_id, report_id, connection_id,
-                            datasource_type="SQL", datasource_path=ds_path
-                        )
-                        if bound:
-                            logger.info(f"  ✓ Bound '{report_name}' to connection '{connection_name}'")
-                            break
-            
-            if bound:
-                return
-            
-            # Step 4: Fallback — use Gateway credentials with SP's Entra ID identity
-            # Power BI auto-creates virtual cloud gateways for cloud data sources.
-            # If the data source has a gatewayId, we can set credentials directly.
-            logger.info(f"  Trying Gateway credentials approach for '{report_name}'...")
-            cred_count = 0
-            no_gateway_count = 0
-            for ds in datasources:
-                gateway_id = ds.get("gatewayId")
-                datasource_id = ds.get("datasourceId")
-                
-                if not gateway_id or not datasource_id:
-                    no_gateway_count += 1
-                    continue
-                
-                success = self.client.update_gateway_datasource_credentials(gateway_id, datasource_id)
-                if success:
-                    cred_count += 1
-            
-            if cred_count > 0:
-                logger.info(f"  ✓ Configured {cred_count} data source credential(s) for '{report_name}' using SP identity")
-            elif no_gateway_count > 0:
-                logger.info(f"  ℹ {no_gateway_count} data source(s) have no gateway binding — SP owns the report")
-                logger.info(f"    Map to '{self._semantic_model_connection['displayName'] if self._semantic_model_connection else 'cloud connection'}' in Fabric portal: Settings > Cloud connections")
-            else:
-                logger.info(f"  ℹ Could not update credentials automatically for '{report_name}'")
-                logger.info(f"    SP owns the report — assign connection in Fabric portal: Settings > Cloud connections")
-                
-        except Exception as e:
-            logger.warning(f"  ⚠ Could not configure credentials for '{report_name}': {e}")
-            logger.info(f"    Assign connection manually in Fabric portal: Settings > Cloud connections")
+            # TakeOver + UpdateDatasources — fix connection strings for this environment
+            self._update_paginated_report_datasources_api(name, report_id, rdl_content)
 
-    def _update_paginated_report_datasources(self, report_name: str, report_id: str, rdl_content: str) -> None:
+    def _update_paginated_report_datasources_api(self, report_name: str, report_id: str, rdl_content: str) -> None:
         """
-        Update paginated report data sources and bind to the ShareableCloud connection.
+        Update paginated report data sources after API deployment (UAT/prod).
         
-        Two-step approach:
-        
-        1. UpdateDatasources API — changes the server/database for the named RDL
-           data sources to match the target environment. This is a belt-and-braces
-           confirmation alongside the RDL XML ConnectString transform done at import.
-        
-        2. Bind to ShareableCloud connection — changes the "Maps to" cloud connection
-           from the auto-created PersonalCloud connection to the same ShareableCloud
-           connection used by semantic models (configured in connections.semantic_model_connection).
-           This eliminates manual UI changes in prod.
-        
-        Data source names are parsed from the RDL XML (<DataSource Name="xxx">)
-        because the GetDatasources API does NOT return the data source name field.
-        
-        Prerequisites:
-          - The caller must be the data source owner (SP is already the owner after import)
-          - connections.sql_connection_string must be set in config
-          - connections.semantic_model_connection must be set for connection binding
+        Calls TakeOver + UpdateDatasources to ensure the server/database are
+        correct for this environment.  Data source names are parsed from the
+        RDL XML (<DataSource Name="xxx">) because the GetDatasources API does
+        NOT return the data source name field.
         
         Args:
             report_name: Paginated report display name
             report_id: Paginated report GUID
-            rdl_content: Raw RDL XML string used to extract <DataSource Name="..."> values
+            rdl_content: Raw RDL XML string used to extract datasource names
         """
         import re
         
@@ -4075,10 +4033,6 @@ print('Notebook initialized')
         new_server = server_match.group(1)
         new_database = database_match.group(1) if database_match else "reporting_gold"
         
-        # Parse data source names from the RDL XML.
-        # The GetDatasources API returns datasourceType/connectionDetails/gatewayId/datasourceId
-        # but does NOT return the data source name. The UpdateDatasources API requires
-        # datasourceName which is the <DataSource Name="xxx"> value from the RDL.
         ds_names = re.findall(r'<DataSource\s+Name="([^"]+)"', rdl_content)
         
         if not ds_names:
@@ -4088,12 +4042,8 @@ print('Notebook initialized')
         logger.info(f"  Found {len(ds_names)} data source(s) in RDL: {', '.join(ds_names)}")
         
         try:
-            # TakeOver — required by UpdateDatasources API (caller must be data source owner).
-            # SP already owns the report after import, but TakeOver ensures ownership
-            # of the data sources specifically.
             self.client.take_over_paginated_report(self.workspace_id, report_id)
             
-            # Step 1: UpdateDatasources — set the correct server/database
             update_details = []
             for ds_name in ds_names:
                 update_details.append({
@@ -4117,148 +4067,6 @@ print('Notebook initialized')
         except Exception as e:
             logger.warning(f"  ⚠ Could not update data sources for '{report_name}': {e}")
             logger.info(f"    RDL ConnectString transform was applied during import — report should still work")
-        
-        # Step 2: Bind to ShareableCloud connection — change "Maps to" from PersonalCloud
-        # to the shared connection used by semantic models. This is what appears in:
-        #   Settings > Cloud connections > "Maps to" dropdown
-        # in the Fabric portal. Using the shared connection means no manual UI changes needed.
-        self._bind_paginated_report_to_shared_connection(report_name, report_id, new_server, new_database)
-
-    def _bind_paginated_report_to_shared_connection(self, report_name: str, report_id: str,
-                                                     server: str, database: str) -> None:
-        """
-        Bind a paginated report's data source to the ShareableCloud connection
-        (same connection used by semantic models).
-        
-        After import, Fabric auto-creates a PersonalCloud connection for the SP.
-        This method attempts to change the "Maps to" dropdown (visible in
-        Settings > Cloud connections) to the shared connection configured in
-        connections.semantic_model_connection.
-        
-        Strategy:
-          1. Look up the ShareableCloud connection (same as semantic models)
-          2. List the report's current item connections to get type + path
-          3. Try Fabric bindConnection API on /paginatedReports/{id}/bindConnection
-          4. If that 404s, try the generic /items/{id}/bindConnection endpoint
-          5. If neither works, log instructions for manual mapping
-        
-        Args:
-            report_name: Paginated report display name
-            report_id: Paginated report GUID
-            server: Target server for the data source path
-            database: Target database for the data source path
-        """
-        try:
-            # Get the ShareableCloud connection (same one used for semantic models)
-            if not hasattr(self, '_semantic_model_connection'):
-                self._semantic_model_connection = self._get_semantic_model_connection()
-            
-            if not self._semantic_model_connection:
-                connection_name = self.config.config.get("connections", {}).get("semantic_model_connection", "")
-                if connection_name:
-                    logger.info(f"  ℹ Could not find ShareableCloud connection '{connection_name}'")
-                else:
-                    logger.info(f"  ℹ No semantic_model_connection configured — skipping connection binding")
-                return
-            
-            connection_id = self._semantic_model_connection['id']
-            connection_name = self._semantic_model_connection['displayName']
-            
-            logger.info(f"  Binding '{report_name}' to ShareableCloud connection '{connection_name}' (ID: {connection_id})...")
-            
-            # List current connections on the paginated report to discover type + path
-            # The Fabric Items API (GET /items/{id}/connections) works for all item types
-            try:
-                item_connections = self.client.list_item_connections(self.workspace_id, report_id)
-                logger.info(f"    Found {len(item_connections)} connection(s) on paginated report")
-                for idx, conn in enumerate(item_connections):
-                    conn_type = conn.get("connectivityType", "unknown")
-                    conn_details = conn.get("connectionDetails", {})
-                    conn_display = conn.get("displayName", "unnamed")
-                    logger.info(f"      [{idx+1}] {conn_type}: {conn_display}, type={conn_details.get('type', 'N/A')}, path={conn_details.get('path', 'N/A')}")
-            except Exception as e:
-                logger.info(f"    Could not list item connections: {e}")
-                item_connections = []
-            
-            # Build the connection path in Fabric format: "server;database"
-            # This is used by the bindConnection API to match the data source
-            ds_path = f"{server};{database}"
-            
-            # Determine the connection type and path from existing connections or default
-            conn_type_detail = "SQL"  # Default for SQL Server / Datawarehouse
-            if item_connections:
-                # Use the type/path from the first existing connection
-                first_conn = item_connections[0]
-                conn_details = first_conn.get("connectionDetails", {})
-                if conn_details.get("type"):
-                    conn_type_detail = conn_details["type"]
-                if conn_details.get("path"):
-                    ds_path = conn_details["path"]
-                    logger.info(f"    Using existing connection path: type={conn_type_detail}, path={ds_path}")
-            
-            # Try binding — attempt multiple API endpoints
-            bound = False
-            
-            # Attempt 1: Fabric Paginated Report bindConnection
-            # POST /v1/workspaces/{id}/paginatedReports/{id}/bindConnection
-            bound = self.client.bind_paginated_report_to_connection(
-                self.workspace_id, report_id, connection_id,
-                datasource_type=conn_type_detail, datasource_path=ds_path
-            )
-            
-            if not bound:
-                # Attempt 2: Generic Fabric Items bindConnection
-                # POST /v1/workspaces/{id}/items/{id}/bindConnection
-                logger.info(f"    Trying generic items bindConnection endpoint...")
-                try:
-                    bind_endpoint = f"/workspaces/{self.workspace_id}/items/{report_id}/bindConnection"
-                    payload = {
-                        "connectionBinding": {
-                            "id": connection_id,
-                            "connectivityType": "ShareableCloud",
-                            "connectionDetails": {
-                                "type": conn_type_detail,
-                                "path": ds_path
-                            }
-                        }
-                    }
-                    self.client._make_request("POST", bind_endpoint, json_data=payload)
-                    logger.info(f"  ✓ Bound '{report_name}' to ShareableCloud connection '{connection_name}' via items API")
-                    bound = True
-                except Exception as e:
-                    logger.info(f"    Items bindConnection not available: {e}")
-            
-            if not bound:
-                # Attempt 3: Semantic Model bindConnection pattern
-                # Some paginated reports may respond to /semanticModels/ endpoint
-                logger.info(f"    Trying semanticModels bindConnection endpoint...")
-                try:
-                    bind_endpoint = f"/workspaces/{self.workspace_id}/semanticModels/{report_id}/bindConnection"
-                    payload = {
-                        "connectionBinding": {
-                            "id": connection_id,
-                            "connectivityType": "ShareableCloud",
-                            "connectionDetails": {
-                                "type": conn_type_detail,
-                                "path": ds_path
-                            }
-                        }
-                    }
-                    self.client._make_request("POST", bind_endpoint, json_data=payload)
-                    logger.info(f"  ✓ Bound '{report_name}' to ShareableCloud connection '{connection_name}' via semanticModels API")
-                    bound = True
-                except Exception as e:
-                    logger.info(f"    SemanticModels bindConnection not available: {e}")
-            
-            if bound:
-                logger.info(f"  ✓ '{report_name}' now uses ShareableCloud connection '{connection_name}'")
-            else:
-                logger.info(f"  ℹ Could not auto-bind '{report_name}' to ShareableCloud connection")
-                logger.info(f"    Manual step: Settings > Cloud connections > Maps to > select '{connection_name}'")
-                
-        except Exception as e:
-            logger.warning(f"  ⚠ Could not bind '{report_name}' to shared connection: {e}")
-            logger.info(f"    Manual step: Settings > Cloud connections > Maps to > select shared connection")
 
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

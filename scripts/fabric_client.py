@@ -1154,7 +1154,58 @@ class FabricClient:
         return self._make_request("POST", "/connections", json_data=connection_payload)
     
     # ==================== Git Integration Operations ====================
-    
+
+    def get_git_credentials(self, workspace_id: str) -> Dict:
+        """
+        Get the current user's (or SP's) Git credentials configuration.
+        
+        Endpoint: GET /v1/workspaces/{workspaceId}/git/myGitCredentials
+        
+        Returns the credential source: "Automatic", "ConfiguredConnection", or "None".
+        
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/git/get-my-git-credentials
+        """
+        logger.info(f"Getting Git credentials for workspace {workspace_id}")
+        return self._make_request("GET", f"/workspaces/{workspace_id}/git/myGitCredentials")
+
+    def update_git_credentials(self, workspace_id: str, source: str, connection_id: str = None) -> Dict:
+        """
+        Update the user's (or SP's) Git credentials configuration.
+        
+        Endpoint: PATCH /v1/workspaces/{workspaceId}/git/myGitCredentials
+        
+        For Service Principals, only "ConfiguredConnection" or "None" are supported.
+        "Automatic" is blocked for SPs.
+        
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/git/update-my-git-credentials
+        
+        Args:
+            workspace_id: Workspace GUID
+            source: "Automatic", "ConfiguredConnection", or "None"
+            connection_id: Required when source is "ConfiguredConnection"
+            
+        Returns:
+            Updated credentials configuration
+        """
+        logger.info(f"Updating Git credentials for workspace {workspace_id} (source: {source})")
+        
+        payload = {"source": source}
+        if source == "ConfiguredConnection" and connection_id:
+            payload["connectionId"] = connection_id
+        
+        url = f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/git/myGitCredentials"
+        headers = self.auth.get_auth_headers()
+        
+        try:
+            response = requests.patch(url, headers=headers, json=payload, timeout=60)
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"  ✓ Git credentials updated: source={result.get('source')}")
+            return result
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP Error updating Git credentials: {e.response.status_code} - {e.response.text}")
+            raise
+
     def get_git_status(self, workspace_id: str) -> Dict:
         """
         Get the Git sync status of a workspace.

@@ -187,6 +187,9 @@
       }
     ]
   },
+  "paginated_reports": {
+    "owner": ""
+  },
   "git_integration": {
     "auto_update_from_git": true,
     "conflict_resolution_policy": "PreferRemote",

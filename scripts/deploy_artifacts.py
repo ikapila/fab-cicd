@@ -430,6 +430,12 @@ class FabricDeployer:
         logger.info("Checking for pending Git updates in workspace...")
         
         try:
+            # Step 0: Ensure Git credentials are configured for the SP
+            # SPs don't have automatic Git credentials — they need a configured
+            # connection (Azure DevOps PAT or similar) to access the Git provider.
+            # Without this, git/status returns GitCredentialsNotConfigured.
+            self._ensure_git_credentials()
+            
             # Step 1: Get the current Git status
             status = self.client.get_git_status(self.workspace_id)
             
@@ -497,11 +503,79 @@ class FabricDeployer:
                 logger.warning("  ⚠ Service principal is not supported for Git operations on some item types")
                 logger.warning("    Update source control manually in Fabric portal")
                 return False
+            elif "GitCredentialsNotConfigured" in error_msg:
+                logger.warning("  ⚠ Git credentials are not configured for the service principal")
+                logger.warning("    Set git_integration.git_credentials_connection_id in config")
+                logger.warning("    See: https://learn.microsoft.com/en-us/fabric/cicd/git-integration/git-automation#get-or-create-git-provider-credentials-connection")
+                return False
             else:
                 logger.warning(f"  ⚠ Source control sync failed: {e}")
                 logger.warning("    Update source control manually in Fabric portal")
                 return False
-    
+
+    def _ensure_git_credentials(self) -> None:
+        """
+        Ensure the SP's Git credentials are configured for the workspace.
+        
+        Service principals cannot use "Automatic" Git credentials (blocked by the API).
+        They must use "ConfiguredConnection" with a connection ID that provides access
+        to the Git provider (e.g., an Azure DevOps connection).
+        
+        Auto-discovery flow:
+          1. Check if credentials are already configured → skip if so
+          2. Look for git_integration.git_credentials_connection_id in config
+          3. If not in config, auto-discover by scanning the SP's connections
+             for an AzureDevOpsSourceControl type connection
+          4. Use the first matching connection to configure credentials
+        
+        See: https://learn.microsoft.com/en-us/fabric/cicd/git-integration/git-automation
+        """
+        try:
+            creds = self.client.get_git_credentials(self.workspace_id)
+            source = creds.get("source", "None")
+            
+            if source != "None":
+                logger.info(f"  Git credentials already configured (source: {source})")
+                return
+            
+            # Credentials are not configured — find a connection to use
+            logger.info("  Git credentials not configured for SP, auto-discovering...")
+            
+            # Option 1: Explicit connection ID in config
+            git_config = self.config.config.get("git_integration", {})
+            connection_id = git_config.get("git_credentials_connection_id", "")
+            
+            # Option 2: Auto-discover AzureDevOps connection from SP's connections
+            if not connection_id:
+                try:
+                    connections = self.client.list_connections()
+                    ado_connections = [
+                        c for c in connections
+                        if c.get("connectionDetails", {}).get("type", "") == "AzureDevOpsSourceControl"
+                    ]
+                    if ado_connections:
+                        connection_id = ado_connections[0]["id"]
+                        conn_name = ado_connections[0].get("displayName", "unknown")
+                        logger.info(f"  Auto-discovered Azure DevOps connection: '{conn_name}' (ID: {connection_id})")
+                    else:
+                        logger.warning("  ⚠ No AzureDevOpsSourceControl connection found")
+                        logger.warning("    Create one via Fabric portal or API, or set git_credentials_connection_id in config")
+                        return
+                except Exception as disc_err:
+                    logger.warning(f"  ⚠ Could not auto-discover Git connection: {disc_err}")
+                    return
+            
+            logger.info(f"  Configuring Git credentials with connection: {connection_id}")
+            self.client.update_git_credentials(
+                self.workspace_id,
+                source="ConfiguredConnection",
+                connection_id=connection_id
+            )
+            logger.info("  ✓ Git credentials configured successfully")
+            
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not check/configure Git credentials: {e}")
+
     def _save_deployment_state(self) -> None:
         """
         Save the current deployment state (commit hash)
@@ -3788,6 +3862,17 @@ print('Notebook initialized')
             # The RDL <ConnectString> was already transformed above to point to the
             # correct server/database. The PersonalCloud connection handles auth.
             logger.info(f"  ℹ Paginated report uses auto-created PersonalCloud connection (OAuth2) — no credential config needed")
+            
+            # Log ownership note if a preferred owner is configured
+            paginated_config = self.config.config.get("paginated_reports", {})
+            preferred_owner = paginated_config.get("owner", "")
+            if preferred_owner:
+                logger.info(f"  ℹ Report is owned by the service principal.")
+                logger.info(f"    To transfer ownership to '{preferred_owner}':")
+                logger.info(f"    → Fabric portal > Settings > Reports > '{name}' > Take over")
+                logger.info(f"    The PersonalCloud connection will continue to work under the new owner.")
+            else:
+                logger.info(f"  ℹ Report is owned by the service principal (connection works as-is)")
     
     def _configure_paginated_report_credentials(self, report_name: str, report_id: str) -> None:
         """

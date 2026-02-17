@@ -188,6 +188,9 @@
       }
     ]
   },
+  "paginated_reports": {
+    "owner": "adminkl"
+  },
   "git_integration": {
     "auto_update_from_git": false,
     "conflict_resolution_policy": "PreferRemote",

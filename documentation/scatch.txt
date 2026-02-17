@@ -1,198 +1,208 @@
-2026-02-17T12:44:22.4599364Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2026-02-17T12:44:22.4607744Z ==============================================================================
-2026-02-17T12:44:22.4607932Z Task         : Command line
-2026-02-17T12:44:22.4608066Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-02-17T12:44:22.4608242Z Version      : 2.268.0
-2026-02-17T12:44:22.4608360Z Author       : Microsoft Corporation
-2026-02-17T12:44:22.4608482Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-02-17T12:44:22.4608949Z ==============================================================================
-2026-02-17T12:44:22.6058812Z Generating script.
-2026-02-17T12:44:22.6065774Z ========================== Starting Command Output ===========================
-2026-02-17T12:44:22.6082599Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/acc52814-88d9-49e3-a381-7a57895b9a90.sh
-2026-02-17T12:44:22.6146756Z ========================================
-2026-02-17T12:44:22.6149732Z DEBUG: Verifying Repository Checkout
-2026-02-17T12:44:22.6150112Z ========================================
-2026-02-17T12:44:22.6150412Z Current directory: /home/vsts/work/1/s
-2026-02-17T12:44:22.6150715Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-02-17T12:44:22.6150848Z 
-2026-02-17T12:44:22.6151115Z Contents of Build.SourcesDirectory:
-2026-02-17T12:44:22.6169333Z total 40
-2026-02-17T12:44:22.6169860Z drwxr-xr-x 8 vsts vsts 4096 Feb 17 12:43 .
-2026-02-17T12:44:22.6170199Z drwxr-xr-x 7 vsts vsts 4096 Feb 17 12:43 ..
-2026-02-17T12:44:22.6170546Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 12:43 .deployment_tracking
-2026-02-17T12:44:22.6170893Z drwxr-xr-x 7 vsts vsts 4096 Feb 17 12:43 .git
-2026-02-17T12:44:22.6171227Z -rw-r--r-- 1 vsts vsts   44 Feb 17 12:43 .gitignore
-2026-02-17T12:44:22.6171736Z -rw-r--r-- 1 vsts vsts  985 Feb 17 12:43 README.md
-2026-02-17T12:44:22.6172089Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 12:43 azure-pipelines
-2026-02-17T12:44:22.6172443Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 12:43 config
-2026-02-17T12:44:22.6172774Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 12:43 scripts
-2026-02-17T12:44:22.6173111Z drwxr-xr-x 8 vsts vsts 4096 Feb 17 12:43 wsartifacts
-2026-02-17T12:44:22.6181436Z 
-2026-02-17T12:44:22.6185449Z Checking for required folders:
-2026-02-17T12:44:22.6186888Z ✓ scripts/ exists
-2026-02-17T12:44:22.6187624Z ✓ config/ exists
-2026-02-17T12:44:22.6190498Z ✓ wsartifacts/ exists
-2026-02-17T12:44:22.6190820Z ========================================
-2026-02-17T12:44:22.6191139Z ========================================
-2026-02-17T12:44:22.6191437Z Deploying to Dev Environment
-2026-02-17T12:44:22.6191745Z ========================================
-2026-02-17T12:44:22.6192025Z Features:
-2026-02-17T12:44:22.6192466Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-02-17T12:44:22.6192892Z   📊 Dependency-aware deployment ordering
-2026-02-17T12:44:22.6193314Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-02-17T12:44:22.6193467Z 
-2026-02-17T12:44:22.6193720Z Deployment steps:
-2026-02-17T12:44:22.6193991Z   1. Create artifacts from config file
-2026-02-17T12:44:22.6194286Z   2. Detect changed artifacts using Git diff
-2026-02-17T12:44:22.6194610Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-02-17T12:44:22.6194940Z ========================================
-2026-02-17T12:44:23.5140366Z INFO:__main__:Initializing deployment to dev environment
-2026-02-17T12:44:23.5141428Z INFO:config_manager:Loading configuration from: config/dev.json
-2026-02-17T12:44:23.5142038Z INFO:__main__:Using environment-specific service principal for dev
-2026-02-17T12:44:23.5142612Z INFO:fabric_auth:Using environment-specific secret from: AZURE_CLIENT_SECRET_DEV
-2026-02-17T12:44:23.5143209Z INFO:__main__:Using artifacts root folder: wsartifacts
-2026-02-17T12:44:23.5144835Z INFO:fabric_auth:Using Service Principal authentication (Client ID: 0c296168-ffc5-447a-83bc-bdaf8979d8da)
-2026-02-17T12:44:23.5156403Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/v2.0/.well-known/openid-configuration'
-2026-02-17T12:44:23.5157922Z Request method: 'GET'
-2026-02-17T12:44:23.5160023Z Request headers:
-2026-02-17T12:44:23.5161785Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.14.0-1017-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2026-02-17T12:44:23.5162217Z No body was attached to the request
-2026-02-17T12:44:23.5982170Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2026-02-17T12:44:23.5983170Z Response headers:
-2026-02-17T12:44:23.5984884Z     'Cache-Control': 'max-age=86400, private'
-2026-02-17T12:44:23.5985211Z     'Content-Type': 'application/json; charset=utf-8'
-2026-02-17T12:44:23.5985520Z     'Strict-Transport-Security': 'REDACTED'
-2026-02-17T12:44:23.5985824Z     'X-Content-Type-Options': 'REDACTED'
-2026-02-17T12:44:23.5986134Z     'Access-Control-Allow-Origin': 'REDACTED'
-2026-02-17T12:44:23.5986456Z     'Access-Control-Allow-Methods': 'REDACTED'
-2026-02-17T12:44:23.5986733Z     'P3P': 'REDACTED'
-2026-02-17T12:44:23.5987035Z     'x-ms-request-id': '37230127-1cf9-40e7-a371-dc68ca2e3100'
-2026-02-17T12:44:23.5987352Z     'x-ms-ests-server': 'REDACTED'
-2026-02-17T12:44:23.5987622Z     'x-ms-srs': 'REDACTED'
-2026-02-17T12:44:23.5987912Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2026-02-17T12:44:23.5988206Z     'X-XSS-Protection': 'REDACTED'
-2026-02-17T12:44:23.5988367Z     'Set-Cookie': 'REDACTED'
-2026-02-17T12:44:23.5988537Z     'Date': 'Tue, 17 Feb 2026 12:44:22 GMT'
-2026-02-17T12:44:23.5989001Z     'Content-Length': '1964'
-2026-02-17T12:44:23.6685436Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
-2026-02-17T12:44:23.6686381Z Request method: 'POST'
-2026-02-17T12:44:23.6688010Z Request headers:
-2026-02-17T12:44:23.6688338Z     'Content-Type': 'application/x-www-form-urlencoded'
-2026-02-17T12:44:23.6688926Z     'Accept': 'application/json'
-2026-02-17T12:44:23.6689238Z     'x-client-sku': 'REDACTED'
-2026-02-17T12:44:23.6689525Z     'x-client-ver': 'REDACTED'
-2026-02-17T12:44:23.6690044Z     'x-client-os': 'REDACTED'
-2026-02-17T12:44:23.6690341Z     'x-ms-lib-capability': 'REDACTED'
-2026-02-17T12:44:23.6690653Z     'client-request-id': 'REDACTED'
-2026-02-17T12:44:23.6690954Z     'x-client-current-telemetry': 'REDACTED'
-2026-02-17T12:44:23.6691256Z     'x-client-last-telemetry': 'REDACTED'
-2026-02-17T12:44:23.6691690Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.14.0-1017-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2026-02-17T12:44:23.6692128Z A body is sent with the request
-2026-02-17T12:44:23.7339350Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2026-02-17T12:44:23.7341512Z Response headers:
-2026-02-17T12:44:23.7342083Z     'Cache-Control': 'no-store, no-cache'
-2026-02-17T12:44:23.7342689Z     'Pragma': 'no-cache'
-2026-02-17T12:44:23.7344532Z     'Content-Type': 'application/json; charset=utf-8'
-2026-02-17T12:44:23.7345621Z     'Expires': '-1'
-2026-02-17T12:44:23.7346354Z     'Strict-Transport-Security': 'REDACTED'
-2026-02-17T12:44:23.7346981Z     'X-Content-Type-Options': 'REDACTED'
-2026-02-17T12:44:23.7347461Z     'P3P': 'REDACTED'
-2026-02-17T12:44:23.7347954Z     'client-request-id': 'REDACTED'
-2026-02-17T12:44:23.7348564Z     'x-ms-request-id': 'd3a9005f-d3c7-44e2-bbda-e688bae41500'
-2026-02-17T12:44:23.7349722Z     'x-ms-ests-server': 'REDACTED'
-2026-02-17T12:44:23.7350564Z     'x-ms-clitelem': 'REDACTED'
-2026-02-17T12:44:23.7351224Z     'x-ms-srs': 'REDACTED'
-2026-02-17T12:44:23.7358024Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2026-02-17T12:44:23.7358364Z     'X-XSS-Protection': 'REDACTED'
-2026-02-17T12:44:23.7364411Z     'Set-Cookie': 'REDACTED'
-2026-02-17T12:44:23.7364768Z     'Date': 'Tue, 17 Feb 2026 12:44:23 GMT'
-2026-02-17T12:44:23.7365372Z     'Content-Length': '1701'
-2026-02-17T12:44:23.7365724Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
-2026-02-17T12:44:23.7366102Z INFO:fabric_auth:Successfully obtained access token
-2026-02-17T12:44:23.9060712Z INFO:fabric_auth:Authentication validation successful
-2026-02-17T12:44:23.9070752Z INFO:__main__:Target workspace: AAG-SIT-FWS-ENGINEERING-01 (d7faf1fa-0e7e-4061-b3e5-50fa3873eb64)
-2026-02-17T12:44:23.9073098Z INFO:__main__:Running in artifact creation mode
-2026-02-17T12:44:23.9073910Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9074489Z INFO:__main__:Creating artifacts from configuration for dev
-2026-02-17T12:44:23.9075218Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9075796Z INFO:__main__:No artifacts configured for creation
-2026-02-17T12:44:23.9076166Z INFO:__main__:Artifact creation completed successfully
-2026-02-17T12:44:23.9076999Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9077703Z INFO:__main__:ARTIFACT DISCOVERY PHASE
-2026-02-17T12:44:23.9078326Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9079001Z INFO:__main__:Discovering artifacts from file system...
-2026-02-17T12:44:23.9086158Z INFO:__main__:Discovered 1 lakehouse(s): ReportingLakehouse
-2026-02-17T12:44:23.9098920Z INFO:__main__:Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
-2026-02-17T12:44:23.9100809Z INFO:__main__:Discovered 1 Variable Library: ReportingVariables
-2026-02-17T12:44:23.9104695Z INFO:__main__:Discovered 2 semantic model(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
-2026-02-17T12:44:23.9110944Z INFO:__main__:Discovered 2 report(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
-2026-02-17T12:44:23.9115494Z INFO:__main__:Discovered 1 paginated report(s): Aged Debtors (Fabric Git)
-2026-02-17T12:44:23.9118523Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9120216Z INFO:__main__:DISCOVERY COMPLETE: Found 17 total artifacts
-2026-02-17T12:44:23.9121036Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9122103Z INFO:__main__:
-2026-02-17T12:44:23.9123120Z ============================================================
-2026-02-17T12:44:23.9130374Z INFO:__main__:CHANGE DETECTION
-2026-02-17T12:44:23.9130998Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9196872Z INFO:change_detector:Found 5 changed file(s) since d2b183a2
-2026-02-17T12:44:23.9199656Z INFO:change_detector:Change detection: 2 artifact(s) changed
-2026-02-17T12:44:23.9200039Z INFO:change_detector:  PaginatedReport: Aged Debtors
-2026-02-17T12:44:23.9200382Z INFO:change_detector:  Report: Finance Summary
-2026-02-17T12:44:23.9200773Z INFO:__main__:Including semantic model 'Finance Summary' (report 'Finance Summary' changed)
-2026-02-17T12:44:23.9201165Z INFO:__main__:Changed artifacts: 3
-2026-02-17T12:44:23.9202746Z INFO:__main__:  PaginatedReport: Aged Debtors
-2026-02-17T12:44:23.9203405Z INFO:__main__:  Report: Finance Summary
-2026-02-17T12:44:23.9203969Z INFO:__main__:  SemanticModel: Finance Summary
-2026-02-17T12:44:23.9209529Z INFO:__main__:Skipped (unchanged): 14
-2026-02-17T12:44:23.9209953Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9210342Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9210700Z INFO:__main__:Starting deployment to dev environment
-2026-02-17T12:44:23.9211060Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9211707Z INFO:dependency_resolver:✅ All dependencies are valid
-2026-02-17T12:44:23.9212059Z INFO:dependency_resolver:Deployment order determined:
-2026-02-17T12:44:23.9212401Z INFO:dependency_resolver:  1. Finance Summary (SemanticModel)
-2026-02-17T12:44:23.9212933Z INFO:dependency_resolver:  2. Finance Summary (Report)
-2026-02-17T12:44:23.9213265Z INFO:dependency_resolver:  3. Aged Debtors (PaginatedReport)
-2026-02-17T12:44:23.9213558Z INFO:__main__:
-2026-02-17T12:44:23.9213826Z --- Deploying 3 artifact(s) ---
-2026-02-17T12:44:23.9214107Z INFO:__main__:
-2026-02-17T12:44:23.9214386Z Deploying: Finance Summary (SemanticModel)
-2026-02-17T12:44:23.9214883Z INFO:__main__:  ⏭ Skipping 'Finance Summary' — synced from Git via source control update
-2026-02-17T12:44:23.9215331Z INFO:__main__:✅ Successfully deployed: Finance Summary
-2026-02-17T12:44:23.9215632Z INFO:__main__:
-2026-02-17T12:44:23.9215917Z Deploying: Finance Summary (Report)
-2026-02-17T12:44:23.9216439Z INFO:__main__:  ⏭ Skipping 'Finance Summary' — synced from Git via source control update
-2026-02-17T12:44:23.9216916Z INFO:__main__:✅ Successfully deployed: Finance Summary
-2026-02-17T12:44:23.9217221Z INFO:__main__:
-2026-02-17T12:44:23.9217497Z Deploying: Aged Debtors (PaginatedReport)
-2026-02-17T12:44:23.9217993Z INFO:__main__:  ⏭ Skipping 'Aged Debtors' — synced from Git via source control update
-2026-02-17T12:44:23.9218427Z INFO:__main__:✅ Successfully deployed: Aged Debtors
-2026-02-17T12:44:23.9219019Z INFO:__main__:
-2026-02-17T12:44:23.9219327Z ============================================================
-2026-02-17T12:44:23.9219646Z INFO:__main__:DEPLOYMENT SUMMARY
-2026-02-17T12:44:23.9219975Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9220258Z INFO:__main__:Total artifacts: 3
-2026-02-17T12:44:23.9220539Z INFO:__main__:Successful: 3
-2026-02-17T12:44:23.9220836Z INFO:__main__:Failed: 0
-2026-02-17T12:44:23.9221193Z INFO:__main__:============================================================
-2026-02-17T12:44:23.9237614Z INFO:change_detector:Saved deployment commit: 9df3ad10
-2026-02-17T12:44:23.9242877Z INFO:__main__:Saved deployment state: 9df3ad10
-2026-02-17T12:44:23.9244250Z INFO:__main__:
-2026-02-17T12:44:23.9244835Z ------------------------------------------------------------
-2026-02-17T12:44:23.9246116Z INFO:__main__:SOURCE CONTROL SYNC
-2026-02-17T12:44:23.9246766Z INFO:__main__:------------------------------------------------------------
-2026-02-17T12:44:23.9247829Z INFO:__main__:Checking for pending Git updates in workspace...
-2026-02-17T12:44:23.9249120Z INFO:fabric_client:Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-17T12:44:24.2732467Z INFO:__main__:  Git credentials not configured for SP, auto-discovering...
-2026-02-17T12:44:24.2735120Z INFO:fabric_client:Listing connections via Fabric Connections API
-2026-02-17T12:44:24.5056350Z INFO:fabric_client:  Retrieved 1 connections total
-2026-02-17T12:44:24.5060084Z WARNING:__main__:  ⚠ No AzureDevOpsSourceControl connection found
-2026-02-17T12:44:24.5060532Z WARNING:__main__:    Create one via Fabric portal or API, or set git_credentials_connection_id in config
-2026-02-17T12:44:24.5060968Z INFO:fabric_client:Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-17T12:44:24.8880221Z ERROR:fabric_client:HTTP Error: 400 - {"requestId":"879debda-93e6-41ea-bfdd-6434ca18f6b3","errorCode":"GitCredentialsNotConfigured","message":"The user's 'Git credentials are not configured."}
-2026-02-17T12:44:24.8883862Z WARNING:__main__:  ⚠ Source control sync failed: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/status
-2026-02-17T12:44:24.8884328Z WARNING:__main__:    Update source control manually in Fabric portal
-2026-02-17T12:44:24.9205516Z 
-2026-02-17T12:44:24.9206389Z ✓ Dev deployment completed successfully
-2026-02-17T12:44:24.9218330Z 
-2026-02-17T12:44:24.9284809Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2026-02-17T15:11:45.4052660Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-02-17T15:11:45.4062210Z ==============================================================================
+2026-02-17T15:11:45.4062453Z Task         : Command line
+2026-02-17T15:11:45.4062600Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-02-17T15:11:45.4062783Z Version      : 2.268.0
+2026-02-17T15:11:45.4062897Z Author       : Microsoft Corporation
+2026-02-17T15:11:45.4063022Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-02-17T15:11:45.4063192Z ==============================================================================
+2026-02-17T15:11:45.5418171Z Generating script.
+2026-02-17T15:11:45.5426531Z ========================== Starting Command Output ===========================
+2026-02-17T15:11:45.5444051Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/6d198332-28e2-4e43-a02b-44071062cc05.sh
+2026-02-17T15:11:45.5507992Z ========================================
+2026-02-17T15:11:45.5508730Z DEBUG: Verifying Repository Checkout
+2026-02-17T15:11:45.5509307Z ========================================
+2026-02-17T15:11:45.5509930Z Current directory: /home/vsts/work/1/s
+2026-02-17T15:11:45.5510427Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-02-17T15:11:45.5510823Z 
+2026-02-17T15:11:45.5511340Z Contents of Build.SourcesDirectory:
+2026-02-17T15:11:45.5527216Z total 40
+2026-02-17T15:11:45.5529555Z drwxr-xr-x 8 vsts vsts 4096 Feb 17 15:11 .
+2026-02-17T15:11:45.5530345Z drwxr-xr-x 7 vsts vsts 4096 Feb 17 15:11 ..
+2026-02-17T15:11:45.5531168Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 15:11 .deployment_tracking
+2026-02-17T15:11:45.5531696Z drwxr-xr-x 7 vsts vsts 4096 Feb 17 15:11 .git
+2026-02-17T15:11:45.5532052Z -rw-r--r-- 1 vsts vsts   44 Feb 17 15:11 .gitignore
+2026-02-17T15:11:45.5532386Z -rw-r--r-- 1 vsts vsts  985 Feb 17 15:11 README.md
+2026-02-17T15:11:45.5532736Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 15:11 azure-pipelines
+2026-02-17T15:11:45.5542413Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 15:11 config
+2026-02-17T15:11:45.5542763Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 15:11 scripts
+2026-02-17T15:11:45.5543108Z drwxr-xr-x 8 vsts vsts 4096 Feb 17 15:11 wsartifacts
+2026-02-17T15:11:45.5543495Z 
+2026-02-17T15:11:45.5543788Z Checking for required folders:
+2026-02-17T15:11:45.5544323Z ✓ scripts/ exists
+2026-02-17T15:11:45.5544631Z ✓ config/ exists
+2026-02-17T15:11:45.5545008Z ✓ wsartifacts/ exists
+2026-02-17T15:11:45.5545316Z ========================================
+2026-02-17T15:11:45.5545630Z ========================================
+2026-02-17T15:11:45.5545912Z Deploying to Dev Environment
+2026-02-17T15:11:45.5546199Z ========================================
+2026-02-17T15:11:45.5546465Z Features:
+2026-02-17T15:11:45.5546991Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-02-17T15:11:45.5547446Z   📊 Dependency-aware deployment ordering
+2026-02-17T15:11:45.5548683Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-02-17T15:11:45.5548851Z 
+2026-02-17T15:11:45.5549113Z Deployment steps:
+2026-02-17T15:11:45.5549390Z   1. Create artifacts from config file
+2026-02-17T15:11:45.5549702Z   2. Detect changed artifacts using Git diff
+2026-02-17T15:11:45.5550036Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-02-17T15:11:45.5550355Z ========================================
+2026-02-17T15:11:46.0814366Z INFO:__main__:Initializing deployment to dev environment
+2026-02-17T15:11:46.0815330Z INFO:config_manager:Loading configuration from: config/dev.json
+2026-02-17T15:11:46.0816179Z INFO:__main__:Using environment-specific service principal for dev
+2026-02-17T15:11:46.0817002Z INFO:fabric_auth:Using environment-specific secret from: AZURE_CLIENT_SECRET_DEV
+2026-02-17T15:11:46.0817849Z INFO:__main__:Using artifacts root folder: wsartifacts
+2026-02-17T15:11:46.0818588Z INFO:fabric_auth:Using Service Principal authentication (Client ID: 0c296168-ffc5-447a-83bc-bdaf8979d8da)
+2026-02-17T15:11:46.0828662Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/v2.0/.well-known/openid-configuration'
+2026-02-17T15:11:46.0829836Z Request method: 'GET'
+2026-02-17T15:11:46.0831741Z Request headers:
+2026-02-17T15:11:46.0832183Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.14.0-1017-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
+2026-02-17T15:11:46.0832624Z No body was attached to the request
+2026-02-17T15:11:46.1865956Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
+2026-02-17T15:11:46.1866577Z Response headers:
+2026-02-17T15:11:46.1866863Z     'Cache-Control': 'max-age=86400, private'
+2026-02-17T15:11:46.1867173Z     'Content-Type': 'application/json; charset=utf-8'
+2026-02-17T15:11:46.1867495Z     'Strict-Transport-Security': 'REDACTED'
+2026-02-17T15:11:46.1868069Z     'X-Content-Type-Options': 'REDACTED'
+2026-02-17T15:11:46.1868382Z     'Access-Control-Allow-Origin': 'REDACTED'
+2026-02-17T15:11:46.1868700Z     'Access-Control-Allow-Methods': 'REDACTED'
+2026-02-17T15:11:46.1868983Z     'P3P': 'REDACTED'
+2026-02-17T15:11:46.1869282Z     'x-ms-request-id': 'bc154934-66f5-4a80-9c1c-dadbf0964000'
+2026-02-17T15:11:46.1869630Z     'x-ms-ests-server': 'REDACTED'
+2026-02-17T15:11:46.1869907Z     'x-ms-srs': 'REDACTED'
+2026-02-17T15:11:46.1870193Z     'Content-Security-Policy-Report-Only': 'REDACTED'
+2026-02-17T15:11:46.1870485Z     'X-XSS-Protection': 'REDACTED'
+2026-02-17T15:11:46.1870761Z     'Set-Cookie': 'REDACTED'
+2026-02-17T15:11:46.1871056Z     'Date': 'Tue, 17 Feb 2026 15:11:45 GMT'
+2026-02-17T15:11:46.1871342Z     'Content-Length': '1964'
+2026-02-17T15:11:46.2553672Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
+2026-02-17T15:11:46.2554149Z Request method: 'POST'
+2026-02-17T15:11:46.2554432Z Request headers:
+2026-02-17T15:11:46.2554740Z     'Content-Type': 'application/x-www-form-urlencoded'
+2026-02-17T15:11:46.2555093Z     'Accept': 'application/json'
+2026-02-17T15:11:46.2555392Z     'x-client-sku': 'REDACTED'
+2026-02-17T15:11:46.2555678Z     'x-client-ver': 'REDACTED'
+2026-02-17T15:11:46.2556171Z     'x-client-os': 'REDACTED'
+2026-02-17T15:11:46.2556461Z     'x-ms-lib-capability': 'REDACTED'
+2026-02-17T15:11:46.2556763Z     'client-request-id': 'REDACTED'
+2026-02-17T15:11:46.2557065Z     'x-client-current-telemetry': 'REDACTED'
+2026-02-17T15:11:46.2557364Z     'x-client-last-telemetry': 'REDACTED'
+2026-02-17T15:11:46.2558070Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.14.0-1017-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
+2026-02-17T15:11:46.2558499Z A body is sent with the request
+2026-02-17T15:11:46.3427946Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
+2026-02-17T15:11:46.3430799Z Response headers:
+2026-02-17T15:11:46.3431131Z     'Cache-Control': 'no-store, no-cache'
+2026-02-17T15:11:46.3431985Z     'Pragma': 'no-cache'
+2026-02-17T15:11:46.3432342Z     'Content-Type': 'application/json; charset=utf-8'
+2026-02-17T15:11:46.3432668Z     'Expires': '-1'
+2026-02-17T15:11:46.3432953Z     'Strict-Transport-Security': 'REDACTED'
+2026-02-17T15:11:46.3433330Z     'X-Content-Type-Options': 'REDACTED'
+2026-02-17T15:11:46.3433646Z     'P3P': 'REDACTED'
+2026-02-17T15:11:46.3433924Z     'client-request-id': 'REDACTED'
+2026-02-17T15:11:46.3434292Z     'x-ms-request-id': '5f3064d6-8d60-4f8a-8768-544f1af52d00'
+2026-02-17T15:11:46.3434671Z     'x-ms-ests-server': 'REDACTED'
+2026-02-17T15:11:46.3434984Z     'x-ms-clitelem': 'REDACTED'
+2026-02-17T15:11:46.3435288Z     'x-ms-srs': 'REDACTED'
+2026-02-17T15:11:46.3435598Z     'Content-Security-Policy-Report-Only': 'REDACTED'
+2026-02-17T15:11:46.3435905Z     'X-XSS-Protection': 'REDACTED'
+2026-02-17T15:11:46.3436184Z     'Set-Cookie': 'REDACTED'
+2026-02-17T15:11:46.3436477Z     'Date': 'Tue, 17 Feb 2026 15:11:45 GMT'
+2026-02-17T15:11:46.3437070Z     'Content-Length': '1704'
+2026-02-17T15:11:46.3438294Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
+2026-02-17T15:11:46.3441389Z INFO:fabric_auth:Successfully obtained access token
+2026-02-17T15:11:46.5080560Z INFO:fabric_auth:Authentication validation successful
+2026-02-17T15:11:46.5089674Z INFO:__main__:Target workspace: AAG-SIT-FWS-ENGINEERING-01 (d7faf1fa-0e7e-4061-b3e5-50fa3873eb64)
+2026-02-17T15:11:46.5091760Z INFO:__main__:Running in artifact creation mode
+2026-02-17T15:11:46.5092633Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5093346Z INFO:__main__:Creating artifacts from configuration for dev
+2026-02-17T15:11:46.5093740Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5094101Z INFO:__main__:No artifacts configured for creation
+2026-02-17T15:11:46.5095064Z INFO:__main__:Artifact creation completed successfully
+2026-02-17T15:11:46.5095435Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5095797Z INFO:__main__:ARTIFACT DISCOVERY PHASE
+2026-02-17T15:11:46.5096154Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5096516Z INFO:__main__:Discovering artifacts from file system...
+2026-02-17T15:11:46.5106071Z INFO:__main__:Discovered 1 lakehouse(s): ReportingLakehouse
+2026-02-17T15:11:46.5117874Z INFO:__main__:Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
+2026-02-17T15:11:46.5121616Z INFO:__main__:Discovered 1 Variable Library: ReportingVariables
+2026-02-17T15:11:46.5124304Z INFO:__main__:Discovered 2 semantic model(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
+2026-02-17T15:11:46.5131064Z INFO:__main__:Discovered 2 report(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
+2026-02-17T15:11:46.5136252Z INFO:__main__:Discovered 1 paginated report(s): Aged Debtors (Fabric Git)
+2026-02-17T15:11:46.5138597Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5139513Z INFO:__main__:DISCOVERY COMPLETE: Found 17 total artifacts
+2026-02-17T15:11:46.5140129Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5141015Z INFO:__main__:
+2026-02-17T15:11:46.5141497Z ============================================================
+2026-02-17T15:11:46.5141823Z INFO:__main__:CHANGE DETECTION
+2026-02-17T15:11:46.5142165Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5205415Z INFO:change_detector:Found 3 changed file(s) since 940f2dde
+2026-02-17T15:11:46.5208301Z INFO:change_detector:Change detection: 2 artifact(s) changed
+2026-02-17T15:11:46.5208686Z INFO:change_detector:  PaginatedReport: Aged Debtors
+2026-02-17T15:11:46.5209006Z INFO:change_detector:  Report: Finance Summary
+2026-02-17T15:11:46.5212345Z INFO:__main__:Including semantic model 'Finance Summary' (report 'Finance Summary' changed)
+2026-02-17T15:11:46.5215670Z INFO:__main__:Changed artifacts: 3
+2026-02-17T15:11:46.5216020Z INFO:__main__:  PaginatedReport: Aged Debtors
+2026-02-17T15:11:46.5216353Z INFO:__main__:  Report: Finance Summary
+2026-02-17T15:11:46.5216698Z INFO:__main__:  SemanticModel: Finance Summary
+2026-02-17T15:11:46.5218410Z INFO:__main__:Skipped (unchanged): 14
+2026-02-17T15:11:46.5219099Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5221116Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5221836Z INFO:__main__:Starting deployment to dev environment
+2026-02-17T15:11:46.5222215Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5222830Z INFO:dependency_resolver:✅ All dependencies are valid
+2026-02-17T15:11:46.5223180Z INFO:dependency_resolver:Deployment order determined:
+2026-02-17T15:11:46.5223599Z INFO:dependency_resolver:  1. Finance Summary (SemanticModel)
+2026-02-17T15:11:46.5224181Z INFO:dependency_resolver:  2. Finance Summary (Report)
+2026-02-17T15:11:46.5224543Z INFO:dependency_resolver:  3. Aged Debtors (PaginatedReport)
+2026-02-17T15:11:46.5224845Z INFO:__main__:
+2026-02-17T15:11:46.5225123Z --- Deploying 3 artifact(s) ---
+2026-02-17T15:11:46.5225389Z INFO:__main__:
+2026-02-17T15:11:46.5225680Z Deploying: Finance Summary (SemanticModel)
+2026-02-17T15:11:46.5226213Z INFO:__main__:  ⏭ Skipping 'Finance Summary' — synced from Git via source control update
+2026-02-17T15:11:46.5226685Z INFO:__main__:✅ Successfully deployed: Finance Summary
+2026-02-17T15:11:46.5226977Z INFO:__main__:
+2026-02-17T15:11:46.5227249Z Deploying: Finance Summary (Report)
+2026-02-17T15:11:46.5227956Z INFO:__main__:  ⏭ Skipping 'Finance Summary' — synced from Git via source control update
+2026-02-17T15:11:46.5228488Z INFO:__main__:✅ Successfully deployed: Finance Summary
+2026-02-17T15:11:46.5228810Z INFO:__main__:
+2026-02-17T15:11:46.5229106Z Deploying: Aged Debtors (PaginatedReport)
+2026-02-17T15:11:46.5229618Z INFO:__main__:  ⏭ Skipping 'Aged Debtors' — synced from Git via source control update
+2026-02-17T15:11:46.5230116Z INFO:__main__:✅ Successfully deployed: Aged Debtors
+2026-02-17T15:11:46.5230433Z INFO:__main__:
+2026-02-17T15:11:46.5230763Z ============================================================
+2026-02-17T15:11:46.5231114Z INFO:__main__:DEPLOYMENT SUMMARY
+2026-02-17T15:11:46.5236485Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5239911Z INFO:__main__:Total artifacts: 3
+2026-02-17T15:11:46.5240229Z INFO:__main__:Successful: 3
+2026-02-17T15:11:46.5241603Z INFO:__main__:Failed: 0
+2026-02-17T15:11:46.5242341Z INFO:__main__:============================================================
+2026-02-17T15:11:46.5256552Z INFO:change_detector:Saved deployment commit: 2f0238bb
+2026-02-17T15:11:46.5256909Z INFO:__main__:Saved deployment state: 2f0238bb
+2026-02-17T15:11:46.5257205Z INFO:__main__:
+2026-02-17T15:11:46.5257509Z ------------------------------------------------------------
+2026-02-17T15:11:46.5258211Z INFO:__main__:SOURCE CONTROL SYNC
+2026-02-17T15:11:46.5258554Z INFO:__main__:------------------------------------------------------------
+2026-02-17T15:11:46.5258921Z INFO:__main__:Checking for pending Git updates in workspace...
+2026-02-17T15:11:46.5259496Z INFO:fabric_client:Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-17T15:11:46.7949520Z INFO:__main__:  Git credentials not configured for SP, resolving...
+2026-02-17T15:11:46.7950379Z INFO:fabric_client:Listing connections via Fabric Connections API
+2026-02-17T15:11:46.9874087Z INFO:fabric_client:  Retrieved 2 connections total
+2026-02-17T15:11:46.9876725Z INFO:__main__:  Found existing Azure DevOps connection: 'GIT-AAG-SIT-FWS-ENGINEERING-01' (ID: 69ef90e4-66a9-42c1-a160-a74b23032356)
+2026-02-17T15:11:46.9878176Z INFO:__main__:  Configuring Git credentials with connection: 69ef90e4-66a9-42c1-a160-a74b23032356
+2026-02-17T15:11:46.9879210Z INFO:fabric_client:Updating Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64 (source: ConfiguredConnection)
+2026-02-17T15:11:48.8622776Z INFO:fabric_client:  ✓ Git credentials updated: source=ConfiguredConnection
+2026-02-17T15:11:48.8632481Z INFO:__main__:  ✓ Git credentials configured successfully
+2026-02-17T15:11:48.8634283Z INFO:fabric_client:Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-17T15:11:52.5123278Z INFO:__main__:  Workspace head:   4d48f5f14d16...
+2026-02-17T15:11:52.5126527Z INFO:__main__:  Remote commit:    2f0238bbbfcf...
+2026-02-17T15:11:52.5127179Z INFO:__main__:  📦 2 update(s) available from Git:
+2026-02-17T15:11:52.5127520Z INFO:__main__:    - Aged Debtors (rdlreport): Modified
+2026-02-17T15:11:52.5128089Z INFO:__main__:    - Finance Summary (report): Modified
+2026-02-17T15:11:52.5128436Z INFO:__main__:  Updating workspace from Git (policy: PreferRemote)...
+2026-02-17T15:11:52.5128863Z INFO:fabric_client:Updating workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64 from Git (commit: 2f0238bbbfcf...)
+2026-02-17T15:11:54.9836837Z ERROR:fabric_client:HTTP Error: 400 - {"requestId":"bc0aac80-0dc1-4ce7-8161-5544045d2595","errorCode":"BadRequest","moreDetails":[{"errorCode":"PrincipalTypeNotSupported","message":"The operation is not supported for the principal type","relatedResource":{"resourceType":"PaginatedReport"}}],"message":"The request could not be processed due to missing or invalid information"}
+2026-02-17T15:11:54.9841571Z WARNING:__main__:  ⚠ Source control sync failed: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/updateFromGit
+2026-02-17T15:11:54.9842475Z WARNING:__main__:    Update source control manually in Fabric portal
+2026-02-17T15:11:55.0164426Z 
+2026-02-17T15:11:55.0165513Z ✓ Dev deployment completed successfully
+2026-02-17T15:11:55.0173913Z 
+2026-02-17T15:11:55.0247783Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

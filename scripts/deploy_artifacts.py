@@ -661,32 +661,20 @@ class FabricDeployer:
         Post-Git-sync processing for paginated reports.
         
         After updateFromGit has landed the RDL definitions in the workspace,
-        run TakeOver + UpdateDatasources on each paginated report so the
-        connection string points to the correct server/database for this
-        environment.
+        configure the connection for each paginated report:
+        
+        - If ``paginated_report_connection`` is set, bind to a pre-created
+          ShareableCloud connection (preferred — avoids PersonalCloud issues).
+        - Otherwise fall back to TakeOver + UpdateDatasources to fix the
+          server/database for this environment.
         
         Called from deploy_all() after _update_source_control() completes.
         """
         import re
         
         logger.info("\n" + "-"*60)
-        logger.info("POST-GIT-SYNC: PAGINATED REPORT DATASOURCE UPDATE")
+        logger.info("POST-GIT-SYNC: PAGINATED REPORT CONNECTION CONFIGURATION")
         logger.info("-"*60)
-        
-        sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
-        if not sql_connection_string:
-            logger.info("  ℹ No sql_connection_string configured — skipping post-sync datasource update")
-            return
-        
-        server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
-        database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
-        
-        if not server_match:
-            logger.info("  ℹ Could not parse server from sql_connection_string — skipping")
-            return
-        
-        new_server = server_match.group(1)
-        new_database = database_match.group(1) if database_match else "reporting_gold"
         
         # List paginated reports in the workspace to resolve IDs
         existing_reports = self.client.list_paginated_reports(self.workspace_id)
@@ -705,42 +693,9 @@ class FabricDeployer:
             report_id = report_match["id"]
             logger.info(f"  Processing '{name}' (ID: {report_id})")
             
-            # Parse datasource names from the local RDL XML
-            ds_names = re.findall(r'<DataSource\s+Name="([^"]+)"', rdl_content) if rdl_content else []
-            
-            if not ds_names:
-                logger.info(f"    ℹ No <DataSource Name=\"...\"> elements found in RDL — skipping")
-                continue
-            
-            logger.info(f"    Found {len(ds_names)} data source(s) in RDL: {', '.join(ds_names)}")
-            
-            try:
-                # TakeOver — SP becomes data source owner so it can call UpdateDatasources
-                self.client.take_over_paginated_report(self.workspace_id, report_id)
-                
-                # UpdateDatasources — set the correct server/database for this environment
-                update_details = []
-                for ds_name in ds_names:
-                    update_details.append({
-                        "datasourceName": ds_name,
-                        "connectionDetails": {
-                            "server": new_server,
-                            "database": new_database
-                        }
-                    })
-                    logger.info(f"    Updating datasource '{ds_name}' → server='{new_server}', database='{new_database}'")
-                
-                success = self.client.update_paginated_report_datasources(
-                    self.workspace_id, report_id, update_details
-                )
-                
-                if success:
-                    logger.info(f"  ✓ Updated data sources for '{name}'")
-                else:
-                    logger.warning(f"  ⚠ UpdateDatasources returned False for '{name}'")
-                    
-            except Exception as e:
-                logger.warning(f"  ⚠ Could not update data sources for '{name}': {e}")
+            # Use the same connection configuration logic as the prod path:
+            # prefer ShareableCloud binding, fall back to TakeOver + UpdateDatasources
+            self._configure_paginated_report_connection(name, report_id, rdl_content)
         
         logger.info(f"  Done — processed {len(self._pending_paginated_report_updates)} paginated report(s)")
 
@@ -3813,14 +3768,17 @@ print('Notebook initialized')
         
         - True  (dev):  Deferred to Git sync (updateFromGit).  The report is
                         synced from the connected Git branch by
-                        _update_source_control().  After sync, TakeOver +
-                        UpdateDatasources fixes connection strings for the
-                        target environment.
+                        _update_source_control().  After sync, the report is
+                        bound to a pre-created ShareableCloud connection
+                        (if configured) or falls back to TakeOver +
+                        UpdateDatasources.
         
-        - False (uat/prod):  Deployed via the Power BI Imports API.  The RDL
-                        connection string is transformed in-memory before
-                        import, and TakeOver + UpdateDatasources is called
-                        immediately after import as a belt-and-braces step.
+        - False (uat/prod):  Deployed via the Power BI Imports API.  After
+                        import, the report is bound to a pre-created
+                        ShareableCloud connection (if configured) to avoid
+                        PersonalCloud ownership issues with the SP.
+                        Falls back to TakeOver + UpdateDatasources if no
+                        connection is configured.
         """
         import re
 
@@ -3874,7 +3832,7 @@ print('Notebook initialized')
         if use_git_sync:
             # ── DEV path: defer to Git sync ──
             logger.info(f"  📦 Paginated report '{name}' will be synced from Git (updateFromGit)")
-            logger.info(f"    Post-sync: TakeOver + UpdateDatasources will fix connection strings")
+            logger.info(f"    Post-sync: Connection configuration will be applied")
             
             self._pending_paginated_report_updates.append({
                 "name": name,
@@ -3983,8 +3941,9 @@ print('Notebook initialized')
             except Exception as move_err:
                 logger.warning(f"  ⚠ Could not move paginated report to Reports folder: {move_err}")
             
-            # TakeOver + UpdateDatasources — fix connection strings for this environment
-            self._update_paginated_report_datasources_api(name, report_id, rdl_content)
+            # Configure connection — prefer ShareableCloud binding (no PersonalCloud),
+            # fall back to TakeOver + UpdateDatasources if no connection configured
+            self._configure_paginated_report_connection(name, report_id, rdl_content)
 
     def _update_paginated_report_datasources_api(self, report_name: str, report_id: str, rdl_content: str) -> None:
         """
@@ -4807,6 +4766,124 @@ print('Notebook initialized')
             
         except Exception as e:
             logger.warning(f"  ⚠ Could not configure connection for '{model_name}': {e}")
+    
+    def _get_paginated_report_connection(self) -> Optional[Dict]:
+        """
+        Look up the Fabric connection for paginated reports by name.
+        
+        The connection name is configured in the environment config file under:
+            connections.paginated_report_connection
+        
+        The connection must be a ShareableCloud connection created manually in
+        the Fabric portal first, then its display name is set in
+        config/{env}.json.
+        
+        Returns:
+            Connection dict with 'id' and 'displayName', or None if not found
+        """
+        connection_name = self.config.config.get("connections", {}).get("paginated_report_connection", "")
+        
+        if not connection_name:
+            logger.debug("  No paginated_report_connection name configured")
+            return None
+        
+        logger.info(f"  Looking up Fabric connection for paginated reports: '{connection_name}'")
+        
+        try:
+            connections = self.client.list_connections()
+            
+            if connections:
+                logger.info(f"  📋 Connections returned by API ({len(connections)} total)")
+                for idx, c in enumerate(connections):
+                    c_name = c.get("displayName", "<no name>")
+                    c_id = c.get("id", "<no id>")
+                    c_type = c.get("connectivityType", c.get("type", "unknown"))
+                    logger.info(f"    [{idx+1}] '{c_name}' (type={c_type}, id={c_id})")
+            else:
+                logger.warning(f"  ⚠ No connections returned by API (empty list)")
+                return None
+            
+            match = next((c for c in connections if c.get("displayName") == connection_name), None)
+            if match:
+                logger.info(f"  ✓ Found paginated report connection: '{match['displayName']}' (ID: {match['id']})")
+                return match
+            
+            logger.warning(f"  ⚠ Connection '{connection_name}' not found in Fabric")
+            logger.warning(f"    Create it manually in Fabric portal, then re-run deployment")
+            return None
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not list connections: {e}")
+            return None
+    
+    def _configure_paginated_report_connection(self, report_name: str, report_id: str, rdl_content: str = "") -> None:
+        """
+        Bind a paginated report to a pre-created Fabric ShareableCloud connection.
+        
+        This avoids the TakeOver + UpdateDatasources approach which creates a
+        PersonalCloud connection owned by the SP.  PersonalCloud connections
+        do not work properly when the SP has ownership.
+        
+        Strategy:
+        1. If ``paginated_report_connection`` is configured, look up the
+           connection by name and call bind_paginated_report_to_connection()
+           which does TakeOver + Gateway UpdateDatasource with OAuth2 +
+           useCallerAADIdentity.
+        2. If no connection is configured, fall back to the original
+           TakeOver + UpdateDatasources approach using sql_connection_string
+           to update server/database.
+        
+        Args:
+            report_name: Paginated report display name
+            report_id: Paginated report GUID
+            rdl_content: Raw RDL XML string (for fallback datasource name extraction)
+        """
+        import re
+        
+        try:
+            # Check if a ShareableCloud connection is configured
+            if not hasattr(self, '_paginated_report_connection'):
+                self._paginated_report_connection = self._get_paginated_report_connection()
+            
+            if self._paginated_report_connection:
+                connection_id = self._paginated_report_connection['id']
+                connection_name = self._paginated_report_connection['displayName']
+                
+                logger.info(f"  Binding '{report_name}' to ShareableCloud connection '{connection_name}'...")
+                
+                try:
+                    result = self.client.bind_paginated_report_to_connection(
+                        self.workspace_id,
+                        report_id,
+                        connection_id
+                    )
+                    if result and result.get("status") in ("bound", "already_bound"):
+                        status = result.get("status")
+                        bound_count = result.get("bound_count", 0)
+                        if status == "already_bound":
+                            logger.info(f"  ✓ '{report_name}' already bound to connection '{connection_name}'")
+                        else:
+                            logger.info(f"  ✓ Bound '{report_name}' to connection '{connection_name}' ({bound_count} data source(s))")
+                    else:
+                        logger.warning(f"  ⚠ Could not bind '{report_name}' to connection '{connection_name}'")
+                        logger.info(f"    Assign connection manually in the Fabric portal → Report settings → Data source credentials")
+                except Exception as bind_err:
+                    logger.warning(f"  ⚠ Could not bind '{report_name}' to connection: {bind_err}")
+                    logger.info(f"    Assign connection '{connection_name}' manually in Fabric portal")
+                return
+            
+            # No paginated_report_connection configured — fall back to
+            # TakeOver + UpdateDatasources using sql_connection_string
+            connection_name_cfg = self.config.config.get("connections", {}).get("paginated_report_connection", "")
+            if not connection_name_cfg:
+                logger.info(f"  ℹ No paginated_report_connection configured for '{report_name}'")
+                logger.info(f"    Set connections.paginated_report_connection in config/{self.config.environment}.json")
+                logger.info(f"    Falling back to TakeOver + UpdateDatasources")
+            
+            # Fall back to the original TakeOver + UpdateDatasources approach
+            self._update_paginated_report_datasources_api(report_name, report_id, rdl_content)
+            
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not configure connection for '{report_name}': {e}")
     
     def _apply_semantic_model_rebinding(self, model_name: str, model_id: str) -> None:
         """

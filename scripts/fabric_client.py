@@ -1078,6 +1078,100 @@ class FabricClient:
         
         return {}
     
+    def bind_paginated_report_to_connection(self, workspace_id: str, report_id: str, connection_id: str) -> Dict:
+        """
+        Bind a paginated report to a Fabric ShareableCloud connection.
+        
+        Unlike semantic models, there is no dedicated ``bindConnection`` API for
+        paginated reports.  The approach here is:
+        
+        1. TakeOver — SP becomes the data-source owner.
+        2. Get Datasources — retrieve the gatewayId + datasourceId that Fabric
+           created when the report was imported.
+        3. Update Datasource (via the Gateways API) — set OAuth2 credentials
+           with ``useCallerAADIdentity=true`` so the SP's identity flows through
+           the target ShareableCloud connection.
+        
+        If a ``paginated_report_connection`` is configured, the method also
+        updates the connection details (server/database) via UpdateDatasources
+        so the paginated report points to the same endpoint as the shareable
+        connection.
+        
+        Prerequisite: The target ShareableCloud connection must already exist
+        in Fabric (created manually in the portal).  The SP must have access
+        to the connection.
+        
+        Args:
+            workspace_id: Workspace GUID
+            report_id: Paginated report GUID (Power BI report ID)
+            connection_id: Fabric connection GUID (from GET /v1/connections)
+            
+        Returns:
+            Dict with status info on success, empty dict on failure
+        """
+        logger.info(f"Binding paginated report {report_id} to Fabric connection {connection_id}")
+        
+        # Step 1: List item connections via Fabric Items API (generic, works for any item)
+        try:
+            item_connections = self.list_item_connections(workspace_id, report_id)
+            logger.info(f"  Found {len(item_connections)} connection reference(s) on paginated report")
+            for idx, conn in enumerate(item_connections):
+                conn_type = conn.get("connectivityType", "unknown")
+                conn_details = conn.get("connectionDetails", {})
+                conn_id = conn.get("id", "none")
+                logger.info(f"    [{idx+1}] type={conn_type}, path={conn_details.get('path', 'N/A')}, connType={conn_details.get('type', 'N/A')}, id={conn_id}")
+            
+            # Check if already bound to the target ShareableCloud connection
+            already_bound = any(
+                c.get("connectivityType") == "ShareableCloud" and c.get("id") == connection_id
+                for c in item_connections
+            )
+            if already_bound:
+                logger.info(f"  ✓ Paginated report already bound to target ShareableCloud connection")
+                return {"status": "already_bound"}
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not list item connections: {e}")
+            item_connections = []
+        
+        # Step 2: TakeOver — SP becomes data-source owner
+        self.take_over_paginated_report(workspace_id, report_id)
+        
+        # Step 3: Get datasources via Power BI API to obtain gatewayId + datasourceId
+        try:
+            datasources = self.get_paginated_report_datasources(workspace_id, report_id)
+            logger.info(f"  Found {len(datasources)} data source(s) on paginated report")
+            for idx, ds in enumerate(datasources):
+                gw_id = ds.get("gatewayId", "none")
+                ds_id = ds.get("datasourceId", "none")
+                ds_type = ds.get("datasourceType", "unknown")
+                ds_conn = ds.get("connectionDetails", {})
+                logger.info(f"    [{idx+1}] type={ds_type}, server={ds_conn.get('server', 'N/A')}, database={ds_conn.get('database', 'N/A')}, gatewayId={gw_id}, datasourceId={ds_id}")
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not get paginated report datasources: {e}")
+            return {}
+        
+        # Step 4: For each datasource with a gatewayId, update credentials using
+        # the Gateways Update Datasource API with useCallerAADIdentity=true.
+        # This makes the SP's OAuth token flow through so the ShareableCloud
+        # connection can authenticate.
+        bound_count = 0
+        for ds in datasources:
+            gw_id = ds.get("gatewayId")
+            ds_id = ds.get("datasourceId")
+            if not gw_id or not ds_id:
+                logger.info(f"  ℹ Datasource has no gatewayId/datasourceId — skipping credential update")
+                continue
+            
+            logger.info(f"  Updating datasource credentials (gatewayId={gw_id}, datasourceId={ds_id}) with OAuth2 + CallerAADIdentity...")
+            success = self.update_gateway_datasource_credentials(gw_id, ds_id, use_caller_identity=True)
+            if success:
+                bound_count += 1
+        
+        if bound_count > 0:
+            return {"status": "bound", "bound_count": bound_count}
+        
+        return {}
+    
     # ==================== Connection Operations ====================
     
     def list_connections(self) -> List[Dict]:

@@ -22,6 +22,7 @@
     "sql_connection_string": "Server=prod-reporting-gold.datawarehouse.fabric.microsoft.com;Database=reporting_gold;",
     "semantic_model_connection": "",
     "semantic_model_connection_id": "",
+    "paginated_report_connection": "",
     "storage_connection_string": "DefaultEndpointsProtocol=https;AccountName=prodstorageaccount;",
     "api_endpoint": "https://api.company.com"
   },

@@ -3885,30 +3885,14 @@ print('Notebook initialized')
         # ── UAT / PROD path: deploy via API ──
         logger.info(f"  Deploying paginated report '{name}' via Power BI Imports API")
         
-        # Get rebind rules for this report
-        rebind_rule = self.config.get_rebind_rule_for_artifact("paginated_reports", name)
-        
-        # Transform RDL connection string if rebinding is enabled
-        if rebind_rule and rebind_rule.get("enabled"):
-            sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
-            if sql_connection_string:
-                server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
-                database_match = re.search(r'Database=([^;]+)', sql_connection_string, re.IGNORECASE)
-                
-                if server_match:
-                    new_server = server_match.group(1)
-                    new_database = database_match.group(1) if database_match else "reporting_gold"
-                    
-                    new_connect_string = f"Data Source={new_server};Initial Catalog={new_database};Encrypt=True;Trust Server Certificate=True;Authentication=ActiveDirectoryInteractive"
-                    
-                    connect_string_pattern = r'<ConnectString>.*?</ConnectString>'
-                    rdl_content = re.sub(
-                        connect_string_pattern,
-                        f'<ConnectString>{new_connect_string}</ConnectString>',
-                        rdl_content,
-                        flags=re.DOTALL
-                    )
-                    logger.info(f"    ✓ Applied connection string transformation to '{new_server}' database '{new_database}'")
+        # NOTE: The RDL ConnectString is deliberately NOT transformed before
+        # import.  Rewriting the ConnectString with Authentication=
+        # ActiveDirectoryInteractive causes the auto-created PersonalCloud
+        # connection to use interactive auth, which breaks Service Principal
+        # access at runtime.  Instead, the RDL is imported as-is and
+        # _update_paginated_report_datasources_api() (TakeOver +
+        # UpdateDatasources) fixes the server/database for the target
+        # environment — the same approach that works in dev.
         
         # Build definition with base64-encoded parts (RDL + supporting files)
         definition = self._encode_paginated_report_parts(report_folder, rdl_content)

@@ -500,9 +500,46 @@ class FabricDeployer:
                 logger.warning("    Grant Contributor role and Workspace.GitUpdate.All scope")
                 return False
             elif "PrincipalTypeNotSupported" in error_msg:
-                logger.warning("  ⚠ Service principal is not supported for Git operations on some item types")
-                logger.warning("    Update source control manually in Fabric portal")
-                return False
+                # Paginated reports (rdlreport) don't support SP-based Git sync.
+                # The updateFromGit API is all-or-nothing — it fails if ANY changed
+                # item doesn't support SPs.
+                #
+                # Check if there are non-paginated remote changes that also failed:
+                # - If only paginated reports changed: no action needed (deployed via API)
+                # - If other items also changed: those couldn't sync either, log them
+                unsupported_types = {"rdlreport", "paginatedreport"}
+                try:
+                    status = self.client.get_git_status(self.workspace_id)
+                    remote_changes = [c for c in status.get("changes", []) if c.get("remoteChange")]
+                    
+                    non_paginated = [
+                        c for c in remote_changes
+                        if c.get("itemMetadata", {}).get("itemType", "").lower() not in unsupported_types
+                    ]
+                    paginated = [
+                        c for c in remote_changes
+                        if c.get("itemMetadata", {}).get("itemType", "").lower() in unsupported_types
+                    ]
+                    
+                    if paginated:
+                        pag_names = [c.get("itemMetadata", {}).get("displayName", "?") for c in paginated]
+                        logger.info(f"  ℹ Paginated report(s) skipped for Git sync (SP not supported): {', '.join(pag_names)}")
+                        logger.info(f"    These were deployed via the Power BI Imports API instead")
+                    
+                    if non_paginated:
+                        np_names = [f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})" for c in non_paginated]
+                        logger.warning(f"  ⚠ {len(non_paginated)} non-paginated item(s) could not sync from Git:")
+                        for np_name in np_names:
+                            logger.warning(f"    - {np_name}")
+                        logger.warning(f"    Sync these manually in Fabric portal: Source control > Update all")
+                        return False
+                    else:
+                        logger.info(f"  ✓ All remote changes were paginated reports — deployed via API, Git sync not needed")
+                        return True
+                except Exception:
+                    logger.warning("  ⚠ Service principal is not supported for Git operations on some item types")
+                    logger.warning("    Update source control manually in Fabric portal")
+                    return False
             elif "GitCredentialsNotConfigured" in error_msg:
                 logger.warning("  ⚠ Git credentials are not configured for the service principal")
                 logger.warning("    Set git_integration.git_credentials_connection_id in config")
@@ -2738,12 +2775,16 @@ print('Notebook initialized')
         if failure_count == 0:
             self._save_deployment_state()
         
-        # Sync workspace source control from Git (auto "Update all")
-        # This must run AFTER deployment so that updateFromGit pulls the
-        # remote commits that triggered this CI/CD run, overwriting any
-        # workspace drift caused by API deployment above.
-        if failure_count == 0 and not dry_run:
-            self._update_source_control()
+        # Source control sync from Git is no longer needed.
+        # All artifacts (semantic models, reports, paginated reports) are now
+        # deployed via the Fabric/Power BI REST APIs directly, eliminating the
+        # dependency on updateFromGit. The Git sync was unreliable for SPs because
+        # the updateFromGit API fails with PrincipalTypeNotSupported when paginated
+        # reports are among the changed items (the API is all-or-nothing).
+        #
+        # To re-enable Git sync, uncomment the line below:
+        # if failure_count == 0 and not dry_run:
+        #     self._update_source_control()
         
         return failure_count == 0
     
@@ -3446,15 +3487,14 @@ print('Notebook initialized')
             logger.info(f"  ✓ Created data pipeline '{name}' in 'Datapipelines' folder (ID: {pipeline_id})")
     
     def _deploy_semantic_model(self, name: str) -> None:
-        """Deploy a semantic model (JSON or Fabric Git format)"""
-        # For Git-synced workspaces (e.g., Dev), semantic models sync via Git.
-        # API deployment would be overwritten by updateFromGit anyway, and the
-        # byConnection transform on dependent reports creates workspace diffs.
-        git_config = self.config.config.get("git_integration", {})
-        if git_config.get("auto_update_from_git", True):
-            logger.info(f"  ⏭ Skipping '{name}' — synced from Git via source control update")
-            return
-
+        """Deploy a semantic model (JSON or Fabric Git format)
+        
+        Semantic models are always deployed via the Fabric API regardless of
+        Git connectivity. The updateFromGit approach was unreliable because
+        SP-triggered Git sync can fail when paginated reports are among the
+        changed items (PrincipalTypeNotSupported). Deploying via API ensures
+        consistent behavior across all environments.
+        """
         models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
         
         # Check for JSON file first
@@ -3565,16 +3605,14 @@ print('Notebook initialized')
         self._apply_semantic_model_rebinding(name, model_id)
     
     def _deploy_report(self, name: str) -> None:
-        """Deploy a Power BI report (JSON or Fabric Git format)"""
-        # For Git-synced workspaces (e.g., Dev), reports sync via Git.
-        # API deployment with byConnection transform would be overwritten by
-        # updateFromGit (which restores byPath from Git), causing Fabric to
-        # auto-resolve and show a workspace diff needing commit.
-        git_config = self.config.config.get("git_integration", {})
-        if git_config.get("auto_update_from_git", True):
-            logger.info(f"  ⏭ Skipping '{name}' — synced from Git via source control update")
-            return
-
+        """Deploy a Power BI report (JSON or Fabric Git format)
+        
+        Reports are always deployed via the Fabric API regardless of Git
+        connectivity. The updateFromGit approach was unreliable because
+        SP-triggered Git sync can fail when paginated reports are among the
+        changed items (PrincipalTypeNotSupported). Deploying via API ensures
+        consistent behavior across all environments.
+        """
         reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
         
         # Check for JSON file first
@@ -3678,14 +3716,11 @@ print('Notebook initialized')
         applied per environment config) directly to the target workspace.
         No deployment pipeline or report ownership requirements.
         
-        For Git-connected workspaces (e.g., Dev): paginated reports sync via Git,
-        so API deployment is skipped.
+        Paginated reports are NOT synced via Git for Service Principals because
+        the Fabric updateFromGit API returns PrincipalTypeNotSupported for
+        PaginatedReport items. They are always deployed via the Power BI
+        Imports API regardless of Git connectivity.
         """
-        # For Dev environment with Git sync, paginated reports are synced from Git
-        git_config = self.config.config.get("git_integration", {})
-        if git_config.get("auto_update_from_git", True):
-            logger.info(f"  ⏭ Skipping '{name}' — synced from Git via source control update")
-            return
 
         rdl_content = None
         report_folder = None

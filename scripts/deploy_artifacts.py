@@ -3997,21 +3997,18 @@ print('Notebook initialized')
 
     def _update_paginated_report_datasources(self, report_name: str, report_id: str, rdl_content: str) -> None:
         """
-        Update paginated report data sources to the target environment's server/database.
+        Update paginated report data sources and bind to the ShareableCloud connection.
         
-        Uses the Power BI Reports API:
-          POST /groups/{id}/reports/{id}/Default.UpdateDatasources
+        Two-step approach:
         
-        This API is specifically designed for paginated reports (RDL). It changes the
-        server/database for named data sources without affecting the report's structure.
+        1. UpdateDatasources API — changes the server/database for the named RDL
+           data sources to match the target environment. This is a belt-and-braces
+           confirmation alongside the RDL XML ConnectString transform done at import.
         
-        The RDL XML transform done during import already sets the ConnectString,
-        but this API call acts as a belt-and-braces confirmation that the data source
-        points to the correct environment.
-        
-        After import, Fabric auto-creates a PersonalCloud connection (OAuth2) bound
-        to the SP. This connection handles authentication automatically — no TakeOver
-        or credential configuration needed.
+        2. Bind to ShareableCloud connection — changes the "Maps to" cloud connection
+           from the auto-created PersonalCloud connection to the same ShareableCloud
+           connection used by semantic models (configured in connections.semantic_model_connection).
+           This eliminates manual UI changes in prod.
         
         Data source names are parsed from the RDL XML (<DataSource Name="xxx">)
         because the GetDatasources API does NOT return the data source name field.
@@ -4019,6 +4016,7 @@ print('Notebook initialized')
         Prerequisites:
           - The caller must be the data source owner (SP is already the owner after import)
           - connections.sql_connection_string must be set in config
+          - connections.semantic_model_connection must be set for connection binding
         
         Args:
             report_name: Paginated report display name
@@ -4060,6 +4058,7 @@ print('Notebook initialized')
             # of the data sources specifically.
             self.client.take_over_paginated_report(self.workspace_id, report_id)
             
+            # Step 1: UpdateDatasources — set the correct server/database
             update_details = []
             for ds_name in ds_names:
                 update_details.append({
@@ -4077,14 +4076,154 @@ print('Notebook initialized')
             
             if success:
                 logger.info(f"  ✓ Updated data sources for '{report_name}' via UpdateDatasources API")
-                logger.info(f"  ℹ PersonalCloud connection (OAuth2) handles authentication automatically")
             else:
                 logger.info(f"  ℹ UpdateDatasources not available — RDL ConnectString transform was applied during import")
-                logger.info(f"  ℹ PersonalCloud connection (OAuth2) handles authentication automatically")
                 
         except Exception as e:
             logger.warning(f"  ⚠ Could not update data sources for '{report_name}': {e}")
             logger.info(f"    RDL ConnectString transform was applied during import — report should still work")
+        
+        # Step 2: Bind to ShareableCloud connection — change "Maps to" from PersonalCloud
+        # to the shared connection used by semantic models. This is what appears in:
+        #   Settings > Cloud connections > "Maps to" dropdown
+        # in the Fabric portal. Using the shared connection means no manual UI changes needed.
+        self._bind_paginated_report_to_shared_connection(report_name, report_id, new_server, new_database)
+
+    def _bind_paginated_report_to_shared_connection(self, report_name: str, report_id: str,
+                                                     server: str, database: str) -> None:
+        """
+        Bind a paginated report's data source to the ShareableCloud connection
+        (same connection used by semantic models).
+        
+        After import, Fabric auto-creates a PersonalCloud connection for the SP.
+        This method attempts to change the "Maps to" dropdown (visible in
+        Settings > Cloud connections) to the shared connection configured in
+        connections.semantic_model_connection.
+        
+        Strategy:
+          1. Look up the ShareableCloud connection (same as semantic models)
+          2. List the report's current item connections to get type + path
+          3. Try Fabric bindConnection API on /paginatedReports/{id}/bindConnection
+          4. If that 404s, try the generic /items/{id}/bindConnection endpoint
+          5. If neither works, log instructions for manual mapping
+        
+        Args:
+            report_name: Paginated report display name
+            report_id: Paginated report GUID
+            server: Target server for the data source path
+            database: Target database for the data source path
+        """
+        try:
+            # Get the ShareableCloud connection (same one used for semantic models)
+            if not hasattr(self, '_semantic_model_connection'):
+                self._semantic_model_connection = self._get_semantic_model_connection()
+            
+            if not self._semantic_model_connection:
+                connection_name = self.config.config.get("connections", {}).get("semantic_model_connection", "")
+                if connection_name:
+                    logger.info(f"  ℹ Could not find ShareableCloud connection '{connection_name}'")
+                else:
+                    logger.info(f"  ℹ No semantic_model_connection configured — skipping connection binding")
+                return
+            
+            connection_id = self._semantic_model_connection['id']
+            connection_name = self._semantic_model_connection['displayName']
+            
+            logger.info(f"  Binding '{report_name}' to ShareableCloud connection '{connection_name}' (ID: {connection_id})...")
+            
+            # List current connections on the paginated report to discover type + path
+            # The Fabric Items API (GET /items/{id}/connections) works for all item types
+            try:
+                item_connections = self.client.list_item_connections(self.workspace_id, report_id)
+                logger.info(f"    Found {len(item_connections)} connection(s) on paginated report")
+                for idx, conn in enumerate(item_connections):
+                    conn_type = conn.get("connectivityType", "unknown")
+                    conn_details = conn.get("connectionDetails", {})
+                    conn_display = conn.get("displayName", "unnamed")
+                    logger.info(f"      [{idx+1}] {conn_type}: {conn_display}, type={conn_details.get('type', 'N/A')}, path={conn_details.get('path', 'N/A')}")
+            except Exception as e:
+                logger.info(f"    Could not list item connections: {e}")
+                item_connections = []
+            
+            # Build the connection path in Fabric format: "server;database"
+            # This is used by the bindConnection API to match the data source
+            ds_path = f"{server};{database}"
+            
+            # Determine the connection type and path from existing connections or default
+            conn_type_detail = "SQL"  # Default for SQL Server / Datawarehouse
+            if item_connections:
+                # Use the type/path from the first existing connection
+                first_conn = item_connections[0]
+                conn_details = first_conn.get("connectionDetails", {})
+                if conn_details.get("type"):
+                    conn_type_detail = conn_details["type"]
+                if conn_details.get("path"):
+                    ds_path = conn_details["path"]
+                    logger.info(f"    Using existing connection path: type={conn_type_detail}, path={ds_path}")
+            
+            # Try binding — attempt multiple API endpoints
+            bound = False
+            
+            # Attempt 1: Fabric Paginated Report bindConnection
+            # POST /v1/workspaces/{id}/paginatedReports/{id}/bindConnection
+            bound = self.client.bind_paginated_report_to_connection(
+                self.workspace_id, report_id, connection_id,
+                datasource_type=conn_type_detail, datasource_path=ds_path
+            )
+            
+            if not bound:
+                # Attempt 2: Generic Fabric Items bindConnection
+                # POST /v1/workspaces/{id}/items/{id}/bindConnection
+                logger.info(f"    Trying generic items bindConnection endpoint...")
+                try:
+                    bind_endpoint = f"/workspaces/{self.workspace_id}/items/{report_id}/bindConnection"
+                    payload = {
+                        "connectionBinding": {
+                            "id": connection_id,
+                            "connectivityType": "ShareableCloud",
+                            "connectionDetails": {
+                                "type": conn_type_detail,
+                                "path": ds_path
+                            }
+                        }
+                    }
+                    self.client._make_request("POST", bind_endpoint, json_data=payload)
+                    logger.info(f"  ✓ Bound '{report_name}' to ShareableCloud connection '{connection_name}' via items API")
+                    bound = True
+                except Exception as e:
+                    logger.info(f"    Items bindConnection not available: {e}")
+            
+            if not bound:
+                # Attempt 3: Semantic Model bindConnection pattern
+                # Some paginated reports may respond to /semanticModels/ endpoint
+                logger.info(f"    Trying semanticModels bindConnection endpoint...")
+                try:
+                    bind_endpoint = f"/workspaces/{self.workspace_id}/semanticModels/{report_id}/bindConnection"
+                    payload = {
+                        "connectionBinding": {
+                            "id": connection_id,
+                            "connectivityType": "ShareableCloud",
+                            "connectionDetails": {
+                                "type": conn_type_detail,
+                                "path": ds_path
+                            }
+                        }
+                    }
+                    self.client._make_request("POST", bind_endpoint, json_data=payload)
+                    logger.info(f"  ✓ Bound '{report_name}' to ShareableCloud connection '{connection_name}' via semanticModels API")
+                    bound = True
+                except Exception as e:
+                    logger.info(f"    SemanticModels bindConnection not available: {e}")
+            
+            if bound:
+                logger.info(f"  ✓ '{report_name}' now uses ShareableCloud connection '{connection_name}'")
+            else:
+                logger.info(f"  ℹ Could not auto-bind '{report_name}' to ShareableCloud connection")
+                logger.info(f"    Manual step: Settings > Cloud connections > Maps to > select '{connection_name}'")
+                
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not bind '{report_name}' to shared connection: {e}")
+            logger.info(f"    Manual step: Settings > Cloud connections > Maps to > select shared connection")
 
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""

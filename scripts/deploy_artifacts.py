@@ -3773,30 +3773,43 @@ print('Notebook initialized')
                 logger.warning(f"  ⚠ Could not move paginated report to Reports folder: {move_err}")
             
             # Configure paginated report data source credentials.
-            # Unlike semantic models, paginated reports do NOT support the Fabric
-            # list_item_connections or bindConnection APIs (returns OperationNotSupportedForItem).
-            # Instead, we use the Power BI REST API flow:
-            #   1. TakeOver — transfer data source ownership to the SP
-            #   2. Get Datasources — discover gatewayId + datasourceId
-            #   3. Update Gateway Datasource — set SP's Entra ID as credentials
-            # The RDL <ConnectString> was already transformed above to point to
-            # the correct server/database. This step sets the authentication.
-            self._configure_paginated_report_credentials(name, report_id)
+            #
+            # When the SP imports a paginated report via the Power BI Imports API,
+            # Fabric auto-creates a PersonalCloud connection (OAuth2) bound to the
+            # SP's identity. This connection is already functional — the SP can
+            # authenticate to the Lakehouse SQL endpoint using its Entra ID token.
+            #
+            # DO NOT call TakeOver or try to rebind to a ShareableCloud connection:
+            #   - TakeOver is unnecessary (SP already owns the report it just created)
+            #   - TakeOver can break the auto-created PersonalCloud connection
+            #   - bindConnection is not supported for paginated reports (404)
+            #   - Gateway credential update fails with OAuth2 type conflicts
+            #
+            # The RDL <ConnectString> was already transformed above to point to the
+            # correct server/database. The PersonalCloud connection handles auth.
+            logger.info(f"  ℹ Paginated report uses auto-created PersonalCloud connection (OAuth2) — no credential config needed")
     
     def _configure_paginated_report_credentials(self, report_name: str, report_id: str) -> None:
         """
-        Configure data source credentials for a paginated report.
+        [DEPRECATED] Configure data source credentials for a paginated report.
         
-        Strategy (mirrors the portal "Cloud connections > Maps to" dropdown):
+        This method is NO LONGER CALLED. When the SP imports a paginated report
+        via the Power BI Imports API, Fabric auto-creates a PersonalCloud
+        connection (OAuth2) bound to the SP's identity. This works out of the box
+        — no TakeOver, bindConnection, or gateway credential update needed.
         
+        The TakeOver was actually counterproductive: it could break the
+        auto-created PersonalCloud connection. The Fabric bindConnection
+        endpoint returns 404 for paginated reports, and the Gateway credential
+        update fails with "UseCallerOAuthIdentity requires credential type OAuth2".
+        
+        Kept for reference in case manual credential configuration is ever needed.
+        
+        Original strategy:
           1. TakeOver — SP becomes data source owner (Power BI Reports API)
           2. Get Datasources — discover data source details (server, database)
-          3. Try Fabric bindConnection — bind to the same ShareableCloud connection
-             used by semantic models (same pattern as bindConnection for semantic
-             models, but targeting the paginatedReports namespace)
-          4. Fallback: Gateway credentials — if bindConnection is not supported,
-             use the Power BI Gateway API to set the SP's Entra ID identity as
-             the credential (useCallerAADIdentity) on the auto-created cloud gateway
+          3. Try Fabric bindConnection — not supported for paginated reports (404)
+          4. Fallback: Gateway credentials — fails with OAuth2 type conflict
         
         Args:
             report_name: Paginated report display name

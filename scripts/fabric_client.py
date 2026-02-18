@@ -882,20 +882,39 @@ class FabricClient:
     
     def refresh_semantic_model(self, workspace_id: str, model_id: str, refresh_type: str = "full") -> Dict:
         """
-        Trigger a refresh of a semantic model
-        
+        Trigger a refresh of a semantic model.
+
+        Uses the Power BI REST API — NOT the Fabric v1 API — because the
+        refresh endpoint only exists on the Power BI side:
+            POST https://api.powerbi.com/v1.0/myorg/groups/{groupId}/datasets/{datasetId}/refreshes
+
         Args:
-            workspace_id: Workspace GUID
+            workspace_id: Workspace GUID (used as the Power BI group ID)
             model_id: Semantic model GUID
-            refresh_type: Type of refresh - "full" (default), "automatic", "dataOnly", "calculate", "clearValues"
-            
+            refresh_type: Type of refresh — "Full" (default), "Automatic",
+                          "DataOnly", "Calculate", "ClearValues"
+
         Returns:
-            Refresh response with request ID
+            Dict with status_code 202 on success, or raises on HTTP error
         """
         logger.info(f"Triggering {refresh_type} refresh for semantic model: {model_id}")
-        endpoint = f"/workspaces/{workspace_id}/semanticModels/{model_id}/refreshes"
-        payload = {"type": refresh_type}
-        return self._make_request("POST", endpoint, json_data=payload)
+        url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{model_id}/refreshes"
+        headers = self.auth.get_auth_headers()
+        payload = {
+            "type": refresh_type.capitalize(),
+            "notifyOption": "NoNotification"
+        }
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=60)
+            if response.status_code == 202:
+                logger.info(f"  ✓ Refresh queued (202 Accepted)")
+                return {"status": "success", "status_code": 202}
+            else:
+                response.raise_for_status()
+                return {"status": "success", "status_code": response.status_code}
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"  HTTP Error triggering refresh: {e.response.status_code} - {e.response.text}")
+            raise
     
     def get_semantic_model_datasources(self, workspace_id: str, model_id: str) -> List[Dict]:
         """

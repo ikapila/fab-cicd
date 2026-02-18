@@ -709,6 +709,50 @@ class FabricDeployer:
             logger.info(f"Saved deployment state: {current_commit[:8]}")
         else:
             logger.warning("Could not save deployment state (Git not available)")
+
+    def _refresh_deployed_semantic_models(self) -> None:
+        """
+        Trigger a refresh for each semantic model that was deployed in this run.
+
+        Only models recorded in ``_deployed_semantic_model_ids`` (populated by
+        ``_deploy_semantic_model``) are refreshed — this avoids refreshing
+        every semantic model in the workspace.
+
+        Refreshes are fire-and-forget: the API call triggers an async refresh
+        and returns immediately.  We do **not** block waiting for each refresh
+        to complete because refreshes can take many minutes and the pipeline
+        should not be held up.  Failures are logged as warnings and do not
+        fail the deployment.
+        """
+        logger.info("\n" + "-"*60)
+        logger.info("POST-DEPLOY: SEMANTIC MODEL REFRESH")
+        logger.info("-"*60)
+
+        models = self._deployed_semantic_model_ids
+        logger.info(f"  Triggering refresh for {len(models)} deployed semantic model(s)")
+
+        refresh_ok = 0
+        refresh_fail = 0
+
+        for model_name, model_id in models.items():
+            try:
+                logger.info(f"  Refreshing '{model_name}' (ID: {model_id})...")
+                result = self.client.refresh_semantic_model(
+                    self.workspace_id, model_id, refresh_type="full"
+                )
+                # A 202 Accepted means the refresh was successfully queued
+                if result.get("status_code") == 202 or result.get("status") == "success":
+                    logger.info(f"  ✓ Refresh triggered for '{model_name}'")
+                else:
+                    logger.info(f"  ✓ Refresh request sent for '{model_name}'")
+                refresh_ok += 1
+            except Exception as e:
+                refresh_fail += 1
+                logger.warning(f"  ⚠ Could not refresh '{model_name}': {e}")
+
+        logger.info(f"  Done — {refresh_ok} refresh(es) triggered, {refresh_fail} failed")
+        if refresh_fail > 0:
+            logger.info(f"  ℹ Failed refreshes can be retried manually from the Fabric portal")
     
     def discover_artifacts(self, force_all: bool = False, specific_artifacts: List[str] = None) -> None:
         """
@@ -2826,6 +2870,12 @@ print('Notebook initialized')
         # Save deployment commit if successful
         if failure_count == 0:
             self._save_deployment_state()
+        
+        # Refresh semantic models that were deployed in this run.
+        # This must happen after connection binding (done in _deploy_semantic_model)
+        # so the model can connect to the data source during refresh.
+        if failure_count == 0 and not dry_run and self._deployed_semantic_model_ids:
+            self._refresh_deployed_semantic_models()
         
         # Source control sync from Git (dev only — controlled by
         # git_integration.auto_update_from_git).  Syncs items from the remote

@@ -1,572 +1,591 @@
-2026-02-17T17:17:19.0999654Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2026-02-17T17:17:19.1008906Z ==============================================================================
-2026-02-17T17:17:19.1009096Z Task         : Command line
-2026-02-17T17:17:19.1009206Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-02-17T17:17:19.1009388Z Version      : 2.268.0
-2026-02-17T17:17:19.1009498Z Author       : Microsoft Corporation
-2026-02-17T17:17:19.1009619Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-02-17T17:17:19.1009794Z ==============================================================================
-2026-02-17T17:17:19.2460547Z Generating script.
-2026-02-17T17:17:19.2466893Z ========================== Starting Command Output ===========================
-2026-02-17T17:17:19.2484462Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/46fec31b-6b6e-4d0c-913b-1071cbd5d994.sh
-2026-02-17T17:17:19.2551744Z ========================================
-2026-02-17T17:17:19.2556250Z DEBUG: Verifying Repository Checkout
-2026-02-17T17:17:19.2556919Z ========================================
-2026-02-17T17:17:19.2557441Z Current directory: /home/vsts/work/1/s
-2026-02-17T17:17:19.2558053Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-02-17T17:17:19.2558398Z 
-2026-02-17T17:17:19.2558977Z Contents of Build.SourcesDirectory:
-2026-02-17T17:17:19.2571816Z total 40
-2026-02-17T17:17:19.2572427Z drwxr-xr-x 8 vsts vsts 4096 Feb 17 17:16 .
-2026-02-17T17:17:19.2573503Z drwxr-xr-x 7 vsts vsts 4096 Feb 17 17:16 ..
-2026-02-17T17:17:19.2575480Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 17:16 .deployment_tracking
-2026-02-17T17:17:19.2576200Z drwxr-xr-x 7 vsts vsts 4096 Feb 17 17:16 .git
-2026-02-17T17:17:19.2576779Z -rw-r--r-- 1 vsts vsts   44 Feb 17 17:16 .gitignore
-2026-02-17T17:17:19.2577406Z -rw-r--r-- 1 vsts vsts  985 Feb 17 17:16 README.md
-2026-02-17T17:17:19.2578270Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 17:16 azure-pipelines
-2026-02-17T17:17:19.2579028Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 17:16 config
-2026-02-17T17:17:19.2581183Z drwxr-xr-x 2 vsts vsts 4096 Feb 17 17:16 scripts
-2026-02-17T17:17:19.2583824Z drwxr-xr-x 8 vsts vsts 4096 Feb 17 17:16 wsartifacts
-2026-02-17T17:17:19.2590102Z 
-2026-02-17T17:17:19.2590970Z Checking for required folders:
-2026-02-17T17:17:19.2593219Z ✓ scripts/ exists
-2026-02-17T17:17:19.2594873Z ✓ config/ exists
-2026-02-17T17:17:19.2595417Z ✓ wsartifacts/ exists
-2026-02-17T17:17:19.2597398Z ========================================
-2026-02-17T17:17:19.2597888Z ========================================
-2026-02-17T17:17:19.2598328Z Deploying to Dev Environment
-2026-02-17T17:17:19.2600126Z ========================================
-2026-02-17T17:17:19.2600564Z Features:
-2026-02-17T17:17:19.2601552Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-02-17T17:17:19.2602301Z   📊 Dependency-aware deployment ordering
-2026-02-17T17:17:19.2603588Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-02-17T17:17:19.2605470Z 
-2026-02-17T17:17:19.2607371Z Deployment steps:
-2026-02-17T17:17:19.2607877Z   1. Create artifacts from config file
-2026-02-17T17:17:19.2608377Z   2. Detect changed artifacts using Git diff
-2026-02-17T17:17:19.2610270Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-02-17T17:17:19.2611394Z ========================================
-2026-02-17T17:17:19.8869591Z INFO:__main__:Initializing deployment to dev environment
-2026-02-17T17:17:19.8874837Z INFO:config_manager:Loading configuration from: config/dev.json
-2026-02-17T17:17:19.8876843Z INFO:__main__:Using environment-specific service principal for dev
-2026-02-17T17:17:19.8881826Z INFO:fabric_auth:Using environment-specific secret from: AZURE_CLIENT_SECRET_DEV
-2026-02-17T17:17:19.8884237Z INFO:__main__:Using artifacts root folder: wsartifacts
-2026-02-17T17:17:19.8889333Z INFO:fabric_auth:Using Service Principal authentication (Client ID: 0c296168-ffc5-447a-83bc-bdaf8979d8da)
-2026-02-17T17:17:19.8895994Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/v2.0/.well-known/openid-configuration'
-2026-02-17T17:17:19.8898714Z Request method: 'GET'
-2026-02-17T17:17:19.8903772Z Request headers:
-2026-02-17T17:17:19.8904407Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.14.0-1017-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2026-02-17T17:17:19.8905144Z No body was attached to the request
-2026-02-17T17:17:19.9867737Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2026-02-17T17:17:19.9868265Z Response headers:
-2026-02-17T17:17:19.9868549Z     'Cache-Control': 'max-age=86400, private'
-2026-02-17T17:17:19.9868855Z     'Content-Type': 'application/json; charset=utf-8'
-2026-02-17T17:17:19.9869031Z     'Strict-Transport-Security': 'REDACTED'
-2026-02-17T17:17:19.9869197Z     'X-Content-Type-Options': 'REDACTED'
-2026-02-17T17:17:19.9869358Z     'Access-Control-Allow-Origin': 'REDACTED'
-2026-02-17T17:17:19.9869541Z     'Access-Control-Allow-Methods': 'REDACTED'
-2026-02-17T17:17:19.9869697Z     'P3P': 'REDACTED'
-2026-02-17T17:17:19.9869859Z     'x-ms-request-id': '70c2b206-8d5d-47f4-bcbb-b75563ef3700'
-2026-02-17T17:17:19.9870035Z     'x-ms-ests-server': 'REDACTED'
-2026-02-17T17:17:19.9870189Z     'x-ms-srs': 'REDACTED'
-2026-02-17T17:17:19.9870350Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2026-02-17T17:17:19.9870516Z     'X-XSS-Protection': 'REDACTED'
-2026-02-17T17:17:19.9870675Z     'Set-Cookie': 'REDACTED'
-2026-02-17T17:17:19.9870837Z     'Date': 'Tue, 17 Feb 2026 17:17:19 GMT'
-2026-02-17T17:17:19.9871003Z     'Content-Length': '1964'
-2026-02-17T17:17:20.0300353Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
-2026-02-17T17:17:20.0300893Z Request method: 'POST'
-2026-02-17T17:17:20.0304785Z Request headers:
-2026-02-17T17:17:20.0305455Z     'Content-Type': 'application/x-www-form-urlencoded'
-2026-02-17T17:17:20.0306723Z     'Accept': 'application/json'
-2026-02-17T17:17:20.0307268Z     'x-client-sku': 'REDACTED'
-2026-02-17T17:17:20.0307778Z     'x-client-ver': 'REDACTED'
-2026-02-17T17:17:20.0314291Z     'x-client-os': 'REDACTED'
-2026-02-17T17:17:20.0314613Z     'x-ms-lib-capability': 'REDACTED'
-2026-02-17T17:17:20.0314911Z     'client-request-id': 'REDACTED'
-2026-02-17T17:17:20.0315216Z     'x-client-current-telemetry': 'REDACTED'
-2026-02-17T17:17:20.0315530Z     'x-client-last-telemetry': 'REDACTED'
-2026-02-17T17:17:20.0315963Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.14.0-1017-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
-2026-02-17T17:17:20.0316385Z A body is sent with the request
-2026-02-17T17:17:20.1390483Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-2026-02-17T17:17:20.1391442Z Response headers:
-2026-02-17T17:17:20.1392424Z     'Cache-Control': 'no-store, no-cache'
-2026-02-17T17:17:20.1393412Z     'Pragma': 'no-cache'
-2026-02-17T17:17:20.1395545Z     'Content-Type': 'application/json; charset=utf-8'
-2026-02-17T17:17:20.1396068Z     'Expires': '-1'
-2026-02-17T17:17:20.1397948Z     'Strict-Transport-Security': 'REDACTED'
-2026-02-17T17:17:20.1398285Z     'X-Content-Type-Options': 'REDACTED'
-2026-02-17T17:17:20.1398583Z     'P3P': 'REDACTED'
-2026-02-17T17:17:20.1398876Z     'client-request-id': 'REDACTED'
-2026-02-17T17:17:20.1399227Z     'x-ms-request-id': '060d4777-cb01-44b2-a7b5-668cedad4500'
-2026-02-17T17:17:20.1399561Z     'x-ms-ests-server': 'REDACTED'
-2026-02-17T17:17:20.1399862Z     'x-ms-clitelem': 'REDACTED'
-2026-02-17T17:17:20.1400154Z     'x-ms-srs': 'REDACTED'
-2026-02-17T17:17:20.1400472Z     'Content-Security-Policy-Report-Only': 'REDACTED'
-2026-02-17T17:17:20.1400798Z     'X-XSS-Protection': 'REDACTED'
-2026-02-17T17:17:20.1401098Z     'Set-Cookie': 'REDACTED'
-2026-02-17T17:17:20.1401433Z     'Date': 'Tue, 17 Feb 2026 17:17:19 GMT'
-2026-02-17T17:17:20.1402077Z     'Content-Length': '1695'
-2026-02-17T17:17:20.1402667Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
-2026-02-17T17:17:20.1403099Z INFO:fabric_auth:Successfully obtained access token
-2026-02-17T17:17:20.3572754Z INFO:fabric_auth:Authentication validation successful
-2026-02-17T17:17:20.3581871Z INFO:__main__:Target workspace: AAG-SIT-FWS-ENGINEERING-01 (d7faf1fa-0e7e-4061-b3e5-50fa3873eb64)
-2026-02-17T17:17:20.3584390Z INFO:__main__:Running in artifact creation mode
-2026-02-17T17:17:20.3585063Z INFO:__main__:============================================================
-2026-02-17T17:17:20.3586585Z INFO:__main__:Creating artifacts from configuration for dev
-2026-02-17T17:17:20.3587880Z INFO:__main__:============================================================
-2026-02-17T17:17:20.3593484Z INFO:__main__:No artifacts configured for creation
-2026-02-17T17:17:20.3594122Z INFO:__main__:Artifact creation completed successfully
-2026-02-17T17:17:20.3594677Z INFO:__main__:============================================================
-2026-02-17T17:17:20.3595219Z INFO:__main__:ARTIFACT DISCOVERY PHASE
-2026-02-17T17:17:20.3595788Z INFO:__main__:============================================================
-2026-02-17T17:17:20.3596352Z INFO:__main__:Discovering artifacts from file system...
-2026-02-17T17:17:20.3603403Z INFO:__main__:Discovered 1 lakehouse(s): ReportingLakehouse
-2026-02-17T17:17:20.3615185Z INFO:__main__:Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
-2026-02-17T17:17:20.3616050Z INFO:__main__:Discovered 1 Variable Library: ReportingVariables
-2026-02-17T17:17:20.3616885Z INFO:__main__:Discovered 2 semantic model(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
-2026-02-17T17:17:20.3621771Z INFO:__main__:Discovered 2 report(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
-2026-02-17T17:17:20.3624556Z INFO:__main__:Discovered 1 paginated report(s): Aged Debtors (Fabric Git)
-2026-02-17T17:17:20.3628593Z INFO:__main__:============================================================
-2026-02-17T17:17:20.3633677Z INFO:__main__:DISCOVERY COMPLETE: Found 17 total artifacts
-2026-02-17T17:17:20.3634879Z INFO:__main__:============================================================
-2026-02-17T17:17:20.3635478Z INFO:__main__:
-2026-02-17T17:17:20.3636101Z ============================================================
-2026-02-17T17:17:20.3636710Z INFO:__main__:CHANGE DETECTION
-2026-02-17T17:17:20.3637348Z INFO:__main__:============================================================
-2026-02-17T17:17:20.3696832Z INFO:change_detector:Found 13 changed file(s) since d858d82e
-2026-02-17T17:17:20.3700584Z INFO:change_detector:Change detection: 3 artifact(s) changed
-2026-02-17T17:17:20.3710484Z INFO:change_detector:  PaginatedReport: Aged Debtors
-2026-02-17T17:17:20.3711159Z INFO:change_detector:  Report: Finance Summary
-2026-02-17T17:17:20.3711725Z INFO:change_detector:  SemanticModel: Finance Summary
-2026-02-17T17:17:20.3712393Z INFO:__main__:Changed artifacts: 3
-2026-02-17T17:17:20.3713741Z INFO:__main__:  PaginatedReport: Aged Debtors
-2026-02-17T17:17:20.3714440Z INFO:__main__:  Report: Finance Summary
-2026-02-17T17:17:20.3714954Z INFO:__main__:  SemanticModel: Finance Summary
-2026-02-17T17:17:20.3715544Z INFO:__main__:Skipped (unchanged): 14
-2026-02-17T17:17:20.3716194Z INFO:__main__:============================================================
-2026-02-17T17:17:20.3716846Z INFO:__main__:============================================================
-2026-02-17T17:17:20.3718158Z INFO:__main__:Starting deployment to dev environment
-2026-02-17T17:17:20.3718794Z INFO:__main__:============================================================
-2026-02-17T17:17:20.3719722Z INFO:dependency_resolver:✅ All dependencies are valid
-2026-02-17T17:17:20.3720474Z INFO:dependency_resolver:Deployment order determined:
-2026-02-17T17:17:20.3721085Z INFO:dependency_resolver:  1. Finance Summary (SemanticModel)
-2026-02-17T17:17:20.3722683Z INFO:dependency_resolver:  2. Finance Summary (Report)
-2026-02-17T17:17:20.3725498Z INFO:dependency_resolver:  3. Aged Debtors (PaginatedReport)
-2026-02-17T17:17:20.3725828Z INFO:__main__:
-2026-02-17T17:17:20.3726129Z --- Deploying 3 artifact(s) ---
-2026-02-17T17:17:20.3726400Z INFO:__main__:
-2026-02-17T17:17:20.3726677Z Deploying: Finance Summary (SemanticModel)
-2026-02-17T17:17:20.3727045Z INFO:__main__:  Reading semantic model from Fabric Git format: Finance Summary.SemanticModel
-2026-02-17T17:17:20.3728320Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-02-17T17:17:20.3730998Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-02-17T17:17:20.3735746Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-02-17T17:17:20.3738341Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-02-17T17:17:20.3748604Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-02-17T17:17:20.3750408Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-02-17T17:17:20.3761569Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-02-17T17:17:20.3764916Z INFO:__main__:    ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-02-17T17:17:20.3780248Z INFO:fabric_client:Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-17T17:17:20.5922805Z INFO:__main__:  Semantic model 'Finance Summary' already exists, updating...
-2026-02-17T17:17:20.5923753Z INFO:fabric_client:Updating semantic model: 3a26df55-9888-425d-833d-2c05a7b83788
-2026-02-17T17:17:20.5926928Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/semanticModels/3a26df55-9888-425d-833d-2c05a7b83788/updateDefinition
-2026-02-17T17:17:20.5932117Z INFO:fabric_client:Payload structure: {
-2026-02-17T17:17:20.5934620Z   "definition": {
-2026-02-17T17:17:20.5934869Z     "parts": [
-2026-02-17T17:17:20.5935089Z       {
-2026-02-17T17:17:20.5935328Z         "path": "definition.pbism",
-2026-02-17T17:17:20.5935590Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5935847Z         "payload_length": 224
-2026-02-17T17:17:20.5936074Z       },
-2026-02-17T17:17:20.5936290Z       {
-2026-02-17T17:17:20.5936520Z         "path": ".platform",
-2026-02-17T17:17:20.5936772Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5937026Z         "payload_length": 408
-2026-02-17T17:17:20.5937261Z       },
-2026-02-17T17:17:20.5937477Z       {
-2026-02-17T17:17:20.5937732Z         "path": "definition/relationships.tmdl",
-2026-02-17T17:17:20.5938009Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5938271Z         "payload_length": 8760
-2026-02-17T17:17:20.5938499Z       },
-2026-02-17T17:17:20.5938708Z       {
-2026-02-17T17:17:20.5938949Z         "path": "definition/database.tmdl",
-2026-02-17T17:17:20.5939213Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5939467Z         "payload_length": 48
-2026-02-17T17:17:20.5939696Z       },
-2026-02-17T17:17:20.5939911Z       {
-2026-02-17T17:17:20.5940150Z         "path": "definition/model.tmdl",
-2026-02-17T17:17:20.5940416Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5940674Z         "payload_length": 3000
-2026-02-17T17:17:20.5940903Z       },
-2026-02-17T17:17:20.5941111Z       {
-2026-02-17T17:17:20.5941401Z         "path": "definition/tables/LocalDateTable_13a26fdd-a293-4aed-83e8-d179b8e59b5d.tmdl",
-2026-02-17T17:17:20.5941898Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5942149Z         "payload_length": 3400
-2026-02-17T17:17:20.5942371Z       },
-2026-02-17T17:17:20.5942784Z       {
-2026-02-17T17:17:20.5943055Z         "path": "definition/tables/DateTableTemplate_4ed89777-abcc-4a38-9229-cae44fe8de37.tmdl",
-2026-02-17T17:17:20.5943340Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5943575Z         "payload_length": 3356
-2026-02-17T17:17:20.5943805Z       },
-2026-02-17T17:17:20.5944002Z       {
-2026-02-17T17:17:20.5944236Z         "path": "definition/tables/Origination Dates.tmdl",
-2026-02-17T17:17:20.5944506Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5944749Z         "payload_length": 1988
-2026-02-17T17:17:20.5944958Z       },
-2026-02-17T17:17:20.5945175Z       {
-2026-02-17T17:17:20.5945468Z         "path": "definition/tables/LocalDateTable_800fb5ae-d08e-4b67-8c86-150022748772.tmdl",
-2026-02-17T17:17:20.5945781Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5946040Z         "payload_length": 3400
-2026-02-17T17:17:20.5946273Z       },
-2026-02-17T17:17:20.5946472Z       {
-2026-02-17T17:17:20.5946722Z         "path": "definition/tables/lease_finance.tmdl",
-2026-02-17T17:17:20.5946976Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5947221Z         "payload_length": 17140
-2026-02-17T17:17:20.5947436Z       },
-2026-02-17T17:17:20.5947643Z       {
-2026-02-17T17:17:20.5947898Z         "path": "definition/tables/customer.tmdl",
-2026-02-17T17:17:20.5948168Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5948419Z         "payload_length": 12992
-2026-02-17T17:17:20.5948645Z       },
-2026-02-17T17:17:20.5948855Z       {
-2026-02-17T17:17:20.5949142Z         "path": "definition/tables/LocalDateTable_f80953f8-52ea-4878-8fb0-9f7967ddf33c.tmdl",
-2026-02-17T17:17:20.5949450Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5949700Z         "payload_length": 3404
-2026-02-17T17:17:20.5949923Z       },
-2026-02-17T17:17:20.5950128Z       {
-2026-02-17T17:17:20.5950519Z         "path": "definition/tables/invoices.tmdl",
-2026-02-17T17:17:20.5950792Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5951040Z         "payload_length": 9868
-2026-02-17T17:17:20.5951263Z       },
-2026-02-17T17:17:20.5951467Z       {
-2026-02-17T17:17:20.5951711Z         "path": "definition/tables/receipts.tmdl",
-2026-02-17T17:17:20.5952056Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5952306Z         "payload_length": 9372
-2026-02-17T17:17:20.5952740Z       },
-2026-02-17T17:17:20.5952949Z       {
-2026-02-17T17:17:20.5953239Z         "path": "definition/tables/LocalDateTable_55c995e9-5f17-4274-bf39-8abf5b7369f9.tmdl",
-2026-02-17T17:17:20.5953551Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5953805Z         "payload_length": 3412
-2026-02-17T17:17:20.5954030Z       },
-2026-02-17T17:17:20.5954240Z       {
-2026-02-17T17:17:20.5954540Z         "path": "definition/tables/LocalDateTable_a9be32a7-ea5e-4a2a-89c9-e3f439e30843.tmdl",
-2026-02-17T17:17:20.5954863Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5955122Z         "payload_length": 3408
-2026-02-17T17:17:20.5955348Z       },
-2026-02-17T17:17:20.5955557Z       {
-2026-02-17T17:17:20.5955850Z         "path": "definition/tables/LocalDateTable_f79a6bb1-3117-4555-be3c-9536454e7801.tmdl",
-2026-02-17T17:17:20.5956165Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5956426Z         "payload_length": 3400
-2026-02-17T17:17:20.5956652Z       },
-2026-02-17T17:17:20.5956860Z       {
-2026-02-17T17:17:20.5957151Z         "path": "definition/tables/LocalDateTable_d6e646fd-9351-4392-bb98-f4104f373e09.tmdl",
-2026-02-17T17:17:20.5957469Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5957727Z         "payload_length": 3424
-2026-02-17T17:17:20.5957957Z       },
-2026-02-17T17:17:20.5958173Z       {
-2026-02-17T17:17:20.5958464Z         "path": "definition/tables/LocalDateTable_8d388dc9-7379-4833-af99-49606daad1ac.tmdl",
-2026-02-17T17:17:20.5959168Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5959571Z         "payload_length": 3400
-2026-02-17T17:17:20.5959812Z       },
-2026-02-17T17:17:20.5960036Z       {
-2026-02-17T17:17:20.5960456Z         "path": "definition/tables/LocalDateTable_7fc1bfb3-6927-413d-9944-f572555ef422.tmdl",
-2026-02-17T17:17:20.5960787Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5961050Z         "payload_length": 3416
-2026-02-17T17:17:20.5961288Z       },
-2026-02-17T17:17:20.5961510Z       {
-2026-02-17T17:17:20.5961768Z         "path": "definition/tables/Date.tmdl",
-2026-02-17T17:17:20.5962054Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5962317Z         "payload_length": 2384
-2026-02-17T17:17:20.5962761Z       },
-2026-02-17T17:17:20.5962983Z       {
-2026-02-17T17:17:20.5963287Z         "path": "definition/tables/LocalDateTable_3b7d84c8-2a4b-48e9-87d0-0d36d14ebc50.tmdl",
-2026-02-17T17:17:20.5963624Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5963955Z         "payload_length": 3428
-2026-02-17T17:17:20.5964210Z       },
-2026-02-17T17:17:20.5964436Z       {
-2026-02-17T17:17:20.5964695Z         "path": "definition/tables/contracts.tmdl",
-2026-02-17T17:17:20.5965018Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5965280Z         "payload_length": 26324
-2026-02-17T17:17:20.5965523Z       },
-2026-02-17T17:17:20.5965738Z       {
-2026-02-17T17:17:20.5965998Z         "path": "definition/tables/Payments.tmdl",
-2026-02-17T17:17:20.5966279Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5966567Z         "payload_length": 20392
-2026-02-17T17:17:20.5966814Z       },
-2026-02-17T17:17:20.5967038Z       {
-2026-02-17T17:17:20.5967350Z         "path": "definition/tables/LocalDateTable_7351796f-b9e7-43d6-8359-c0dcf147a214.tmdl",
-2026-02-17T17:17:20.5967684Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5967962Z         "payload_length": 3444
-2026-02-17T17:17:20.5968208Z       },
-2026-02-17T17:17:20.5968438Z       {
-2026-02-17T17:17:20.5968751Z         "path": "definition/tables/LocalDateTable_a2a7f051-b1b9-4dcd-a680-fbd3e09b008b.tmdl",
-2026-02-17T17:17:20.5969239Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5969514Z         "payload_length": 3420
-2026-02-17T17:17:20.5969759Z       },
-2026-02-17T17:17:20.5969981Z       {
-2026-02-17T17:17:20.5970299Z         "path": "definition/tables/LocalDateTable_fc720cde-f7a5-48ba-996a-d85bacec89a0.tmdl",
-2026-02-17T17:17:20.5970641Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5970913Z         "payload_length": 3444
-2026-02-17T17:17:20.5971155Z       },
-2026-02-17T17:17:20.5971379Z       {
-2026-02-17T17:17:20.5971691Z         "path": "definition/tables/LocalDateTable_bcd20351-072f-4e5b-ad62-20caaa6a4f5d.tmdl",
-2026-02-17T17:17:20.5972025Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5972307Z         "payload_length": 3400
-2026-02-17T17:17:20.5972741Z       },
-2026-02-17T17:17:20.5972969Z       {
-2026-02-17T17:17:20.5973280Z         "path": "definition/tables/LocalDateTable_e54a4fd8-322c-46ec-9edb-c71bf5e2ccf9.tmdl",
-2026-02-17T17:17:20.5973622Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5973901Z         "payload_length": 3436
-2026-02-17T17:17:20.5974145Z       },
-2026-02-17T17:17:20.5974379Z       {
-2026-02-17T17:17:20.5974689Z         "path": "definition/tables/LocalDateTable_a390c296-8624-4079-97ef-bf642681d1a1.tmdl",
-2026-02-17T17:17:20.5975021Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5975294Z         "payload_length": 3412
-2026-02-17T17:17:20.5975541Z       },
-2026-02-17T17:17:20.5975764Z       {
-2026-02-17T17:17:20.5976075Z         "path": "definition/tables/LocalDateTable_b913591e-5c5c-423d-b392-91c05bcbe308.tmdl",
-2026-02-17T17:17:20.5976416Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5976689Z         "payload_length": 3376
-2026-02-17T17:17:20.5976939Z       },
-2026-02-17T17:17:20.5977162Z       {
-2026-02-17T17:17:20.5977474Z         "path": "definition/tables/LocalDateTable_b524626c-d6f3-422c-88b8-86f63a882608.tmdl",
-2026-02-17T17:17:20.5977810Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5978206Z         "payload_length": 3436
-2026-02-17T17:17:20.5978457Z       },
-2026-02-17T17:17:20.5978681Z       {
-2026-02-17T17:17:20.5978992Z         "path": "definition/tables/LocalDateTable_8e05a108-6fe6-4beb-8a0d-9aa40bc6a5e0.tmdl",
-2026-02-17T17:17:20.5979324Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5979598Z         "payload_length": 3412
-2026-02-17T17:17:20.5979843Z       },
-2026-02-17T17:17:20.5980064Z       {
-2026-02-17T17:17:20.5980380Z         "path": "definition/tables/LocalDateTable_4cacd077-9657-41f6-95b8-0d8e11b86187.tmdl",
-2026-02-17T17:17:20.5980714Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5980986Z         "payload_length": 3412
-2026-02-17T17:17:20.5981225Z       },
-2026-02-17T17:17:20.5981442Z       {
-2026-02-17T17:17:20.5981736Z         "path": "definition/tables/LocalDateTable_c9506875-c62c-4cf5-9a2e-d055a0ffa5eb.tmdl",
-2026-02-17T17:17:20.5982054Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5982345Z         "payload_length": 3456
-2026-02-17T17:17:20.5982862Z       },
-2026-02-17T17:17:20.5983083Z       {
-2026-02-17T17:17:20.5983388Z         "path": "definition/tables/LocalDateTable_4f8745f5-2286-4cff-b90a-2ae0535f32ed.tmdl",
-2026-02-17T17:17:20.5983720Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5983994Z         "payload_length": 3424
-2026-02-17T17:17:20.5984246Z       },
-2026-02-17T17:17:20.5984468Z       {
-2026-02-17T17:17:20.5984776Z         "path": "definition/tables/LocalDateTable_29a7aa3c-1b7e-4546-9c2e-d337c44cff50.tmdl",
-2026-02-17T17:17:20.5985103Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5985355Z         "payload_length": 3424
-2026-02-17T17:17:20.5985581Z       },
-2026-02-17T17:17:20.5985784Z       {
-2026-02-17T17:17:20.5986030Z         "path": "definition/tables/lease_receivables.tmdl",
-2026-02-17T17:17:20.5986312Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5986558Z         "payload_length": 6540
-2026-02-17T17:17:20.5986780Z       },
-2026-02-17T17:17:20.5987011Z       {
-2026-02-17T17:17:20.5987387Z         "path": "definition/tables/sundry_charges.tmdl",
-2026-02-17T17:17:20.5987643Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5987901Z         "payload_length": 14492
-2026-02-17T17:17:20.5988130Z       },
-2026-02-17T17:17:20.5988336Z       {
-2026-02-17T17:17:20.5988631Z         "path": "definition/tables/LocalDateTable_6091144c-a56f-4d8e-ba6a-c09a95647ae9.tmdl",
-2026-02-17T17:17:20.5988950Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5989211Z         "payload_length": 3408
-2026-02-17T17:17:20.5989446Z       },
-2026-02-17T17:17:20.5989659Z       {
-2026-02-17T17:17:20.5989962Z         "path": "definition/tables/LocalDateTable_6d35864e-6579-4465-9b1a-131959c4da1b.tmdl",
-2026-02-17T17:17:20.5990282Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5990543Z         "payload_length": 3436
-2026-02-17T17:17:20.5990774Z       },
-2026-02-17T17:17:20.5990986Z       {
-2026-02-17T17:17:20.5991242Z         "path": "definition/cultures/en-GB.tmdl",
-2026-02-17T17:17:20.5991595Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5991885Z         "payload_length": 363856
-2026-02-17T17:17:20.5992128Z       },
-2026-02-17T17:17:20.5992345Z       {
-2026-02-17T17:17:20.5992807Z         "path": ".pbi/editorSettings.json",
-2026-02-17T17:17:20.5993088Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:20.5993354Z         "payload_length": 416
-2026-02-17T17:17:20.5993591Z       }
-2026-02-17T17:17:20.5993823Z     ]
-2026-02-17T17:17:20.5994043Z   }
-2026-02-17T17:17:20.5994265Z }
-2026-02-17T17:17:21.0878319Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/61493f1b-7e4c-4640-8875-a5984a7f790c
-2026-02-17T17:17:21.0879813Z INFO:fabric_client:  LRO Operation ID: 61493f1b-7e4c-4640-8875-a5984a7f790c
-2026-02-17T17:17:21.0880154Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-17T17:17:21.0888035Z INFO:__main__:  Updated semantic model (ID: 3a26df55-9888-425d-833d-2c05a7b83788)
-2026-02-17T17:17:21.0889169Z INFO:__main__:  Waiting for definition update to complete...
-2026-02-17T17:17:21.0889532Z INFO:fabric_client:  Polling operation 61493f1b-7e4c-4640-8875-a5984a7f790c (retry every 20s, max 15 attempts)
-2026-02-17T17:17:41.2201538Z INFO:fabric_client:    Attempt 1/15: Succeeded (100% complete)
-2026-02-17T17:17:41.2204472Z INFO:fabric_client:  ✓ Operation completed successfully
-2026-02-17T17:17:41.3530903Z ERROR:fabric_client:HTTP Error: 400 - {"requestId":"96cdd5a3-13e8-42c8-90e1-a2ddbce235ee","errorCode":"OperationHasNoResult","message":"The operation has no result"}
-2026-02-17T17:17:41.3534261Z INFO:fabric_client:  ℹ Operation has no result (expected for update operations)
-2026-02-17T17:17:41.3542403Z INFO:__main__:  Looking up Fabric connection: 'dev-tmp01-reporting-lakehouse-connection'
-2026-02-17T17:17:41.3546164Z INFO:fabric_client:Listing connections via Fabric Connections API
-2026-02-17T17:17:41.5735427Z INFO:fabric_client:  Retrieved 3 connections total
-2026-02-17T17:17:41.5738629Z INFO:__main__:  📋 Connections returned by API (3 total)
-2026-02-17T17:17:41.5740029Z INFO:__main__:    [1] 'GIT-AAG-SIT-FWS-ENGINEERING-01' (type=ShareableCloud, id=69ef90e4-66a9-42c1-a160-a74b23032356)
-2026-02-17T17:17:41.5740922Z INFO:__main__:    [2] 'dev-tmp01-reporting-lakehouse-connection' (type=ShareableCloud, id=e9b9c6ba-8e33-41c5-b5fc-b34af2865502)
-2026-02-17T17:17:41.5741984Z INFO:__main__:    [3] 'None' (type=PersonalCloud, id=7359a982-6502-46c2-a425-b843814ac1a9)
-2026-02-17T17:17:41.5743266Z INFO:__main__:  ✓ Found connection: 'dev-tmp01-reporting-lakehouse-connection' (ID: e9b9c6ba-8e33-41c5-b5fc-b34af2865502)
-2026-02-17T17:17:41.5745057Z INFO:__main__:  Binding 'Finance Summary' to Fabric connection 'dev-tmp01-reporting-lakehouse-connection'...
-2026-02-17T17:17:41.5745620Z INFO:fabric_client:Binding semantic model 3a26df55-9888-425d-833d-2c05a7b83788 to Fabric connection e9b9c6ba-8e33-41c5-b5fc-b34af2865502
-2026-02-17T17:17:41.5746154Z INFO:fabric_client:Taking over ownership of semantic model 3a26df55-9888-425d-833d-2c05a7b83788
-2026-02-17T17:17:41.7903835Z INFO:fabric_client:  ✓ Successfully took over ownership of semantic model 3a26df55-9888-425d-833d-2c05a7b83788
-2026-02-17T17:17:41.7906969Z INFO:fabric_client:  Listing connections for item 3a26df55-9888-425d-833d-2c05a7b83788
-2026-02-17T17:17:41.9653512Z INFO:fabric_client:  Found 1 existing connection reference(s) on semantic model
-2026-02-17T17:17:41.9654151Z INFO:fabric_client:    [1] type=ShareableCloud, path=urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com;ReportingLakehouse, connType=SQL, id=e9b9c6ba-8e33-41c5-b5fc-b34af2865502
-2026-02-17T17:17:41.9655336Z INFO:fabric_client:  ✓ Already bound to target connection (path=urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com;ReportingLakehouse)
-2026-02-17T17:17:41.9656111Z INFO:fabric_client:  ✓ Bound 1 data source(s) to Fabric connection e9b9c6ba-8e33-41c5-b5fc-b34af2865502
-2026-02-17T17:17:41.9656984Z INFO:__main__:  ✓ Bound 'Finance Summary' to connection 'dev-tmp01-reporting-lakehouse-connection' (1 data source(s))
-2026-02-17T17:17:41.9657914Z INFO:__main__:  ✓ SQL endpoints transformed during deployment for 'Finance Summary'
-2026-02-17T17:17:41.9666192Z INFO:__main__:✅ Successfully deployed: Finance Summary
-2026-02-17T17:17:41.9666611Z INFO:__main__:
-2026-02-17T17:17:41.9667018Z Deploying: Finance Summary (Report)
-2026-02-17T17:17:41.9667442Z INFO:__main__:  Reading report from Fabric Git format: Finance Summary.Report
-2026-02-17T17:17:41.9667966Z INFO:__main__:    Found semantic model 'Finance Summary' in deployment cache (ID: 3a26df55-9888-425d-833d-2c05a7b83788)
-2026-02-17T17:17:41.9668674Z INFO:__main__:    ✓ Using byConnection reference for 'Finance Summary' (ID: 3a26df55-9888-425d-833d-2c05a7b83788)
-2026-02-17T17:17:41.9680308Z INFO:fabric_client:Listing reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-17T17:17:42.1499035Z INFO:__main__:  Power BI report 'Finance Summary' already exists, updating...
-2026-02-17T17:17:42.1503387Z INFO:fabric_client:Updating Power BI report: 2c5f3913-8dee-4fd1-a64a-9f4ceea23e46
-2026-02-17T17:17:42.1504527Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/reports/2c5f3913-8dee-4fd1-a64a-9f4ceea23e46/updateDefinition
-2026-02-17T17:17:42.1505860Z INFO:fabric_client:Payload structure: {
-2026-02-17T17:17:42.1507070Z   "definition": {
-2026-02-17T17:17:42.1508859Z     "parts": [
-2026-02-17T17:17:42.1510115Z       {
-2026-02-17T17:17:42.1511091Z         "path": "definition.pbir",
-2026-02-17T17:17:42.1512338Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1514323Z         "payload_length": 372
-2026-02-17T17:17:42.1515312Z       },
-2026-02-17T17:17:42.1516743Z       {
-2026-02-17T17:17:42.1517706Z         "path": ".platform",
-2026-02-17T17:17:42.1519048Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1520011Z         "payload_length": 400
-2026-02-17T17:17:42.1521153Z       },
-2026-02-17T17:17:42.1521961Z       {
-2026-02-17T17:17:42.1523139Z         "path": "StaticResources/SharedResources/BaseThemes/CY24SU10.json",
-2026-02-17T17:17:42.1524644Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1525846Z         "payload_length": 17900
-2026-02-17T17:17:42.1527189Z       },
-2026-02-17T17:17:42.1528130Z       {
-2026-02-17T17:17:42.1529739Z         "path": "definition/report.json",
-2026-02-17T17:17:42.1531235Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1532285Z         "payload_length": 1948
-2026-02-17T17:17:42.1533914Z       },
-2026-02-17T17:17:42.1535257Z       {
-2026-02-17T17:17:42.1536639Z         "path": "definition/version.json",
-2026-02-17T17:17:42.1537800Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1539177Z         "payload_length": 200
-2026-02-17T17:17:42.1540251Z       },
-2026-02-17T17:17:42.1541678Z       {
-2026-02-17T17:17:42.1542722Z         "path": "definition/pages/pages.json",
-2026-02-17T17:17:42.1543819Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1544716Z         "payload_length": 292
-2026-02-17T17:17:42.1545621Z       },
-2026-02-17T17:17:42.1546383Z       {
-2026-02-17T17:17:42.1547350Z         "path": "definition/pages/b6c42040fec78e9b914a/page.json",
-2026-02-17T17:17:42.1548364Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1549661Z         "payload_length": 328
-2026-02-17T17:17:42.1551032Z       },
-2026-02-17T17:17:42.1552296Z       {
-2026-02-17T17:17:42.1553564Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/0523a88ac23452ae9e6b/visual.json",
-2026-02-17T17:17:42.1554571Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1555374Z         "payload_length": 1788
-2026-02-17T17:17:42.1556258Z       },
-2026-02-17T17:17:42.1557035Z       {
-2026-02-17T17:17:42.1557858Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/46e549cc5f43e9475f58/visual.json",
-2026-02-17T17:17:42.1558627Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1559062Z         "payload_length": 14060
-2026-02-17T17:17:42.1559520Z       },
-2026-02-17T17:17:42.1560457Z       {
-2026-02-17T17:17:42.1563940Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/de01cbde24b2199323d8/visual.json",
-2026-02-17T17:17:42.1565278Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1565713Z         "payload_length": 10860
-2026-02-17T17:17:42.1565872Z       },
-2026-02-17T17:17:42.1566119Z       {
-2026-02-17T17:17:42.1566368Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/03b5e05028d4e9948b9a/visual.json",
-2026-02-17T17:17:42.1566618Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1566807Z         "payload_length": 12540
-2026-02-17T17:17:42.1567460Z       },
-2026-02-17T17:17:42.1568063Z       {
-2026-02-17T17:17:42.1569119Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/f7c4ad813300f32f44ef/visual.json",
-2026-02-17T17:17:42.1569755Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1570701Z         "payload_length": 12572
-2026-02-17T17:17:42.1571614Z       },
-2026-02-17T17:17:42.1572794Z       {
-2026-02-17T17:17:42.1573734Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/ef72739d0231e84f532a/visual.json",
-2026-02-17T17:17:42.1574433Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1575505Z         "payload_length": 10344
-2026-02-17T17:17:42.1576270Z       },
-2026-02-17T17:17:42.1577126Z       {
-2026-02-17T17:17:42.1577989Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/e5eb24c638bb1f032b26/visual.json",
-2026-02-17T17:17:42.1578782Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1579763Z         "payload_length": 13908
-2026-02-17T17:17:42.1580736Z       },
-2026-02-17T17:17:42.1581552Z       {
-2026-02-17T17:17:42.1582952Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/25760f426e0c3e92eaa0/visual.json",
-2026-02-17T17:17:42.1583559Z         "payloadType": "InlineBase64",
-2026-02-17T17:17:42.1584368Z         "payload_length": 9092
-2026-02-17T17:17:42.1585042Z       }
-2026-02-17T17:17:42.1585672Z     ]
-2026-02-17T17:17:42.1586565Z   }
-2026-02-17T17:17:42.1587078Z }
-2026-02-17T17:17:42.4487776Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/c013a020-3f69-4a31-bea9-34176beab3ae
-2026-02-17T17:17:42.4491116Z INFO:fabric_client:  LRO Operation ID: c013a020-3f69-4a31-bea9-34176beab3ae
-2026-02-17T17:17:42.4491690Z INFO:fabric_client:  Retry-After: 20 seconds
-2026-02-17T17:17:42.4513446Z INFO:__main__:  Updated report (ID: 2c5f3913-8dee-4fd1-a64a-9f4ceea23e46)
-2026-02-17T17:17:42.4514208Z INFO:__main__:  ✓ Dataset reference transformed during deployment for 'Finance Summary'
-2026-02-17T17:17:42.4514704Z INFO:__main__:✅ Successfully deployed: Finance Summary
-2026-02-17T17:17:42.4515039Z INFO:__main__:
-2026-02-17T17:17:42.4515447Z Deploying: Aged Debtors (PaginatedReport)
-2026-02-17T17:17:42.4515887Z INFO:__main__:  Found paginated report in Git format: wsartifacts/Reports/Aged Debtors.PaginatedReport
-2026-02-17T17:17:42.4516630Z INFO:__main__:  📦 Paginated report 'Aged Debtors' will be synced from Git (updateFromGit)
-2026-02-17T17:17:42.4517302Z INFO:__main__:    Post-sync: TakeOver + UpdateDatasources will fix connection strings
-2026-02-17T17:17:42.4517801Z INFO:__main__:✅ Successfully deployed: Aged Debtors
-2026-02-17T17:17:42.4518182Z INFO:__main__:
-2026-02-17T17:17:42.4518592Z ============================================================
-2026-02-17T17:17:42.4518957Z INFO:__main__:DEPLOYMENT SUMMARY
-2026-02-17T17:17:42.4519537Z INFO:__main__:============================================================
-2026-02-17T17:17:42.4519946Z INFO:__main__:Total artifacts: 3
-2026-02-17T17:17:42.4520288Z INFO:__main__:Successful: 3
-2026-02-17T17:17:42.4520620Z INFO:__main__:Failed: 0
-2026-02-17T17:17:42.4521008Z INFO:__main__:============================================================
-2026-02-17T17:17:42.4589495Z INFO:change_detector:Saved deployment commit: 9c1da38b
-2026-02-17T17:17:42.4590655Z INFO:__main__:Saved deployment state: 9c1da38b
-2026-02-17T17:17:42.4591906Z INFO:__main__:
-2026-02-17T17:17:42.4594612Z ------------------------------------------------------------
-2026-02-17T17:17:42.4596716Z INFO:__main__:SOURCE CONTROL SYNC
-2026-02-17T17:17:42.4598625Z INFO:__main__:------------------------------------------------------------
-2026-02-17T17:17:42.4600194Z INFO:__main__:Checking for pending Git updates in workspace...
-2026-02-17T17:17:42.4601714Z INFO:fabric_client:Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-17T17:17:42.7059732Z INFO:__main__:  Git credentials already configured (source: ConfiguredConnection)
-2026-02-17T17:17:42.7060484Z INFO:fabric_client:Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-17T17:17:47.0048746Z INFO:__main__:  Workspace head:   d858d82eac31...
-2026-02-17T17:17:47.0049582Z INFO:__main__:  Remote commit:    9c1da38bc7fc...
-2026-02-17T17:17:47.0050885Z INFO:__main__:  📦 3 update(s) available from Git:
-2026-02-17T17:17:47.0052158Z INFO:__main__:    - Finance Summary (report): Modified
-2026-02-17T17:17:47.0053026Z INFO:__main__:    - Aged Debtors (rdlreport): Modified
-2026-02-17T17:17:47.0054799Z INFO:__main__:    - Finance Summary (dataset): Modified
-2026-02-17T17:17:47.0055299Z INFO:__main__:  Updating workspace from Git (policy: PreferRemote)...
-2026-02-17T17:17:47.0055834Z INFO:fabric_client:Updating workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64 from Git (commit: 9c1da38bc7fc...)
-2026-02-17T17:17:50.4662076Z ERROR:fabric_client:HTTP Error: 400 - {"requestId":"6e9601f0-0fcd-4ce1-879d-f63e318cb000","errorCode":"BadRequest","moreDetails":[{"errorCode":"PrincipalTypeNotSupported","message":"The operation is not supported for the principal type","relatedResource":{"resourceType":"PaginatedReport"}}],"message":"The request could not be processed due to missing or invalid information"}
-2026-02-17T17:17:50.4666636Z WARNING:__main__:  ⚠ Source control sync failed: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/updateFromGit
-2026-02-17T17:17:50.4667238Z WARNING:__main__:    Update source control manually in Fabric portal
-2026-02-17T17:17:50.4669665Z INFO:__main__:
-2026-02-17T17:17:50.4670007Z ------------------------------------------------------------
-2026-02-17T17:17:50.4670371Z INFO:__main__:POST-GIT-SYNC: PAGINATED REPORT DATASOURCE UPDATE
-2026-02-17T17:17:50.4670900Z INFO:__main__:------------------------------------------------------------
-2026-02-17T17:17:50.4672285Z INFO:fabric_client:Listing paginated reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-17T17:17:50.6744582Z INFO:__main__:  Processing 'Aged Debtors' (ID: 83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2)
-2026-02-17T17:17:50.6759051Z INFO:__main__:    Found 1 data source(s) in RDL: ReportingLakehouse
-2026-02-17T17:17:50.6760433Z INFO:fabric_client:Taking over ownership of paginated report 83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2
-2026-02-17T17:17:51.3563085Z INFO:fabric_client:  ✓ Successfully took over ownership of paginated report 83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2
-2026-02-17T17:17:51.3574410Z INFO:__main__:    Updating datasource 'ReportingLakehouse' → server='urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com', database='ReportingLakehouse'
-2026-02-17T17:17:51.3575443Z INFO:fabric_client:Updating data sources for paginated report: 83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2
-2026-02-17T17:17:51.9244207Z INFO:fabric_client:  ✓ Updated 1 data source(s) via UpdateDatasources API
-2026-02-17T17:17:51.9253251Z INFO:__main__:  ✓ Updated data sources for 'Aged Debtors'
-2026-02-17T17:17:51.9257666Z INFO:__main__:  Done — processed 1 paginated report(s)
-2026-02-17T17:17:51.9593143Z 
-2026-02-17T17:17:51.9594285Z ✓ Dev deployment completed successfully
-2026-02-17T17:17:51.9609638Z 
-2026-02-17T17:17:51.9679002Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2026-02-18T14:41:50.2850868Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-02-18T14:41:50.2857538Z ==============================================================================
+2026-02-18T14:41:50.2857647Z Task         : Command line
+2026-02-18T14:41:50.2857714Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-02-18T14:41:50.2857807Z Version      : 2.268.0
+2026-02-18T14:41:50.2857871Z Author       : Microsoft Corporation
+2026-02-18T14:41:50.2857936Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-02-18T14:41:50.2858029Z ==============================================================================
+2026-02-18T14:41:50.4215070Z Generating script.
+2026-02-18T14:41:50.4225490Z ========================== Starting Command Output ===========================
+2026-02-18T14:41:50.4241775Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/74350862-e96a-4f2d-a471-2e3d440bc1ea.sh
+2026-02-18T14:41:50.4304864Z ========================================
+2026-02-18T14:41:50.4306248Z DEBUG: Verifying Repository Checkout
+2026-02-18T14:41:50.4306579Z ========================================
+2026-02-18T14:41:50.4306901Z Current directory: /home/vsts/work/1/s
+2026-02-18T14:41:50.4307209Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-02-18T14:41:50.4307346Z 
+2026-02-18T14:41:50.4307623Z Contents of Build.SourcesDirectory:
+2026-02-18T14:41:50.4327378Z total 40
+2026-02-18T14:41:50.4334018Z drwxr-xr-x 8 vsts vsts 4096 Feb 18 14:41 .
+2026-02-18T14:41:50.4334422Z drwxr-xr-x 7 vsts vsts 4096 Feb 18 14:41 ..
+2026-02-18T14:41:50.4334825Z drwxr-xr-x 2 vsts vsts 4096 Feb 18 14:41 .deployment_tracking
+2026-02-18T14:41:50.4335210Z drwxr-xr-x 7 vsts vsts 4096 Feb 18 14:41 .git
+2026-02-18T14:41:50.4335572Z -rw-r--r-- 1 vsts vsts   44 Feb 18 14:41 .gitignore
+2026-02-18T14:41:50.4336163Z -rw-r--r-- 1 vsts vsts  985 Feb 18 14:41 README.md
+2026-02-18T14:41:50.4338359Z drwxr-xr-x 2 vsts vsts 4096 Feb 18 14:41 azure-pipelines
+2026-02-18T14:41:50.4339316Z drwxr-xr-x 2 vsts vsts 4096 Feb 18 14:41 config
+2026-02-18T14:41:50.4339692Z drwxr-xr-x 2 vsts vsts 4096 Feb 18 14:41 scripts
+2026-02-18T14:41:50.4340225Z drwxr-xr-x 8 vsts vsts 4096 Feb 18 14:41 wsartifacts
+2026-02-18T14:41:50.4340383Z 
+2026-02-18T14:41:50.4340682Z Checking for required folders:
+2026-02-18T14:41:50.4341198Z ✓ scripts/ exists
+2026-02-18T14:41:50.4341526Z ✓ config/ exists
+2026-02-18T14:41:50.4341873Z ✓ wsartifacts/ exists
+2026-02-18T14:41:50.4342524Z ========================================
+2026-02-18T14:41:50.4342890Z ========================================
+2026-02-18T14:41:50.4343216Z Deploying to Dev Environment
+2026-02-18T14:41:50.4343532Z ========================================
+2026-02-18T14:41:50.4343830Z Features:
+2026-02-18T14:41:50.4344297Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-02-18T14:41:50.4344747Z   📊 Dependency-aware deployment ordering
+2026-02-18T14:41:50.4345188Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-02-18T14:41:50.4345363Z 
+2026-02-18T14:41:50.4345615Z Deployment steps:
+2026-02-18T14:41:50.4345904Z   1. Create artifacts from config file
+2026-02-18T14:41:50.4346220Z   2. Detect changed artifacts using Git diff
+2026-02-18T14:41:50.4346558Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-02-18T14:41:50.4346898Z ========================================
+2026-02-18T14:41:50.9913797Z INFO:__main__:Initializing deployment to dev environment
+2026-02-18T14:41:50.9914841Z INFO:config_manager:Loading configuration from: config/dev.json
+2026-02-18T14:41:50.9915528Z INFO:__main__:Using environment-specific service principal for dev
+2026-02-18T14:41:50.9916241Z INFO:fabric_auth:Using environment-specific secret from: AZURE_CLIENT_SECRET_DEV
+2026-02-18T14:41:50.9916918Z INFO:__main__:Using artifacts root folder: wsartifacts
+2026-02-18T14:41:50.9918398Z INFO:fabric_auth:Using Service Principal authentication (Client ID: 0c296168-ffc5-447a-83bc-bdaf8979d8da)
+2026-02-18T14:41:50.9926367Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/v2.0/.well-known/openid-configuration'
+2026-02-18T14:41:50.9927916Z Request method: 'GET'
+2026-02-18T14:41:50.9929774Z Request headers:
+2026-02-18T14:41:50.9931705Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.14.0-1017-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
+2026-02-18T14:41:50.9932191Z No body was attached to the request
+2026-02-18T14:41:51.0977045Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
+2026-02-18T14:41:51.0977809Z Response headers:
+2026-02-18T14:41:51.0978999Z     'Cache-Control': 'max-age=86400, private'
+2026-02-18T14:41:51.0979388Z     'Content-Type': 'application/json; charset=utf-8'
+2026-02-18T14:41:51.0979757Z     'Strict-Transport-Security': 'REDACTED'
+2026-02-18T14:41:51.0980088Z     'X-Content-Type-Options': 'REDACTED'
+2026-02-18T14:41:51.0980411Z     'Access-Control-Allow-Origin': 'REDACTED'
+2026-02-18T14:41:51.0980764Z     'Access-Control-Allow-Methods': 'REDACTED'
+2026-02-18T14:41:51.0981072Z     'P3P': 'REDACTED'
+2026-02-18T14:41:51.0981418Z     'x-ms-request-id': '3810b044-22c5-406f-9ffd-5ee413d20c00'
+2026-02-18T14:41:51.0981771Z     'x-ms-ests-server': 'REDACTED'
+2026-02-18T14:41:51.0982075Z     'x-ms-srs': 'REDACTED'
+2026-02-18T14:41:51.0982603Z     'Content-Security-Policy-Report-Only': 'REDACTED'
+2026-02-18T14:41:51.0982932Z     'X-XSS-Protection': 'REDACTED'
+2026-02-18T14:41:51.0983226Z     'Set-Cookie': 'REDACTED'
+2026-02-18T14:41:51.0983531Z     'Date': 'Wed, 18 Feb 2026 14:41:50 GMT'
+2026-02-18T14:41:51.0983848Z     'Content-Length': '1964'
+2026-02-18T14:41:51.1577359Z INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://login.microsoftonline.com/562268a4-3a49-44b0-b8c3-68edf7b89d2a/oauth2/v2.0/token'
+2026-02-18T14:41:51.1579089Z Request method: 'POST'
+2026-02-18T14:41:51.1579408Z Request headers:
+2026-02-18T14:41:51.1579747Z     'Content-Type': 'application/x-www-form-urlencoded'
+2026-02-18T14:41:51.1580106Z     'Accept': 'application/json'
+2026-02-18T14:41:51.1580431Z     'x-client-sku': 'REDACTED'
+2026-02-18T14:41:51.1580961Z     'x-client-ver': 'REDACTED'
+2026-02-18T14:41:51.1581282Z     'x-client-os': 'REDACTED'
+2026-02-18T14:41:51.1581596Z     'x-ms-lib-capability': 'REDACTED'
+2026-02-18T14:41:51.1581920Z     'client-request-id': 'REDACTED'
+2026-02-18T14:41:51.1582509Z     'x-client-current-telemetry': 'REDACTED'
+2026-02-18T14:41:51.1582873Z     'x-client-last-telemetry': 'REDACTED'
+2026-02-18T14:41:51.1583353Z     'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.14 (Linux-6.14.0-1017-azure-x86_64-with-glibc2.39) VSTS_cce5d084-795e-4571-b572-7464fb043138_build_96_0'
+2026-02-18T14:41:51.1583828Z A body is sent with the request
+2026-02-18T14:41:51.2454945Z INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
+2026-02-18T14:41:51.2457396Z Response headers:
+2026-02-18T14:41:51.2458907Z     'Cache-Control': 'no-store, no-cache'
+2026-02-18T14:41:51.2461925Z     'Pragma': 'no-cache'
+2026-02-18T14:41:51.2462827Z     'Content-Type': 'application/json; charset=utf-8'
+2026-02-18T14:41:51.2463481Z     'Expires': '-1'
+2026-02-18T14:41:51.2463985Z     'Strict-Transport-Security': 'REDACTED'
+2026-02-18T14:41:51.2464818Z     'X-Content-Type-Options': 'REDACTED'
+2026-02-18T14:41:51.2465384Z     'P3P': 'REDACTED'
+2026-02-18T14:41:51.2465885Z     'client-request-id': 'REDACTED'
+2026-02-18T14:41:51.2466500Z     'x-ms-request-id': '2feffb40-6e7f-4319-8f68-c3913ff83800'
+2026-02-18T14:41:51.2467063Z     'x-ms-ests-server': 'REDACTED'
+2026-02-18T14:41:51.2469141Z     'x-ms-clitelem': 'REDACTED'
+2026-02-18T14:41:51.2469627Z     'x-ms-srs': 'REDACTED'
+2026-02-18T14:41:51.2470136Z     'Content-Security-Policy-Report-Only': 'REDACTED'
+2026-02-18T14:41:51.2470772Z     'X-XSS-Protection': 'REDACTED'
+2026-02-18T14:41:51.2471284Z     'Set-Cookie': 'REDACTED'
+2026-02-18T14:41:51.2473397Z     'Date': 'Wed, 18 Feb 2026 14:41:50 GMT'
+2026-02-18T14:41:51.2473931Z     'Content-Length': '1701'
+2026-02-18T14:41:51.2474345Z INFO:azure.identity._internal.get_token_mixin:ClientSecretCredential.get_token succeeded
+2026-02-18T14:41:51.2474788Z INFO:fabric_auth:Successfully obtained access token
+2026-02-18T14:41:51.3908374Z INFO:fabric_auth:Authentication validation successful
+2026-02-18T14:41:51.3916216Z INFO:__main__:Target workspace: AAG-SIT-FWS-ENGINEERING-01 (d7faf1fa-0e7e-4061-b3e5-50fa3873eb64)
+2026-02-18T14:41:51.3918280Z INFO:__main__:Running in artifact creation mode
+2026-02-18T14:41:51.3919322Z INFO:__main__:============================================================
+2026-02-18T14:41:51.3920133Z INFO:__main__:Creating artifacts from configuration for dev
+2026-02-18T14:41:51.3920908Z INFO:__main__:============================================================
+2026-02-18T14:41:51.3921474Z INFO:__main__:No artifacts configured for creation
+2026-02-18T14:41:51.3922518Z INFO:__main__:Artifact creation completed successfully
+2026-02-18T14:41:51.3923094Z INFO:__main__:============================================================
+2026-02-18T14:41:51.3923471Z INFO:__main__:ARTIFACT DISCOVERY PHASE
+2026-02-18T14:41:51.3923837Z INFO:__main__:============================================================
+2026-02-18T14:41:51.3931890Z INFO:__main__:Discovering artifacts from file system...
+2026-02-18T14:41:51.3934081Z INFO:__main__:Discovered 1 lakehouse(s): ReportingLakehouse
+2026-02-18T14:41:51.3942534Z INFO:__main__:Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
+2026-02-18T14:41:51.3946366Z INFO:__main__:Discovered 1 Variable Library: ReportingVariables
+2026-02-18T14:41:51.3948677Z INFO:__main__:Discovered 2 semantic model(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
+2026-02-18T14:41:51.3954938Z INFO:__main__:Discovered 2 report(s): Finance Summary (Fabric Git), Welcome (Fabric Git)
+2026-02-18T14:41:51.3960474Z INFO:__main__:Discovered 1 paginated report(s): Aged Debtors (Fabric Git)
+2026-02-18T14:41:51.3962768Z INFO:__main__:============================================================
+2026-02-18T14:41:51.3963689Z INFO:__main__:DISCOVERY COMPLETE: Found 17 total artifacts
+2026-02-18T14:41:51.3966557Z INFO:__main__:============================================================
+2026-02-18T14:41:51.3967210Z INFO:__main__:
+2026-02-18T14:41:51.3968263Z ============================================================
+2026-02-18T14:41:51.3969202Z INFO:__main__:CHANGE DETECTION
+2026-02-18T14:41:51.3969867Z INFO:__main__:============================================================
+2026-02-18T14:41:51.4026783Z INFO:change_detector:Found 4 changed file(s) since b4728ca5
+2026-02-18T14:41:51.4029200Z INFO:change_detector:Change detection: 2 artifact(s) changed
+2026-02-18T14:41:51.4032122Z INFO:change_detector:  PaginatedReport: Aged Debtors
+2026-02-18T14:41:51.4037082Z INFO:change_detector:  Report: Finance Summary
+2026-02-18T14:41:51.4038003Z INFO:__main__:Including semantic model 'Finance Summary' (report 'Finance Summary' changed)
+2026-02-18T14:41:51.4038596Z INFO:__main__:Changed artifacts: 3
+2026-02-18T14:41:51.4039235Z INFO:__main__:  PaginatedReport: Aged Debtors
+2026-02-18T14:41:51.4040014Z INFO:__main__:  Report: Finance Summary
+2026-02-18T14:41:51.4041552Z INFO:__main__:  SemanticModel: Finance Summary
+2026-02-18T14:41:51.4042181Z INFO:__main__:Skipped (unchanged): 14
+2026-02-18T14:41:51.4043128Z INFO:__main__:============================================================
+2026-02-18T14:41:51.4043710Z INFO:__main__:============================================================
+2026-02-18T14:41:51.4044094Z INFO:__main__:Starting deployment to dev environment
+2026-02-18T14:41:51.4044476Z INFO:__main__:============================================================
+2026-02-18T14:41:51.4045114Z INFO:dependency_resolver:✅ All dependencies are valid
+2026-02-18T14:41:51.4046079Z INFO:dependency_resolver:Deployment order determined:
+2026-02-18T14:41:51.4046458Z INFO:dependency_resolver:  1. Finance Summary (SemanticModel)
+2026-02-18T14:41:51.4046984Z INFO:dependency_resolver:  2. Finance Summary (Report)
+2026-02-18T14:41:51.4047365Z INFO:dependency_resolver:  3. Aged Debtors (PaginatedReport)
+2026-02-18T14:41:51.4047698Z INFO:__main__:
+2026-02-18T14:41:51.4047984Z --- Deploying 3 artifact(s) ---
+2026-02-18T14:41:51.4048260Z INFO:__main__:
+2026-02-18T14:41:51.4048554Z Deploying: Finance Summary (SemanticModel)
+2026-02-18T14:41:51.4048948Z INFO:__main__:  Reading semantic model from Fabric Git format: Finance Summary.SemanticModel
+2026-02-18T14:41:51.4092162Z INFO:fabric_client:Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-18T14:41:51.6222712Z INFO:__main__:  Semantic model 'Finance Summary' already exists, updating...
+2026-02-18T14:41:51.6224743Z INFO:fabric_client:Updating semantic model: 3a26df55-9888-425d-833d-2c05a7b83788
+2026-02-18T14:41:51.6228212Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/semanticModels/3a26df55-9888-425d-833d-2c05a7b83788/updateDefinition
+2026-02-18T14:41:51.6229872Z INFO:fabric_client:Payload structure: {
+2026-02-18T14:41:51.6230410Z   "definition": {
+2026-02-18T14:41:51.6231015Z     "parts": [
+2026-02-18T14:41:51.6231420Z       {
+2026-02-18T14:41:51.6231686Z         "path": "definition.pbism",
+2026-02-18T14:41:51.6232107Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6232579Z         "payload_length": 224
+2026-02-18T14:41:51.6232842Z       },
+2026-02-18T14:41:51.6233082Z       {
+2026-02-18T14:41:51.6233344Z         "path": ".platform",
+2026-02-18T14:41:51.6233639Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6233956Z         "payload_length": 408
+2026-02-18T14:41:51.6234221Z       },
+2026-02-18T14:41:51.6234451Z       {
+2026-02-18T14:41:51.6234799Z         "path": "definition/relationships.tmdl",
+2026-02-18T14:41:51.6235102Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6235390Z         "payload_length": 8760
+2026-02-18T14:41:51.6235643Z       },
+2026-02-18T14:41:51.6235879Z       {
+2026-02-18T14:41:51.6236144Z         "path": "definition/database.tmdl",
+2026-02-18T14:41:51.6236439Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6236890Z         "payload_length": 48
+2026-02-18T14:41:51.6237143Z       },
+2026-02-18T14:41:51.6237374Z       {
+2026-02-18T14:41:51.6237633Z         "path": "definition/model.tmdl",
+2026-02-18T14:41:51.6237921Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6238204Z         "payload_length": 3000
+2026-02-18T14:41:51.6238456Z       },
+2026-02-18T14:41:51.6238688Z       {
+2026-02-18T14:41:51.6239018Z         "path": "definition/tables/LocalDateTable_13a26fdd-a293-4aed-83e8-d179b8e59b5d.tmdl",
+2026-02-18T14:41:51.6239366Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6239647Z         "payload_length": 3400
+2026-02-18T14:41:51.6239897Z       },
+2026-02-18T14:41:51.6240126Z       {
+2026-02-18T14:41:51.6240447Z         "path": "definition/tables/DateTableTemplate_4ed89777-abcc-4a38-9229-cae44fe8de37.tmdl",
+2026-02-18T14:41:51.6240811Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6241092Z         "payload_length": 3356
+2026-02-18T14:41:51.6241347Z       },
+2026-02-18T14:41:51.6241581Z       {
+2026-02-18T14:41:51.6241882Z         "path": "definition/tables/Origination Dates.tmdl",
+2026-02-18T14:41:51.6242223Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6242786Z         "payload_length": 1988
+2026-02-18T14:41:51.6243066Z       },
+2026-02-18T14:41:51.6243309Z       {
+2026-02-18T14:41:51.6243627Z         "path": "definition/tables/LocalDateTable_800fb5ae-d08e-4b67-8c86-150022748772.tmdl",
+2026-02-18T14:41:51.6243967Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6244238Z         "payload_length": 3400
+2026-02-18T14:41:51.6244478Z       },
+2026-02-18T14:41:51.6244694Z       {
+2026-02-18T14:41:51.6244965Z         "path": "definition/tables/lease_finance.tmdl",
+2026-02-18T14:41:51.6245258Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6245528Z         "payload_length": 17140
+2026-02-18T14:41:51.6245911Z       },
+2026-02-18T14:41:51.6246130Z       {
+2026-02-18T14:41:51.6246401Z         "path": "definition/tables/customer.tmdl",
+2026-02-18T14:41:51.6246701Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6246980Z         "payload_length": 12992
+2026-02-18T14:41:51.6247220Z       },
+2026-02-18T14:41:51.6247438Z       {
+2026-02-18T14:41:51.6247745Z         "path": "definition/tables/LocalDateTable_f80953f8-52ea-4878-8fb0-9f7967ddf33c.tmdl",
+2026-02-18T14:41:51.6248079Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6248348Z         "payload_length": 3404
+2026-02-18T14:41:51.6248590Z       },
+2026-02-18T14:41:51.6248816Z       {
+2026-02-18T14:41:51.6249076Z         "path": "definition/tables/invoices.tmdl",
+2026-02-18T14:41:51.6249365Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6249636Z         "payload_length": 9868
+2026-02-18T14:41:51.6249879Z       },
+2026-02-18T14:41:51.6250095Z       {
+2026-02-18T14:41:51.6250355Z         "path": "definition/tables/receipts.tmdl",
+2026-02-18T14:41:51.6250647Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6250921Z         "payload_length": 9372
+2026-02-18T14:41:51.6251156Z       },
+2026-02-18T14:41:51.6251370Z       {
+2026-02-18T14:41:51.6251676Z         "path": "definition/tables/LocalDateTable_55c995e9-5f17-4274-bf39-8abf5b7369f9.tmdl",
+2026-02-18T14:41:51.6252005Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6252458Z         "payload_length": 3412
+2026-02-18T14:41:51.6252704Z       },
+2026-02-18T14:41:51.6252926Z       {
+2026-02-18T14:41:51.6253230Z         "path": "definition/tables/LocalDateTable_a9be32a7-ea5e-4a2a-89c9-e3f439e30843.tmdl",
+2026-02-18T14:41:51.6253558Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6253823Z         "payload_length": 3408
+2026-02-18T14:41:51.6254059Z       },
+2026-02-18T14:41:51.6254273Z       {
+2026-02-18T14:41:51.6254578Z         "path": "definition/tables/LocalDateTable_f79a6bb1-3117-4555-be3c-9536454e7801.tmdl",
+2026-02-18T14:41:51.6254915Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6255179Z         "payload_length": 3400
+2026-02-18T14:41:51.6255518Z       },
+2026-02-18T14:41:51.6255832Z       {
+2026-02-18T14:41:51.6256136Z         "path": "definition/tables/LocalDateTable_d6e646fd-9351-4392-bb98-f4104f373e09.tmdl",
+2026-02-18T14:41:51.6256464Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6256739Z         "payload_length": 3424
+2026-02-18T14:41:51.6256976Z       },
+2026-02-18T14:41:51.6257193Z       {
+2026-02-18T14:41:51.6257499Z         "path": "definition/tables/LocalDateTable_8d388dc9-7379-4833-af99-49606daad1ac.tmdl",
+2026-02-18T14:41:51.6257832Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6258101Z         "payload_length": 3400
+2026-02-18T14:41:51.6258340Z       },
+2026-02-18T14:41:51.6258567Z       {
+2026-02-18T14:41:51.6258875Z         "path": "definition/tables/LocalDateTable_7fc1bfb3-6927-413d-9944-f572555ef422.tmdl",
+2026-02-18T14:41:51.6259210Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6259482Z         "payload_length": 3416
+2026-02-18T14:41:51.6259722Z       },
+2026-02-18T14:41:51.6259944Z       {
+2026-02-18T14:41:51.6260201Z         "path": "definition/tables/Date.tmdl",
+2026-02-18T14:41:51.6260491Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6260758Z         "payload_length": 2384
+2026-02-18T14:41:51.6261002Z       },
+2026-02-18T14:41:51.6261219Z       {
+2026-02-18T14:41:51.6261526Z         "path": "definition/tables/LocalDateTable_3b7d84c8-2a4b-48e9-87d0-0d36d14ebc50.tmdl",
+2026-02-18T14:41:51.6261860Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6262148Z         "payload_length": 3428
+2026-02-18T14:41:51.6262564Z       },
+2026-02-18T14:41:51.6262798Z       {
+2026-02-18T14:41:51.6263078Z         "path": "definition/tables/contracts.tmdl",
+2026-02-18T14:41:51.6263380Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6263662Z         "payload_length": 26324
+2026-02-18T14:41:51.6263916Z       },
+2026-02-18T14:41:51.6264251Z       {
+2026-02-18T14:41:51.6264534Z         "path": "definition/tables/Payments.tmdl",
+2026-02-18T14:41:51.6264837Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6265125Z         "payload_length": 20392
+2026-02-18T14:41:51.6265381Z       },
+2026-02-18T14:41:51.6265615Z       {
+2026-02-18T14:41:51.6265937Z         "path": "definition/tables/LocalDateTable_7351796f-b9e7-43d6-8359-c0dcf147a214.tmdl",
+2026-02-18T14:41:51.6266270Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6266569Z         "payload_length": 3444
+2026-02-18T14:41:51.6266824Z       },
+2026-02-18T14:41:51.6267057Z       {
+2026-02-18T14:41:51.6267386Z         "path": "definition/tables/LocalDateTable_a2a7f051-b1b9-4dcd-a680-fbd3e09b008b.tmdl",
+2026-02-18T14:41:51.6267734Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6268021Z         "payload_length": 3420
+2026-02-18T14:41:51.6268280Z       },
+2026-02-18T14:41:51.6268522Z       {
+2026-02-18T14:41:51.6268850Z         "path": "definition/tables/LocalDateTable_fc720cde-f7a5-48ba-996a-d85bacec89a0.tmdl",
+2026-02-18T14:41:51.6269206Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6269495Z         "payload_length": 3444
+2026-02-18T14:41:51.6269751Z       },
+2026-02-18T14:41:51.6269984Z       {
+2026-02-18T14:41:51.6270310Z         "path": "definition/tables/LocalDateTable_bcd20351-072f-4e5b-ad62-20caaa6a4f5d.tmdl",
+2026-02-18T14:41:51.6270722Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6271090Z         "payload_length": 3400
+2026-02-18T14:41:51.6271368Z       },
+2026-02-18T14:41:51.6271607Z       {
+2026-02-18T14:41:51.6271951Z         "path": "definition/tables/LocalDateTable_e54a4fd8-322c-46ec-9edb-c71bf5e2ccf9.tmdl",
+2026-02-18T14:41:51.6272493Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6272805Z         "payload_length": 3436
+2026-02-18T14:41:51.6273074Z       },
+2026-02-18T14:41:51.6273319Z       {
+2026-02-18T14:41:51.6273663Z         "path": "definition/tables/LocalDateTable_a390c296-8624-4079-97ef-bf642681d1a1.tmdl",
+2026-02-18T14:41:51.6274041Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6274343Z         "payload_length": 3412
+2026-02-18T14:41:51.6274748Z       },
+2026-02-18T14:41:51.6274990Z       {
+2026-02-18T14:41:51.6275347Z         "path": "definition/tables/LocalDateTable_b913591e-5c5c-423d-b392-91c05bcbe308.tmdl",
+2026-02-18T14:41:51.6275718Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6276021Z         "payload_length": 3376
+2026-02-18T14:41:51.6276289Z       },
+2026-02-18T14:41:51.6276533Z       {
+2026-02-18T14:41:51.6276875Z         "path": "definition/tables/LocalDateTable_b524626c-d6f3-422c-88b8-86f63a882608.tmdl",
+2026-02-18T14:41:51.6277250Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6277549Z         "payload_length": 3436
+2026-02-18T14:41:51.6277813Z       },
+2026-02-18T14:41:51.6278055Z       {
+2026-02-18T14:41:51.6278400Z         "path": "definition/tables/LocalDateTable_8e05a108-6fe6-4beb-8a0d-9aa40bc6a5e0.tmdl",
+2026-02-18T14:41:51.6278768Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6279072Z         "payload_length": 3412
+2026-02-18T14:41:51.6279350Z       },
+2026-02-18T14:41:51.6279598Z       {
+2026-02-18T14:41:51.6279937Z         "path": "definition/tables/LocalDateTable_4cacd077-9657-41f6-95b8-0d8e11b86187.tmdl",
+2026-02-18T14:41:51.6280305Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6280605Z         "payload_length": 3412
+2026-02-18T14:41:51.6280873Z       },
+2026-02-18T14:41:51.6281114Z       {
+2026-02-18T14:41:51.6281465Z         "path": "definition/tables/LocalDateTable_c9506875-c62c-4cf5-9a2e-d055a0ffa5eb.tmdl",
+2026-02-18T14:41:51.6281835Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6282132Z         "payload_length": 3456
+2026-02-18T14:41:51.6282561Z       },
+2026-02-18T14:41:51.6282804Z       {
+2026-02-18T14:41:51.6283156Z         "path": "definition/tables/LocalDateTable_4f8745f5-2286-4cff-b90a-2ae0535f32ed.tmdl",
+2026-02-18T14:41:51.6283526Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6283946Z         "payload_length": 3424
+2026-02-18T14:41:51.6284213Z       },
+2026-02-18T14:41:51.6284458Z       {
+2026-02-18T14:41:51.6284806Z         "path": "definition/tables/LocalDateTable_29a7aa3c-1b7e-4546-9c2e-d337c44cff50.tmdl",
+2026-02-18T14:41:51.6285176Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6285476Z         "payload_length": 3424
+2026-02-18T14:41:51.6285749Z       },
+2026-02-18T14:41:51.6285991Z       {
+2026-02-18T14:41:51.6286301Z         "path": "definition/tables/lease_receivables.tmdl",
+2026-02-18T14:41:51.6286637Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6286934Z         "payload_length": 6540
+2026-02-18T14:41:51.6287187Z       },
+2026-02-18T14:41:51.6287400Z       {
+2026-02-18T14:41:51.6287657Z         "path": "definition/tables/sundry_charges.tmdl",
+2026-02-18T14:41:51.6287974Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6288265Z         "payload_length": 14492
+2026-02-18T14:41:51.6288523Z       },
+2026-02-18T14:41:51.6288768Z       {
+2026-02-18T14:41:51.6289115Z         "path": "definition/tables/LocalDateTable_6091144c-a56f-4d8e-ba6a-c09a95647ae9.tmdl",
+2026-02-18T14:41:51.6289494Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6289801Z         "payload_length": 3408
+2026-02-18T14:41:51.6290073Z       },
+2026-02-18T14:41:51.6290318Z       {
+2026-02-18T14:41:51.6290651Z         "path": "definition/tables/LocalDateTable_6d35864e-6579-4465-9b1a-131959c4da1b.tmdl",
+2026-02-18T14:41:51.6291020Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6291318Z         "payload_length": 3436
+2026-02-18T14:41:51.6291592Z       },
+2026-02-18T14:41:51.6291840Z       {
+2026-02-18T14:41:51.6292140Z         "path": "definition/cultures/en-GB.tmdl",
+2026-02-18T14:41:51.6292732Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6293034Z         "payload_length": 363856
+2026-02-18T14:41:51.6293297Z       },
+2026-02-18T14:41:51.6293531Z       {
+2026-02-18T14:41:51.6293805Z         "path": ".pbi/editorSettings.json",
+2026-02-18T14:41:51.6294107Z         "payloadType": "InlineBase64",
+2026-02-18T14:41:51.6294396Z         "payload_length": 416
+2026-02-18T14:41:51.6294784Z       }
+2026-02-18T14:41:51.6295010Z     ]
+2026-02-18T14:41:51.6295236Z   }
+2026-02-18T14:41:51.6295462Z }
+2026-02-18T14:41:51.9123278Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/b9e2eb20-06fa-426a-9dde-71831409b0f9
+2026-02-18T14:41:51.9124090Z INFO:fabric_client:  LRO Operation ID: b9e2eb20-06fa-426a-9dde-71831409b0f9
+2026-02-18T14:41:51.9126557Z INFO:fabric_client:  Retry-After: 20 seconds
+2026-02-18T14:41:51.9130669Z INFO:__main__:  Updated semantic model (ID: 3a26df55-9888-425d-833d-2c05a7b83788)
+2026-02-18T14:41:51.9132627Z INFO:__main__:  Waiting for definition update to complete...
+2026-02-18T14:41:51.9133092Z INFO:fabric_client:  Polling operation b9e2eb20-06fa-426a-9dde-71831409b0f9 (retry every 20s, max 15 attempts)
+2026-02-18T14:42:12.0364777Z INFO:fabric_client:    Attempt 1/15: Succeeded (100% complete)
+2026-02-18T14:42:12.0365516Z INFO:fabric_client:  ✓ Operation completed successfully
+2026-02-18T14:42:12.2060533Z ERROR:fabric_client:HTTP Error: 400 - {"requestId":"958b6da3-3349-49c2-8c25-25ee2e7d2b0e","errorCode":"OperationHasNoResult","message":"The operation has no result"}
+2026-02-18T14:42:12.2062832Z INFO:fabric_client:  ℹ Operation has no result (expected for update operations)
+2026-02-18T14:42:12.2066463Z INFO:__main__:  Looking up Fabric connection: 'dev-tmp01-reporting-lakehouse-connection'
+2026-02-18T14:42:12.2068511Z INFO:fabric_client:Listing connections via Fabric Connections API
+2026-02-18T14:42:12.4338551Z INFO:fabric_client:  Retrieved 3 connections total
+2026-02-18T14:42:12.4341890Z INFO:__main__:  📋 Connections returned by API (3 total)
+2026-02-18T14:42:12.4342616Z INFO:__main__:    [1] 'GIT-AAG-SIT-FWS-ENGINEERING-01' (type=ShareableCloud, id=69ef90e4-66a9-42c1-a160-a74b23032356)
+2026-02-18T14:42:12.4343179Z INFO:__main__:    [2] 'dev-tmp01-reporting-lakehouse-connection' (type=ShareableCloud, id=e9b9c6ba-8e33-41c5-b5fc-b34af2865502)
+2026-02-18T14:42:12.4343989Z INFO:__main__:    [3] 'None' (type=PersonalCloud, id=7359a982-6502-46c2-a425-b843814ac1a9)
+2026-02-18T14:42:12.4344728Z INFO:__main__:  ✓ Found connection: 'dev-tmp01-reporting-lakehouse-connection' (ID: e9b9c6ba-8e33-41c5-b5fc-b34af2865502)
+2026-02-18T14:42:12.4345268Z INFO:__main__:  Binding 'Finance Summary' to Fabric connection 'dev-tmp01-reporting-lakehouse-connection'...
+2026-02-18T14:42:12.4345807Z INFO:fabric_client:Binding semantic model 3a26df55-9888-425d-833d-2c05a7b83788 to Fabric connection e9b9c6ba-8e33-41c5-b5fc-b34af2865502
+2026-02-18T14:42:12.4346349Z INFO:fabric_client:Taking over ownership of semantic model 3a26df55-9888-425d-833d-2c05a7b83788
+2026-02-18T14:42:12.6049221Z INFO:fabric_client:  ✓ Successfully took over ownership of semantic model 3a26df55-9888-425d-833d-2c05a7b83788
+2026-02-18T14:42:12.6053998Z INFO:fabric_client:  Listing connections for item 3a26df55-9888-425d-833d-2c05a7b83788
+2026-02-18T14:42:12.7996418Z INFO:fabric_client:  Found 1 existing connection reference(s) on semantic model
+2026-02-18T14:42:12.7997537Z INFO:fabric_client:    [1] type=ShareableCloud, path=urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com;ReportingLakehouse, connType=SQL, id=e9b9c6ba-8e33-41c5-b5fc-b34af2865502
+2026-02-18T14:42:12.7999018Z INFO:fabric_client:  ✓ Already bound to target connection (path=urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com;ReportingLakehouse)
+2026-02-18T14:42:12.8000215Z INFO:fabric_client:  ✓ Bound 1 data source(s) to Fabric connection e9b9c6ba-8e33-41c5-b5fc-b34af2865502
+2026-02-18T14:42:12.8005599Z INFO:__main__:  ✓ Bound 'Finance Summary' to connection 'dev-tmp01-reporting-lakehouse-connection' (1 data source(s))
+2026-02-18T14:42:12.8006552Z INFO:__main__:  ✓ SQL endpoints transformed during deployment for 'Finance Summary'
+2026-02-18T14:42:12.8007305Z INFO:__main__:✅ Successfully deployed: Finance Summary
+2026-02-18T14:42:12.8007900Z INFO:__main__:
+2026-02-18T14:42:12.8008435Z Deploying: Finance Summary (Report)
+2026-02-18T14:42:12.8011117Z INFO:__main__:  Reading report from Fabric Git format: Finance Summary.Report
+2026-02-18T14:42:12.8011624Z INFO:__main__:    Found semantic model 'Finance Summary' in deployment cache (ID: 3a26df55-9888-425d-833d-2c05a7b83788)
+2026-02-18T14:42:12.8012543Z INFO:__main__:    ✓ Using byConnection reference for 'Finance Summary' (ID: 3a26df55-9888-425d-833d-2c05a7b83788)
+2026-02-18T14:42:12.8025307Z INFO:fabric_client:Listing reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-18T14:42:13.0531546Z INFO:__main__:  Power BI report 'Finance Summary' already exists, updating...
+2026-02-18T14:42:13.0534385Z INFO:fabric_client:Updating Power BI report: 2c5f3913-8dee-4fd1-a64a-9f4ceea23e46
+2026-02-18T14:42:13.0537132Z INFO:fabric_client:Variable Library Update - URL: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/reports/2c5f3913-8dee-4fd1-a64a-9f4ceea23e46/updateDefinition
+2026-02-18T14:42:13.0538817Z INFO:fabric_client:Payload structure: {
+2026-02-18T14:42:13.0539315Z   "definition": {
+2026-02-18T14:42:13.0540647Z     "parts": [
+2026-02-18T14:42:13.0541102Z       {
+2026-02-18T14:42:13.0542000Z         "path": "definition.pbir",
+2026-02-18T14:42:13.0543004Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0543482Z         "payload_length": 372
+2026-02-18T14:42:13.0544029Z       },
+2026-02-18T14:42:13.0544428Z       {
+2026-02-18T14:42:13.0544686Z         "path": ".platform",
+2026-02-18T14:42:13.0544951Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0545231Z         "payload_length": 400
+2026-02-18T14:42:13.0545489Z       },
+2026-02-18T14:42:13.0545742Z       {
+2026-02-18T14:42:13.0546046Z         "path": "StaticResources/SharedResources/BaseThemes/CY24SU10.json",
+2026-02-18T14:42:13.0546383Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0546670Z         "payload_length": 17900
+2026-02-18T14:42:13.0547083Z       },
+2026-02-18T14:42:13.0547321Z       {
+2026-02-18T14:42:13.0547574Z         "path": "definition/report.json",
+2026-02-18T14:42:13.0547890Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0548216Z         "payload_length": 1948
+2026-02-18T14:42:13.0548470Z       },
+2026-02-18T14:42:13.0548703Z       {
+2026-02-18T14:42:13.0548972Z         "path": "definition/version.json",
+2026-02-18T14:42:13.0549265Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0549556Z         "payload_length": 200
+2026-02-18T14:42:13.0549810Z       },
+2026-02-18T14:42:13.0550040Z       {
+2026-02-18T14:42:13.0550310Z         "path": "definition/pages/pages.json",
+2026-02-18T14:42:13.0550611Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0550894Z         "payload_length": 292
+2026-02-18T14:42:13.0551145Z       },
+2026-02-18T14:42:13.0551380Z       {
+2026-02-18T14:42:13.0551688Z         "path": "definition/pages/b6c42040fec78e9b914a/page.json",
+2026-02-18T14:42:13.0552006Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0552559Z         "payload_length": 328
+2026-02-18T14:42:13.0552826Z       },
+2026-02-18T14:42:13.0553062Z       {
+2026-02-18T14:42:13.0553385Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/0523a88ac23452ae9e6b/visual.json",
+2026-02-18T14:42:13.0553745Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0554030Z         "payload_length": 1788
+2026-02-18T14:42:13.0554286Z       },
+2026-02-18T14:42:13.0554519Z       {
+2026-02-18T14:42:13.0554846Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/46e549cc5f43e9475f58/visual.json",
+2026-02-18T14:42:13.0555199Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0555485Z         "payload_length": 14060
+2026-02-18T14:42:13.0555752Z       },
+2026-02-18T14:42:13.0555989Z       {
+2026-02-18T14:42:13.0556314Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/de01cbde24b2199323d8/visual.json",
+2026-02-18T14:42:13.0556663Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0557018Z         "payload_length": 10860
+2026-02-18T14:42:13.0557312Z       },
+2026-02-18T14:42:13.0557565Z       {
+2026-02-18T14:42:13.0558111Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/03b5e05028d4e9948b9a/visual.json",
+2026-02-18T14:42:13.0558500Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0558803Z         "payload_length": 12540
+2026-02-18T14:42:13.0559072Z       },
+2026-02-18T14:42:13.0559317Z       {
+2026-02-18T14:42:13.0559667Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/f7c4ad813300f32f44ef/visual.json",
+2026-02-18T14:42:13.0560040Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0560350Z         "payload_length": 12572
+2026-02-18T14:42:13.0560621Z       },
+2026-02-18T14:42:13.0560866Z       {
+2026-02-18T14:42:13.0561211Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/ef72739d0231e84f532a/visual.json",
+2026-02-18T14:42:13.0561585Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0561889Z         "payload_length": 10344
+2026-02-18T14:42:13.0562173Z       },
+2026-02-18T14:42:13.0562616Z       {
+2026-02-18T14:42:13.0562966Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/e5eb24c638bb1f032b26/visual.json",
+2026-02-18T14:42:13.0563346Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0563651Z         "payload_length": 13908
+2026-02-18T14:42:13.0563924Z       },
+2026-02-18T14:42:13.0564169Z       {
+2026-02-18T14:42:13.0564518Z         "path": "definition/pages/b6c42040fec78e9b914a/visuals/25760f426e0c3e92eaa0/visual.json",
+2026-02-18T14:42:13.0564904Z         "payloadType": "InlineBase64",
+2026-02-18T14:42:13.0565205Z         "payload_length": 9092
+2026-02-18T14:42:13.0565471Z       }
+2026-02-18T14:42:13.0565722Z     ]
+2026-02-18T14:42:13.0565968Z   }
+2026-02-18T14:42:13.0566216Z }
+2026-02-18T14:42:13.2890771Z INFO:fabric_client:  LRO Location header: https://wabi-north-europe-redirect.analysis.windows.net/v1/operations/39bf60aa-7086-4a8e-af16-cac7e11949e1
+2026-02-18T14:42:13.2894364Z INFO:fabric_client:  LRO Operation ID: 39bf60aa-7086-4a8e-af16-cac7e11949e1
+2026-02-18T14:42:13.2895056Z INFO:fabric_client:  Retry-After: 20 seconds
+2026-02-18T14:42:13.2900777Z INFO:__main__:  Updated report (ID: 2c5f3913-8dee-4fd1-a64a-9f4ceea23e46)
+2026-02-18T14:42:13.2903210Z INFO:__main__:  ✓ Dataset reference transformed during deployment for 'Finance Summary'
+2026-02-18T14:42:13.2904577Z INFO:__main__:✅ Successfully deployed: Finance Summary
+2026-02-18T14:42:13.2905346Z INFO:__main__:
+2026-02-18T14:42:13.2907120Z Deploying: Aged Debtors (PaginatedReport)
+2026-02-18T14:42:13.2907832Z INFO:__main__:  Found paginated report in Git format: wsartifacts/Reports/Aged Debtors.PaginatedReport
+2026-02-18T14:42:13.2911625Z INFO:__main__:  📦 Paginated report 'Aged Debtors' will be synced from Git (updateFromGit)
+2026-02-18T14:42:13.2912096Z INFO:__main__:    Post-sync: Connection configuration will be applied
+2026-02-18T14:42:13.2916694Z INFO:__main__:✅ Successfully deployed: Aged Debtors
+2026-02-18T14:42:13.2917069Z INFO:__main__:
+2026-02-18T14:42:13.2917397Z ============================================================
+2026-02-18T14:42:13.2917780Z INFO:__main__:DEPLOYMENT SUMMARY
+2026-02-18T14:42:13.2921712Z INFO:__main__:============================================================
+2026-02-18T14:42:13.2922894Z INFO:__main__:Total artifacts: 3
+2026-02-18T14:42:13.2923246Z INFO:__main__:Successful: 3
+2026-02-18T14:42:13.2924391Z INFO:__main__:Failed: 0
+2026-02-18T14:42:13.2925066Z INFO:__main__:============================================================
+2026-02-18T14:42:13.2941757Z INFO:change_detector:Saved deployment commit: 0646d67b
+2026-02-18T14:42:13.2947075Z INFO:__main__:Saved deployment state: 0646d67b
+2026-02-18T14:42:13.2947472Z INFO:__main__:
+2026-02-18T14:42:13.2947854Z ------------------------------------------------------------
+2026-02-18T14:42:13.2948261Z INFO:__main__:POST-DEPLOY: SEMANTIC MODEL REFRESH
+2026-02-18T14:42:13.2948679Z INFO:__main__:------------------------------------------------------------
+2026-02-18T14:42:13.2949119Z INFO:__main__:  Triggering refresh for 1 deployed semantic model(s)
+2026-02-18T14:42:13.2949550Z INFO:__main__:  Refreshing 'Finance Summary' (ID: 3a26df55-9888-425d-833d-2c05a7b83788)...
+2026-02-18T14:42:13.2950195Z INFO:fabric_client:Triggering full refresh for semantic model: 3a26df55-9888-425d-833d-2c05a7b83788
+2026-02-18T14:42:13.6318014Z INFO:fabric_client:  ✓ Refresh queued (202 Accepted)
+2026-02-18T14:42:13.6324443Z INFO:__main__:  ✓ Refresh triggered for 'Finance Summary'
+2026-02-18T14:42:13.6326631Z INFO:__main__:  Done — 1 refresh(es) triggered, 0 failed
+2026-02-18T14:42:13.6327445Z INFO:__main__:
+2026-02-18T14:42:13.6331015Z ------------------------------------------------------------
+2026-02-18T14:42:13.6331412Z INFO:__main__:SOURCE CONTROL SYNC
+2026-02-18T14:42:13.6331808Z INFO:__main__:------------------------------------------------------------
+2026-02-18T14:42:13.6332228Z INFO:__main__:Checking for pending Git updates in workspace...
+2026-02-18T14:42:13.6332935Z INFO:fabric_client:Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-18T14:42:13.8246859Z INFO:__main__:  Git credentials already configured (source: ConfiguredConnection)
+2026-02-18T14:42:13.8247728Z INFO:fabric_client:Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-18T14:42:17.6888485Z INFO:__main__:  Workspace head:   6dfbf9fd1362...
+2026-02-18T14:42:17.6889406Z INFO:__main__:  Remote commit:    0646d67bab30...
+2026-02-18T14:42:17.6890079Z INFO:__main__:  📦 2 update(s) available from Git:
+2026-02-18T14:42:17.6899097Z INFO:__main__:    - Finance Summary (report): Modified
+2026-02-18T14:42:17.6899570Z INFO:__main__:    - Aged Debtors (rdlreport): Modified
+2026-02-18T14:42:17.6899960Z INFO:__main__:  Updating workspace from Git (policy: PreferRemote)...
+2026-02-18T14:42:17.6900427Z INFO:fabric_client:Updating workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64 from Git (commit: 0646d67bab30...)
+2026-02-18T14:42:21.0790967Z ERROR:fabric_client:HTTP Error: 400 - {"requestId":"3ac36748-a06d-43f1-a41c-735eb1c84f14","errorCode":"BadRequest","moreDetails":[{"errorCode":"PrincipalTypeNotSupported","message":"The operation is not supported for the principal type","relatedResource":{"resourceType":"PaginatedReport"}}],"message":"The request could not be processed due to missing or invalid information"}
+2026-02-18T14:42:21.0798031Z WARNING:__main__:  ⚠ Source control sync failed: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/updateFromGit
+2026-02-18T14:42:21.0798540Z WARNING:__main__:    Update source control manually in Fabric portal
+2026-02-18T14:42:21.0805849Z INFO:__main__:
+2026-02-18T14:42:21.0806575Z ------------------------------------------------------------
+2026-02-18T14:42:21.0807613Z INFO:__main__:POST-GIT-SYNC: PAGINATED REPORT CONNECTION CONFIGURATION
+2026-02-18T14:42:21.0816450Z INFO:__main__:------------------------------------------------------------
+2026-02-18T14:42:21.0816946Z INFO:fabric_client:Listing paginated reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-18T14:42:21.2319166Z INFO:__main__:  Processing 'Aged Debtors' (ID: 83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2)
+2026-02-18T14:42:21.2321737Z INFO:__main__:  Looking up Fabric connection for paginated reports: 'dev-tmp01-reporting-lakehouse-connection'
+2026-02-18T14:42:21.2322228Z INFO:fabric_client:Listing connections via Fabric Connections API
+2026-02-18T14:42:21.4254306Z INFO:fabric_client:  Retrieved 3 connections total
+2026-02-18T14:42:21.4257345Z INFO:__main__:  📋 Connections returned by API (3 total)
+2026-02-18T14:42:21.4257804Z INFO:__main__:    [1] 'GIT-AAG-SIT-FWS-ENGINEERING-01' (type=ShareableCloud, id=69ef90e4-66a9-42c1-a160-a74b23032356)
+2026-02-18T14:42:21.4258338Z INFO:__main__:    [2] 'dev-tmp01-reporting-lakehouse-connection' (type=ShareableCloud, id=e9b9c6ba-8e33-41c5-b5fc-b34af2865502)
+2026-02-18T14:42:21.4258858Z INFO:__main__:    [3] 'None' (type=PersonalCloud, id=7359a982-6502-46c2-a425-b843814ac1a9)
+2026-02-18T14:42:21.4259621Z INFO:__main__:  ✓ Found paginated report connection: 'dev-tmp01-reporting-lakehouse-connection' (ID: e9b9c6ba-8e33-41c5-b5fc-b34af2865502)
+2026-02-18T14:42:21.4260370Z INFO:__main__:  Binding 'Aged Debtors' to ShareableCloud connection 'dev-tmp01-reporting-lakehouse-connection'...
+2026-02-18T14:42:21.4260916Z INFO:fabric_client:Binding paginated report 83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2 to Fabric connection e9b9c6ba-8e33-41c5-b5fc-b34af2865502
+2026-02-18T14:42:21.4261446Z INFO:fabric_client:  Listing connections for item 83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2
+2026-02-18T14:42:21.6523826Z ERROR:fabric_client:HTTP Error: 400 - {"requestId":"8b70b1a1-0ea9-4125-a7db-982fc3e7d290","errorCode":"OperationNotSupportedForItem","message":"Operation not supported for requested item"}
+2026-02-18T14:42:21.6525363Z WARNING:fabric_client:  ⚠ Could not list item connections: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/items/83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2/connections
+2026-02-18T14:42:21.6531101Z INFO:fabric_client:Taking over ownership of paginated report 83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2
+2026-02-18T14:42:21.8971293Z INFO:fabric_client:  ✓ Successfully took over ownership of paginated report 83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2
+2026-02-18T14:42:21.8978051Z INFO:fabric_client:Getting data sources for paginated report: 83cd34a3-efa4-4c5e-aa4f-e04c43d42ab2
+2026-02-18T14:42:22.6171544Z INFO:fabric_client:  Found 1 data source(s) on paginated report
+2026-02-18T14:42:22.6176045Z INFO:fabric_client:    [1] type=Sql, gateway=e7450538-e9f5-4612-bb27-7e8ad53713af, datasource=7359a982-6502-46c2-a425-b843814ac1a9, server=urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com, database=reportinglakehouse
+2026-02-18T14:42:22.6180983Z INFO:fabric_client:  Found 1 data source(s) on paginated report
+2026-02-18T14:42:22.6187693Z INFO:fabric_client:    [1] type=Sql, server=urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com, database=reportinglakehouse, gatewayId=e7450538-e9f5-4612-bb27-7e8ad53713af, datasourceId=7359a982-6502-46c2-a425-b843814ac1a9
+2026-02-18T14:42:22.6188696Z INFO:fabric_client:  Updating datasource credentials (gatewayId=e7450538-e9f5-4612-bb27-7e8ad53713af, datasourceId=7359a982-6502-46c2-a425-b843814ac1a9) with OAuth2 + CallerAADIdentity...
+2026-02-18T14:42:22.6189355Z INFO:fabric_client:Updating credentials for gateway datasource (gateway=e7450538-e9f5-4612-bb27-7e8ad53713af, datasource=7359a982-6502-46c2-a425-b843814ac1a9)
+2026-02-18T14:42:22.7892932Z WARNING:fabric_client:  ⚠ Update credentials returned 400: {"error":{"code":"InvalidRequest","message":"Specifying UseCallerOAuthIdentity requires credential type to be OAuth2"}}
+2026-02-18T14:42:22.7899533Z WARNING:__main__:  ⚠ Could not bind 'Aged Debtors' to connection 'dev-tmp01-reporting-lakehouse-connection'
+2026-02-18T14:42:22.7903870Z INFO:__main__:    Assign connection manually in the Fabric portal → Report settings → Data source credentials
+2026-02-18T14:42:22.7904367Z INFO:__main__:  Done — processed 1 paginated report(s)
+2026-02-18T14:42:22.8210398Z 
+2026-02-18T14:42:22.8211169Z ✓ Dev deployment completed successfully
+2026-02-18T14:42:22.8219457Z 
+2026-02-18T14:42:22.8290298Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

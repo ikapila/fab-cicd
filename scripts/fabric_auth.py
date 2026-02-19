@@ -9,8 +9,11 @@ from azure.identity import ClientSecretCredential, DefaultAzureCredential
 import requests
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Suppress verbose Azure SDK HTTP logging (token endpoint URLs, headers, tenant IDs)
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+logging.getLogger("azure.identity").setLevel(logging.WARNING)
 
 
 class FabricAuthenticator:
@@ -42,7 +45,7 @@ class FabricAuthenticator:
         # Support environment-specific secret variables
         if secret_env_var:
             self.client_secret = os.getenv(secret_env_var)
-            logger.info(f"Using environment-specific secret from: {secret_env_var}")
+            logger.debug(f"Using environment-specific secret from: {secret_env_var}")
         else:
             self.client_secret = client_secret or os.getenv("AZURE_CLIENT_SECRET")
         
@@ -66,7 +69,7 @@ class FabricAuthenticator:
                         "Set AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID "
                         "environment variables or pass them to the constructor."
                     )
-                logger.info(f"Using Service Principal authentication (Client ID: {self.client_id})")
+                logger.info(f"Using Service Principal authentication (Client ID: ***{self.client_id[-4:]})")
                 self._credential = ClientSecretCredential(
                     tenant_id=self.tenant_id,
                     client_id=self.client_id,
@@ -88,7 +91,7 @@ class FabricAuthenticator:
             credential = self._get_credential()
             token = credential.get_token(self.FABRIC_API_SCOPE)
             self._access_token = token.token
-            logger.info("Successfully obtained access token")
+            logger.debug("Successfully obtained access token")
         
         return self._access_token
     
@@ -106,7 +109,7 @@ class FabricAuthenticator:
             credential = self._get_credential()
             token = credential.get_token(self.SQL_DATABASE_SCOPE)
             self._sql_access_token = token.token
-            logger.info("Successfully obtained SQL Database access token")
+            logger.debug("Successfully obtained SQL Database access token")
         
         return self._sql_access_token
     

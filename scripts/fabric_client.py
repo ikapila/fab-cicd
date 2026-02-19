@@ -6,11 +6,12 @@ Provides wrapper functions for common Fabric API operations
 import requests
 import logging
 import json
+import re
 import struct
+import time
 from typing import Dict, List, Optional, Any
 from fabric_auth import FabricAuthenticator
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Attempt to import pyodbc for SQL endpoint connections
@@ -58,57 +59,12 @@ class FabricClient:
         url = f"{self.BASE_URL}/{endpoint.lstrip('/')}"
         headers = self.auth.get_auth_headers()
         
-        # Debug logging for notebook operations
-        if "notebooks" in endpoint and method == "POST":
-            if json_data:
-                import json
-                # Log structure without exposing full base64 payload
-                debug_data = json_data.copy()
-                if "definition" in debug_data:
-                    definition = debug_data["definition"]
-                    if "parts" in definition:
-                        parts_summary = []
-                        for part in definition["parts"]:
-                            part_info = {
-                                "path": part.get("path"),
-                                "payloadType": part.get("payloadType"),
-                                "payload_length": len(part.get("payload", ""))
-                            }
-                            parts_summary.append(part_info)
-                        debug_copy = debug_data.copy()
-                        debug_definition = {"parts": parts_summary}
-                        # Only include format if it exists in the definition
-                        if "format" in definition:
-                            debug_definition["format"] = definition["format"]
-                        debug_copy["definition"] = debug_definition
-                        if "updateDefinition" in endpoint:
-                            logger.info(f"Updating notebook - URL: {url}")
-                        else:
-                            logger.info(f"Creating notebook - URL: {url}")
-                        logger.info(f"Payload structure: {json.dumps(debug_copy, indent=2)}")
-
-        # Debug logging for variable library operations
-        if "updateDefinition" in endpoint and json_data:
-            import json
-            debug_data = json_data.copy()
-            if "definition" in debug_data:
-                definition = debug_data["definition"]
-                if "parts" in definition:
-                    parts_summary = []
-                    for part in definition["parts"]:
-                        part_info = {
-                            "path": part.get("path"),
-                            "payloadType": part.get("payloadType"),
-                            "payload_length": len(part.get("payload", ""))
-                        }
-                        parts_summary.append(part_info)
-                    debug_copy = debug_data.copy()
-                    debug_definition = {"parts": parts_summary}
-                    if "format" in definition:
-                        debug_definition["format"] = definition["format"]
-                    debug_copy["definition"] = debug_definition
-                    logger.info(f"Variable Library Update - URL: {url}")
-                    logger.info(f"Payload structure: {json.dumps(debug_copy, indent=2)}")
+        # Summarise updateDefinition payloads at DEBUG level (avoids dumping full base64)
+        if "updateDefinition" in endpoint and json_data and method == "POST":
+            definition = json_data.get("definition", {})
+            parts = definition.get("parts", [])
+            part_paths = [p.get("path", "?") for p in parts]
+            logger.debug(f"updateDefinition {len(parts)} part(s): {part_paths} → {url}")
 
         try:
             response = requests.request(
@@ -130,15 +86,15 @@ class FabricClient:
                 if response.status_code == 202:
                     if "Location" in response.headers:
                         result["location"] = response.headers["Location"]
-                        logger.info(f"  LRO Location header: {response.headers['Location']}")
+                        logger.debug(f"  LRO Location: {response.headers['Location']}")
                     
                     if "x-ms-operation-id" in response.headers:
                         result["operation_id"] = response.headers["x-ms-operation-id"]
-                        logger.info(f"  LRO Operation ID: {response.headers['x-ms-operation-id']}")
+                        logger.debug(f"  LRO Operation ID: {response.headers['x-ms-operation-id']}")
                     
                     if "Retry-After" in response.headers:
                         result["retry_after"] = int(response.headers["Retry-After"])
-                        logger.info(f"  Retry-After: {response.headers['Retry-After']} seconds")
+                        logger.debug(f"  Retry-After: {response.headers['Retry-After']}s")
                 
                 # Try to parse response body if present
                 if response.text:
@@ -208,9 +164,7 @@ class FabricClient:
         Raises:
             RuntimeError: If operation fails or times out
         """
-        import time
-        
-        logger.info(f"  Polling operation {operation_id} (retry every {retry_after}s, max {max_attempts} attempts)")
+        logger.debug(f"  Polling operation {operation_id} (retry every {retry_after}s, max {max_attempts} attempts)")
         
         for attempt in range(1, max_attempts + 1):
             time.sleep(retry_after)
@@ -223,7 +177,7 @@ class FabricClient:
             
             # Log full state response for debugging
             if status == "Failed":
-                logger.info(f"    Full LRO state response: {json.dumps(state, indent=2)}")
+                logger.debug(f"    Full LRO state: {json.dumps(state, indent=2)}")
             
             if status == "Succeeded":
                 logger.info(f"  ✓ Operation completed successfully")
@@ -1028,7 +982,7 @@ class FabricClient:
         Returns:
             Dict with status "bound" and details on success, empty dict on failure
         """
-        logger.info(f"Binding semantic model {semantic_model_id} to Fabric connection {connection_id}")
+        logger.info(f"Binding semantic model to Fabric connection")
         
         # Step 1: Take over ownership so the SP can manage connections
         self.take_over_dataset(workspace_id, semantic_model_id)
@@ -1041,8 +995,7 @@ class FabricClient:
             for idx, conn in enumerate(item_connections):
                 conn_type = conn.get("connectivityType", "unknown")
                 conn_details = conn.get("connectionDetails", {})
-                conn_id = conn.get("id", "none")
-                logger.info(f"    [{idx+1}] type={conn_type}, path={conn_details.get('path', 'N/A')}, connType={conn_details.get('type', 'N/A')}, id={conn_id}")
+                logger.debug(f"    [{idx+1}] type={conn_type}, path={conn_details.get('path', 'N/A')}, connType={conn_details.get('type', 'N/A')}, id={conn.get('id', 'none')}")
         except Exception as e:
             logger.warning(f"  ⚠ Could not list item connections: {e}")
             item_connections = []
@@ -1077,14 +1030,14 @@ class FabricClient:
                     }
                 }
                 
-                logger.info(f"  Binding data source (type={conn_type_detail}, path={conn_path}) to connection {connection_id}...")
+                logger.debug(f"  Binding data source (type={conn_type_detail}, path={conn_path})")
                 try:
                     result = self._make_request("POST", bind_endpoint, json_data=payload)
                     logger.info(f"  ✓ Successfully bound data source to ShareableCloud connection")
                     bound_count += 1
                 except Exception as bind_err:
                     logger.warning(f"  ⚠ bindConnection failed: {bind_err}")
-                    logger.info(f"    Payload: {json.dumps(payload, indent=2)}")
+                    logger.debug(f"    Payload: {json.dumps(payload, indent=2)}")
         else:
             # No existing connections found — the semantic model may not have been
             # refreshed yet. Try binding with the connection details from config.
@@ -1092,7 +1045,7 @@ class FabricClient:
             logger.info(f"  The semantic model may need a refresh first to establish data source references")
         
         if bound_count > 0:
-            logger.info(f"  ✓ Bound {bound_count} data source(s) to Fabric connection {connection_id}")
+            logger.info(f"  ✓ Bound {bound_count} data source(s) to Fabric connection")
             return {"status": "bound", "bound_count": bound_count}
         
         return {}
@@ -1128,7 +1081,7 @@ class FabricClient:
         Returns:
             Dict with status info on success, empty dict on failure
         """
-        logger.info(f"Binding paginated report {report_id} to Fabric connection {connection_id}")
+        logger.info(f"Binding paginated report to Fabric connection")
         
         # Step 1: List item connections via Fabric Items API (generic, works for any item)
         try:
@@ -1137,8 +1090,7 @@ class FabricClient:
             for idx, conn in enumerate(item_connections):
                 conn_type = conn.get("connectivityType", "unknown")
                 conn_details = conn.get("connectionDetails", {})
-                conn_id = conn.get("id", "none")
-                logger.info(f"    [{idx+1}] type={conn_type}, path={conn_details.get('path', 'N/A')}, connType={conn_details.get('type', 'N/A')}, id={conn_id}")
+                logger.debug(f"    [{idx+1}] type={conn_type}, path={conn_details.get('path', 'N/A')}, connType={conn_details.get('type', 'N/A')}, id={conn.get('id', 'none')}")
             
             # Check if already bound to the target ShareableCloud connection
             already_bound = any(
@@ -1160,11 +1112,9 @@ class FabricClient:
             datasources = self.get_paginated_report_datasources(workspace_id, report_id)
             logger.info(f"  Found {len(datasources)} data source(s) on paginated report")
             for idx, ds in enumerate(datasources):
-                gw_id = ds.get("gatewayId", "none")
-                ds_id = ds.get("datasourceId", "none")
                 ds_type = ds.get("datasourceType", "unknown")
                 ds_conn = ds.get("connectionDetails", {})
-                logger.info(f"    [{idx+1}] type={ds_type}, server={ds_conn.get('server', 'N/A')}, database={ds_conn.get('database', 'N/A')}, gatewayId={gw_id}, datasourceId={ds_id}")
+                logger.debug(f"    [{idx+1}] type={ds_type}, server={ds_conn.get('server', 'N/A')}, database={ds_conn.get('database', 'N/A')}, gatewayId={ds.get('gatewayId', 'none')}, datasourceId={ds.get('datasourceId', 'none')}")
         except Exception as e:
             logger.warning(f"  ⚠ Could not get paginated report datasources: {e}")
             return {}
@@ -1181,7 +1131,7 @@ class FabricClient:
                 logger.info(f"  ℹ Datasource has no gatewayId/datasourceId — skipping credential update")
                 continue
             
-            logger.info(f"  Updating datasource credentials (gatewayId={gw_id}, datasourceId={ds_id}) with OAuth2 + CallerAADIdentity...")
+            logger.debug(f"  Updating datasource credentials (gatewayId={gw_id}, datasourceId={ds_id}) with OAuth2 + CallerAADIdentity...")
             success = self.update_gateway_datasource_credentials(gw_id, ds_id, use_caller_identity=True)
             if success:
                 bound_count += 1
@@ -1508,7 +1458,6 @@ class FabricClient:
             retry_after = response.get("retry_after", 30)
             logger.info(f"  Update from Git in progress (operation: {operation_id}), polling...")
             
-            import time
             # Poll until completion — updateFromGit has no result body, just status
             for attempt in range(1, 25):  # Up to ~12 minutes with 30s intervals
                 time.sleep(retry_after)
@@ -1707,7 +1656,6 @@ class FabricClient:
         Returns:
             Dict with 'id' and 'name' of the imported report
         """
-        import time
         
         logger.info(f"Importing paginated report: {report_name}")
         
@@ -1821,7 +1769,6 @@ class FabricClient:
         Returns:
             The completed import result
         """
-        import time
         
         url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/imports/{import_id}"
         headers = self.auth.get_auth_headers()
@@ -2045,7 +1992,6 @@ class FabricClient:
             
             # Brief pause to allow deletion to propagate before re-import
             if wait_for_completion:
-                import time
                 time.sleep(3)
             
             return {"status": "success", "status_code": response.status_code}
@@ -2451,7 +2397,6 @@ class FabricClient:
         )
         
         # Split by GO batch separator (case-insensitive, must be on its own line)
-        import re
         batches = re.split(r'^\s*GO\s*$', sql_command, flags=re.MULTILINE | re.IGNORECASE)
         
         # Clean up batches - remove comments and empty lines
@@ -2715,7 +2660,6 @@ class FabricClient:
         Raises:
             RuntimeError: If deployment fails or times out
         """
-        import time
         
         logger.info(f"  Waiting for deployment to complete (polling every {retry_after}s, max {max_attempts} attempts)")
         

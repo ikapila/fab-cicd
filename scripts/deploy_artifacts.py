@@ -4,12 +4,14 @@ Coordinates the deployment of artifacts to target environments
 """
 
 import os
+import re
 import sys
 import json
 import base64
 import argparse
 import logging
 import time
+import traceback
 from typing import List, Dict, Optional
 from pathlib import Path
 
@@ -76,7 +78,8 @@ class FabricDeployer:
             raise RuntimeError("Authentication validation failed")
         
         self.workspace_id = self.config.get_workspace_id()
-        logger.info(f"Target workspace: {self.config.get_workspace_name()} ({self.workspace_id})")
+        logger.info(f"Target workspace: {self.config.get_workspace_name()}")
+        logger.debug(f"Workspace ID: {self.workspace_id}")
         
         # Cache for workspace folder IDs
         self._folder_cache = {}
@@ -114,7 +117,6 @@ class FabricDeployer:
         Returns:
             String with all ${parameter_name} replaced with actual values from config
         """
-        import re
         
         # Get parameters from config
         parameters = self.config.config.get("parameters", {})
@@ -670,7 +672,6 @@ class FabricDeployer:
         
         Called from deploy_all() after _update_source_control() completes.
         """
-        import re
         
         logger.info("\n" + "-"*60)
         logger.info("POST-GIT-SYNC: PAGINATED REPORT CONNECTION CONFIGURATION")
@@ -996,7 +997,6 @@ class FabricDeployer:
                 logger.debug(f"Discovered notebook (ipynb): {notebook_name}")
             except Exception as e:
                 logger.error(f"Failed to discover notebook {notebook_file.name}: {e}")
-                import traceback
                 logger.debug(traceback.format_exc())
         
         # Discover Fabric Git format (folders with .platform and notebook-content.py)
@@ -1042,7 +1042,6 @@ class FabricDeployer:
                         logger.debug(f"Discovered notebook (Fabric): {notebook_name}")
                     except Exception as e:
                         logger.error(f"Failed to discover Fabric notebook {item.name}: {e}")
-                        import traceback
                         logger.debug(traceback.format_exc())
         
         if discovered_notebooks:
@@ -1489,8 +1488,6 @@ class FabricDeployer:
         Returns:
             Definition dict with base64-encoded parts
         """
-        import base64
-        
         # Get model name from .platform metadata
         platform_file = model_folder / ".platform"
         model_name = "unknown"
@@ -1547,8 +1544,6 @@ class FabricDeployer:
         Returns:
             Definition dict with base64-encoded parts
         """
-        import base64
-        
         parts = []
         
         # Read all files recursively and encode them
@@ -1612,7 +1607,6 @@ class FabricDeployer:
                 old_path = pbir_data['datasetReference']['byPath']['path']
                 
                 # Extract semantic model name from path
-                import re
                 match = re.search(r'/([^/]+)\.SemanticModel$', old_path)
                 if match:
                     model_name = match.group(1)
@@ -1678,7 +1672,6 @@ class FabricDeployer:
         Returns:
             Transformed RDL content
         """
-        import re
         
         transformed = rdl_content
         
@@ -1704,8 +1697,6 @@ class FabricDeployer:
         Returns:
             Tuple of (definition dict with base64-encoded parts, rdl_content for transformation)
         """
-        import base64
-        
         # Find the .rdl file
         rdl_files = list(report_folder.glob("*.rdl"))
         if not rdl_files:
@@ -1733,8 +1724,6 @@ class FabricDeployer:
         Returns:
             Definition dict with base64-encoded parts
         """
-        import base64
-        
         parts = []
         
         # Encode all files except .rdl first
@@ -2077,7 +2066,6 @@ class FabricDeployer:
                         except Exception as create_error:
                             logger.error(f"  ✗ Error during notebook creation:")
                             logger.error(f"     {str(create_error)}")
-                            import traceback
                             logger.error(f"     Traceback:\n{traceback.format_exc()}")
                             raise
                     else:
@@ -2091,7 +2079,6 @@ class FabricDeployer:
                 logger.error(f"     Configuration: {notebook_def}")
                 success = False
             except Exception as e:
-                import traceback
                 notebook_name = name if name else "Unknown"
                 logger.error(f"  ✗ Failed to create notebook '{notebook_name}'")
                 logger.error(f"     Error: {str(e)}")
@@ -2518,7 +2505,6 @@ class FabricDeployer:
                             payload = part.get("payload", "")
                             # If base64 encoded, decode it
                             if part.get("payloadType") == "InlineBase64":
-                                import base64
                                 notebook_content = base64.b64decode(payload).decode('utf-8')
                             else:
                                 notebook_content = payload
@@ -3400,7 +3386,6 @@ print('Notebook initialized')
         # Parse based on format and construct API payload
         if notebook_format == "ipynb":
             # For .ipynb files, encode the JSON notebook content as base64
-            import base64
             content_bytes = notebook_content.encode('utf-8')
             content_base64 = base64.b64encode(content_bytes).decode('utf-8')
             
@@ -3417,7 +3402,6 @@ print('Notebook initialized')
             }
         else:  # fabric format (notebook-content.py)
             # For Fabric format, encode the notebook-content.py as base64
-            import base64
             
             # Validate content is not empty
             if not notebook_content or not notebook_content.strip():
@@ -3498,7 +3482,6 @@ print('Notebook initialized')
         job_content = self.config.substitute_parameters(job_content)
         
         # Encode as base64 for API
-        import base64
         content_bytes = job_content.encode('utf-8')
         content_base64 = base64.b64encode(content_bytes).decode('utf-8')
         
@@ -3550,7 +3533,6 @@ print('Notebook initialized')
         pipeline_content = self.config.substitute_parameters(pipeline_content)
         
         # Encode as base64 for API
-        import base64
         content_bytes = pipeline_content.encode('utf-8')
         content_base64 = base64.b64encode(content_bytes).decode('utf-8')
         
@@ -3830,7 +3812,6 @@ print('Notebook initialized')
                         Falls back to TakeOver + UpdateDatasources if no
                         connection is configured.
         """
-        import re
 
         rdl_content = None
         report_folder = None
@@ -4009,7 +3990,6 @@ print('Notebook initialized')
             report_id: Paginated report GUID
             rdl_content: Raw RDL XML string used to extract datasource names
         """
-        import re
         
         sql_connection_string = self.config.config.get("connections", {}).get("sql_connection_string", "")
         if not sql_connection_string:
@@ -4293,7 +4273,7 @@ print('Notebook initialized')
                     else:
                         # Fallback: rebuild if raw content not available
                         base_json = json.dumps({"variables": base_vars}, indent=2)
-                    logger.info(f"  DEBUG: variables.json content:\n{base_json}")
+                    logger.debug(f"  variables.json content:\n{base_json}")
                     base_base64 = base64.b64encode(base_json.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "variables.json",
@@ -4310,7 +4290,7 @@ print('Notebook initialized')
                         else:
                             # Fallback: rebuild if raw content not available (legacy format conversion)
                             set_json = json.dumps(set_data, indent=2)
-                        logger.info(f"  DEBUG: valueSets/{set_name}.json content:\n{set_json}")
+                        logger.debug(f"  valueSets/{set_name}.json content:\n{set_json}")
                         
                         set_base64 = base64.b64encode(set_json.encode('utf-8')).decode('utf-8')
                         parts.append({
@@ -4325,7 +4305,7 @@ print('Notebook initialized')
                     else:
                         # Fallback: rebuild if raw content not available
                         settings_json = json.dumps({"valueSetsOrder": value_sets_order}, indent=2)
-                    logger.info(f"  DEBUG: settings.json content:\n{settings_json}")
+                    logger.debug(f"  settings.json content:\n{settings_json}")
                     settings_base64 = base64.b64encode(settings_json.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "settings.json",
@@ -4356,7 +4336,7 @@ print('Notebook initialized')
                         "format": "VariableLibraryV1"
                     }
                 
-                logger.info(f"  DEBUG: Payload has {len(update_payload['parts'])} part(s)")
+                logger.debug(f"  Payload has {len(update_payload['parts'])} part(s)")
                 
                 try:
                     # First API call: Update the definition with all parts
@@ -4365,7 +4345,7 @@ print('Notebook initialized')
                         library_id,
                         update_payload
                     )
-                    logger.info(f"  DEBUG: API response: {json.dumps(result, indent=2) if result else 'No response'}")
+                    logger.debug(f"  API response: {json.dumps(result, indent=2) if result else 'No response'}")
                     logger.info(f"  ✓ Updated Variable Library definition for '{name}'")
                     
                     # Wait for LRO to complete if operation_id is present
@@ -4565,8 +4545,6 @@ print('Notebook initialized')
         logger.info(f"  Connecting to SQL endpoint for lakehouse: {lakehouse_name}")
         connection_string = self.client.get_lakehouse_sql_endpoint(self.workspace_id, lakehouse_id)
         
-        import re
-        
         # Split by GO to handle multiple views in one file
         batches = re.split(r'^\s*GO\s*$', view_sql, flags=re.MULTILINE | re.IGNORECASE)
         
@@ -4686,7 +4664,6 @@ print('Notebook initialized')
             return tmdl_content
         
         # Parse server name from connection string (format: Server=xxx;Database=yyy;)
-        import re
         server_match = re.search(r'Server=([^;]+)', sql_connection_string, re.IGNORECASE)
         if not server_match:
             return tmdl_content
@@ -4735,14 +4712,13 @@ print('Notebook initialized')
         try:
             connections = self.client.list_connections()
             
-            # Debug: log all returned connection names so we can diagnose mismatches
+            # Log connection names at DEBUG to diagnose mismatches without flooding INFO
             if connections:
-                logger.info(f"  📋 Connections returned by API ({len(connections)} total)")
+                logger.debug(f"  Connections returned by API ({len(connections)} total)")
                 for idx, c in enumerate(connections):
                     c_name = c.get("displayName", "<no name>")
-                    c_id = c.get("id", "<no id>")
                     c_type = c.get("connectivityType", c.get("type", "unknown"))
-                    logger.info(f"    [{idx+1}] '{c_name}' (type={c_type}, id={c_id})")
+                    logger.debug(f"    [{idx+1}] '{c_name}' (type={c_type})")
             else:
                 logger.warning(f"  ⚠ No connections returned by API (empty list)")
                 logger.warning(f"    Check that the service principal has access to connections")
@@ -4751,7 +4727,7 @@ print('Notebook initialized')
             # Exact match on displayName
             match = next((c for c in connections if c.get("displayName") == connection_name), None)
             if match:
-                logger.info(f"  ✓ Found connection: '{match['displayName']}' (ID: {match['id']})")
+                logger.info(f"  ✓ Found connection: '{match['displayName']}'")
                 return match
             
             logger.warning(f"  ⚠ Connection '{connection_name}' not found in Fabric")
@@ -4843,19 +4819,18 @@ print('Notebook initialized')
             connections = self.client.list_connections()
             
             if connections:
-                logger.info(f"  📋 Connections returned by API ({len(connections)} total)")
+                logger.debug(f"  Connections returned by API ({len(connections)} total)")
                 for idx, c in enumerate(connections):
                     c_name = c.get("displayName", "<no name>")
-                    c_id = c.get("id", "<no id>")
                     c_type = c.get("connectivityType", c.get("type", "unknown"))
-                    logger.info(f"    [{idx+1}] '{c_name}' (type={c_type}, id={c_id})")
+                    logger.debug(f"    [{idx+1}] '{c_name}' (type={c_type})")
             else:
                 logger.warning(f"  ⚠ No connections returned by API (empty list)")
                 return None
             
             match = next((c for c in connections if c.get("displayName") == connection_name), None)
             if match:
-                logger.info(f"  ✓ Found paginated report connection: '{match['displayName']}' (ID: {match['id']})")
+                logger.info(f"  ✓ Found paginated report connection: '{match['displayName']}'")
                 return match
             
             logger.warning(f"  ⚠ Connection '{connection_name}' not found in Fabric")
@@ -4887,7 +4862,6 @@ print('Notebook initialized')
             report_id: Paginated report GUID
             rdl_content: Raw RDL XML string (for fallback datasource name extraction)
         """
-        import re
         
         try:
             # Check if a ShareableCloud connection is configured

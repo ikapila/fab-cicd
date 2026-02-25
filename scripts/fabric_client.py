@@ -1415,7 +1415,8 @@ class FabricClient:
     def update_from_git(self, workspace_id: str, remote_commit_hash: str, 
                         workspace_head: str = None, 
                         conflict_resolution_policy: str = "PreferRemote",
-                        allow_override_items: bool = True) -> Dict:
+                        allow_override_items: bool = True,
+                        items: List[Dict] = None) -> Dict:
         """
         Update the workspace with commits pushed to the connected Git branch.
         Endpoint: POST /v1/workspaces/{workspaceId}/git/updateFromGit
@@ -1430,6 +1431,9 @@ class FabricClient:
             workspace_head: Full SHA the workspace is currently synced to (optional)
             conflict_resolution_policy: "PreferRemote" or "PreferWorkspace"
             allow_override_items: Whether to allow overriding incoming items
+            items: Optional list of specific items to sync, each with
+                   {"logicalId": "...", "objectId": "..."}.  When provided,
+                   only these items are updated; others are left untouched.
             
         Returns:
             Operation result or success status
@@ -1449,6 +1453,10 @@ class FabricClient:
         
         if workspace_head:
             payload["workspaceHead"] = workspace_head
+        
+        if items:
+            payload["items"] = items
+            logger.info(f"  Selective sync: {len(items)} item(s) requested")
         
         response = self._make_request("POST", f"/workspaces/{workspace_id}/git/updateFromGit", json_data=payload)
         

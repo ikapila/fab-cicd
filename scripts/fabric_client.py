@@ -113,13 +113,29 @@ class FabricClient:
             return response.json()
             
         except requests.exceptions.HTTPError as e:
-            logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
-            # Try to parse error response for more details
-            try:
-                error_detail = e.response.json()
-                logger.error(f"Error details: {json.dumps(error_detail, indent=2)}")
-            except:
-                pass
+            # Suppress ERROR-level logging for known benign responses.
+            # updateDefinition operations return 400 OperationHasNoResult when
+            # the caller fetches /operations/{id}/result — this is expected and
+            # handled by wait_for_operation_completion.  Log at DEBUG to avoid
+            # alarming pipeline output.
+            benign = False
+            if e.response is not None and e.response.status_code == 400:
+                try:
+                    body = e.response.json()
+                    if body.get("errorCode") == "OperationHasNoResult":
+                        benign = True
+                except Exception:
+                    pass
+
+            if benign:
+                logger.debug(f"HTTP 400 OperationHasNoResult (expected for update operations)")
+            else:
+                logger.error(f"HTTP Error: {e.response.status_code} - {e.response.text}")
+                try:
+                    error_detail = e.response.json()
+                    logger.error(f"Error details: {json.dumps(error_detail, indent=2)}")
+                except:
+                    pass
             raise
         except Exception as e:
             logger.error(f"Request failed: {str(e)}")
@@ -988,9 +1004,19 @@ class FabricClient:
         self.take_over_dataset(workspace_id, semantic_model_id)
         
         # Step 2: List current item connections to get the connectionDetails (type + path)
-        # that need to be matched in the bindConnection request
+        # that need to be matched in the bindConnection request.
+        # After updateDefinition, connections may take a moment to appear —
+        # retry a few times with a short delay.
+        item_connections = []
         try:
-            item_connections = self.list_item_connections(workspace_id, semantic_model_id)
+            for conn_attempt in range(1, 4):
+                item_connections = self.list_item_connections(workspace_id, semantic_model_id)
+                if item_connections:
+                    break
+                if conn_attempt < 3:
+                    logger.info(f"  No connections found on attempt {conn_attempt}, retrying in 5s...")
+                    time.sleep(5)
+            
             logger.info(f"  Found {len(item_connections)} existing connection reference(s) on semantic model")
             for idx, conn in enumerate(item_connections):
                 conn_type = conn.get("connectivityType", "unknown")
@@ -1039,10 +1065,52 @@ class FabricClient:
                     logger.warning(f"  ⚠ bindConnection failed: {bind_err}")
                     logger.debug(f"    Payload: {json.dumps(payload, indent=2)}")
         else:
-            # No existing connections found — the semantic model may not have been
-            # refreshed yet. Try binding with the connection details from config.
-            logger.info(f"  No existing connections on semantic model — attempting direct bind")
-            logger.info(f"  The semantic model may need a refresh first to establish data source references")
+            # No existing connections found after retries.  This typically
+            # happens after updateDefinition or on a newly created model that
+            # hasn't been refreshed.  Trigger a quick refresh, wait briefly,
+            # then retry listing connections.
+            logger.info(f"  No connections found on semantic model — triggering refresh to establish data sources...")
+            try:
+                refresh_result = self.refresh_semantic_model(workspace_id, semantic_model_id, refresh_type="full")
+                if refresh_result.get("status_code") == 202 or refresh_result.get("status") == "success":
+                    logger.info(f"  Refresh triggered, waiting 30s for data sources to appear...")
+                    time.sleep(30)
+                    
+                    # Retry listing connections after refresh
+                    try:
+                        item_connections = self.list_item_connections(workspace_id, semantic_model_id)
+                        if item_connections:
+                            logger.info(f"  Found {len(item_connections)} connection(s) after refresh")
+                            for conn in item_connections:
+                                conn_details = conn.get("connectionDetails", {})
+                                conn_type_detail = conn_details.get("type", "")
+                                conn_path = conn_details.get("path", "")
+                                
+                                payload = {
+                                    "connectionBinding": {
+                                        "id": connection_id,
+                                        "connectivityType": "ShareableCloud",
+                                        "connectionDetails": {
+                                            "type": conn_type_detail,
+                                            "path": conn_path
+                                        }
+                                    }
+                                }
+                                try:
+                                    self._make_request("POST", bind_endpoint, json_data=payload)
+                                    logger.info(f"  ✓ Successfully bound data source to ShareableCloud connection")
+                                    bound_count += 1
+                                except Exception as bind_err:
+                                    logger.warning(f"  ⚠ bindConnection failed after refresh: {bind_err}")
+                        else:
+                            logger.warning(f"  ⚠ Still no connections after refresh — bind connection manually in Fabric portal")
+                    except Exception as e:
+                        logger.warning(f"  ⚠ Could not list connections after refresh: {e}")
+                else:
+                    logger.warning(f"  ⚠ Could not trigger refresh — bind connection manually in Fabric portal")
+            except Exception as refresh_err:
+                logger.warning(f"  ⚠ Refresh failed: {refresh_err}")
+                logger.warning(f"    Bind connection manually in Fabric portal after refreshing the model")
         
         if bound_count > 0:
             logger.info(f"  ✓ Bound {bound_count} data source(s) to Fabric connection")

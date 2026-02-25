@@ -469,36 +469,10 @@ class FabricDeployer:
                 logger.info("  ✓ Workspace is up to date with Git — no updates needed")
                 return True
             
-            # ── Filter: Reports and Semantic Models are deployed via API ──
-            # Only sync item types that CANNOT be deployed via the Fabric REST
-            # API (e.g. paginated reports).  Reports (report) and semantic
-            # models (dataset / semanticmodel) are handled exclusively by
-            # _deploy_report / _deploy_semantic_model so they must NOT be
-            # included in the Git sync — otherwise Fabric creates duplicates.
-            api_deployed_types = {"report", "dataset", "semanticmodel"}
-            
-            git_only_changes = [
-                c for c in remote_changes
-                if c.get("itemMetadata", {}).get("itemType", "").lower() not in api_deployed_types
-            ]
-            api_skipped = [
-                c for c in remote_changes
-                if c.get("itemMetadata", {}).get("itemType", "").lower() in api_deployed_types
-            ]
-            
-            if api_skipped:
-                skipped_names = [
-                    f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
-                    for c in api_skipped
-                ]
-                logger.info(f"  ℹ Excluding {len(api_skipped)} item(s) from Git sync (deployed via API):")
-                for name in skipped_names:
-                    logger.info(f"    - {name}")
-
             # Log the pending changes
-            if git_only_changes:
-                logger.info(f"  📦 {len(git_only_changes)} update(s) to sync from Git:")
-                for change in git_only_changes:
+            if remote_changes:
+                logger.info(f"  📦 {len(remote_changes)} update(s) available from Git:")
+                for change in remote_changes:
                     item = change.get("itemMetadata", {})
                     name = item.get("displayName", "Unknown")
                     item_type = item.get("itemType", "Unknown")
@@ -506,41 +480,22 @@ class FabricDeployer:
                     conflict = change.get("conflictType", "None")
                     conflict_str = f" ⚠ CONFLICT" if conflict == "Conflict" else ""
                     logger.info(f"    - {name} ({item_type}): {change_type}{conflict_str}")
-            elif not api_skipped:
+            else:
                 logger.info(f"  📦 Commits available: workspace is behind remote")
             
-            # If the ONLY pending changes are API-deployed types, skip Git sync.
-            # The workspace head stays behind remote but API deployment handles
-            # these items.  On the next run with non-API changes, Git sync will
-            # catch up naturally.
-            if not git_only_changes and api_skipped:
-                logger.info("  ✓ All pending changes are API-deployed items — skipping Git sync")
-                return True
-            
             # Step 2: Update from Git
-            # Only sync items that are NOT deployed via the REST API.
-            # Reports and semantic models are created/updated by the API
-            # deployment step; including them here would create duplicates.
+            # Git sync runs BEFORE API deployment.  It creates/updates ALL
+            # items from the connected branch, linking them to Git.  The API
+            # deployment step then UPDATES the existing items (never creates)
+            # to apply environment-specific configuration (connection binding,
+            # parameter substitution, etc.).
+            #
+            # This order is critical for Git-connected workspaces: items
+            # created via API are NOT linked to the Git repo, which causes
+            # "duplicate display name" errors in Source Control.  Letting Git
+            # sync create them first avoids this.
             conflict_policy = git_config.get("conflict_resolution_policy", "PreferRemote")
             allow_override = git_config.get("allow_override_items", True)
-            
-            # Build selective items list when we filtered some changes out
-            sync_items = None
-            if api_skipped and git_only_changes:
-                # Only sync the non-API items (e.g. paginated reports, notebooks, etc.)
-                sync_items = []
-                for change in git_only_changes:
-                    identifier = change.get("itemIdentifier", {})
-                    logical_id = identifier.get("logicalId")
-                    object_id = identifier.get("objectId")
-                    if logical_id or object_id:
-                        item_ref = {}
-                        if logical_id:
-                            item_ref["logicalId"] = logical_id
-                        if object_id:
-                            item_ref["objectId"] = object_id
-                        sync_items.append(item_ref)
-                logger.info(f"  Selective Git sync: {len(sync_items)} item(s) (excluding reports/semantic models)")
             
             logger.info(f"  Updating workspace from Git (policy: {conflict_policy})...")
             
@@ -549,8 +504,7 @@ class FabricDeployer:
                 remote_commit_hash=remote_commit,
                 workspace_head=workspace_head,
                 conflict_resolution_policy=conflict_policy,
-                allow_override_items=allow_override,
-                items=sync_items
+                allow_override_items=allow_override
             )
             
             logger.info("  ✓ Source control sync completed — workspace updated from Git")

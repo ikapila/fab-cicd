@@ -1,225 +1,182 @@
-2026-02-25T14:11:25.2201853Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2026-02-25T14:11:25.2210667Z ==============================================================================
-2026-02-25T14:11:25.2210857Z Task         : Command line
-2026-02-25T14:11:25.2210982Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-02-25T14:11:25.2211158Z Version      : 2.268.0
-2026-02-25T14:11:25.2211280Z Author       : Microsoft Corporation
-2026-02-25T14:11:25.2211401Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-02-25T14:11:25.2211579Z ==============================================================================
-2026-02-25T14:11:25.3522215Z Generating script.
-2026-02-25T14:11:25.3531061Z ========================== Starting Command Output ===========================
-2026-02-25T14:11:25.3551462Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/0642b96f-789a-4a9d-a704-09067faeb2ef.sh
-2026-02-25T14:11:25.3628356Z ========================================
-2026-02-25T14:11:25.3628714Z DEBUG: Verifying Repository Checkout
-2026-02-25T14:11:25.3629059Z ========================================
-2026-02-25T14:11:25.3635261Z Current directory: /home/vsts/work/1/s
-2026-02-25T14:11:25.3635615Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-02-25T14:11:25.3635755Z 
-2026-02-25T14:11:25.3636047Z Contents of Build.SourcesDirectory:
-2026-02-25T14:11:25.3653829Z total 40
-2026-02-25T14:11:25.3655725Z drwxr-xr-x 8 vsts vsts 4096 Feb 25 14:10 .
-2026-02-25T14:11:25.3656065Z drwxr-xr-x 7 vsts vsts 4096 Feb 25 14:10 ..
-2026-02-25T14:11:25.3656397Z drwxr-xr-x 2 vsts vsts 4096 Feb 25 14:10 .deployment_tracking
-2026-02-25T14:11:25.3656749Z drwxr-xr-x 7 vsts vsts 4096 Feb 25 14:10 .git
-2026-02-25T14:11:25.3657072Z -rw-r--r-- 1 vsts vsts   44 Feb 25 14:10 .gitignore
-2026-02-25T14:11:25.3657405Z -rw-r--r-- 1 vsts vsts  985 Feb 25 14:10 README.md
-2026-02-25T14:11:25.3657737Z drwxr-xr-x 2 vsts vsts 4096 Feb 25 14:10 azure-pipelines
-2026-02-25T14:11:25.3658079Z drwxr-xr-x 2 vsts vsts 4096 Feb 25 14:10 config
-2026-02-25T14:11:25.3658401Z drwxr-xr-x 2 vsts vsts 4096 Feb 25 14:10 scripts
-2026-02-25T14:11:25.3658726Z drwxr-xr-x 8 vsts vsts 4096 Feb 25 14:10 wsartifacts
-2026-02-25T14:11:25.3665861Z 
-2026-02-25T14:11:25.3670936Z Checking for required folders:
-2026-02-25T14:11:25.3673538Z ✓ scripts/ exists
-2026-02-25T14:11:25.3673895Z ✓ config/ exists
-2026-02-25T14:11:25.3674201Z ✓ wsartifacts/ exists
-2026-02-25T14:11:25.3674716Z ========================================
-2026-02-25T14:11:25.3675032Z ========================================
-2026-02-25T14:11:25.3675313Z Deploying to Dev Environment
-2026-02-25T14:11:25.3675598Z ========================================
-2026-02-25T14:11:25.3675869Z Features:
-2026-02-25T14:11:25.3676274Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-02-25T14:11:25.3676674Z   📊 Dependency-aware deployment ordering
-2026-02-25T14:11:25.3677066Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-02-25T14:11:25.3677224Z 
-2026-02-25T14:11:25.3677459Z Deployment steps:
-2026-02-25T14:11:25.3677723Z   1. Create artifacts from config file
-2026-02-25T14:11:25.3678012Z   2. Detect changed artifacts using Git diff
-2026-02-25T14:11:25.3678338Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-02-25T14:11:25.3678663Z ========================================
-2026-02-25T14:11:25.8035777Z 2026-02-25 14:11:25,802 - __main__ - INFO - Initializing deployment to dev environment
-2026-02-25T14:11:25.8038694Z 2026-02-25 14:11:25,803 - config_manager - INFO - Loading configuration from: config/dev.json
-2026-02-25T14:11:25.8040784Z 2026-02-25 14:11:25,803 - __main__ - INFO - Using environment-specific service principal for dev
-2026-02-25T14:11:25.8041531Z 2026-02-25 14:11:25,803 - __main__ - INFO - Using artifacts root folder: wsartifacts
-2026-02-25T14:11:25.8042204Z 2026-02-25 14:11:25,803 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
-2026-02-25T14:11:26.1833719Z 2026-02-25 14:11:26,182 - fabric_auth - INFO - Authentication validation successful
-2026-02-25T14:11:26.1844879Z 2026-02-25 14:11:26,184 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
-2026-02-25T14:11:26.1848474Z 2026-02-25 14:11:26,184 - __main__ - INFO - Running in artifact creation mode
-2026-02-25T14:11:26.1848897Z 2026-02-25 14:11:26,184 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.1849331Z 2026-02-25 14:11:26,184 - __main__ - INFO - Creating artifacts from configuration for dev
-2026-02-25T14:11:26.1849773Z 2026-02-25 14:11:26,184 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.1850364Z 2026-02-25 14:11:26,184 - __main__ - INFO - No artifacts configured for creation
-2026-02-25T14:11:26.1853097Z 2026-02-25 14:11:26,184 - __main__ - INFO - Artifact creation completed successfully
-2026-02-25T14:11:26.1853811Z 2026-02-25 14:11:26,184 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.1854998Z 2026-02-25 14:11:26,184 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
-2026-02-25T14:11:26.1855577Z 2026-02-25 14:11:26,184 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.1855996Z 2026-02-25 14:11:26,184 - __main__ - INFO - Discovering artifacts from file system...
-2026-02-25T14:11:26.1857826Z 2026-02-25 14:11:26,185 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
-2026-02-25T14:11:26.1867997Z 2026-02-25 14:11:26,186 - __main__ - INFO - Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
-2026-02-25T14:11:26.1872147Z 2026-02-25 14:11:26,186 - __main__ - INFO - Discovered 1 Variable Library: ReportingVariables
-2026-02-25T14:11:26.1876977Z 2026-02-25 14:11:26,187 - __main__ - INFO - Discovered 3 semantic model(s): Cash Collection (Fabric Git), Finance Summary (Fabric Git), Welcome (Fabric Git)
-2026-02-25T14:11:26.1882303Z 2026-02-25 14:11:26,188 - __main__ - INFO - Discovered 3 report(s): Cash Collection (Fabric Git), Finance Summary (Fabric Git), Welcome (Fabric Git)
-2026-02-25T14:11:26.1886676Z 2026-02-25 14:11:26,188 - __main__ - INFO - Discovered 2 paginated report(s): Aged Debtors (Fabric Git), Contracts Created in Month (Fabric Git)
-2026-02-25T14:11:26.1890837Z 2026-02-25 14:11:26,188 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.1891638Z 2026-02-25 14:11:26,188 - __main__ - INFO - DISCOVERY COMPLETE: Found 20 total artifacts
-2026-02-25T14:11:26.1892208Z 2026-02-25 14:11:26,188 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.1892657Z 2026-02-25 14:11:26,188 - __main__ - INFO - 
-2026-02-25T14:11:26.1893016Z 2026-02-25 14:11:26,188 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.1893378Z 2026-02-25 14:11:26,188 - __main__ - INFO - CHANGE DETECTION
-2026-02-25T14:11:26.1893747Z 2026-02-25 14:11:26,188 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.1999136Z 2026-02-25 14:11:26,199 - change_detector - INFO - Found 32 changed file(s) since c33a70d1
-2026-02-25T14:11:26.2003847Z 2026-02-25 14:11:26,200 - change_detector - INFO - Change detection: 5 artifact(s) changed
-2026-02-25T14:11:26.2004848Z 2026-02-25 14:11:26,200 - change_detector - INFO -   Report: Cash Collection, MOT Tracker
-2026-02-25T14:11:26.2011864Z 2026-02-25 14:11:26,200 - change_detector - INFO -   PaginatedReport: Contracts Created in Month
-2026-02-25T14:11:26.2012358Z 2026-02-25 14:11:26,200 - change_detector - INFO -   SemanticModel: Cash Collection, MOT Tracker
-2026-02-25T14:11:26.2012790Z 2026-02-25 14:11:26,200 - __main__ - INFO - Changed artifacts: 5
-2026-02-25T14:11:26.2013194Z 2026-02-25 14:11:26,200 - __main__ - INFO -   PaginatedReport: Contracts Created in Month
-2026-02-25T14:11:26.2013781Z 2026-02-25 14:11:26,200 - __main__ - INFO -   Report: Cash Collection, MOT Tracker
-2026-02-25T14:11:26.2019679Z 2026-02-25 14:11:26,200 - __main__ - INFO -   SemanticModel: Cash Collection, MOT Tracker
-2026-02-25T14:11:26.2021734Z 2026-02-25 14:11:26,200 - __main__ - INFO - Skipped (unchanged): 17
-2026-02-25T14:11:26.2022195Z 2026-02-25 14:11:26,201 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.2022668Z 2026-02-25 14:11:26,201 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.2023118Z 2026-02-25 14:11:26,201 - __main__ - INFO - Starting deployment to dev environment
-2026-02-25T14:11:26.2023581Z 2026-02-25 14:11:26,201 - __main__ - INFO - ============================================================
-2026-02-25T14:11:26.2024877Z 2026-02-25 14:11:26,201 - dependency_resolver - INFO - ✅ All dependencies are valid
-2026-02-25T14:11:26.2025366Z 2026-02-25 14:11:26,201 - dependency_resolver - INFO - Deployment order determined:
-2026-02-25T14:11:26.2025817Z 2026-02-25 14:11:26,201 - dependency_resolver - INFO -   1. Cash Collection (SemanticModel)
-2026-02-25T14:11:26.2026274Z 2026-02-25 14:11:26,201 - dependency_resolver - INFO -   2. Cash Collection (Report)
-2026-02-25T14:11:26.2026730Z 2026-02-25 14:11:26,201 - dependency_resolver - INFO -   3. Contracts Created in Month (PaginatedReport)
-2026-02-25T14:11:26.2027130Z 2026-02-25 14:11:26,201 - __main__ - INFO - 
-2026-02-25T14:11:26.2027508Z 2026-02-25 14:11:26,201 - __main__ - INFO - --- Deploying 3 artifact(s) ---
-2026-02-25T14:11:26.2027875Z 2026-02-25 14:11:26,201 - __main__ - INFO - 
-2026-02-25T14:11:26.2028253Z 2026-02-25 14:11:26,201 - __main__ - INFO - Deploying: Cash Collection (SemanticModel)
-2026-02-25T14:11:26.2029127Z 2026-02-25 14:11:26,201 - __main__ - INFO -   Reading semantic model from Fabric Git format: Cash Collection.SemanticModel
-2026-02-25T14:11:26.2038324Z 2026-02-25 14:11:26,203 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-02-25T14:11:26.2044475Z 2026-02-25 14:11:26,204 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-02-25T14:11:26.2053345Z 2026-02-25 14:11:26,205 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-25T14:11:26.6353239Z 2026-02-25 14:11:26,634 - fabric_client - INFO - Listing folders in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-25T14:11:26.9122237Z 2026-02-25 14:11:26,911 - fabric_client - INFO - Creating semantic model: Cash Collection
-2026-02-25T14:11:27.5183392Z 2026-02-25 14:11:27,518 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
-2026-02-25T14:11:47.7337503Z 2026-02-25 14:11:47,733 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
-2026-02-25T14:11:47.7338848Z 2026-02-25 14:11:47,733 - fabric_client - INFO -   ✓ Operation completed successfully
-2026-02-25T14:11:48.0012868Z 2026-02-25 14:11:48,000 - __main__ - INFO -   ✓ Created semantic model 'Cash Collection' in 'Semanticmodels' folder (ID: 7a84975a-c7ae-4307-a40a-32ee1427cac8)
-2026-02-25T14:11:48.0016262Z 2026-02-25 14:11:48,000 - __main__ - INFO -   Looking up Fabric connection: 'dev-tmp01-reporting-lakehouse-connection'
-2026-02-25T14:11:48.0017505Z 2026-02-25 14:11:48,001 - fabric_client - INFO - Listing connections via Fabric Connections API
-2026-02-25T14:11:48.2340582Z 2026-02-25 14:11:48,233 - fabric_client - INFO -   Retrieved 3 connections total
-2026-02-25T14:11:48.2343918Z 2026-02-25 14:11:48,233 - __main__ - INFO -   ✓ Found connection: 'dev-tmp01-reporting-lakehouse-connection'
-2026-02-25T14:11:48.2345339Z 2026-02-25 14:11:48,233 - __main__ - INFO -   Binding 'Cash Collection' to Fabric connection 'dev-tmp01-reporting-lakehouse-connection'...
-2026-02-25T14:11:48.2346275Z 2026-02-25 14:11:48,233 - fabric_client - INFO - Binding semantic model to Fabric connection
-2026-02-25T14:11:48.2349714Z 2026-02-25 14:11:48,234 - fabric_client - INFO - Taking over ownership of semantic model 7a84975a-c7ae-4307-a40a-32ee1427cac8
-2026-02-25T14:11:48.5186809Z 2026-02-25 14:11:48,518 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 7a84975a-c7ae-4307-a40a-32ee1427cac8
-2026-02-25T14:11:48.5198019Z 2026-02-25 14:11:48,519 - fabric_client - INFO -   Listing connections for item 7a84975a-c7ae-4307-a40a-32ee1427cac8
-2026-02-25T14:11:48.7763591Z 2026-02-25 14:11:48,775 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
-2026-02-25T14:11:49.6921004Z 2026-02-25 14:11:49,691 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
-2026-02-25T14:11:49.6924613Z 2026-02-25 14:11:49,691 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
-2026-02-25T14:11:49.6925854Z 2026-02-25 14:11:49,691 - __main__ - INFO -   ✓ Bound 'Cash Collection' to connection 'dev-tmp01-reporting-lakehouse-connection' (1 data source(s))
-2026-02-25T14:11:49.6928116Z 2026-02-25 14:11:49,691 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Cash Collection'
-2026-02-25T14:11:49.6928686Z 2026-02-25 14:11:49,691 - __main__ - INFO - ✅ Successfully deployed: Cash Collection
-2026-02-25T14:11:49.6929073Z 2026-02-25 14:11:49,692 - __main__ - INFO - 
-2026-02-25T14:11:49.6929453Z 2026-02-25 14:11:49,692 - __main__ - INFO - Deploying: Cash Collection (Report)
-2026-02-25T14:11:49.6936846Z 2026-02-25 14:11:49,692 - __main__ - INFO -   Reading report from Fabric Git format: Cash Collection.Report
-2026-02-25T14:11:49.6937506Z 2026-02-25 14:11:49,692 - __main__ - INFO -     Found semantic model 'Cash Collection' in deployment cache (ID: 7a84975a-c7ae-4307-a40a-32ee1427cac8)
-2026-02-25T14:11:49.6939863Z 2026-02-25 14:11:49,692 - __main__ - INFO -     ✓ Using byConnection reference for 'Cash Collection' (ID: 7a84975a-c7ae-4307-a40a-32ee1427cac8)
-2026-02-25T14:11:49.6945745Z 2026-02-25 14:11:49,694 - fabric_client - INFO - Listing reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-25T14:11:49.9112389Z 2026-02-25 14:11:49,910 - fabric_client - INFO - Listing folders in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-25T14:11:50.0897796Z 2026-02-25 14:11:50,089 - fabric_client - INFO - Creating Power BI report: Cash Collection
-2026-02-25T14:11:50.5783156Z 2026-02-25 14:11:50,577 - __main__ - INFO -   Report creation initiated (LRO), waiting for completion...
-2026-02-25T14:12:10.7798900Z 2026-02-25 14:12:10,779 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
-2026-02-25T14:12:10.7801647Z 2026-02-25 14:12:10,779 - fabric_client - INFO -   ✓ Operation completed successfully
-2026-02-25T14:12:10.9405536Z 2026-02-25 14:12:10,939 - __main__ - INFO -   ✓ Created report 'Cash Collection' in 'Reports' folder (ID: 45c3261c-0530-46af-b1e1-3b4d4c66125f)
-2026-02-25T14:12:10.9406715Z 2026-02-25 14:12:10,940 - __main__ - INFO -   ✓ Dataset reference transformed during deployment for 'Cash Collection'
-2026-02-25T14:12:10.9407774Z 2026-02-25 14:12:10,940 - __main__ - INFO - ✅ Successfully deployed: Cash Collection
-2026-02-25T14:12:10.9408545Z 2026-02-25 14:12:10,940 - __main__ - INFO - 
-2026-02-25T14:12:10.9410391Z 2026-02-25 14:12:10,940 - __main__ - INFO - Deploying: Contracts Created in Month (PaginatedReport)
-2026-02-25T14:12:10.9417534Z 2026-02-25 14:12:10,941 - __main__ - INFO -   Found paginated report in Git format: wsartifacts/Reports/Contracts Created in Month.PaginatedReport
-2026-02-25T14:12:10.9420336Z 2026-02-25 14:12:10,941 - __main__ - INFO -   📦 Paginated report 'Contracts Created in Month' will be synced from Git (updateFromGit)
-2026-02-25T14:12:10.9421323Z 2026-02-25 14:12:10,941 - __main__ - INFO -     Post-sync: Connection configuration will be applied
-2026-02-25T14:12:10.9422189Z 2026-02-25 14:12:10,941 - __main__ - INFO - ✅ Successfully deployed: Contracts Created in Month
-2026-02-25T14:12:10.9422812Z 2026-02-25 14:12:10,941 - __main__ - INFO - 
-2026-02-25T14:12:10.9430555Z 2026-02-25 14:12:10,941 - __main__ - INFO - ============================================================
-2026-02-25T14:12:10.9431656Z 2026-02-25 14:12:10,941 - __main__ - INFO - DEPLOYMENT SUMMARY
-2026-02-25T14:12:10.9432277Z 2026-02-25 14:12:10,941 - __main__ - INFO - ============================================================
-2026-02-25T14:12:10.9433198Z 2026-02-25 14:12:10,941 - __main__ - INFO - Total artifacts: 3
-2026-02-25T14:12:10.9433819Z 2026-02-25 14:12:10,941 - __main__ - INFO - Successful: 3
-2026-02-25T14:12:10.9436622Z 2026-02-25 14:12:10,941 - __main__ - INFO - Failed: 0
-2026-02-25T14:12:10.9437074Z 2026-02-25 14:12:10,941 - __main__ - INFO - ============================================================
-2026-02-25T14:12:10.9452490Z 2026-02-25 14:12:10,944 - change_detector - INFO - Saved deployment commit: 1c1da6fb
-2026-02-25T14:12:10.9454008Z 2026-02-25 14:12:10,944 - __main__ - INFO - Saved deployment state: 1c1da6fb
-2026-02-25T14:12:10.9455887Z 2026-02-25 14:12:10,944 - __main__ - INFO - 
-2026-02-25T14:12:10.9456304Z 2026-02-25 14:12:10,944 - __main__ - INFO - ------------------------------------------------------------
-2026-02-25T14:12:10.9456733Z 2026-02-25 14:12:10,944 - __main__ - INFO - POST-DEPLOY: SEMANTIC MODEL REFRESH
-2026-02-25T14:12:10.9457150Z 2026-02-25 14:12:10,944 - __main__ - INFO - ------------------------------------------------------------
-2026-02-25T14:12:10.9457581Z 2026-02-25 14:12:10,944 - __main__ - INFO -   Triggering refresh for 1 deployed semantic model(s)
-2026-02-25T14:12:10.9458030Z 2026-02-25 14:12:10,944 - __main__ - INFO -   Refreshing 'Cash Collection' (ID: 7a84975a-c7ae-4307-a40a-32ee1427cac8)...
-2026-02-25T14:12:10.9458522Z 2026-02-25 14:12:10,944 - fabric_client - INFO - Triggering full refresh for semantic model: 7a84975a-c7ae-4307-a40a-32ee1427cac8
-2026-02-25T14:12:11.2383964Z 2026-02-25 14:12:11,237 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
-2026-02-25T14:12:11.2393932Z 2026-02-25 14:12:11,239 - __main__ - INFO -   ✓ Refresh triggered for 'Cash Collection'
-2026-02-25T14:12:11.2396120Z 2026-02-25 14:12:11,239 - __main__ - INFO -   Done — 1 refresh(es) triggered, 0 failed
-2026-02-25T14:12:11.2396763Z 2026-02-25 14:12:11,239 - __main__ - INFO - 
-2026-02-25T14:12:11.2397535Z 2026-02-25 14:12:11,239 - __main__ - INFO - ------------------------------------------------------------
-2026-02-25T14:12:11.2399057Z 2026-02-25 14:12:11,239 - __main__ - INFO - SOURCE CONTROL SYNC
-2026-02-25T14:12:11.2399957Z 2026-02-25 14:12:11,239 - __main__ - INFO - ------------------------------------------------------------
-2026-02-25T14:12:11.2400747Z 2026-02-25 14:12:11,239 - __main__ - INFO - Checking for pending Git updates in workspace...
-2026-02-25T14:12:11.2401599Z 2026-02-25 14:12:11,239 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-25T14:12:11.4518849Z 2026-02-25 14:12:11,451 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
-2026-02-25T14:12:11.4519481Z 2026-02-25 14:12:11,451 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-25T14:12:21.8855234Z 2026-02-25 14:12:21,885 - __main__ - INFO -   Workspace head:   0265706e031a...
-2026-02-25T14:12:21.8858092Z 2026-02-25 14:12:21,885 - __main__ - INFO -   Remote commit:    1c1da6fbd430...
-2026-02-25T14:12:21.8860052Z 2026-02-25 14:12:21,885 - __main__ - INFO -   📦 3 update(s) available from Git:
-2026-02-25T14:12:21.8860878Z 2026-02-25 14:12:21,885 - __main__ - INFO -     - Cash Collection (report): Added
-2026-02-25T14:12:21.8861475Z 2026-02-25 14:12:21,885 - __main__ - INFO -     - Cash Collection (dataset): Added
-2026-02-25T14:12:21.8863235Z 2026-02-25 14:12:21,885 - __main__ - INFO -     - Contracts Created in Month (rdlreport): Modified
-2026-02-25T14:12:21.8863727Z 2026-02-25 14:12:21,885 - __main__ - INFO -   Updating workspace from Git (policy: PreferWorkspace)...
-2026-02-25T14:12:21.8864425Z 2026-02-25 14:12:21,885 - fabric_client - INFO - Updating workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64 from Git (commit: 1c1da6fbd430...)
-2026-02-25T14:12:29.6098643Z 2026-02-25 14:12:29,609 - fabric_client - ERROR - HTTP Error: 409 - {"requestId":"76e52e40-a70b-49c6-bbfb-c5a543bab110","errorCode":"DuplicateDisplayNameAndType","message":"There are duplicate display names for items with the same type."}
-2026-02-25T14:12:29.6101993Z 2026-02-25 14:12:29,609 - fabric_client - ERROR - Error details: {
-2026-02-25T14:12:29.6102420Z   "requestId": "76e52e40-a70b-49c6-bbfb-c5a543bab110",
-2026-02-25T14:12:29.6102810Z   "errorCode": "DuplicateDisplayNameAndType",
-2026-02-25T14:12:29.6103209Z   "message": "There are duplicate display names for items with the same type."
-2026-02-25T14:12:29.6103827Z }
-2026-02-25T14:12:29.6105182Z 2026-02-25 14:12:29,609 - __main__ - WARNING -   ⚠ Source control sync failed: 409 Client Error: Conflict for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/updateFromGit
-2026-02-25T14:12:29.6105929Z 2026-02-25 14:12:29,609 - __main__ - WARNING -     Update source control manually in Fabric portal
-2026-02-25T14:12:29.6115787Z 2026-02-25 14:12:29,611 - __main__ - INFO - 
-2026-02-25T14:12:29.6117355Z 2026-02-25 14:12:29,611 - __main__ - INFO - ------------------------------------------------------------
-2026-02-25T14:12:29.6118472Z 2026-02-25 14:12:29,611 - __main__ - INFO - POST-GIT-SYNC: PAGINATED REPORT CONNECTION CONFIGURATION
-2026-02-25T14:12:29.6119912Z 2026-02-25 14:12:29,611 - __main__ - INFO - ------------------------------------------------------------
-2026-02-25T14:12:29.6121171Z 2026-02-25 14:12:29,611 - fabric_client - INFO - Listing paginated reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-02-25T14:12:29.8261558Z 2026-02-25 14:12:29,825 - __main__ - INFO -   Processing 'Contracts Created in Month' (ID: 88d8e670-cca8-4f88-9bed-18beab4914b7)
-2026-02-25T14:12:29.8263387Z 2026-02-25 14:12:29,825 - __main__ - INFO -   Looking up Fabric connection for paginated reports: 'dev-tmp01-reporting-lakehouse-connection'
-2026-02-25T14:12:29.8264210Z 2026-02-25 14:12:29,825 - fabric_client - INFO - Listing connections via Fabric Connections API
-2026-02-25T14:12:30.0622828Z 2026-02-25 14:12:30,061 - fabric_client - INFO -   Retrieved 3 connections total
-2026-02-25T14:12:30.0624669Z 2026-02-25 14:12:30,061 - __main__ - INFO -   ✓ Found paginated report connection: 'dev-tmp01-reporting-lakehouse-connection'
-2026-02-25T14:12:30.0626527Z 2026-02-25 14:12:30,061 - __main__ - INFO -   Binding 'Contracts Created in Month' to ShareableCloud connection 'dev-tmp01-reporting-lakehouse-connection'...
-2026-02-25T14:12:30.0627162Z 2026-02-25 14:12:30,061 - fabric_client - INFO - Binding paginated report to Fabric connection
-2026-02-25T14:12:30.0627700Z 2026-02-25 14:12:30,061 - fabric_client - INFO -   Listing connections for item 88d8e670-cca8-4f88-9bed-18beab4914b7
-2026-02-25T14:12:30.2983338Z 2026-02-25 14:12:30,297 - fabric_client - ERROR - HTTP Error: 400 - {"requestId":"7b72fc1e-8e2c-407b-b842-bc10dc16a278","errorCode":"OperationNotSupportedForItem","message":"Operation not supported for requested item"}
-2026-02-25T14:12:30.2986804Z 2026-02-25 14:12:30,298 - fabric_client - ERROR - Error details: {
-2026-02-25T14:12:30.2987802Z   "requestId": "7b72fc1e-8e2c-407b-b842-bc10dc16a278",
-2026-02-25T14:12:30.2988400Z   "errorCode": "OperationNotSupportedForItem",
-2026-02-25T14:12:30.2989850Z   "message": "Operation not supported for requested item"
-2026-02-25T14:12:30.2990202Z }
-2026-02-25T14:12:30.2991512Z 2026-02-25 14:12:30,298 - fabric_client - WARNING -   ⚠ Could not list item connections: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/items/88d8e670-cca8-4f88-9bed-18beab4914b7/connections
-2026-02-25T14:12:30.2999783Z 2026-02-25 14:12:30,299 - fabric_client - INFO - Taking over ownership of paginated report 88d8e670-cca8-4f88-9bed-18beab4914b7
-2026-02-25T14:12:30.7883135Z 2026-02-25 14:12:30,787 - fabric_client - INFO -   ✓ Successfully took over ownership of paginated report 88d8e670-cca8-4f88-9bed-18beab4914b7
-2026-02-25T14:12:30.7893192Z 2026-02-25 14:12:30,789 - fabric_client - INFO - Getting data sources for paginated report: 88d8e670-cca8-4f88-9bed-18beab4914b7
-2026-02-25T14:12:31.3778040Z 2026-02-25 14:12:31,376 - fabric_client - INFO -   Found 1 data source(s) on paginated report
-2026-02-25T14:12:31.3783238Z 2026-02-25 14:12:31,376 - fabric_client - INFO -     [1] type=Sql, gateway=e7450538-e9f5-4612-bb27-7e8ad53713af, datasource=264bfb34-18cc-4d46-bf8d-9ef939e8387a, server=urucevsjhkyejogdndw7poe5fi-42khqiap44nu5fjksczco73dni.datawarehouse.fabric.microsoft.com, database=reporting_gold
-2026-02-25T14:12:31.3786080Z 2026-02-25 14:12:31,378 - fabric_client - INFO -   Found 1 data source(s) on paginated report
-2026-02-25T14:12:31.3789405Z 2026-02-25 14:12:31,378 - fabric_client - INFO - Updating credentials for gateway datasource (gateway=e7450538-e9f5-4612-bb27-7e8ad53713af, datasource=264bfb34-18cc-4d46-bf8d-9ef939e8387a)
-2026-02-25T14:12:31.5577551Z 2026-02-25 14:12:31,557 - fabric_client - WARNING -   ⚠ Update credentials returned 400: {"error":{"code":"InvalidRequest","message":"Specifying UseCallerOAuthIdentity requires credential type to be OAuth2"}}
-2026-02-25T14:12:31.5587380Z 2026-02-25 14:12:31,558 - __main__ - WARNING -   ⚠ Could not bind 'Contracts Created in Month' to connection 'dev-tmp01-reporting-lakehouse-connection'
-2026-02-25T14:12:31.5589548Z 2026-02-25 14:12:31,558 - __main__ - INFO -     Assign connection manually in the Fabric portal → Report settings → Data source credentials
-2026-02-25T14:12:31.5591532Z 2026-02-25 14:12:31,558 - __main__ - INFO -   Done — processed 1 paginated report(s)
-2026-02-25T14:12:31.5902756Z 
-2026-02-25T14:12:31.5904203Z ✓ Dev deployment completed successfully
-2026-02-25T14:12:31.5918084Z 
-2026-02-25T14:12:31.6009883Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2026-02-25T17:22:48.8161742Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-02-25T17:22:48.8170572Z ==============================================================================
+2026-02-25T17:22:48.8170774Z Task         : Command line
+2026-02-25T17:22:48.8170890Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-02-25T17:22:48.8171079Z Version      : 2.268.0
+2026-02-25T17:22:48.8171191Z Author       : Microsoft Corporation
+2026-02-25T17:22:48.8171317Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-02-25T17:22:48.8171495Z ==============================================================================
+2026-02-25T17:22:48.9588200Z Generating script.
+2026-02-25T17:22:48.9595098Z ========================== Starting Command Output ===========================
+2026-02-25T17:22:48.9612041Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/d55311c5-c363-4019-9f4e-d29a61d63610.sh
+2026-02-25T17:22:48.9671954Z ========================================
+2026-02-25T17:22:48.9672534Z DEBUG: Verifying Repository Checkout
+2026-02-25T17:22:48.9675016Z ========================================
+2026-02-25T17:22:48.9684889Z Current directory: /home/vsts/work/1/s
+2026-02-25T17:22:48.9685226Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-02-25T17:22:48.9685354Z 
+2026-02-25T17:22:48.9685618Z Contents of Build.SourcesDirectory:
+2026-02-25T17:22:48.9699496Z total 40
+2026-02-25T17:22:48.9700813Z drwxr-xr-x 8 vsts vsts 4096 Feb 25 17:22 .
+2026-02-25T17:22:48.9701179Z drwxr-xr-x 7 vsts vsts 4096 Feb 25 17:22 ..
+2026-02-25T17:22:48.9701550Z drwxr-xr-x 2 vsts vsts 4096 Feb 25 17:22 .deployment_tracking
+2026-02-25T17:22:48.9701915Z drwxr-xr-x 7 vsts vsts 4096 Feb 25 17:22 .git
+2026-02-25T17:22:48.9702262Z -rw-r--r-- 1 vsts vsts   44 Feb 25 17:22 .gitignore
+2026-02-25T17:22:48.9702621Z -rw-r--r-- 1 vsts vsts  985 Feb 25 17:22 README.md
+2026-02-25T17:22:48.9702979Z drwxr-xr-x 2 vsts vsts 4096 Feb 25 17:22 azure-pipelines
+2026-02-25T17:22:48.9703530Z drwxr-xr-x 2 vsts vsts 4096 Feb 25 17:22 config
+2026-02-25T17:22:48.9703880Z drwxr-xr-x 2 vsts vsts 4096 Feb 25 17:22 scripts
+2026-02-25T17:22:48.9704232Z drwxr-xr-x 8 vsts vsts 4096 Feb 25 17:22 wsartifacts
+2026-02-25T17:22:48.9710593Z 
+2026-02-25T17:22:48.9710978Z Checking for required folders:
+2026-02-25T17:22:48.9711525Z ✓ scripts/ exists
+2026-02-25T17:22:48.9711843Z ✓ config/ exists
+2026-02-25T17:22:48.9712187Z ✓ wsartifacts/ exists
+2026-02-25T17:22:48.9712567Z ========================================
+2026-02-25T17:22:48.9712907Z ========================================
+2026-02-25T17:22:48.9713219Z Deploying to Dev Environment
+2026-02-25T17:22:48.9713526Z ========================================
+2026-02-25T17:22:48.9713808Z Features:
+2026-02-25T17:22:48.9714260Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-02-25T17:22:48.9714708Z   📊 Dependency-aware deployment ordering
+2026-02-25T17:22:48.9715155Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-02-25T17:22:48.9715325Z 
+2026-02-25T17:22:48.9715589Z Deployment steps:
+2026-02-25T17:22:48.9715866Z   1. Create artifacts from config file
+2026-02-25T17:22:48.9716165Z   2. Detect changed artifacts using Git diff
+2026-02-25T17:22:48.9716503Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-02-25T17:22:48.9717099Z ========================================
+2026-02-25T17:22:49.6584758Z 2026-02-25 17:22:49,657 - __main__ - INFO - Initializing deployment to dev environment
+2026-02-25T17:22:49.6589045Z 2026-02-25 17:22:49,657 - config_manager - INFO - Loading configuration from: config/dev.json
+2026-02-25T17:22:49.6590238Z 2026-02-25 17:22:49,658 - __main__ - INFO - Using environment-specific service principal for dev
+2026-02-25T17:22:49.6591056Z 2026-02-25 17:22:49,658 - __main__ - INFO - Using artifacts root folder: wsartifacts
+2026-02-25T17:22:49.6591507Z 2026-02-25 17:22:49,658 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
+2026-02-25T17:22:50.0964261Z 2026-02-25 17:22:50,095 - fabric_auth - INFO - Authentication validation successful
+2026-02-25T17:22:50.0973678Z 2026-02-25 17:22:50,096 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
+2026-02-25T17:22:50.0978240Z 2026-02-25 17:22:50,097 - __main__ - INFO - Running in artifact creation mode
+2026-02-25T17:22:50.0980310Z 2026-02-25 17:22:50,097 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.0980806Z 2026-02-25 17:22:50,097 - __main__ - INFO - Creating artifacts from configuration for dev
+2026-02-25T17:22:50.0981234Z 2026-02-25 17:22:50,097 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.0981653Z 2026-02-25 17:22:50,097 - __main__ - INFO - No artifacts configured for creation
+2026-02-25T17:22:50.0982066Z 2026-02-25 17:22:50,097 - __main__ - INFO - Artifact creation completed successfully
+2026-02-25T17:22:50.0982520Z 2026-02-25 17:22:50,097 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.0982974Z 2026-02-25 17:22:50,097 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
+2026-02-25T17:22:50.0983415Z 2026-02-25 17:22:50,097 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.0986188Z 2026-02-25 17:22:50,097 - __main__ - INFO - Discovering artifacts from file system...
+2026-02-25T17:22:50.0987600Z 2026-02-25 17:22:50,098 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
+2026-02-25T17:22:50.0996430Z 2026-02-25 17:22:50,099 - __main__ - INFO - Discovered 7 notebook(s): NBT1, NBT2, Notebook 3, Notebook 5, Notebook 6, Notebook 7, nb_sample_artifact_creation
+2026-02-25T17:22:50.1001885Z 2026-02-25 17:22:50,099 - __main__ - INFO - Discovered 1 Variable Library: ReportingVariables
+2026-02-25T17:22:50.1005191Z 2026-02-25 17:22:50,100 - __main__ - INFO - Discovered 3 semantic model(s): Finance Summary (Fabric Git), MOT Tracker (Fabric Git), Welcome (Fabric Git)
+2026-02-25T17:22:50.1012656Z 2026-02-25 17:22:50,101 - __main__ - INFO - Discovered 3 report(s): Finance Summary (Fabric Git), MOT Tracker (Fabric Git), Welcome (Fabric Git)
+2026-02-25T17:22:50.1017232Z 2026-02-25 17:22:50,101 - __main__ - INFO - Discovered 2 paginated report(s): Aged Debtors (Fabric Git), Contracts Created in Month (Fabric Git)
+2026-02-25T17:22:50.1023222Z 2026-02-25 17:22:50,101 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.1023768Z 2026-02-25 17:22:50,102 - __main__ - INFO - DISCOVERY COMPLETE: Found 20 total artifacts
+2026-02-25T17:22:50.1024577Z 2026-02-25 17:22:50,102 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.1027102Z 2026-02-25 17:22:50,102 - __main__ - INFO - 
+2026-02-25T17:22:50.1028185Z 2026-02-25 17:22:50,102 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.1031158Z 2026-02-25 17:22:50,102 - __main__ - INFO - CHANGE DETECTION
+2026-02-25T17:22:50.1031625Z 2026-02-25 17:22:50,102 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.1094041Z 2026-02-25 17:22:50,109 - change_detector - INFO - Found 23 changed file(s) since 8e0df040
+2026-02-25T17:22:50.1099445Z 2026-02-25 17:22:50,109 - change_detector - INFO - Change detection: 2 artifact(s) changed
+2026-02-25T17:22:50.1103482Z 2026-02-25 17:22:50,109 - change_detector - INFO -   Report: MOT Tracker
+2026-02-25T17:22:50.1104215Z 2026-02-25 17:22:50,109 - change_detector - INFO -   SemanticModel: MOT Tracker
+2026-02-25T17:22:50.1104941Z 2026-02-25 17:22:50,109 - __main__ - INFO - Changed artifacts: 2
+2026-02-25T17:22:50.1105565Z 2026-02-25 17:22:50,109 - __main__ - INFO -   Report: MOT Tracker
+2026-02-25T17:22:50.1105954Z 2026-02-25 17:22:50,109 - __main__ - INFO -   SemanticModel: MOT Tracker
+2026-02-25T17:22:50.1106334Z 2026-02-25 17:22:50,109 - __main__ - INFO - Skipped (unchanged): 18
+2026-02-25T17:22:50.1111288Z 2026-02-25 17:22:50,109 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.1112150Z 2026-02-25 17:22:50,110 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.1112618Z 2026-02-25 17:22:50,110 - __main__ - INFO - Starting deployment to dev environment
+2026-02-25T17:22:50.1113053Z 2026-02-25 17:22:50,110 - __main__ - INFO - ============================================================
+2026-02-25T17:22:50.1113462Z 2026-02-25 17:22:50,110 - __main__ - INFO - 
+2026-02-25T17:22:50.1113909Z 2026-02-25 17:22:50,110 - __main__ - INFO - ------------------------------------------------------------
+2026-02-25T17:22:50.1114334Z 2026-02-25 17:22:50,110 - __main__ - INFO - SOURCE CONTROL SYNC
+2026-02-25T17:22:50.1114758Z 2026-02-25 17:22:50,110 - __main__ - INFO - ------------------------------------------------------------
+2026-02-25T17:22:50.1115207Z 2026-02-25 17:22:50,110 - __main__ - INFO - Checking for pending Git updates in workspace...
+2026-02-25T17:22:50.1115687Z 2026-02-25 17:22:50,110 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-25T17:22:50.4082904Z 2026-02-25 17:22:50,407 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
+2026-02-25T17:22:50.4083874Z 2026-02-25 17:22:50,407 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-25T17:22:59.5823887Z 2026-02-25 17:22:59,581 - __main__ - INFO -   Workspace head:   a80e4662f34d...
+2026-02-25T17:22:59.5826348Z 2026-02-25 17:22:59,582 - __main__ - INFO -   Remote commit:    da9056b9dd41...
+2026-02-25T17:22:59.5827788Z 2026-02-25 17:22:59,582 - __main__ - INFO -   📦 2 update(s) available from Git:
+2026-02-25T17:22:59.5828985Z 2026-02-25 17:22:59,582 - __main__ - INFO -     - MOT Tracker (report): Added
+2026-02-25T17:22:59.5829643Z 2026-02-25 17:22:59,582 - __main__ - INFO -     - MOT Tracker (dataset): Added
+2026-02-25T17:22:59.5830336Z 2026-02-25 17:22:59,582 - __main__ - INFO -   Updating workspace from Git (policy: PreferRemote)...
+2026-02-25T17:22:59.5839878Z 2026-02-25 17:22:59,582 - fabric_client - INFO - Updating workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64 from Git (commit: da9056b9dd41...)
+2026-02-25T17:23:06.5801503Z 2026-02-25 17:23:06,579 - fabric_client - ERROR - HTTP Error: 400 - {"requestId":"8a73930e-d619-4486-8061-5fb620e40ffb","errorCode":"MissingDependency","message":"Dependencies can't be found for one or more items."}
+2026-02-25T17:23:06.5802053Z 2026-02-25 17:23:06,579 - fabric_client - ERROR - Error details: {
+2026-02-25T17:23:06.5802362Z   "requestId": "8a73930e-d619-4486-8061-5fb620e40ffb",
+2026-02-25T17:23:06.5802647Z   "errorCode": "MissingDependency",
+2026-02-25T17:23:06.5802933Z   "message": "Dependencies can't be found for one or more items."
+2026-02-25T17:23:06.5803192Z }
+2026-02-25T17:23:06.5804073Z 2026-02-25 17:23:06,579 - __main__ - WARNING -   ⚠ Source control sync failed: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/updateFromGit
+2026-02-25T17:23:06.5804597Z 2026-02-25 17:23:06,579 - __main__ - WARNING -     Update source control manually in Fabric portal
+2026-02-25T17:23:06.5812616Z 2026-02-25 17:23:06,580 - dependency_resolver - INFO - ✅ All dependencies are valid
+2026-02-25T17:23:06.5815659Z 2026-02-25 17:23:06,581 - dependency_resolver - INFO - Deployment order determined:
+2026-02-25T17:23:06.5816290Z 2026-02-25 17:23:06,581 - dependency_resolver - INFO -   1. MOT Tracker (SemanticModel)
+2026-02-25T17:23:06.5816942Z 2026-02-25 17:23:06,581 - dependency_resolver - INFO -   2. MOT Tracker (Report)
+2026-02-25T17:23:06.5817333Z 2026-02-25 17:23:06,581 - __main__ - INFO - 
+2026-02-25T17:23:06.5817713Z 2026-02-25 17:23:06,581 - __main__ - INFO - --- Deploying 2 artifact(s) ---
+2026-02-25T17:23:06.5821396Z 2026-02-25 17:23:06,581 - __main__ - INFO - 
+2026-02-25T17:23:06.5822248Z 2026-02-25 17:23:06,581 - __main__ - INFO - Deploying: MOT Tracker (SemanticModel)
+2026-02-25T17:23:06.5824508Z 2026-02-25 17:23:06,582 - __main__ - INFO -   Reading semantic model from Fabric Git format: MOT Tracker.SemanticModel
+2026-02-25T17:23:06.5855461Z 2026-02-25 17:23:06,585 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-25T17:23:06.7752454Z 2026-02-25 17:23:06,774 - fabric_client - INFO - Listing folders in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-25T17:23:06.9358490Z 2026-02-25 17:23:06,933 - fabric_client - INFO - Creating semantic model: MOT Tracker
+2026-02-25T17:23:07.2897300Z 2026-02-25 17:23:07,289 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-02-25T17:23:27.4553628Z 2026-02-25 17:23:27,454 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-02-25T17:23:27.4554508Z 2026-02-25 17:23:27,454 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-02-25T17:23:27.6284691Z 2026-02-25 17:23:27,627 - __main__ - INFO -   ✓ Created semantic model 'MOT Tracker' in 'Semanticmodels' folder (ID: 6d07a3d2-6fe4-4ce9-9965-b684733a03d4)
+2026-02-25T17:23:27.6285592Z 2026-02-25 17:23:27,628 - __main__ - INFO -   Looking up Fabric connection: 'dev-tmp01-reporting-lakehouse-connection'
+2026-02-25T17:23:27.6286500Z 2026-02-25 17:23:27,628 - fabric_client - INFO - Listing connections via Fabric Connections API
+2026-02-25T17:23:27.7927179Z 2026-02-25 17:23:27,792 - fabric_client - INFO -   Retrieved 5 connections total
+2026-02-25T17:23:27.7930488Z 2026-02-25 17:23:27,792 - __main__ - INFO -   ✓ Found connection: 'dev-tmp01-reporting-lakehouse-connection'
+2026-02-25T17:23:27.7931820Z 2026-02-25 17:23:27,792 - __main__ - INFO -   Binding 'MOT Tracker' to Fabric connection 'dev-tmp01-reporting-lakehouse-connection'...
+2026-02-25T17:23:27.7939734Z 2026-02-25 17:23:27,792 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-02-25T17:23:27.7940230Z 2026-02-25 17:23:27,792 - fabric_client - INFO - Taking over ownership of semantic model 6d07a3d2-6fe4-4ce9-9965-b684733a03d4
+2026-02-25T17:23:27.9341249Z 2026-02-25 17:23:27,933 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 6d07a3d2-6fe4-4ce9-9965-b684733a03d4
+2026-02-25T17:23:27.9351894Z 2026-02-25 17:23:27,934 - fabric_client - INFO -   Listing connections for item 6d07a3d2-6fe4-4ce9-9965-b684733a03d4
+2026-02-25T17:23:28.2192224Z 2026-02-25 17:23:28,218 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-02-25T17:23:28.6074408Z 2026-02-25 17:23:28,606 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-02-25T17:23:28.6077557Z 2026-02-25 17:23:28,607 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-02-25T17:23:28.6078885Z 2026-02-25 17:23:28,607 - __main__ - INFO -   ✓ Bound 'MOT Tracker' to connection 'dev-tmp01-reporting-lakehouse-connection' (1 data source(s))
+2026-02-25T17:23:28.6080153Z 2026-02-25 17:23:28,607 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'MOT Tracker'
+2026-02-25T17:23:28.6081092Z 2026-02-25 17:23:28,607 - __main__ - INFO - ✅ Successfully deployed: MOT Tracker
+2026-02-25T17:23:28.6083641Z 2026-02-25 17:23:28,607 - __main__ - INFO - 
+2026-02-25T17:23:28.6091563Z 2026-02-25 17:23:28,607 - __main__ - INFO - Deploying: MOT Tracker (Report)
+2026-02-25T17:23:28.6092002Z 2026-02-25 17:23:28,607 - __main__ - INFO -   Reading report from Fabric Git format: MOT Tracker.Report
+2026-02-25T17:23:28.6092485Z 2026-02-25 17:23:28,608 - __main__ - INFO -     Found semantic model 'MOT Tracker' in deployment cache (ID: 6d07a3d2-6fe4-4ce9-9965-b684733a03d4)
+2026-02-25T17:23:28.6093253Z 2026-02-25 17:23:28,608 - __main__ - INFO -     ✓ Using byConnection reference for 'MOT Tracker' (ID: 6d07a3d2-6fe4-4ce9-9965-b684733a03d4)
+2026-02-25T17:23:28.6103040Z 2026-02-25 17:23:28,610 - fabric_client - INFO - Listing reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-25T17:23:28.8466613Z 2026-02-25 17:23:28,846 - fabric_client - INFO - Listing folders in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-02-25T17:23:29.0275886Z 2026-02-25 17:23:29,027 - fabric_client - INFO - Creating Power BI report: MOT Tracker
+2026-02-25T17:23:29.3569816Z 2026-02-25 17:23:29,356 - __main__ - INFO -   Report creation initiated (LRO), waiting for completion...
+2026-02-25T17:23:49.4788627Z 2026-02-25 17:23:49,477 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-02-25T17:23:49.4804076Z 2026-02-25 17:23:49,478 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-02-25T17:23:49.6561187Z 2026-02-25 17:23:49,654 - __main__ - INFO -   ✓ Created report 'MOT Tracker' in 'Reports' folder (ID: 015a740f-c995-4bc2-99ee-4dc84dfc63f8)
+2026-02-25T17:23:49.6561873Z 2026-02-25 17:23:49,655 - __main__ - INFO -   ✓ Dataset reference transformed during deployment for 'MOT Tracker'
+2026-02-25T17:23:49.6562321Z 2026-02-25 17:23:49,655 - __main__ - INFO - ✅ Successfully deployed: MOT Tracker
+2026-02-25T17:23:49.6562605Z 2026-02-25 17:23:49,655 - __main__ - INFO - 
+2026-02-25T17:23:49.6563003Z 2026-02-25 17:23:49,655 - __main__ - INFO - ============================================================
+2026-02-25T17:23:49.6563420Z 2026-02-25 17:23:49,655 - __main__ - INFO - DEPLOYMENT SUMMARY
+2026-02-25T17:23:49.6563804Z 2026-02-25 17:23:49,655 - __main__ - INFO - ============================================================
+2026-02-25T17:23:49.6564194Z 2026-02-25 17:23:49,655 - __main__ - INFO - Total artifacts: 2
+2026-02-25T17:23:49.6564526Z 2026-02-25 17:23:49,655 - __main__ - INFO - Successful: 2
+2026-02-25T17:23:49.6564862Z 2026-02-25 17:23:49,655 - __main__ - INFO - Failed: 0
+2026-02-25T17:23:49.6565246Z 2026-02-25 17:23:49,655 - __main__ - INFO - ============================================================
+2026-02-25T17:23:49.6585254Z 2026-02-25 17:23:49,658 - change_detector - INFO - Saved deployment commit: da9056b9
+2026-02-25T17:23:49.6585708Z 2026-02-25 17:23:49,658 - __main__ - INFO - Saved deployment state: da9056b9
+2026-02-25T17:23:49.6588153Z 2026-02-25 17:23:49,658 - __main__ - INFO - 
+2026-02-25T17:23:49.6590255Z 2026-02-25 17:23:49,658 - __main__ - INFO - ------------------------------------------------------------
+2026-02-25T17:23:49.6592217Z 2026-02-25 17:23:49,658 - __main__ - INFO - POST-DEPLOY: SEMANTIC MODEL REFRESH
+2026-02-25T17:23:49.6592668Z 2026-02-25 17:23:49,658 - __main__ - INFO - ------------------------------------------------------------
+2026-02-25T17:23:49.6593122Z 2026-02-25 17:23:49,658 - __main__ - INFO -   Triggering refresh for 1 deployed semantic model(s)
+2026-02-25T17:23:49.6593585Z 2026-02-25 17:23:49,658 - __main__ - INFO -   Refreshing 'MOT Tracker' (ID: 6d07a3d2-6fe4-4ce9-9965-b684733a03d4)...
+2026-02-25T17:23:49.6594090Z 2026-02-25 17:23:49,658 - fabric_client - INFO - Triggering full refresh for semantic model: 6d07a3d2-6fe4-4ce9-9965-b684733a03d4
+2026-02-25T17:23:49.9989100Z 2026-02-25 17:23:49,998 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-02-25T17:23:49.9998849Z 2026-02-25 17:23:49,999 - __main__ - INFO -   ✓ Refresh triggered for 'MOT Tracker'
+2026-02-25T17:23:50.0002309Z 2026-02-25 17:23:49,999 - __main__ - INFO -   Done — 1 refresh(es) triggered, 0 failed
+2026-02-25T17:23:50.0363629Z 
+2026-02-25T17:23:50.0367710Z ✓ Dev deployment completed successfully
+2026-02-25T17:23:50.0380210Z 
+2026-02-25T17:23:50.0458685Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

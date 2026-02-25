@@ -484,9 +484,9 @@ class FabricDeployer:
                 logger.info(f"  📦 Commits available: workspace is behind remote")
             
             # Step 2: Update from Git
-            # Use PreferWorkspace to avoid overwriting items just deployed via API
-            # (reports, semantic models).  Items only in Git will still be synced.
-            conflict_policy = "PreferWorkspace"
+            # Git sync runs BEFORE API deployment, so there are no API-created
+            # items to conflict with.  Use the configured policy (default: PreferRemote).
+            conflict_policy = git_config.get("conflict_resolution_policy", "PreferRemote")
             allow_override = git_config.get("allow_override_items", True)
             
             logger.info(f"  Updating workspace from Git (policy: {conflict_policy})...")
@@ -2827,6 +2827,17 @@ print('Notebook initialized')
             logger.info("DRY RUN MODE - No changes will be made")
         logger.info("="*60)
         
+        # Source control sync from Git (dev only — controlled by
+        # git_integration.auto_update_from_git).  Runs BEFORE API deployment
+        # so that new items from Git are created in the workspace first.
+        # The API deployment will then find them as "existing" and update
+        # them (connection binding, rebinding, etc.) — avoiding duplicate-
+        # name conflicts that occur when API creates an item that Git sync
+        # also tries to create.
+        # Skips unsupported items (paginated reports) gracefully.
+        if not dry_run:
+            self._update_source_control()
+        
         # Validate dependencies
         errors = self.resolver.validate_dependencies()
         if errors:
@@ -2885,20 +2896,12 @@ print('Notebook initialized')
         if failure_count == 0 and not dry_run and self._deployed_semantic_model_ids:
             self._refresh_deployed_semantic_models()
         
-        # Source control sync from Git (dev only — controlled by
-        # git_integration.auto_update_from_git).  Syncs items from the remote
-        # Git branch into the workspace ("Update all").  Uses PreferWorkspace
-        # policy so items already deployed via API are not overwritten.
-        # Skips unsupported items (paginated reports) gracefully.
-        if failure_count == 0 and not dry_run:
-            self._update_source_control()
-            
-            # Post-Git-sync: fix paginated report connection strings (dev only).
-            # _pending_paginated_report_updates is only populated when
-            # auto_update_from_git=true.  UAT/prod paginated reports are
-            # deployed via API and handled in _deploy_paginated_report directly.
-            if self._pending_paginated_report_updates:
-                self._process_paginated_reports_after_git_sync()
+        # Post-sync: fix paginated report connection strings (dev only).
+        # _pending_paginated_report_updates is only populated when
+        # auto_update_from_git=true.  UAT/prod paginated reports are
+        # deployed via API and handled in _deploy_paginated_report directly.
+        if failure_count == 0 and not dry_run and self._pending_paginated_report_updates:
+            self._process_paginated_reports_after_git_sync()
         
         return failure_count == 0
     

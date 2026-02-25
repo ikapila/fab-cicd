@@ -97,6 +97,18 @@ class FabricDeployer:
         # UpdateDatasources on each entry to fix connection strings.
         self._pending_paginated_report_updates: List[Dict] = []
         
+        # Reports deferred to Git sync (new reports only).
+        # When auto_update_from_git=true and a report doesn't already exist,
+        # _deploy_report() records it here; deploy_all() applies rebinding
+        # after Git sync creates the item.
+        self._pending_report_updates: List[Dict] = []
+        
+        # Semantic models deferred to Git sync (new models only).
+        # When auto_update_from_git=true and a model doesn't already exist,
+        # _deploy_semantic_model() records it here; deploy_all() applies
+        # connection binding and triggers refresh after Git sync.
+        self._pending_semantic_model_updates: List[Dict] = []
+        
         # Build set of config-managed artifact names (config is source of truth for these)
         self._config_managed_artifacts = self._get_config_managed_artifacts()
         
@@ -699,6 +711,97 @@ class FabricDeployer:
             self._configure_paginated_report_connection(name, report_id, rdl_content)
         
         logger.info(f"  Done — processed {len(self._pending_paginated_report_updates)} paginated report(s)")
+
+    def _process_reports_after_git_sync(self) -> None:
+        """
+        Post-Git-sync processing for reports.
+        
+        After updateFromGit has landed the report definitions in the workspace,
+        apply any configured rebinding rules.
+        
+        Called from deploy_all() after _update_source_control() completes.
+        Only relevant when auto_update_from_git=true (dev).
+        """
+        
+        logger.info("\n" + "-"*60)
+        logger.info("POST-GIT-SYNC: REPORT REBINDING")
+        logger.info("-"*60)
+        
+        # List reports in the workspace to resolve IDs
+        existing_reports = self.client.list_reports(self.workspace_id)
+        
+        for entry in self._pending_report_updates:
+            name = entry["name"]
+            
+            report_match = next((r for r in existing_reports if r["displayName"] == name), None)
+            
+            if not report_match:
+                logger.warning(f"  ⚠ Report '{name}' not found in workspace after Git sync")
+                logger.warning(f"    Check that the report exists in the Git branch and updateFromGit succeeded")
+                continue
+            
+            report_id = report_match["id"]
+            logger.info(f"  ✓ Report '{name}' synced from Git (ID: {report_id})")
+            
+            # Apply rebinding rules if configured
+            self._apply_report_rebinding(name, report_id)
+        
+        logger.info(f"  Done — processed {len(self._pending_report_updates)} report(s)")
+
+    def _process_semantic_models_after_git_sync(self) -> None:
+        """
+        Post-Git-sync processing for semantic models.
+        
+        After updateFromGit has landed the model definitions in the workspace,
+        configure connections and trigger refresh for each deferred model.
+        
+        Called from deploy_all() after _update_source_control() completes.
+        Only relevant when auto_update_from_git=true (dev).
+        """
+        
+        logger.info("\n" + "-"*60)
+        logger.info("POST-GIT-SYNC: SEMANTIC MODEL CONNECTION BINDING & REFRESH")
+        logger.info("-"*60)
+        
+        # List semantic models in the workspace to resolve IDs
+        existing_models = self.client.list_semantic_models(self.workspace_id)
+        
+        for entry in self._pending_semantic_model_updates:
+            name = entry["name"]
+            
+            model_match = next((m for m in existing_models if m["displayName"] == name), None)
+            
+            if not model_match:
+                logger.warning(f"  ⚠ Semantic model '{name}' not found in workspace after Git sync")
+                logger.warning(f"    Check that the model exists in the Git branch and updateFromGit succeeded")
+                continue
+            
+            model_id = model_match["id"]
+            logger.info(f"  ✓ Semantic model '{name}' synced from Git (ID: {model_id})")
+            
+            # Cache the model ID for any downstream references
+            self._deployed_semantic_model_ids[name] = model_id
+            
+            # Configure shareable cloud connection
+            self._configure_shareable_cloud_connection(name, model_id)
+            
+            # Apply rebinding rules
+            self._apply_semantic_model_rebinding(name, model_id)
+            
+            # Trigger refresh (fire-and-forget)
+            try:
+                logger.info(f"  Refreshing '{name}' (ID: {model_id})...")
+                result = self.client.refresh_semantic_model(
+                    self.workspace_id, model_id, refresh_type="full"
+                )
+                if result.get("status_code") == 202 or result.get("status") == "success":
+                    logger.info(f"  ✓ Refresh triggered for '{name}'")
+                else:
+                    logger.info(f"  ✓ Refresh request sent for '{name}'")
+            except Exception as e:
+                logger.warning(f"  ⚠ Could not refresh '{name}': {e}")
+        
+        logger.info(f"  Done — processed {len(self._pending_semantic_model_updates)} semantic model(s)")
 
     def _save_deployment_state(self) -> None:
         """
@@ -2876,6 +2979,15 @@ print('Notebook initialized')
             # deployed via API and handled in _deploy_paginated_report directly.
             if self._pending_paginated_report_updates:
                 self._process_paginated_reports_after_git_sync()
+            
+            # Post-Git-sync: apply rebinding for reports deferred to Git sync.
+            if self._pending_report_updates:
+                self._process_reports_after_git_sync()
+            
+            # Post-Git-sync: bind connections + refresh for semantic models
+            # deferred to Git sync.
+            if self._pending_semantic_model_updates:
+                self._process_semantic_models_after_git_sync()
         
         return failure_count == 0
     
@@ -3576,11 +3688,15 @@ print('Notebook initialized')
     def _deploy_semantic_model(self, name: str) -> None:
         """Deploy a semantic model (JSON or Fabric Git format)
         
-        Semantic models are always deployed via the Fabric API regardless of
-        Git connectivity. The updateFromGit approach was unreliable because
-        SP-triggered Git sync can fail when paginated reports are among the
-        changed items (PrincipalTypeNotSupported). Deploying via API ensures
-        consistent behavior across all environments.
+        Deployment strategy for **new** models depends on
+        git_integration.auto_update_from_git:
+        
+        - True  (dev):  New models are deferred to Git sync to avoid
+                        duplicate-name conflicts.  Post-sync, connection
+                        binding and refresh are applied.
+        - False (uat/prod):  Always deployed via the Fabric API.
+        
+        Existing models are always updated via the API in all environments.
         """
         models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
         
@@ -3645,6 +3761,14 @@ print('Notebook initialized')
                     operation_id, retry_after=retry_after, max_attempts=15
                 )
         else:
+            # ── New model: defer to Git sync if enabled ──────────────
+            git_config = self.config.config.get("git_integration", {})
+            if git_config.get("auto_update_from_git", False):
+                logger.info(f"  📦 Semantic model '{name}' will be created by Git sync (updateFromGit)")
+                logger.info(f"    Post-sync: connection binding and refresh will be applied")
+                self._pending_semantic_model_updates.append({"name": name})
+                return
+
             # Get or create folder for semantic models
             folder_id = self._get_or_create_folder("Semanticmodels")
             
@@ -3694,11 +3818,15 @@ print('Notebook initialized')
     def _deploy_report(self, name: str) -> None:
         """Deploy a Power BI report (JSON or Fabric Git format)
         
-        Reports are always deployed via the Fabric API regardless of Git
-        connectivity. The updateFromGit approach was unreliable because
-        SP-triggered Git sync can fail when paginated reports are among the
-        changed items (PrincipalTypeNotSupported). Deploying via API ensures
-        consistent behavior across all environments.
+        Deployment strategy for **new** reports depends on
+        git_integration.auto_update_from_git:
+        
+        - True  (dev):  New reports are deferred to Git sync to avoid
+                        duplicate-name conflicts.  Post-sync, rebinding
+                        rules are applied if configured.
+        - False (uat/prod):  Always deployed via the Fabric API.
+        
+        Existing reports are always updated via the API in all environments.
         """
         reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
         
@@ -3752,6 +3880,14 @@ print('Notebook initialized')
             report_id = existing_report['id']
             logger.info(f"  Updated report (ID: {report_id})")
         else:
+            # ── New report: defer to Git sync if enabled ─────────────
+            git_config = self.config.config.get("git_integration", {})
+            if git_config.get("auto_update_from_git", False):
+                logger.info(f"  📦 Report '{name}' will be created by Git sync (updateFromGit)")
+                logger.info(f"    Post-sync: rebinding rules will be applied if configured")
+                self._pending_report_updates.append({"name": name})
+                return
+
             # Get or create folder for reports
             folder_id = self._get_or_create_folder("Reports")
             

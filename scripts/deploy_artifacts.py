@@ -97,18 +97,6 @@ class FabricDeployer:
         # UpdateDatasources on each entry to fix connection strings.
         self._pending_paginated_report_updates: List[Dict] = []
         
-        # Reports deferred to Git sync (new reports only).
-        # When auto_update_from_git=true and a report doesn't already exist,
-        # _deploy_report() records it here; deploy_all() applies rebinding
-        # after Git sync creates the item.
-        self._pending_report_updates: List[Dict] = []
-        
-        # Semantic models deferred to Git sync (new models only).
-        # When auto_update_from_git=true and a model doesn't already exist,
-        # _deploy_semantic_model() records it here; deploy_all() applies
-        # connection binding and triggers refresh after Git sync.
-        self._pending_semantic_model_updates: List[Dict] = []
-        
         # Build set of config-managed artifact names (config is source of truth for these)
         self._config_managed_artifacts = self._get_config_managed_artifacts()
         
@@ -266,7 +254,8 @@ class FabricDeployer:
         Apply change detection to filter artifacts
         Only artifacts that have changed will be deployed
         """
-        logger.info("\n" + "="*60)
+        logger.info("")
+        logger.info("="*60)
         logger.info("CHANGE DETECTION")
         logger.info("="*60)
         
@@ -392,7 +381,8 @@ class FabricDeployer:
         Args:
             specific_artifacts: List of artifact names to deploy
         """
-        logger.info("\n" + "="*60)
+        logger.info("")
+        logger.info("="*60)
         logger.info("SPECIFIC ARTIFACT DEPLOYMENT")
         logger.info("="*60)
         logger.info(f"Requested artifacts: {', '.join(specific_artifacts)}")
@@ -444,7 +434,8 @@ class FabricDeployer:
             logger.info("  ℹ Git auto-update is disabled (git_integration.auto_update_from_git = false)")
             return True
         
-        logger.info("\n" + "-"*60)
+        logger.info("")
+        logger.info("-"*60)
         logger.info("SOURCE CONTROL SYNC")
         logger.info("-"*60)
         logger.info("Checking for pending Git updates in workspace...")
@@ -493,7 +484,9 @@ class FabricDeployer:
                 logger.info(f"  📦 Commits available: workspace is behind remote")
             
             # Step 2: Update from Git
-            conflict_policy = git_config.get("conflict_resolution_policy", "PreferRemote")
+            # Use PreferWorkspace to avoid overwriting items just deployed via API
+            # (reports, semantic models).  Items only in Git will still be synced.
+            conflict_policy = "PreferWorkspace"
             allow_override = git_config.get("allow_override_items", True)
             
             logger.info(f"  Updating workspace from Git (policy: {conflict_policy})...")
@@ -685,7 +678,8 @@ class FabricDeployer:
         Called from deploy_all() after _update_source_control() completes.
         """
         
-        logger.info("\n" + "-"*60)
+        logger.info("")
+        logger.info("-"*60)
         logger.info("POST-GIT-SYNC: PAGINATED REPORT CONNECTION CONFIGURATION")
         logger.info("-"*60)
         
@@ -712,97 +706,6 @@ class FabricDeployer:
         
         logger.info(f"  Done — processed {len(self._pending_paginated_report_updates)} paginated report(s)")
 
-    def _process_reports_after_git_sync(self) -> None:
-        """
-        Post-Git-sync processing for reports.
-        
-        After updateFromGit has landed the report definitions in the workspace,
-        apply any configured rebinding rules.
-        
-        Called from deploy_all() after _update_source_control() completes.
-        Only relevant when auto_update_from_git=true (dev).
-        """
-        
-        logger.info("\n" + "-"*60)
-        logger.info("POST-GIT-SYNC: REPORT REBINDING")
-        logger.info("-"*60)
-        
-        # List reports in the workspace to resolve IDs
-        existing_reports = self.client.list_reports(self.workspace_id)
-        
-        for entry in self._pending_report_updates:
-            name = entry["name"]
-            
-            report_match = next((r for r in existing_reports if r["displayName"] == name), None)
-            
-            if not report_match:
-                logger.warning(f"  ⚠ Report '{name}' not found in workspace after Git sync")
-                logger.warning(f"    Check that the report exists in the Git branch and updateFromGit succeeded")
-                continue
-            
-            report_id = report_match["id"]
-            logger.info(f"  ✓ Report '{name}' synced from Git (ID: {report_id})")
-            
-            # Apply rebinding rules if configured
-            self._apply_report_rebinding(name, report_id)
-        
-        logger.info(f"  Done — processed {len(self._pending_report_updates)} report(s)")
-
-    def _process_semantic_models_after_git_sync(self) -> None:
-        """
-        Post-Git-sync processing for semantic models.
-        
-        After updateFromGit has landed the model definitions in the workspace,
-        configure connections and trigger refresh for each deferred model.
-        
-        Called from deploy_all() after _update_source_control() completes.
-        Only relevant when auto_update_from_git=true (dev).
-        """
-        
-        logger.info("\n" + "-"*60)
-        logger.info("POST-GIT-SYNC: SEMANTIC MODEL CONNECTION BINDING & REFRESH")
-        logger.info("-"*60)
-        
-        # List semantic models in the workspace to resolve IDs
-        existing_models = self.client.list_semantic_models(self.workspace_id)
-        
-        for entry in self._pending_semantic_model_updates:
-            name = entry["name"]
-            
-            model_match = next((m for m in existing_models if m["displayName"] == name), None)
-            
-            if not model_match:
-                logger.warning(f"  ⚠ Semantic model '{name}' not found in workspace after Git sync")
-                logger.warning(f"    Check that the model exists in the Git branch and updateFromGit succeeded")
-                continue
-            
-            model_id = model_match["id"]
-            logger.info(f"  ✓ Semantic model '{name}' synced from Git (ID: {model_id})")
-            
-            # Cache the model ID for any downstream references
-            self._deployed_semantic_model_ids[name] = model_id
-            
-            # Configure shareable cloud connection
-            self._configure_shareable_cloud_connection(name, model_id)
-            
-            # Apply rebinding rules
-            self._apply_semantic_model_rebinding(name, model_id)
-            
-            # Trigger refresh (fire-and-forget)
-            try:
-                logger.info(f"  Refreshing '{name}' (ID: {model_id})...")
-                result = self.client.refresh_semantic_model(
-                    self.workspace_id, model_id, refresh_type="full"
-                )
-                if result.get("status_code") == 202 or result.get("status") == "success":
-                    logger.info(f"  ✓ Refresh triggered for '{name}'")
-                else:
-                    logger.info(f"  ✓ Refresh request sent for '{name}'")
-            except Exception as e:
-                logger.warning(f"  ⚠ Could not refresh '{name}': {e}")
-        
-        logger.info(f"  Done — processed {len(self._pending_semantic_model_updates)} semantic model(s)")
-
     def _save_deployment_state(self) -> None:
         """
         Save the current deployment state (commit hash)
@@ -828,7 +731,8 @@ class FabricDeployer:
         should not be held up.  Failures are logged as warnings and do not
         fail the deployment.
         """
-        logger.info("\n" + "-"*60)
+        logger.info("")
+        logger.info("-"*60)
         logger.info("POST-DEPLOY: SEMANTIC MODEL REFRESH")
         logger.info("-"*60)
 
@@ -1939,7 +1843,8 @@ class FabricDeployer:
                 description = lakehouse_def.get("description", "")
                 create_if_not_exists = lakehouse_def.get("create_if_not_exists", True)
                 
-                logger.info(f"\nProcessing lakehouse: {name}")
+                logger.info("")
+                logger.info(f"Processing lakehouse: {name}")
                 
                 if not dry_run:
                     existing = self.client.list_lakehouses(self.workspace_id)
@@ -2005,7 +1910,8 @@ class FabricDeployer:
                 description = env_def.get("description", "")
                 create_if_not_exists = env_def.get("create_if_not_exists", True)
                 
-                logger.info(f"\nProcessing environment: {name}")
+                logger.info("")
+                logger.info(f"Processing environment: {name}")
                 
                 if not dry_run:
                     existing = self.client.list_environments(self.workspace_id)
@@ -2064,7 +1970,8 @@ class FabricDeployer:
                 description = kql_def.get("description", "")
                 create_if_not_exists = kql_def.get("create_if_not_exists", True)
                 
-                logger.info(f"\nProcessing KQL database: {name}")
+                logger.info("")
+                logger.info(f"Processing KQL database: {name}")
                 
                 if not dry_run:
                     # Note: KQL database creation requires specific API endpoint
@@ -2086,7 +1993,8 @@ class FabricDeployer:
                 create_if_not_exists = notebook_def.get("create_if_not_exists", True)
                 template = notebook_def.get("template", "basic_spark")
                 
-                logger.info(f"\nProcessing notebook: {name}")
+                logger.info("")
+                logger.info(f"Processing notebook: {name}")
                 logger.info(f"  Template: {template}")
                 logger.info(f"  Description: {description}")
                 
@@ -2196,7 +2104,8 @@ class FabricDeployer:
                 description = job_def.get("description", "")
                 create_if_not_exists = job_def.get("create_if_not_exists", True)
                 
-                logger.info(f"\nProcessing Spark job definition: {name}")
+                logger.info("")
+                logger.info(f"Processing Spark job definition: {name}")
                 
                 if not dry_run:
                     existing = self.client.list_spark_job_definitions(self.workspace_id)
@@ -2261,7 +2170,8 @@ class FabricDeployer:
                 description = pipeline_def.get("description", "")
                 create_if_not_exists = pipeline_def.get("create_if_not_exists", True)
                 
-                logger.info(f"\nProcessing data pipeline: {name}")
+                logger.info("")
+                logger.info(f"Processing data pipeline: {name}")
                 
                 if not dry_run:
                     existing = self.client.list_data_pipelines(self.workspace_id)
@@ -2321,7 +2231,8 @@ class FabricDeployer:
                 description = model_def.get("description", "")
                 create_if_not_exists = model_def.get("create_if_not_exists", True)
                 
-                logger.info(f"\nProcessing semantic model: {name}")
+                logger.info("")
+                logger.info(f"Processing semantic model: {name}")
                 
                 if not dry_run:
                     existing = self.client.list_semantic_models(self.workspace_id)
@@ -2351,7 +2262,8 @@ class FabricDeployer:
                 description = report_def.get("description", "")
                 create_if_not_exists = report_def.get("create_if_not_exists", True)
                 
-                logger.info(f"\nProcessing Power BI report: {name}")
+                logger.info("")
+                logger.info(f"Processing Power BI report: {name}")
                 
                 if not dry_run:
                     existing = self.client.list_reports(self.workspace_id)
@@ -2383,7 +2295,8 @@ class FabricDeployer:
                 description = report_def.get("description", "")
                 create_if_not_exists = report_def.get("create_if_not_exists", True)
                 
-                logger.info(f"\nProcessing paginated report: {name}")
+                logger.info("")
+                logger.info(f"Processing paginated report: {name}")
                 
                 if not dry_run:
                     existing = self.client.list_paginated_reports(self.workspace_id)
@@ -2412,7 +2325,8 @@ class FabricDeployer:
                 name = library_config["name"]
                 create_if_not_exists = library_config.get("create_if_not_exists", True)
                 
-                logger.info(f"\nProcessing Variable Library: {name}")
+                logger.info("")
+                logger.info(f"Processing Variable Library: {name}")
                 
                 if not dry_run:
                     existing = self.client.list_variable_libraries(self.workspace_id)
@@ -2507,7 +2421,8 @@ class FabricDeployer:
                 target = shortcut_def["target"]
                 create_if_not_exists = shortcut_def.get("create_if_not_exists", True)
                 
-                logger.info(f"\nProcessing shortcut: {name}")
+                logger.info("")
+                logger.info(f"Processing shortcut: {name}")
                 
                 if not dry_run:
                     # Find lakehouse ID
@@ -2549,7 +2464,8 @@ class FabricDeployer:
                 logger.error(f"  ✗ Failed to create shortcut '{name}': {str(e)}")
                 success = False
         
-        logger.info("\n" + "="*60)
+        logger.info("")
+        logger.info("="*60)
         if success:
             logger.info("✅ All artifacts created successfully")
         else:
@@ -2928,11 +2844,13 @@ print('Notebook initialized')
         success_count = 0
         failure_count = 0
         
-        logger.info(f"\n--- Deploying {len(deployment_order)} artifact(s) ---")
+        logger.info("")
+        logger.info(f"--- Deploying {len(deployment_order)} artifact(s) ---")
         
         for artifact in deployment_order:
             try:
-                logger.info(f"\nDeploying: {artifact['name']} ({artifact['type'].value})")
+                logger.info("")
+                logger.info(f"Deploying: {artifact['name']} ({artifact['type'].value})")
                 
                 if not dry_run:
                     self._deploy_artifact(artifact)
@@ -2948,7 +2866,8 @@ print('Notebook initialized')
         
         # Summary
         total_artifacts = len(deployment_order)
-        logger.info("\n" + "="*60)
+        logger.info("")
+        logger.info("="*60)
         logger.info("DEPLOYMENT SUMMARY")
         logger.info("="*60)
         logger.info(f"Total artifacts: {total_artifacts}")
@@ -2968,8 +2887,9 @@ print('Notebook initialized')
         
         # Source control sync from Git (dev only — controlled by
         # git_integration.auto_update_from_git).  Syncs items from the remote
-        # Git branch into the workspace ("Update all").  Skips unsupported
-        # items (paginated reports) gracefully.
+        # Git branch into the workspace ("Update all").  Uses PreferWorkspace
+        # policy so items already deployed via API are not overwritten.
+        # Skips unsupported items (paginated reports) gracefully.
         if failure_count == 0 and not dry_run:
             self._update_source_control()
             
@@ -2979,15 +2899,6 @@ print('Notebook initialized')
             # deployed via API and handled in _deploy_paginated_report directly.
             if self._pending_paginated_report_updates:
                 self._process_paginated_reports_after_git_sync()
-            
-            # Post-Git-sync: apply rebinding for reports deferred to Git sync.
-            if self._pending_report_updates:
-                self._process_reports_after_git_sync()
-            
-            # Post-Git-sync: bind connections + refresh for semantic models
-            # deferred to Git sync.
-            if self._pending_semantic_model_updates:
-                self._process_semantic_models_after_git_sync()
         
         return failure_count == 0
     
@@ -3688,15 +3599,10 @@ print('Notebook initialized')
     def _deploy_semantic_model(self, name: str) -> None:
         """Deploy a semantic model (JSON or Fabric Git format)
         
-        Deployment strategy for **new** models depends on
-        git_integration.auto_update_from_git:
-        
-        - True  (dev):  New models are deferred to Git sync to avoid
-                        duplicate-name conflicts.  Post-sync, connection
-                        binding and refresh are applied.
-        - False (uat/prod):  Always deployed via the Fabric API.
-        
-        Existing models are always updated via the API in all environments.
+        Always deployed via the Fabric API (create or update).
+        Post-deploy: connection binding and refresh are applied.
+        The Git sync step (if enabled) uses PreferWorkspace to avoid
+        overwriting API-deployed items.
         """
         models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
         
@@ -3761,14 +3667,6 @@ print('Notebook initialized')
                     operation_id, retry_after=retry_after, max_attempts=15
                 )
         else:
-            # ── New model: defer to Git sync if enabled ──────────────
-            git_config = self.config.config.get("git_integration", {})
-            if git_config.get("auto_update_from_git", False):
-                logger.info(f"  📦 Semantic model '{name}' will be created by Git sync (updateFromGit)")
-                logger.info(f"    Post-sync: connection binding and refresh will be applied")
-                self._pending_semantic_model_updates.append({"name": name})
-                return
-
             # Get or create folder for semantic models
             folder_id = self._get_or_create_folder("Semanticmodels")
             
@@ -3818,15 +3716,10 @@ print('Notebook initialized')
     def _deploy_report(self, name: str) -> None:
         """Deploy a Power BI report (JSON or Fabric Git format)
         
-        Deployment strategy for **new** reports depends on
-        git_integration.auto_update_from_git:
-        
-        - True  (dev):  New reports are deferred to Git sync to avoid
-                        duplicate-name conflicts.  Post-sync, rebinding
-                        rules are applied if configured.
-        - False (uat/prod):  Always deployed via the Fabric API.
-        
-        Existing reports are always updated via the API in all environments.
+        Always deployed via the Fabric API (create or update).
+        Post-deploy: rebinding rules are applied if configured.
+        The Git sync step (if enabled) uses PreferWorkspace to avoid
+        overwriting API-deployed items.
         """
         reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
         
@@ -3880,14 +3773,6 @@ print('Notebook initialized')
             report_id = existing_report['id']
             logger.info(f"  Updated report (ID: {report_id})")
         else:
-            # ── New report: defer to Git sync if enabled ─────────────
-            git_config = self.config.config.get("git_integration", {})
-            if git_config.get("auto_update_from_git", False):
-                logger.info(f"  📦 Report '{name}' will be created by Git sync (updateFromGit)")
-                logger.info(f"    Post-sync: rebinding rules will be applied if configured")
-                self._pending_report_updates.append({"name": name})
-                return
-
             # Get or create folder for reports
             folder_id = self._get_or_create_folder("Reports")
             

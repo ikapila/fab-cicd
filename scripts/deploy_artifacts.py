@@ -4673,10 +4673,17 @@ print('Notebook initialized')
         Transform TMDL file content by replacing SQL endpoints with environment-specific values
         from connections.sql_connection_string.
         
-        Extracts the server name from sql_connection_string and replaces patterns like:
-          Sql.Databases("old-lakehouse.datawarehouse.fabric.microsoft.com")
-        With:
-          Sql.Databases("dev-reporting-gold.datawarehouse.fabric.microsoft.com")
+        Handles two M expression patterns used by Fabric semantic models:
+        
+        1. Sql.Databases("server")  — plural form, navigates to a database by name
+           e.g. Source = Sql.Databases("old.datawarehouse.fabric.microsoft.com"),
+                db = Source{[Name="reporting_gold"]}[Data]
+        
+        2. Sql.Database("server", "database")  — singular form, direct database reference
+           e.g. Source = Sql.Database("old.datawarehouse.fabric.microsoft.com", "ReportingLakehouse")
+        
+        Both forms have the Fabric SQL analytics endpoint replaced with the
+        target environment's server from connections.sql_connection_string.
         
         Args:
             tmdl_content: Original TMDL file content
@@ -4702,21 +4709,37 @@ print('Notebook initialized')
         
         server_name = server_match.group(1)
         
-        # Build the new M expression with authentication options
-        # For Fabric SQL endpoints, we need to specify authentication mode
-        # Using Options parameter with Credential = [AuthenticationKind = "UsernamePassword", EncryptConnection = true]
-        # This tells Power Query to prompt for credentials or use workspace identity
-        new_sql_endpoint = f'Sql.Databases("{server_name}", [CreateNavigationProperties = false])'
+        transformed_content = tmdl_content
+        total_matches = 0
         
-        # Replace any Sql.Databases(...) pattern with the new endpoint
-        # Match both simple calls and calls with options
-        old_pattern = r'Sql\.Databases\("[^"]+\.datawarehouse\.fabric\.microsoft\.com"(?:,\s*\[[^\]]*\])?\)'
-        transformed_content = re.sub(old_pattern, new_sql_endpoint, tmdl_content)
+        # ------------------------------------------------------------------
+        # Pattern 1: Sql.Databases("server"[, [options]])  — plural form
+        # Replaces the entire call and adds CreateNavigationProperties option.
+        # ------------------------------------------------------------------
+        plural_pattern = r'Sql\.Databases\("[^"]+\.datawarehouse\.fabric\.microsoft\.com"(?:,\s*\[[^\]]*\])?\)'
+        plural_matches = len(re.findall(plural_pattern, transformed_content))
+        if plural_matches:
+            new_sql_databases = f'Sql.Databases("{server_name}", [CreateNavigationProperties = false])'
+            transformed_content = re.sub(plural_pattern, new_sql_databases, transformed_content)
+            total_matches += plural_matches
+        
+        # ------------------------------------------------------------------
+        # Pattern 2: Sql.Database("server", ...)  — singular form
+        # Only the server hostname is replaced; the database name and any
+        # trailing options are left intact.
+        # Negative lookahead (?!s) ensures we don't re-match Sql.Databases.
+        # ------------------------------------------------------------------
+        singular_pattern = r'(Sql\.Database(?!s)\(")[^"]+\.datawarehouse\.fabric\.microsoft\.com(")'
+        singular_matches = len(re.findall(singular_pattern, transformed_content))
+        if singular_matches:
+            transformed_content = re.sub(
+                singular_pattern, rf'\g<1>{server_name}\g<2>', transformed_content
+            )
+            total_matches += singular_matches
         
         # Log if any replacements were made
-        if transformed_content != tmdl_content:
-            matches = len(re.findall(old_pattern, tmdl_content))
-            logger.info(f"    ✓ Transformed {matches} SQL endpoint(s) to '{server_name}'")
+        if total_matches > 0:
+            logger.info(f"    ✓ Transformed {total_matches} SQL endpoint(s) to '{server_name}'")
         
         return transformed_content
     

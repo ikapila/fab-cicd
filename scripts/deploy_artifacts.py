@@ -4911,23 +4911,25 @@ print('Notebook initialized')
                             logger.info(f"  ✓ '{report_name}' already bound to connection '{connection_name}'")
                         else:
                             logger.info(f"  ✓ Bound '{report_name}' to connection '{connection_name}' ({bound_count} data source(s))")
+                        return
                     else:
                         logger.warning(f"  ⚠ Could not bind '{report_name}' to connection '{connection_name}'")
-                        logger.info(f"    Assign connection manually in the Fabric portal → Report settings → Data source credentials")
+                        logger.info(f"    Falling back to TakeOver + UpdateDatasources")
                 except Exception as bind_err:
                     logger.warning(f"  ⚠ Could not bind '{report_name}' to connection: {bind_err}")
-                    logger.info(f"    Assign connection '{connection_name}' manually in Fabric portal")
-                return
-            
-            # No paginated_report_connection configured — fall back to
-            # TakeOver + UpdateDatasources using sql_connection_string
-            connection_name_cfg = self.config.config.get("connections", {}).get("paginated_report_connection", "")
-            if not connection_name_cfg:
-                logger.info(f"  ℹ No paginated_report_connection configured for '{report_name}'")
-                logger.info(f"    Set connections.paginated_report_connection in config/{self.config.environment}.json")
-                logger.info(f"    Falling back to TakeOver + UpdateDatasources")
+                    logger.info(f"    Falling back to TakeOver + UpdateDatasources")
             
             # Fall back to the original TakeOver + UpdateDatasources approach
+            # This runs when:
+            # - No paginated_report_connection is configured, OR
+            # - ShareableCloud binding failed (API limitation for paginated reports)
+            if not self._paginated_report_connection:
+                connection_name_cfg = self.config.config.get("connections", {}).get("paginated_report_connection", "")
+                if not connection_name_cfg:
+                    logger.info(f"  ℹ No paginated_report_connection configured for '{report_name}'")
+                    logger.info(f"    Set connections.paginated_report_connection in config/{self.config.environment}.json")
+                    logger.info(f"    Falling back to TakeOver + UpdateDatasources")
+            
             self._update_paginated_report_datasources_api(report_name, report_id, rdl_content)
             
         except Exception as e:

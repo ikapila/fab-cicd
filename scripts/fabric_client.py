@@ -1557,6 +1557,73 @@ class FabricClient:
         logger.info(f"  ✓ Update from Git completed")
         return response
     
+    def commit_to_git(self, workspace_id: str, mode: str = "All",
+                      workspace_head: str = None,
+                      comment: str = None) -> Dict:
+        """
+        Commit workspace changes to the connected Git branch.
+        Endpoint: POST /v1/workspaces/{workspaceId}/git/commitToGit
+        
+        This is used after API-based deployment to link API-created
+        workspace items back to the Git repo, resolving duplicate-name
+        conflicts that arise when updateFromGit could not create items
+        due to MissingDependency or similar errors.
+        
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/git/commit-to-git
+        
+        Args:
+            workspace_id: Workspace GUID
+            mode: "All" to commit all changes, "Selective" for specific items
+            workspace_head: Current workspace head commit SHA (required)
+            comment: Optional commit message
+            
+        Returns:
+            Operation result or success status
+        """
+        logger.info(f"Committing workspace changes to Git (mode: {mode})")
+        
+        payload = {
+            "mode": mode,
+            "comment": comment or "Auto-commit: sync API-deployed items to Git"
+        }
+        
+        if workspace_head:
+            payload["workspaceHead"] = workspace_head
+        
+        response = self._make_request(
+            "POST",
+            f"/workspaces/{workspace_id}/git/commitToGit",
+            json_data=payload
+        )
+        
+        # Handle LRO (202 Accepted)
+        if response.get("status_code") == 202 and response.get("operation_id"):
+            operation_id = response["operation_id"]
+            retry_after = response.get("retry_after", 5)
+            logger.info(f"  Commit to Git in progress (operation: {operation_id}), polling...")
+            
+            for attempt in range(1, 25):
+                time.sleep(retry_after)
+                state = self.poll_operation_state(operation_id)
+                status = state.get("status")
+                percent = state.get("percentComplete", 0)
+                logger.info(f"    Poll {attempt}: {status} ({percent}% complete)")
+                
+                if status == "Succeeded":
+                    logger.info(f"  ✓ Commit to Git completed successfully")
+                    return {"status": "success", "operation_id": operation_id}
+                elif status == "Failed":
+                    error = state.get("error", {})
+                    error_msg = error.get("message", "Unknown error")
+                    logger.error(f"  ✗ Commit to Git failed: {error_msg}")
+                    raise RuntimeError(f"Commit to Git failed: {error_msg}")
+            
+            raise RuntimeError(f"Commit to Git timed out after polling")
+        
+        # 200 = completed immediately
+        logger.info(f"  ✓ Commit to Git completed")
+        return response
+    
     # ==================== Power BI Report Operations ====================
     
     def list_reports(self, workspace_id: str) -> List[Dict]:

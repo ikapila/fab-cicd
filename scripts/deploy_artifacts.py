@@ -618,19 +618,22 @@ class FabricDeployer:
 
     def _commit_workspace_to_git(self) -> bool:
         """
-        Commit API-deployed workspace items to Git.
+        Link API-deployed workspace items to Git after deployment.
         
-        All non-paginated artifacts (reports, semantic models, notebooks,
-        lakehouses, pipelines, etc.) are deployed via the Fabric REST API.
+        All non-paginated artifacts are deployed via the Fabric REST API.
         API-created items are NOT linked to the Git repo, causing duplicate-name
         conflicts in the Fabric Source Control panel.
         
-        This method resolves that by calling commitToGit to push the workspace
-        state back to Git, which links the API-created items to their Git
-        counterparts.
+        Resolution flow:
+          1. updateFromGit with PreferWorkspace — pulls the Git versions but
+             keeps the workspace (API-deployed) definitions.  This links the
+             items to Git and resolves incoming changes.
+          2. commitToGit — pushes any remaining workspace-specific differences
+             (e.g. environment-specific SQL endpoints, connection bindings)
+             back to Git.
         
         Returns:
-            True if commit succeeded or was not needed, False on failure
+            True if sync succeeded or was not needed, False on failure
         """
         git_config = self.config.config.get("git_integration", {})
         auto_update = git_config.get("auto_update_from_git", True)
@@ -640,106 +643,86 @@ class FabricDeployer:
         
         logger.info("")
         logger.info("-"*60)
-        logger.info("POST-DEPLOY: COMMIT WORKSPACE TO GIT")
+        logger.info("POST-DEPLOY: LINK WORKSPACE ITEMS TO GIT")
         logger.info("-"*60)
-        logger.info("API deployment created items that Git sync could not.")
-        logger.info("Committing workspace to Git to link items and prevent conflicts...")
         
         try:
             self._ensure_git_credentials()
             
-            # Get current git status to find the workspace head
+            # Get current git status
             status = self.client.get_git_status(self.workspace_id)
-            workspace_head = status.get("workspaceHead")
-            
-            if not workspace_head:
-                logger.warning("  ⚠ Cannot commit — no workspace head (workspace not connected to Git)")
-                return False
-            
-            # Check if there are workspace changes to commit
-            changes = status.get("changes", [])
-            workspace_changes = [c for c in changes if c.get("workspaceChange")]
-            
-            if not workspace_changes:
-                logger.info("  ✓ No workspace changes to commit — items may already be linked")
-                # Even if no workspace changes, try updateFromGit again
-                # since the dependencies now exist in the workspace
-                return self._retry_update_from_git(status)
-            
-            change_names = [
-                f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
-                for c in workspace_changes
-            ]
-            logger.info(f"  📦 {len(workspace_changes)} workspace change(s) to commit:")
-            for cn in change_names:
-                logger.info(f"    - {cn}")
-            
-            self.client.commit_to_git(
-                workspace_id=self.workspace_id,
-                mode="All",
-                workspace_head=workspace_head,
-                comment="CI/CD: sync API-deployed items to Git"
-            )
-            
-            logger.info("  ✓ Workspace items committed to Git — Source Control conflict resolved")
-            
-            # After committing, try updateFromGit to pull any remaining remote changes
-            return self._retry_update_from_git()
-            
-        except Exception as e:
-            logger.warning(f"  ⚠ Commit to Git failed: {e}")
-            logger.warning("    You may need to resolve Source Control conflicts manually in Fabric portal:")
-            logger.warning("    1. Open the workspace in Fabric")
-            logger.warning("    2. Click 'Source control' in the top bar")
-            logger.warning("    3. Commit the workspace changes, or discard and re-sync from Git")
-            return False
-    
-    def _retry_update_from_git(self, status: Dict = None) -> bool:
-        """
-        Retry updateFromGit after API deployment has created dependent items.
-        
-        After API deployment creates items (e.g. semantic models) that were
-        previously missing, the updateFromGit call may now succeed because the
-        dependencies are satisfied.
-        
-        Args:
-            status: Optional pre-fetched Git status dict
-            
-        Returns:
-            True if update succeeded or was not needed, False on failure
-        """
-        try:
-            if not status:
-                status = self.client.get_git_status(self.workspace_id)
-            
             workspace_head = status.get("workspaceHead")
             remote_commit = status.get("remoteCommitHash")
             changes = status.get("changes", [])
-            remote_changes = [c for c in changes if c.get("remoteChange")]
             
-            if workspace_head == remote_commit and not remote_changes:
-                logger.info("  ✓ Workspace is now in sync with Git")
+            if not workspace_head or not remote_commit:
+                logger.warning("  ⚠ Cannot sync — workspace not connected to Git")
+                return False
+            
+            remote_changes = [c for c in changes if c.get("remoteChange")]
+            workspace_changes = [c for c in changes if c.get("workspaceChange")]
+            
+            if not remote_changes and not workspace_changes:
+                logger.info("  ✓ Workspace is in sync with Git — no action needed")
                 return True
             
+            # Step 1: If there are incoming Git changes, pull them with
+            # PreferWorkspace so the workspace (API-deployed) definitions win.
+            # This links the API-created items to their Git counterparts
+            # without overwriting the environment-specific configuration.
             if remote_changes:
-                logger.info(f"  Retrying Git sync for {len(remote_changes)} remaining update(s)...")
-                git_config = self.config.config.get("git_integration", {})
-                conflict_policy = git_config.get("conflict_resolution_policy", "PreferRemote")
+                remote_names = [
+                    f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
+                    for c in remote_changes
+                ]
+                logger.info(f"  📥 {len(remote_changes)} incoming Git change(s) — pulling with PreferWorkspace:")
+                for rn in remote_names:
+                    logger.info(f"    - {rn}")
                 
                 self.client.update_from_git(
                     workspace_id=self.workspace_id,
                     remote_commit_hash=remote_commit,
                     workspace_head=workspace_head,
-                    conflict_resolution_policy=conflict_policy,
+                    conflict_resolution_policy="PreferWorkspace",
                     allow_override_items=True
                 )
-                logger.info("  ✓ Remaining Git updates applied successfully")
+                logger.info("  ✓ Incoming changes resolved (workspace definitions preserved)")
+                
+                # Re-fetch status after updateFromGit
+                status = self.client.get_git_status(self.workspace_id)
+                workspace_head = status.get("workspaceHead")
+                changes = status.get("changes", [])
+                workspace_changes = [c for c in changes if c.get("workspaceChange")]
             
+            # Step 2: If there are workspace changes (e.g. environment-specific
+            # config that differs from Git), commit them back.
+            if workspace_changes:
+                change_names = [
+                    f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
+                    for c in workspace_changes
+                ]
+                logger.info(f"  📤 {len(workspace_changes)} workspace change(s) to commit:")
+                for cn in change_names:
+                    logger.info(f"    - {cn}")
+                
+                self.client.commit_to_git(
+                    workspace_id=self.workspace_id,
+                    mode="All",
+                    workspace_head=workspace_head,
+                    comment="CI/CD: sync API-deployed items to Git"
+                )
+                logger.info("  ✓ Workspace changes committed to Git")
+            
+            logger.info("  ✓ Source Control sync complete — no conflicts")
             return True
             
         except Exception as e:
-            logger.info(f"  ℹ Post-commit Git sync skipped: {e}")
-            return True  # Non-fatal — items are already deployed
+            logger.warning(f"  ⚠ Post-deploy Git sync failed: {e}")
+            logger.warning("    You may need to resolve Source Control conflicts manually in Fabric portal:")
+            logger.warning("    1. Open the workspace in Fabric")
+            logger.warning("    2. Click 'Source control' > 'Update all' (to pull Git changes)")
+            logger.warning("    3. Then commit any remaining workspace changes")
+            return False
 
     def _ensure_git_credentials(self) -> None:
         """

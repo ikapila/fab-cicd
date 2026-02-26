@@ -91,9 +91,6 @@ class FabricDeployer:
         # Track artifacts created in this run to avoid immediate update attempts
         self._created_in_this_run = set()
         
-        # Track whether updateFromGit failed (so we can commitToGit after API deployment)
-        self._git_sync_failed = False
-        
         # Paginated reports deferred to Git sync.
         # _deploy_paginated_report() records each report here; after
         # _update_source_control() completes, deploy_all() runs TakeOver +
@@ -412,19 +409,23 @@ class FabricDeployer:
     
     def _update_source_control(self) -> bool:
         """
-        Update the Fabric workspace from its connected Git branch (source control sync).
+        Selectively sync paginated reports from Git to the workspace.
         
-        After deployment, the connected Git branch may have newer commits that need
-        to be synced to the workspace. This automates the "Update all" action in the
-        Fabric Source Control panel.
+        Only paginated reports are synced via updateFromGit because service
+        principals cannot create them via the Fabric REST API.  All other
+        artifact types (notebooks, reports, semantic models, lakehouses,
+        pipelines, etc.) are deployed exclusively via the API.
+        
+        After API deployment, _commit_workspace_to_git() pushes the API-created
+        items back to Git so they are linked in Source Control.
         
         The feature is controlled by the config setting:
             git_integration.auto_update_from_git  (default: True)
         
         Flow:
           1. GET /git/status → get workspaceHead, remoteCommitHash, and changes
-          2. If remoteCommitHash != workspaceHead → updates are available
-          3. POST /git/updateFromGit → sync workspace from Git
+          2. Filter to only paginated report changes
+          3. POST /git/updateFromGit with selective items → sync only paginated reports
         
         Returns:
             True if update succeeded or was not needed, False on failure
@@ -445,9 +446,6 @@ class FabricDeployer:
         
         try:
             # Step 0: Ensure Git credentials are configured for the SP
-            # SPs don't have automatic Git credentials — they need a configured
-            # connection (Azure DevOps PAT or similar) to access the Git provider.
-            # Without this, git/status returns GitCredentialsNotConfigured.
             self._ensure_git_credentials()
             
             # Step 1: Get the current Git status
@@ -472,7 +470,7 @@ class FabricDeployer:
                 logger.info("  ✓ Workspace is up to date with Git — no updates needed")
                 return True
             
-            # Log the pending changes
+            # Log all pending changes
             if remote_changes:
                 logger.info(f"  📦 {len(remote_changes)} update(s) available from Git:")
                 for change in remote_changes:
@@ -486,31 +484,72 @@ class FabricDeployer:
             else:
                 logger.info(f"  📦 Commits available: workspace is behind remote")
             
-            # Step 2: Update from Git
-            # Git sync runs BEFORE API deployment.  It creates/updates ALL
-            # items from the connected branch, linking them to Git.  The API
-            # deployment step then UPDATES the existing items (never creates)
-            # to apply environment-specific configuration (connection binding,
-            # parameter substitution, etc.).
+            # Step 2: Selective sync — only paginated reports
             #
-            # This order is critical for Git-connected workspaces: items
-            # created via API are NOT linked to the Git repo, which causes
-            # "duplicate display name" errors in Source Control.  Letting Git
-            # sync create them first avoids this.
+            # Paginated reports (rdlreport/paginatedreport) are the ONLY items
+            # that need Git sync because service principals cannot create them
+            # via the Fabric API.  Everything else is deployed via REST API:
+            #   - Semantic models → API create/update + connection binding
+            #   - Power BI reports → API create/update + rebinding
+            #   - Notebooks, pipelines, lakehouses, etc. → API create/update
+            #
+            # After API deployment, _commit_workspace_to_git() links all
+            # API-created items back to the Git repo.
+            
+            paginated_types = {"rdlreport", "paginatedreport"}
+            
+            paginated_changes = []
+            api_changes = []
+            for change in remote_changes:
+                item_type = change.get("itemMetadata", {}).get("itemType", "").lower()
+                if item_type in paginated_types:
+                    paginated_changes.append(change)
+                else:
+                    api_changes.append(change)
+            
+            if api_changes:
+                api_names = [f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})" for c in api_changes]
+                logger.info(f"  ⏭ Skipping {len(api_changes)} item(s) from Git sync (deployed via API):")
+                for an in api_names:
+                    logger.info(f"    - {an}")
+            
+            if not paginated_changes:
+                logger.info("  ✓ No paginated reports pending in Git — skipping updateFromGit")
+                logger.info("    All items will be deployed via API and committed to Git afterward")
+                return True
+            
+            # Build selective items list for updateFromGit (paginated reports only)
+            selective_items = []
+            for change in paginated_changes:
+                item_meta = change.get("itemMetadata", {})
+                item_entry = {}
+                if item_meta.get("logicalId"):
+                    item_entry["logicalId"] = item_meta["logicalId"]
+                if item_meta.get("objectId"):
+                    item_entry["objectId"] = item_meta["objectId"]
+                if item_entry:
+                    selective_items.append(item_entry)
+            
+            pag_names = [f"{c.get('itemMetadata', {}).get('displayName', '?')}" for c in paginated_changes]
+            logger.info(f"  Syncing {len(paginated_changes)} paginated report(s) from Git:")
+            for pn in pag_names:
+                logger.info(f"    - {pn}")
+            
             conflict_policy = git_config.get("conflict_resolution_policy", "PreferRemote")
             allow_override = git_config.get("allow_override_items", True)
             
-            logger.info(f"  Updating workspace from Git (policy: {conflict_policy})...")
+            logger.info(f"  Updating workspace from Git (policy: {conflict_policy}, paginated reports only)...")
             
             self.client.update_from_git(
                 workspace_id=self.workspace_id,
                 remote_commit_hash=remote_commit,
                 workspace_head=workspace_head,
                 conflict_resolution_policy=conflict_policy,
-                allow_override_items=allow_override
+                allow_override_items=allow_override,
+                items=selective_items if selective_items else None
             )
             
-            logger.info("  ✓ Source control sync completed — workspace updated from Git")
+            logger.info("  ✓ Paginated reports synced from Git successfully")
             return True
             
         except Exception as e:
@@ -579,12 +618,12 @@ class FabricDeployer:
 
     def _commit_workspace_to_git(self) -> bool:
         """
-        Commit workspace items to Git after API-based deployment.
+        Commit API-deployed workspace items to Git.
         
-        When updateFromGit fails (e.g. MissingDependency for new items whose
-        dependencies aren't in the workspace yet), the API deployment creates
-        the items directly.  These API-created items are NOT linked to the Git
-        repo, causing duplicate-name conflicts in the Fabric Source Control panel.
+        All non-paginated artifacts (reports, semantic models, notebooks,
+        lakehouses, pipelines, etc.) are deployed via the Fabric REST API.
+        API-created items are NOT linked to the Git repo, causing duplicate-name
+        conflicts in the Fabric Source Control panel.
         
         This method resolves that by calling commitToGit to push the workspace
         state back to Git, which links the API-created items to their Git
@@ -2963,23 +3002,17 @@ print('Notebook initialized')
             logger.info("DRY RUN MODE - No changes will be made")
         logger.info("="*60)
         
-        # Source control sync from Git (dev only — controlled by
-        # git_integration.auto_update_from_git).  Runs BEFORE API deployment
-        # so that new items from Git are created in the workspace first.
-        # The API deployment will then find them as "existing" and update
-        # them (connection binding, rebinding, etc.) — avoiding duplicate-
-        # name conflicts that occur when API creates an item that Git sync
-        # also tries to create.
-        # Skips unsupported items (paginated reports) gracefully.
+        # Source control sync — paginated reports only.
+        # Paginated reports cannot be created via the Fabric REST API by
+        # service principals, so they are synced from Git using updateFromGit.
+        # All other artifact types (reports, semantic models, notebooks,
+        # lakehouses, pipelines, etc.) are deployed exclusively via the API.
         #
-        # If updateFromGit fails (e.g. MissingDependency), API deployment
-        # still proceeds.  After API deployment succeeds, we call commitToGit
-        # to link the API-created items back to Git, preventing duplicate-name
+        # After API deployment, _commit_workspace_to_git() links all
+        # API-created items back to the Git repo, preventing duplicate-name
         # conflicts in the Fabric Source Control panel.
         if not dry_run:
-            git_sync_ok = self._update_source_control()
-            if not git_sync_ok:
-                self._git_sync_failed = True
+            self._update_source_control()
         
         # Validate dependencies
         errors = self.resolver.validate_dependencies()
@@ -2992,6 +3025,12 @@ print('Notebook initialized')
         
         if not deployment_order:
             logger.warning("No artifacts to deploy")
+            # Even with no artifacts to deploy, if workspace is Git-connected
+            # we may need to commit existing API-created items to Git to
+            # resolve Source Control conflicts from previous runs.
+            git_config = self.config.config.get("git_integration", {})
+            if not dry_run and git_config.get("auto_update_from_git", True):
+                self._commit_workspace_to_git()
             return True
         
         # Deploy all artifacts via API in dependency order
@@ -3033,10 +3072,12 @@ print('Notebook initialized')
         if failure_count == 0:
             self._save_deployment_state()
         
-        # Post-deploy: if updateFromGit failed but API deployment succeeded,
-        # commit workspace items to Git so they are linked to the repo.
+        # Post-deploy: commit API-created items to Git so they are linked
+        # to the repo.  This is needed because all non-paginated artifacts
+        # are deployed via the API and won't be Git-linked until committed.
         # This prevents duplicate-name conflicts in Fabric Source Control.
-        if failure_count == 0 and not dry_run and self._git_sync_failed:
+        git_config = self.config.config.get("git_integration", {})
+        if failure_count == 0 and not dry_run and git_config.get("auto_update_from_git", True):
             self._commit_workspace_to_git()
         
         # Refresh semantic models that were deployed in this run.

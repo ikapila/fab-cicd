@@ -688,6 +688,20 @@ class FabricDeployer:
                 )
                 logger.info("  ✓ Incoming changes resolved (workspace definitions preserved)")
                 
+                # updateFromGit with PreferWorkspace resolves the Git ↔ workspace
+                # conflict but can reset runtime settings like connection bindings.
+                # Re-bind connections for any semantic models deployed in this run.
+                if self._deployed_semantic_model_ids:
+                    logger.info(f"  🔗 Re-binding connections for {len(self._deployed_semantic_model_ids)} semantic model(s) after Git sync...")
+                    # Clear cached connection so it's re-fetched
+                    if hasattr(self, '_semantic_model_connection'):
+                        delattr(self, '_semantic_model_connection')
+                    for model_name, model_id in self._deployed_semantic_model_ids.items():
+                        try:
+                            self._configure_shareable_cloud_connection(model_name, model_id)
+                        except Exception as rebind_err:
+                            logger.warning(f"  ⚠ Could not re-bind '{model_name}': {rebind_err}")
+                
                 # Re-fetch status after updateFromGit
                 status = self.client.get_git_status(self.workspace_id)
                 workspace_head = status.get("workspaceHead")
@@ -3059,13 +3073,19 @@ print('Notebook initialized')
         # to the repo.  This is needed because all non-paginated artifacts
         # are deployed via the API and won't be Git-linked until committed.
         # This prevents duplicate-name conflicts in Fabric Source Control.
+        #
+        # NOTE: This runs AFTER connection binding (done in _deploy_semantic_model)
+        # but BEFORE semantic model refresh.  The _commit_workspace_to_git()
+        # method re-binds connections after updateFromGit(PreferWorkspace) since
+        # Git sync can reset runtime connection settings.
         git_config = self.config.config.get("git_integration", {})
         if failure_count == 0 and not dry_run and git_config.get("auto_update_from_git", True):
             self._commit_workspace_to_git()
         
         # Refresh semantic models that were deployed in this run.
-        # This must happen after connection binding (done in _deploy_semantic_model)
-        # so the model can connect to the data source during refresh.
+        # This must happen after connection binding AND after Git sync
+        # (which may re-bind connections) so the model has the correct
+        # data source when refreshing.
         if failure_count == 0 and not dry_run and self._deployed_semantic_model_ids:
             self._refresh_deployed_semantic_models()
         

@@ -885,7 +885,37 @@ class FabricClient:
         except requests.exceptions.HTTPError as e:
             logger.error(f"  HTTP Error triggering refresh: {e.response.status_code} - {e.response.text}")
             raise
-    
+
+    def run_on_demand_table_maintenance(self, workspace_id: str, lakehouse_id: str) -> Dict:
+        """
+        Trigger on-demand table maintenance for a lakehouse.
+
+        This refreshes the SQL analytics endpoint metadata so that any
+        new or updated shortcuts / tables are visible via SQL queries.
+        The call is fire-and-forget — it returns a 202 Accepted and the
+        maintenance job runs asynchronously.
+
+        Fabric REST API:
+            POST /v1/workspaces/{workspaceId}/lakehouses/{lakehouseId}/jobs/instances?jobType=TableMaintenance
+
+        Args:
+            workspace_id: Workspace GUID
+            lakehouse_id: Lakehouse GUID
+
+        Returns:
+            Dict with status_code 202 on success, or raises on HTTP error
+        """
+        logger.info(f"Triggering table maintenance for lakehouse: {lakehouse_id}")
+        endpoint = f"/workspaces/{workspace_id}/lakehouses/{lakehouse_id}/jobs/instances"
+        params = {"jobType": "TableMaintenance"}
+        try:
+            result = self._make_request("POST", endpoint, params=params)
+            logger.info(f"  ✓ Table maintenance queued")
+            return result
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"  HTTP Error triggering table maintenance: {e.response.status_code} - {e.response.text}")
+            raise
+
     def get_semantic_model_datasources(self, workspace_id: str, model_id: str) -> List[Dict]:
         """
         Get data sources for a semantic model

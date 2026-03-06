@@ -88,6 +88,10 @@ class FabricDeployer:
         # Used by report deployment to resolve byConnection references
         self._deployed_semantic_model_ids = {}
         
+        # Cache for deployed lakehouse IDs (name → id)
+        # Used for post-deploy table maintenance refresh
+        self._deployed_lakehouse_ids = {}
+        
         # Track artifacts created in this run to avoid immediate update attempts
         self._created_in_this_run = set()
         
@@ -625,12 +629,14 @@ class FabricDeployer:
         conflicts in the Fabric Source Control panel.
         
         Resolution flow:
-          1. updateFromGit with PreferWorkspace — pulls the Git versions but
-             keeps the workspace (API-deployed) definitions.  This links the
-             items to Git and resolves incoming changes.
-          2. commitToGit — pushes any remaining workspace-specific differences
-             (e.g. environment-specific SQL endpoints, connection bindings)
-             back to Git.
+          1. Get Git status and list workspace items.
+          2. For incoming remote "Added" items, check if an item with the
+             same displayName already exists in the workspace (API-deployed).
+             If so, SKIP it from updateFromGit — the API version is correct.
+          3. updateFromGit (selective) — only pull items that genuinely need
+             syncing from Git and don't clash with API-deployed items.
+          4. commitToGit — push all workspace changes (including API-deployed
+             items) back to Git so they are properly linked.
         
         Returns:
             True if sync succeeded or was not needed, False on failure
@@ -666,50 +672,86 @@ class FabricDeployer:
                 logger.info("  ✓ Workspace is in sync with Git — no action needed")
                 return True
             
-            # Step 1: If there are incoming Git changes, pull them with
-            # PreferWorkspace so the workspace (API-deployed) definitions win.
-            # This links the API-created items to their Git counterparts
-            # without overwriting the environment-specific configuration.
+            # Step 1: Filter incoming remote changes.
+            # Items deployed via API already exist in the workspace.  Pulling
+            # them again via updateFromGit would cause "duplicate display name"
+            # errors.  Skip any remote "Added" item whose displayName already
+            # exists in the workspace.
             if remote_changes:
-                remote_names = [
-                    f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
-                    for c in remote_changes
-                ]
-                logger.info(f"  📥 {len(remote_changes)} incoming Git change(s) — pulling with PreferWorkspace:")
-                for rn in remote_names:
-                    logger.info(f"    - {rn}")
+                # Build a set of workspace item names for quick lookup
+                workspace_items = self.client.list_items(self.workspace_id)
+                ws_name_type_set = {
+                    (w.get("displayName", "").lower(), w.get("type", "").lower())
+                    for w in workspace_items
+                }
                 
-                self.client.update_from_git(
-                    workspace_id=self.workspace_id,
-                    remote_commit_hash=remote_commit,
-                    workspace_head=workspace_head,
-                    conflict_resolution_policy="PreferWorkspace",
-                    allow_override_items=True
-                )
-                logger.info("  ✓ Incoming changes resolved (workspace definitions preserved)")
+                safe_to_sync = []
+                skipped = []
                 
-                # updateFromGit with PreferWorkspace resolves the Git ↔ workspace
-                # conflict but can reset runtime settings like connection bindings.
-                # Re-bind connections for any semantic models deployed in this run.
-                if self._deployed_semantic_model_ids:
-                    logger.info(f"  🔗 Re-binding connections for {len(self._deployed_semantic_model_ids)} semantic model(s) after Git sync...")
-                    # Clear cached connection so it's re-fetched
-                    if hasattr(self, '_semantic_model_connection'):
-                        delattr(self, '_semantic_model_connection')
-                    for model_name, model_id in self._deployed_semantic_model_ids.items():
-                        try:
-                            self._configure_shareable_cloud_connection(model_name, model_id)
-                        except Exception as rebind_err:
-                            logger.warning(f"  ⚠ Could not re-bind '{model_name}': {rebind_err}")
+                for rc in remote_changes:
+                    r_meta = rc.get("itemMetadata", {})
+                    r_name = r_meta.get("displayName", "")
+                    r_type = r_meta.get("itemType", "")
+                    r_change = rc.get("remoteChange", "")
+                    
+                    # Only skip "Added" items that already exist in workspace
+                    if r_change == "Added" and (r_name.lower(), r_type.lower()) in ws_name_type_set:
+                        skipped.append(f"{r_name} ({r_type})")
+                    else:
+                        safe_to_sync.append(rc)
                 
-                # Re-fetch status after updateFromGit
+                if skipped:
+                    logger.info(f"  ⏭ Skipping {len(skipped)} item(s) from Git sync (already deployed via API):")
+                    for s in skipped:
+                        logger.info(f"    - {s}")
+                
+                # Only call updateFromGit if there are safe items to sync
+                if safe_to_sync:
+                    # Build selective items list
+                    selective_items = []
+                    for rc in safe_to_sync:
+                        item_meta = rc.get("itemMetadata", {})
+                        item_entry = {}
+                        if item_meta.get("logicalId"):
+                            item_entry["logicalId"] = item_meta["logicalId"]
+                        if item_meta.get("objectId"):
+                            item_entry["objectId"] = item_meta["objectId"]
+                        if item_entry:
+                            selective_items.append(item_entry)
+                    
+                    sync_names = [
+                        f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
+                        for c in safe_to_sync
+                    ]
+                    logger.info(f"  📥 {len(safe_to_sync)} incoming Git change(s) to sync:")
+                    for sn in sync_names:
+                        logger.info(f"    - {sn}")
+                    
+                    self.client.update_from_git(
+                        workspace_id=self.workspace_id,
+                        remote_commit_hash=remote_commit,
+                        workspace_head=workspace_head,
+                        conflict_resolution_policy="PreferWorkspace",
+                        allow_override_items=True,
+                        items=selective_items if selective_items else None
+                    )
+                    logger.info("  ✓ Incoming changes synced")
+                elif not skipped:
+                    # remote_changes existed but none were safe — this shouldn't
+                    # happen, but handle gracefully
+                    logger.info("  ℹ No incoming Git changes require syncing")
+                else:
+                    logger.info("  ✓ All incoming Git items already in workspace — skipping updateFromGit")
+                
+                # Re-fetch status after updateFromGit (or after skipping)
                 status = self.client.get_git_status(self.workspace_id)
                 workspace_head = status.get("workspaceHead")
                 changes = status.get("changes", [])
                 workspace_changes = [c for c in changes if c.get("workspaceChange")]
             
-            # Step 2: If there are workspace changes (e.g. environment-specific
-            # config that differs from Git), commit them back.
+            # Step 2: Commit workspace changes to Git.
+            # API-deployed items appear as workspace "Added" changes.
+            # Committing them links them to the Git repo.
             if workspace_changes:
                 change_names = [
                     f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
@@ -933,7 +975,50 @@ class FabricDeployer:
         logger.info(f"  Done — {refresh_ok} refresh(es) triggered, {refresh_fail} failed")
         if refresh_fail > 0:
             logger.info(f"  ℹ Failed refreshes can be retried manually from the Fabric portal")
-    
+
+    def _refresh_deployed_lakehouses(self) -> None:
+        """
+        Trigger on-demand table maintenance for each lakehouse deployed in this run.
+
+        Only lakehouses recorded in ``_deployed_lakehouse_ids`` (populated by
+        ``_deploy_lakehouse``) are refreshed — this avoids refreshing every
+        lakehouse in the workspace.
+
+        Table maintenance updates the SQL analytics endpoint metadata so that
+        shortcuts and tables are visible via SQL queries.  The API call is
+        fire-and-forget: it triggers an async job and returns immediately.
+        Failures are logged as warnings and do not fail the deployment.
+        """
+        logger.info("")
+        logger.info("-"*60)
+        logger.info("POST-DEPLOY: LAKEHOUSE TABLE MAINTENANCE")
+        logger.info("-"*60)
+
+        lakehouses = self._deployed_lakehouse_ids
+        logger.info(f"  Triggering table maintenance for {len(lakehouses)} deployed lakehouse(s)")
+
+        refresh_ok = 0
+        refresh_fail = 0
+
+        for lh_name, lh_id in lakehouses.items():
+            try:
+                logger.info(f"  Running table maintenance for '{lh_name}' (ID: {lh_id})...")
+                result = self.client.run_on_demand_table_maintenance(
+                    self.workspace_id, lh_id
+                )
+                if result.get("status_code") == 202 or result.get("status") == "success":
+                    logger.info(f"  ✓ Table maintenance triggered for '{lh_name}'")
+                else:
+                    logger.info(f"  ✓ Table maintenance request sent for '{lh_name}'")
+                refresh_ok += 1
+            except Exception as e:
+                refresh_fail += 1
+                logger.warning(f"  ⚠ Could not run table maintenance for '{lh_name}': {e}")
+
+        logger.info(f"  Done — {refresh_ok} maintenance job(s) triggered, {refresh_fail} failed")
+        if refresh_fail > 0:
+            logger.info(f"  ℹ Failed jobs can be retried manually from the Fabric portal")
+
     def discover_artifacts(self, force_all: bool = False, specific_artifacts: List[str] = None) -> None:
         """
         Discover artifacts from file system and config file, then build dependency graph
@@ -3074,20 +3159,24 @@ print('Notebook initialized')
         # are deployed via the API and won't be Git-linked until committed.
         # This prevents duplicate-name conflicts in Fabric Source Control.
         #
-        # NOTE: This runs AFTER connection binding (done in _deploy_semantic_model)
-        # but BEFORE semantic model refresh.  The _commit_workspace_to_git()
-        # method re-binds connections after updateFromGit(PreferWorkspace) since
-        # Git sync can reset runtime connection settings.
+        # NOTE: _commit_workspace_to_git() skips updateFromGit for items
+        # already in the workspace (API-deployed), so connection bindings
+        # set during _deploy_semantic_model() are preserved.
         git_config = self.config.config.get("git_integration", {})
         if failure_count == 0 and not dry_run and git_config.get("auto_update_from_git", True):
             self._commit_workspace_to_git()
         
         # Refresh semantic models that were deployed in this run.
-        # This must happen after connection binding AND after Git sync
-        # (which may re-bind connections) so the model has the correct
-        # data source when refreshing.
+        # This must happen after connection binding (done in _deploy_semantic_model)
+        # so the model can connect to the data source during refresh.
         if failure_count == 0 and not dry_run and self._deployed_semantic_model_ids:
             self._refresh_deployed_semantic_models()
+        
+        # Run table maintenance on lakehouses deployed in this run.
+        # This refreshes the SQL analytics endpoint metadata so shortcuts
+        # and tables are visible via SQL queries.
+        if failure_count == 0 and not dry_run and self._deployed_lakehouse_ids:
+            self._refresh_deployed_lakehouses()
         
         # Post-sync: fix paginated report connection strings (dev only).
         # _pending_paginated_report_updates is only populated when
@@ -3410,6 +3499,10 @@ print('Notebook initialized')
                 if shortcuts:
                     logger.warning(f"  ⚠️  Using legacy shortcut API (consider migrating to Git format)")
                     self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, None, shortcuts)
+        
+        # Track deployed lakehouse for post-deploy table maintenance
+        if lakehouse_id and lakehouse_id != 'unknown':
+            self._deployed_lakehouse_ids[name] = lakehouse_id
     
     def _deploy_lakehouse_shortcuts_legacy(self, lakehouse_name: str, lakehouse_id: str, 
                                           lakehouse_folder, shortcuts_list=None) -> None:

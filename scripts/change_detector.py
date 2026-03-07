@@ -204,6 +204,12 @@ class ChangeDetector:
                     artifact_name = parts[-1][:-4]  # Remove .sql extension
             
             elif len(parts) >= 3:
+                # Skip .SemanticModel companion folders that sit alongside
+                # .Report folders in the Reports/ directory (PBIR format).
+                # These are auto-generated thin models, not report artifacts.
+                if artifact_type == "Report" and parts[2].endswith(".SemanticModel"):
+                    continue
+                
                 # Check for Git format folder (e.g., MyArtifact.Lakehouse/)
                 if parts[2].endswith(f".{artifact_type}"):
                     # Extract name without suffix

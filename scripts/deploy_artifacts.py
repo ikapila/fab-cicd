@@ -660,26 +660,36 @@ class FabricDeployer:
             
         except Exception as e:
             error_msg = str(e)
-            if "WorkspaceNotConnectedToGit" in error_msg:
+            # Also check the HTTP response body for error codes when
+            # the exception message only contains the generic HTTP status
+            response_text = ""
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    response_text = e.response.text or ""
+                except Exception:
+                    pass
+            combined_msg = error_msg + " " + response_text
+            
+            if "WorkspaceNotConnectedToGit" in combined_msg:
                 logger.info("  ℹ Workspace is not connected to Git — skipping source control sync")
                 logger.info("    To enable: connect the workspace to Git in Fabric portal")
                 return True
-            elif "InsufficientPrivileges" in error_msg:
+            elif "InsufficientPrivileges" in combined_msg:
                 logger.warning("  ⚠ Service principal lacks Git permissions for this workspace")
                 logger.warning("    Grant Contributor role and Workspace.GitUpdate.All scope")
                 return False
-            elif "PrincipalTypeNotSupported" in error_msg:
+            elif "PrincipalTypeNotSupported" in combined_msg:
                 logger.warning("  ⚠ Service principal is not supported for Git operations on some item types")
                 logger.warning("    Paginated reports can only be synced interactively. They will be")
                 logger.warning("    handled by post-sync datasource updates if already in workspace.")
                 logger.warning("    All other artifacts are deployed via API.")
                 return True  # Treat as non-fatal; API deployment handles non-paginated items
-            elif "GitCredentialsNotConfigured" in error_msg:
+            elif "GitCredentialsNotConfigured" in combined_msg:
                 logger.warning("  ⚠ Git credentials are not configured for the service principal")
                 logger.warning("    Set git_integration.git_credentials_connection_id in config")
                 logger.warning("    See: https://learn.microsoft.com/en-us/fabric/cicd/git-integration/git-automation#get-or-create-git-provider-credentials-connection")
                 return False
-            elif "InvalidSystemFiles" in error_msg:
+            elif "InvalidSystemFiles" in combined_msg:
                 logger.warning(f"  ⚠ Source control sync failed: Git directory contains invalid system files")
                 logger.warning("    This is usually caused by a .platform file with an empty logicalId.")
                 logger.warning("    Fix: ensure every .platform file has a valid GUID in config.logicalId")
@@ -1650,6 +1660,36 @@ class FabricDeployer:
                     except Exception as e:
                         logger.debug(f"Skipping folder {item.name}: {e}")
         
+        # Discover PBIR companion .SemanticModel folders in Reports/
+        # These are thin semantic models that sit alongside .Report folders
+        # and may be referenced via byPath in definition.pbir
+        reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
+        if reports_dir.exists():
+            for item in reports_dir.iterdir():
+                if item.is_dir() and item.name.endswith(".SemanticModel"):
+                    platform_file = item / ".platform"
+                    if platform_file.exists():
+                        try:
+                            with open(platform_file, 'r') as f:
+                                platform_data = json.load(f)
+                            
+                            model_name = platform_data.get("metadata", {}).get("displayName", item.name.replace(".SemanticModel", ""))
+                            folder_base = item.name.replace(".SemanticModel", "")
+                            self._register_name_alias("SemanticModel", folder_base, model_name)
+                            discovered.append(f"{model_name} (Fabric Git, companion)")
+                            model_id = platform_data.get("config", {}).get("logicalId", f"semanticmodel-{model_name}")
+                            
+                            self.resolver.add_artifact(
+                                model_id,
+                                ArtifactType.SEMANTIC_MODEL,
+                                model_name,
+                                dependencies=[]
+                            )
+                            
+                            logger.debug(f"Discovered companion semantic model (Fabric Git): {model_name} from Reports/{item.name}")
+                        except Exception as e:
+                            logger.debug(f"Skipping companion folder {item.name}: {e}")
+        
         if discovered:
             logger.info(f"Discovered {len(discovered)} semantic model(s): {', '.join(sorted(discovered))}")
     
@@ -1687,16 +1727,26 @@ class FabricDeployer:
                     path = by_path.get("path", "")
                     
                     # Parse semantic model folder name from path like "../../Semanticmodels/Finance Summary.SemanticModel"
-                    if path and "Semanticmodels/" in path:
-                        model_folder_name = path.split("Semanticmodels/")[1]
-                        
-                        # Look up the semantic model's logicalId from its .platform file
-                        models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
-                        model_folder = models_dir / model_folder_name
-                        model_id = None
+                    if path and ".SemanticModel" in path:
+                        # Extract the folder name (last segment of the path)
+                        model_folder_name = path.rsplit("/", 1)[-1] if "/" in path else path
                         model_name = model_folder_name.replace(".SemanticModel", "")
                         
-                        if model_folder.exists():
+                        # Search for the .SemanticModel folder in multiple locations:
+                        # 1. Semanticmodels/ (standard location)
+                        # 2. Reports/ (PBIR companion models that sit alongside .Report folders)
+                        model_folder = None
+                        search_dirs = [
+                            self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels",
+                            self.artifacts_dir / self.artifacts_root_folder / "Reports",
+                        ]
+                        for search_dir in search_dirs:
+                            candidate = search_dir / model_folder_name
+                            if candidate.exists():
+                                model_folder = candidate
+                                break
+                        
+                        if model_folder is not None:
                             model_platform_file = model_folder / ".platform"
                             if model_platform_file.exists():
                                 try:
@@ -1709,11 +1759,11 @@ class FabricDeployer:
                                     model_id = f"semanticmodel-{model_name}"
                             else:
                                 model_id = f"semanticmodel-{model_name}"
+                            
+                            dependencies.append(model_id)
+                            logger.debug(f"Report '{report_name}' depends on semantic model '{model_name}' (dep ID: {model_id}) found at {model_folder}")
                         else:
-                            model_id = f"semanticmodel-{model_name}"
-                        
-                        dependencies.append(model_id)
-                        logger.debug(f"Report '{report_name}' depends on semantic model '{model_name}' (dep ID: {model_id})")
+                            logger.warning(f"Report '{report_name}' references semantic model '{model_name}' but folder not found in Semanticmodels/ or Reports/ — skipping dependency")
                 except Exception as e:
                     logger.debug(f"Could not extract semantic model dependency: {e}")
             

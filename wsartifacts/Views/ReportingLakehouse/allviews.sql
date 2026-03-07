@@ -1,7339 +1,11 @@
-CREATE OR ALTER   VIEW dbo.vw_asset
-AS
-SELECT * FROM dbo.table_vw_asset;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_asset_value];
-GO
-CREATE OR ALTER     VIEW [dbo].[vw_asset_value] AS
-
-WITH initial_avh AS (
-SELECT
-	*,
-	ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY income_date ASC, [bk_aggregated_dim_asset_value_history_id] ASC) AS InitialRowNo
-FROM aggregated_odessa_dim_asset_value_history
-WHERE
-	is_lessor_owned = 1
-	AND is_schedule = 1
-	AND is_accounted = 1
-	AND is_cleared = 1
-	AND income_date <= GETDATE()
-),
-current_avh AS (
-SELECT
-	*,
-	ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY income_date DESC, bk_aggregated_dim_asset_value_history_id DESC) AS CurrentRowNo
-
-FROM aggregated_odessa_dim_asset_value_history
-WHERE
-	is_lessor_owned = 1
-	AND is_schedule = 1
-	AND is_accounted = 1
-    AND gl_journal_id IS NOT NULL
-	AND income_date <= GETDATE()
-   AND current_flag = 1
-
-)
-
-SELECT
-bk_aggregated_dim_asset_id AS asset_id,
-bbv.begin_book_value_amount,
-bbv.cost_amount,
-ebv.end_book_value_amount
-FROM aggregated_odessa_dim_asset AS asset
-LEFT JOIN initial_avh AS bbv ON asset.bk_aggregated_dim_asset_id = bbv.asset_id AND bbv.InitialRowNo = 1
-LEFT JOIN current_avh AS ebv ON asset.bk_aggregated_dim_asset_id = ebv.asset_id AND ebv.CurrentRowNo = 1
-
-
-
-WHERE asset.current_flag = 1 
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_book_depreciation];
-GO
-
-CREATE VIEW [dbo].[vw_book_depreciation]
-AS
-SELECT *
-FROM
-( 
-	SELECT      [bk_aggregated_dim_book_depreciation_id],
-				[sk_aggregated_dim_book_depreciation],
-				[cost_basis_amount],
-				[salvage_amount],
-				[scrap_amount],
-				[cost_center_id],
-				[book_depreciation_template_id],
-				[asset_id],
-				[contract_id],
-				[last_amort_run_date],
-				[reversal_post_date],
-				[remaining_life_in_months],
-				[per_day_depreciation_factor],
-				[begin_date],
-				[terminated_date],
-				[is_active],
-				current_flag,				
-				ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY ISNULL(terminated_date, end_date) DESC, begin_date DESC) AS current_asset_value,
-				ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY ISNULL(contract_id, -1) DESC, begin_date DESC, sk_aggregated_dim_book_depreciation DESC) AS current_contract_value,	
-				ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY begin_date ASC) AS initial_asset_value,
-				ROW_NUMBER() OVER(PARTITION BY asset_id, contract_id ORDER BY begin_date ASC) AS initial_contract_value							
-	FROM aggregated_odessa_dim_book_depreciation
-	WHERE current_flag = 1 
-	AND is_active = 1
-) AS a
-GO
-;
-
-DROP VIEW if EXISTS [dbo].[vw_aggregated_odessa_fact_asset_status_latest];
-GO
-
-CREATE VIEW vw_aggregated_odessa_fact_asset_status_latest AS 
-with asset_fact_order as (
-SELECT asset.bk_aggregated_dim_asset_id, fstatus.*,
-ROW_NUMBER() OVER(PARTITION BY asset.bk_aggregated_dim_asset_id ORDER BY asset.sk_aggregated_dim_asset DESC) AS fact_asset_status_order
-FROM aggregated_odessa_dim_asset asset
-LEFT JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset
-WHERE fstatus.sk_aggregated_dim_asset IS NOT NULL 
-)
-select bk_aggregated_dim_asset_id,
-sk_aggregated_dim_asset,
-sk_aggregated_dim_legal_entity,
-sk_aggregated_dim_date_record,
-sk_aggregated_dim_time_record,
-sk_aggregated_dim_asset_status,
-sk_aggregated_dim_asset_type,
-sk_aggregated_dim_currency,
-sk_aggregated_dim_vehicle_detail,
-dealer_cost_amount,
-residual_amount,
-salvage_amount,
-base_price_of_equipment_amount,
-quantity,
-dp_process_datetime,
-dp_process_date,
-dp_record_insert_datetime,
-dp_process_name,
-dp_source_name 
-from asset_fact_order 
-where fact_asset_status_order = 1;
-;
-GO
-
-----------------------------------------------------------------------------------------------------------
-
-
-DROP VIEW if EXISTS [dbo].[vw_lease_income];
-GO
-
-
-DROP VIEW if EXISTS [dbo].[vw_asset_features];
-GO
-
-CREATE VIEW [dbo].[vw_asset_features] 
-AS 
-SELECT * 
-FROM
-(
-    SELECT
-        features.asset_id,	
-        features.alias AS feature_reg_num,
-        features.[equipment_id],
-        reg.asset_registration_effective_date,
-		reg.registration_number as vehicle_reg_num,          
-        category.name AS feature_vehicle_category,
-        features.[send_to_r_two_c],
-        features.[r_two_c_create_time],
-        features.[r_two_c_last_update_status],
-        features.[r_two_c_failure_reason],
-        features.[r_two_c_create_status],
-        ROW_NUMBER() OVER(PARTITION BY features.equipment_id ORDER BY reg.asset_registration_effective_date DESC) AS cleanse_reg
-    FROM aggregated_odessa_dim_asset_features AS features 
-    LEFT JOIN aggregated_odessa_dim_asset_categories AS category ON features.asset_category_id = category.[bk_aggregated_dim_asset_categories_id] AND category.current_flag = 1
-    LEFT JOIN aggregated_odessa_dim_asset_registration_detail AS reg ON reg.asset_id = features.asset_id AND reg.current_flag = 1 
-    WHERE features.current_flag = 1
-) AS a
-WHERE a.cleanse_reg = 1
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_receipts];
-GO
-
-CREATE VIEW [dbo].[vw_receipts]
-AS
-
-SELECT      receipt.[bk_aggregated_dim_receipt_id],
-			receipt.[number],
-			receipt.[receipt_amount_amount],
-			receipt.[balance_amount],
-			receipt.[sk_aggregated_dim_receipt],
-			receipt.[receipt_source],
-			receipt.[approval_status],
-			receipt.reversal_as_of_date,
-
-			receipt.[branch_id],
-
-			receipt.[type_id],
-			receipt.[customer_id],
-			receipt.[contract_id],
-			receipt.[lineof_business_id],
-			receipt.[instrument_type_id],
-
-			lEntity.name AS legal_entity,
-			createdBy.full_name AS created_by,
-			updatedBy.full_name AS updated_by,
-			receipt.[created_time],
-			receipt.[check_number],
-			receipt.[security_deposit_liability_amount_amount],
-			receipt.[security_deposit_liability_contract_amount_amount],
-	
-			receipt.[post_date],
-			receipt.[received_date],
-			receipt.[status],
-			rType.[receipt_type_name],
-			bank.[automated_payment_method]
-			
-FROM aggregated_odessa_dim_receipt AS receipt
-LEFT JOIN aggregated_odessa_dim_user AS createdBy ON receipt.created_by_id = createdBy.bk_aggregated_dim_user_id AND createdBy.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_user AS updatedBy ON receipt.created_by_id = updatedBy.bk_aggregated_dim_user_id AND updatedBy.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_legal_entity AS lEntity ON lEntity.[bk_aggregated_dim_legal_entity_id] = receipt.legal_entity_id AND lEntity.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_receipt_type AS rType ON rType.[bk_aggregated_dim_receipt_type_id] = receipt.type_id AND rType.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_bank_account AS bank ON bank.[bk_aggregated_dim_bank_account_id] = receipt.[bank_account_id] AND bank.current_flag = 1
-;
-GO
-
-/*
-
-*****IMPORTANT - DO NOT UNCOMMENT ******
-If you need to make any changes to the following four views,
-vw_asset_value
-vw_book_depreciation
-vw_aggregated_odessa_fact_asset_status_latest
-vw_asset
-Please test your changes in UAT first and
-add the changes within the commented lines (do not uncomment)
-and please inform KL (Kapila) so he can take action to get the changes
-applied.
-
-DROP VIEW if EXISTS [dbo].[vw_asset_value];
-GO
-CREATE OR ALTER     VIEW [dbo].[vw_asset_value] AS
-
-WITH initial_avh AS (
-SELECT
-	*,
-	ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY income_date ASC, [bk_aggregated_dim_asset_value_history_id] ASC) AS InitialRowNo
-FROM aggregated_odessa_dim_asset_value_history
-WHERE
-	is_lessor_owned = 1
-	AND is_schedule = 1
-	AND is_accounted = 1
-	AND is_cleared = 1
-	AND income_date <= GETDATE()
-),
-current_avh AS (
-SELECT
-	*,
-	ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY income_date DESC, bk_aggregated_dim_asset_value_history_id DESC) AS CurrentRowNo
-
-FROM aggregated_odessa_dim_asset_value_history
-WHERE
-	is_lessor_owned = 1
-	AND is_schedule = 1
-	AND is_accounted = 1
-    AND gl_journal_id IS NOT NULL
-	AND income_date <= GETDATE()
-   AND current_flag = 1
-
-)
-
-SELECT
-bk_aggregated_dim_asset_id AS asset_id,
-bbv.begin_book_value_amount,
-bbv.cost_amount,
-ebv.end_book_value_amount
-FROM aggregated_odessa_dim_asset AS asset
-LEFT JOIN initial_avh AS bbv ON asset.bk_aggregated_dim_asset_id = bbv.asset_id AND bbv.InitialRowNo = 1
-LEFT JOIN current_avh AS ebv ON asset.bk_aggregated_dim_asset_id = ebv.asset_id AND ebv.CurrentRowNo = 1
-
-
-
-WHERE asset.current_flag = 1 
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_book_depreciation];
-GO
-
-CREATE VIEW [dbo].[vw_book_depreciation]
-AS
-SELECT *
-FROM
-( 
-	SELECT      [bk_aggregated_dim_book_depreciation_id],
-				[sk_aggregated_dim_book_depreciation],
-				[cost_basis_amount],
-				[salvage_amount],
-				[scrap_amount],
-				[cost_center_id],
-				[book_depreciation_template_id],
-				[asset_id],
-				[contract_id],
-				[last_amort_run_date],
-				[reversal_post_date],
-				[remaining_life_in_months],
-				[per_day_depreciation_factor],
-				[begin_date],
-				[terminated_date],
-				[is_active],
-				current_flag,				
-				ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY ISNULL(terminated_date, end_date) DESC, begin_date DESC) AS current_asset_value,
-				ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY ISNULL(contract_id, -1) DESC, begin_date DESC, sk_aggregated_dim_book_depreciation DESC) AS current_contract_value,	
-				ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY begin_date ASC) AS initial_asset_value,
-				ROW_NUMBER() OVER(PARTITION BY asset_id, contract_id ORDER BY begin_date ASC) AS initial_contract_value							
-	FROM aggregated_odessa_dim_book_depreciation
-	WHERE current_flag = 1 
-	AND is_active = 1
-) AS a
-GO
-;
-
-DROP VIEW if EXISTS [dbo].[vw_aggregated_odessa_fact_asset_status_latest];
-GO
-
-CREATE VIEW vw_aggregated_odessa_fact_asset_status_latest AS 
-with asset_fact_order as (
-SELECT asset.bk_aggregated_dim_asset_id, fstatus.*,
-ROW_NUMBER() OVER(PARTITION BY asset.bk_aggregated_dim_asset_id ORDER BY asset.sk_aggregated_dim_asset DESC) AS fact_asset_status_order
-FROM aggregated_odessa_dim_asset asset
-LEFT JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset
-WHERE fstatus.sk_aggregated_dim_asset IS NOT NULL 
-)
-select bk_aggregated_dim_asset_id,
-sk_aggregated_dim_asset,
-sk_aggregated_dim_legal_entity,
-sk_aggregated_dim_date_record,
-sk_aggregated_dim_time_record,
-sk_aggregated_dim_asset_status,
-sk_aggregated_dim_asset_type,
-sk_aggregated_dim_currency,
-sk_aggregated_dim_vehicle_detail,
-dealer_cost_amount,
-residual_amount,
-salvage_amount,
-base_price_of_equipment_amount,
-quantity,
-dp_process_datetime,
-dp_process_date,
-dp_record_insert_datetime,
-dp_process_name,
-dp_source_name 
-from asset_fact_order 
-where fact_asset_status_order = 1;
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_asset];
-GO
-
-
-CREATE OR ALTER     VIEW [dbo].[vw_asset]
-AS
-WITH adjusted_book_value AS (
-SELECT 
-asset_id,
-adjusted_book_value
-FROM (
-SELECT 
-asset_id,
-net_value_amount AS adjusted_book_value,
-ROW_NUMBER() OVER (PARTITION BY asset_id ORDER BY income_date DESC, created_time DESC) AS rn
-FROM aggregated_odessa_dim_asset_value_history
-WHERE source_module = 'AssetValueAdjustment'
-AND	is_lessor_owned = 1
-	AND is_schedule = 1
-	AND is_accounted = 1
-    AND gl_journal_id IS NOT NULL
-	AND income_date <= GETDATE()
-   AND current_flag = 1
-) AS a WHERE rn = 1
-)
-
-SELECT
-a.*, 
-abv.adjusted_book_value
-FROM
-(
-
-SELECT DISTINCT
-		fstatus.[dealer_cost_amount],
-		fstatus.[residual_amount],
-		fstatus.[salvage_amount],
-		fstatus.[base_price_of_equipment_amount],
-		fstatus.[quantity],
-
-		--CAST(asset.[alias] AS VARCHAR(8)) as 'registration_number',
-		asset.[residual_value_amount],
-		asset.[sk_aggregated_dim_asset],
-		asset.[bk_aggregated_dim_asset_id],
-		asset.[bk_aggregated_dim_asset_id] AS asset_id,	
-		asset.[aag_fleet_number],
-		asset.[acquisition_date],
-		asset.[alias],
-		asset.[asset_contract_type],
-		asset.[asset_mode],
-		asset.[currency_code],
-		asset.[customer_asset_number],
-		asset.[description],
-		asset.[description2],
-		asset.[disposed_date],
-		asset.[equipment_id],
-		asset.initial_mileage,
-		asset.[gross_vehicle_weight],
-		asset.[in_service_date],
-		asset.[is_parent],
-		asset.[is_vehicle],
-		asset.[model_year],
-		asset.[previous_sequence_number],
-		asset.[purchase_order_date],
-		asset.[service_intervals_trailer],
-		asset.[service_intervals_vehicle],
-		asset.[manufacturer_name],
-		asset.[manufacturer_description],
-		asset.[model_name],
-		asset.[category_name],
-		asset.[category_description],
-		asset.[make_name],
-		asset.[product_name],
-		asset.road_fund_licence,
-		asset.[current_flag],
-		asset.[sub_status],
-		asset.[asset_value_amount] AS purchase_price,
-		asset.[asset_value_amount],	
-		asset.[asset_funding_status],
-		asset.[spare_vehicle_provision_for_mot_after_twenty_four_hours],
-		asset.[spare_vehicle_provision_for_service_after_twenty_four_hours],
-		asset.book_value_amount,
-		asset.last_known_mileage,
-		asset.vehicle_service_status,
-		asset.rv_maturity_date,
-		asset.mot_expiry_date,
-		-- asset.mot_resubmission_passed_date,
-		asset.mot_preperationand_testing,
-		asset.[twenty_four_hours_breakdown_cover],
-		asset.[online_o_licence],
-		asset.[outof_hours_serviceand_maintenance],
-		asset.[dand_c_schedule_services],
-		asset.[replacement_vehiclefor_breakdown],
-		asset.[full_service_and_maintenance_chassis],
-		asset.[fridge_service_maintenance],
-		asset.[service_intervals_fridgebox],
-		asset.[tail_lift_service_maintenance],
-		asset.[service_intervals_tail_lift],
-		asset.[crane_service_maintenance],
-		asset.[pto_service_maintenance],
-		asset.[tyres_fair_wear_tear],
-		asset.[windscreen_section],
-		asset.[livery],
-		asset.[gps_tracking],
-		asset.[full_service_and_maintenance_trailer],
-		asset.[excess_distance_charge_rate],
-		asset.[term] AS term, 
-
-		detail.[vehicle_type],
-		detail.[body_description],
-		detail.[original_odometer_reading],
-		detail.[gvw]/1000 AS gvw,
-		detail.[title_received_date],
-		detail.[warranty_end_date],
-		detail.[body_number],
-		detail.[contract_mileage],
-		detail.comments,
-		detail.[maintenance_inclusions],
-
-		addDetails.[depreciation_value_amount],
-		addDetails.[project_number],
-		addDetails.[original_delivery_date_to_customer],
-		addDetails.[expected_delivery_date_to_customer],
-		addDetails.[actual_chassis_delivery_date],
-		addDetails.[available_to_aag_from],
-		addDetails.[last_rv_revaluation_date],
-		addDetails.[fair_value_adjustment_date],
-		addDetails.[present_mileage_date],
-		addDetails.[last_revalued_date],
-		addDetails.[days_in_stock],
-		addDetails.[retail_value_amount],
-		addDetails.[in_application],
-		addDetails.[order_date],
-		addDetails.[original_chassis_delivery_date],
-		addDetails.[expected_chassis_delivery_date],
-		addDetails.[actual_delivery_date_to_customer],
-		addDetails.[dhl_compliant],
-		addDetails.[reserve_date],
-		addDetails.[customer_fleet_number],
-		addDetails.[is_migrated],
-		addDetails.[overall_asset_life_in_months],
-		addDetails.[collateral_id],
-		addDetails.[allocated_status_id],
-		addDetails.[asset_sub_type_id],
-		addDetails.[chassis_plate_id],
-		addDetails.[route_into_rental_fleet_id],		
-		addDetails.reserved_by_id,
-		addDetails.original_location,
-		addDetails.reserved_for,
-		addDetails.retail_valuation_date,
-		addDetails.current_flag AS current_additional_detail,
-		addDetails.production_number,
-		addDetails.procurement_program,
-		addDetails.[mot_workshop],
-		addDetails.[mot_prep_date],
-		addDetails.[mot_booked_date],
-		addDetails.[mot_time_slot],
-		--addDetails.[mot_pass],
-		--addDetails.[mot_fail],
-		addDetails.[mot_failure_reason],
-		addDetails.[mot_fleet_engineer_notified],
-		--addDetails.[motprs],
-		addDetails.[mot_passed_date],
-		addDetails.[mot_notes],
-		addDetails.[mot_no_show_reason],
-		addDetails.oal,
-		addDetails.[mot_resubmission_passed_date], -- waiting for K&K to add to reporting_gold
-		addDetails.[mot_failed_date],
-		CONVERT(INT, addDetails.[bhp]) AS bhp,
-		addDetails.[r_and_m_expiry_date],
-		addDetails.excess_mileage,
-		addDetails.[is_returned],
-
-		type.[name],
-		type.[description] AS asset_type,
-		type.[economic_life_in_months],
-		type.[activation_date],
-
-		initialDepreciation.[begin_date] AS initial_depreciation_start_date,
-		currentDepreciation.[begin_date] AS depreciation_start_date,		
-		currentDepreciation.[cost_basis_amount],
-		currentDepreciation.[remaining_life_in_months],
-		CASE WHEN currentDepreciation.bk_aggregated_dim_book_depreciation_id IS NULL THEN 0 ELSE 1 END AS generate_book_depreciation,
-
-
-		dle.name AS Company,
-	    dle.legal_entity_number,	
-
-		dstatus.[asset_status],
-
-        assetValues.end_book_value_amount AS equipment_nbv,
-		assetValues.begin_book_value_amount,
-		assetValues.cost_amount,
-		--currentValues.end_book_value_amount,
-		--currentValues.net_value_amount,	
-		--currentValues.accumulated_book_depreciation_amount,		
-		--initialValues.income_date,
-        --initialValues.net_value_amount + currentValues.accumulated_book_depreciation_amount AS calculated_nbv_amount,			
-
-		allocatedStatus.[value] AS allocated_status,
-		availability.[value] AS [rental_availability_status],
-		assetSubType.[value] AS asset_sub_type,
-		dvsr.[value] AS dvsr_star_rating,
-		serialNumber.serial_number,
-		cab.[value] AS cab,
-		cabModel.[value] AS cab_model,
-		gearbox.[value] AS gearbox,
-		axleconfig.[value] AS axle_config,
-		deliveryStatus.[value] AS delivery_status,
-		MOTBookingStatus.[value] AS MOT_booking_status,
-		bodybuilder.name AS body_builder,
-		bodytype.[body_type_code] AS [body_type],
-		emissions.[emission_code],
-		tailLiftType.[value] AS tail_lift_type,
-		rmPackage.[value] AS r_and_m_Package,
-		routerental.[value] AS route_into_rental_fleet,
-		reservedBy.[value] AS reserved_by,		
-		
-		location.[city],
-		location.[city] AS location_city,
-		location.[name] AS location_code,
-		location.[address_line1],	
-		location.[postal_code],			
-
-		reg.registration_number,
-		reg.[asset_registration_effective_date],
-		
-		r2cColor.[color_code] AS r_two_c_color,
-
-		categories.[name] AS [asset_category],
-
-		currentDepreciation.per_day_depreciation_factor * 30 AS depreciation_value,
-		
-		fstatus.[sk_aggregated_dim_date_record],
-		fstatus.sk_aggregated_dim_time_record
-		--ROW_NUMBER() OVER(PARTITION BY asset.bk_aggregated_dim_asset_id ORDER BY sk_aggregated_dim_asset_location DESC) AS current_asset_status		
-
-FROM aggregated_odessa_dim_asset asset
-JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
-JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
-JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status 
-JOIN aggregated_odessa_dim_asset_type type ON type.sk_aggregated_dim_asset_type = fstatus.sk_aggregated_dim_asset_type AND type.current_flag = 1
-JOIN aggregated_odessa_dim_vehicle_detail detail ON detail.[sk_aggregated_dim_vehicle_detail] = fstatus.sk_aggregated_dim_vehicle_detail AND detail.current_flag = 1
-JOIN aggregated_odessa_dim_legal_entity AS dle on dle.sk_aggregated_dim_legal_entity = fstatus.sk_aggregated_dim_legal_entity AND dle.current_flag = 1
-LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1 AND is_active = 1) AS reg 
-        ON reg.asset_id = asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
-LEFT JOIN (select *, row_number() over (partition by asset_id order by created_time desc) SN from aggregated_odessa_dim_asset_serial_numbers where current_flag = 1) AS serialNumber 
-        ON serialNumber.asset_id = asset.bk_aggregated_dim_asset_id AND serialNumber.current_flag = 1 AND SN=1
-LEFT JOIN vw_asset_value AS assetValues ON assetValues.asset_id = asset.bk_aggregated_dim_asset_id
---LEFT JOIN vw_asset_value AS initialValues ON initialValues.asset_id = asset.bk_aggregated_dim_asset_id AND initialValues.initial_ = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS allocatedStatus ON  allocatedStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[allocated_status_id] AND allocatedStatus.current_flag = 1 
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS reservedBy ON  reservedBy.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[reserved_by_id] AND reservedBy.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS assetSubType ON  assetSubType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[asset_sub_type_id] AND assetSubType.current_flag = 1 
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS availability ON  availability.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[rental_availability_status_id] AND availability.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS dvsr ON  dvsr.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[dvsr_star_rating_id] AND dvsr.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS cab ON  cab.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[cab_id] AND cab.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS cabModel ON  cabModel.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[cab_model_id] AND cabModel.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS routerental ON  routerental.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[route_into_rental_fleet_id] AND routerental.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_location AS assetLocation ON assetLocation.asset_id = asset.bk_aggregated_dim_asset_id AND assetLocation.current_flag = 1 AND assetLocation.is_current = 1
-LEFT JOIN aggregated_odessa_dim_location AS location ON location.[bk_aggregated_dim_location_id] = assetLocation.location_id AND location.current_flag = 1
-LEFT JOIN vw_book_depreciation AS currentDepreciation ON currentDepreciation.asset_id = asset.bk_aggregated_dim_asset_id AND currentDepreciation.current_asset_value = 1
-LEFT JOIN vw_book_depreciation AS initialDepreciation ON initialDepreciation.asset_id = asset.bk_aggregated_dim_asset_id AND initialDepreciation.initial_asset_value = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS gearbox ON  gearbox.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[gearbox_id] AND gearbox.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS bhp ON  bhp.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[bhp] AND bhp.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS axleconfig ON  axleconfig.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[axle_config_id] AND axleconfig.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS deliveryStatus ON  deliveryStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[delivery_status_id] AND deliveryStatus.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS MOTBookingStatus ON  MOTBookingStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[mot_booking_status_id] AND MOTBookingStatus.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS tailLiftType ON  tailLiftType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[tail_lift_type_id] AND tailLiftType.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS rmPackage ON  rmPackage.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[rand_m_package_id] AND rmPackage.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_r_two_c_color_config AS r2cColor ON  r2cColor.[bk_aggregated_dim_r_two_c_color_config_id] = detail.[r_two_c_color_config_id] AND r2cColor.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_body_builder_config AS bodybuilder ON detail.body_builder_config_id = bodybuilder.[bk_aggregated_dim_body_builder_config_id] AND bodybuilder.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_body_type_config AS bodytype ON detail.body_type_config_id = bodytype.[bk_aggregated_dim_body_type_config_id] AND bodytype.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_emission_config AS emissions ON detail.emission_config_id = emissions.[bk_aggregated_dim_emission_config_id] AND emissions.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_categories AS categories ON categories.[bk_aggregated_dim_asset_categories_id] = asset.[asset_category_id] AND categories.current_flag = 1
-WHERE asset.current_flag = 1
-) a
-LEFT JOIN adjusted_book_value AS abv ON a.asset_id = abv.asset_id
-
-
-;
-GO
-********* DO NOT UNCOMMENT ***********
-*/
-
-
-
-DROP VIEW if EXISTS [dbo].[vw_contract_assignments];
-GO
-
-CREATE VIEW [dbo].[vw_contract_assignments]
-AS 
-SELECT *
-FROM
-(
-    SELECT 
-        eContract.contract_id
-        ,Users.full_name AS employee_name
-        ,rFunction.name AS role_function
-        ,rFunction.[system_defined_name]
-        ,ROW_NUMBER() OVER(PARTITION BY eContract.contract_id ORDER BY eContract.is_primary DESC) AS primary_contact
-    FROM aggregated_odessa_dim_employees_assigned_to_contract AS eContract
-        JOIN aggregated_odessa_dim_employees_assigned_to_party AS eParty ON eContract.[employee_assigned_to_party_id] = eParty.[bk_aggregated_dim_employees_assigned_to_party_id]
-        JOIN aggregated_odessa_dim_role_function AS rFunction ON eParty.[role_function_id] = rFunction.[bk_aggregated_dim_role_function_id] 
-        JOIN aggregated_odessa_dim_user AS Users ON eParty.[employee_id] = Users.[bk_aggregated_dim_user_id]
-    WHERE eContract.current_flag = 1
-        AND eParty.current_flag = 1
-        AND rFunction.current_flag = 1
-        AND Users.current_flag = 1
-) AS a
-WHERE a.primary_contact = 1
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_customer_assignments];
-GO
-
-
-
-CREATE OR ALTER   VIEW [dbo].[vw_customer_assignments]
-AS 
-
-With customer AS (
-SELECT bk_aggregated_dim_customer_id, party_name FROM aggregated_odessa_dim_customer
-WHERE current_flag = 1 AND status = 'Active'
-), sales_rep as (
-SELECT DISTINCT
-EmployeeAssigned.employee_id,
-EmployeeAssigned.party_id AS customer_id,
-DimUser.full_name AS employee_name,
-RoleFunction.name AS role_function,
-RoleFunction.system_defined_name
-
-FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
-JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Sales Rep'
-JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
-
-WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1
-), account_manager AS (
-SELECT DISTINCT
-EmployeeAssigned.employee_id,
-EmployeeAssigned.party_id AS customer_id,
-DimUser.full_name AS employee_name,
-RoleFunction.name AS role_function,
-RoleFunction.system_defined_name
-
-FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
-JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Account Manager'
-JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
-
-WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1
-)
-
-SELECT 
-bk_aggregated_dim_customer_id AS customer_id,
-party_name,
-COALESCE(sr.employee_name, ac.employee_name) AS employee_name,
-COALESCE(sr.role_function, ac.role_function) AS role_function,
-COALESCE(sr.system_defined_name, ac.system_defined_name) AS system_defined_name
-FROM customer AS c
-LEFT JOIN sales_rep AS sr on c.bk_aggregated_dim_customer_id = sr.customer_id
-LEFT JOIN account_manager AS ac ON c.bk_aggregated_dim_customer_id = ac.customer_id
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_credit_application];
-GO
-
-CREATE VIEW [dbo].[vw_credit_application]
-AS 
-SELECT *
-FROM
-(
-SELECT 
-		cProfile.master_lease_agreement
-		,cProfile.line_type
-		,cProfile.aag_contract_type
-
-		,cProfile.pre_approval_loc_id
-		,cProfile.line_of_credit_id
-		,opportunity.bk_aggregated_dim_opportunity_id AS opportunity_id
-		,opportunity.customer_id
-		,cProfile.bk_aggregated_dim_credit_profile_id AS credit_profile_id
-		,opportunity.number AS application_id
-		,opportunity.number AS opportunity_number			
-		,cProfile.number AS credit_profile_number	
-
-		,opportunity.report_status 
-		,cProfile.status AS loc_status
-		,cProfile.status
-		,application.status AS application_status		
-		,cProfile.status_date
-
-		,cProfile.requested_amount_amount
-		,cProfile.approved_amount_amount
-		,cProfile.used_amount_amount
-
-		,opportunityUser.full_name AS application_owner
-		,customer.[company_name]
-		,customer.[sales_force_customer_name]
-        ,crStructure.bk_aggregated_dim_credit_approved_structure_id AS credit_approved_structure_id
-		,crStructure.expected_commencement_date
-		,crStructure.[deal_product_type_id]
-		,crStructure.customer_term
-		,crStructure.payment_frequency
-		,crStructure.amount_amount
-		,crStructure.number_of_inception_payments
-		,crStructure.estimated_balloon_amount_amount
-		,crStructure.[rent_amount]
-		,center.[description] AS cost_centre
-		,cProfile.created_time
-		,cProfile.updated_time
-		,cProfile.[master_lease_agreement] AS 'AAG Contract Number'    
-		,cProfile.[notice_period]   
-		,cProfile.[is_all_assets_taken_down]
-		,cProfile.[is_pre_approved]
-		,cProfile.[is_pre_approval]
-		,application.[submitted_to_credit_date]  
-		,application.created_time AS application_created_date
-
-		,productType.[transaction_type]
-
-		,opportunityUser.full_name AS opportunity_owner  
-		,assignedUser.full_name AS assigned_user
-		,applicationUser.full_name AS application_created_by 
-		,updateUser.full_name AS updated_by	
-		,salesRep.[employee_name] AS primary_sales_rep   
-		,creditUser.full_name AS loc_created_by 	
-
-		,lEntity.[legal_entity_number]
-		,lEntity.[name] AS legal_entity
-		,branch.[branch_name]
-		,lBusiness.[name] AS line_of_business
-		,ISNULL(asset.equipment_count,0) AS equipment_count				
-
-FROM aggregated_odessa_dim_opportunity AS opportunity 
-LEFT JOIN  aggregated_odessa_dim_credit_profile AS cProfile ON opportunity.bk_aggregated_dim_opportunity_id = cProfile.opportunity_id AND cProfile.current_flag = 1
-LEFT JOIN  aggregated_odessa_dim_customer AS customer ON customer.bk_aggregated_dim_customer_id = opportunity.customer_id AND customer.current_flag = 1
-LEFT JOIN  aggregated_odessa_dim_credit_approved_structure AS crStructure ON crStructure.credit_profile_id = cProfile.bk_aggregated_dim_credit_profile_id AND crStructure.current_flag = 1 AND crStructure.number = 1
-LEFT JOIN  aggregated_odessa_dim_cost_center AS center ON center.[bk_aggregated_dim_cost_center_id] = opportunity.[cost_center_id] AND center.current_flag = 1
-LEFT JOIN  aggregated_odessa_dim_user opportunityUser ON opportunity.created_by_id = opportunityUser.[bk_aggregated_dim_user_id] AND opportunityUser.current_flag = 1
-LEFT JOIN  aggregated_odessa_dim_user AS assignedUser ON cProfile.[assigned_to_user_id] = assignedUser.[bk_aggregated_dim_user_id] AND assignedUser.current_flag = 1  
-LEFT JOIN  aggregated_odessa_dim_user AS updateUser ON cProfile.[updated_by_id] = updateUser.[bk_aggregated_dim_user_id] AND updateUser.current_flag = 1 
-
-LEFT JOIN  aggregated_odessa_dim_deal_product_type AS productType ON productType.[bk_aggregated_dim_deal_product_type_id] = crStructure.[deal_product_type_id] AND productType.current_flag = 1
-LEFT JOIN  aggregated_odessa_dim_legal_entity AS lEntity ON lEntity.[bk_aggregated_dim_legal_entity_id] = opportunity.[legal_entity_id] AND lEntity.current_flag = 1
-LEFT JOIN  aggregated_odessa_dim_branch AS branch ON opportunity.branch_id = branch.[bk_aggregated_dim_branch_id] AND branch.current_flag = 1 
-LEFT JOIN  aggregated_odessa_dim_line_of_business AS lBusiness ON opportunity.[lineof_business_id] = lBusiness.[bk_aggregated_dim_line_of_business_id] AND lBusiness.current_flag = 1
-LEFT JOIN  
-		(
-			SELECT credit_application_id
-				   ,COUNT(asset_id) AS equipment_count
-			FROM aggregated_odessa_dim_credit_application_asset AS asset
-			WHERE asset.current_flag = 1        
-			GROUP BY credit_application_id
-		) AS asset
-		ON asset.[credit_application_id] = cProfile.[opportunity_id]
-LEFT JOIN aggregated_odessa_dim_credit_application AS application ON application.[bk_aggregated_dim_credit_application_id] = opportunity.bk_aggregated_dim_opportunity_id AND application.current_flag = 1
-LEFT JOIN  aggregated_odessa_dim_user AS applicationUser ON application.[created_by_id] = applicationUser.[bk_aggregated_dim_user_id] AND applicationUser.current_flag = 1
-LEFT JOIN  aggregated_odessa_dim_user AS creditUser ON cProfile.[created_by_id] = creditUser.[bk_aggregated_dim_user_id] AND creditUser.current_flag = 1
-LEFT JOIN vw_customer_assignments AS salesRep ON salesRep.customer_id = customer.bk_aggregated_dim_customer_id AND salesRep.system_defined_name = 'SalesRep'
-WHERE opportunity.current_flag = 1
-) AS a
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_lease_finance_detail];
-GO
-
-
-CREATE VIEW dbo.vw_lease_finance_detail
-AS
-SELECT    *
-FROM
-(
-	SELECT  
-					fDetail.booked_residual_amount,
-					fDetail.regular_payment_amount_amount,
-					fDetail.total_down_payment_amount,
-					fDetail.bank_yield_spread,
-					fDetail.total_yield,
-					fDetail.rent_amount,
-					fDetail.net_investment_amount,
-					IRdetail.base_rate,
-					IRdetail.spread,
-					IRdetail.interest_rate,	
-					fDetail.total_upfront_tax_amount_amount,
-					fDetail.true_down_payment_amount,
-					fDetail.vat_down_payment_amount,
-					fDetail.number_of_payments,
-					fDetail.maturity_payment_amount,
-					fDetail.down_payment_amount,
-					fDetail.florida_stamp_tax_amount,
-					fDetail.fmv_amount,
-					fDetail.inception_payment_amount,
-					fDetail.interim_rent_amount,
-					dFinance.tax_deferral_numberof_payments,
-					dFinance.tax_deferral_payment_number,
-					dFinance.is_over_term_lease,										
-					fDetail.cost_of_funds,
-					fDetail.deferred_tax_balance_amount,
-					fDetail.capitalized_sales_tax_down_payment_amount,
-					fDetail.calculated_tax_deferral_amount_amount,
-					fDetail.sk_aggregated_dim_date_maturity_date,
-					fDetail.sk_aggregated_dim_date_commencement_date,
-					fDetail.sk_aggregated_dim_line_of_business,
-					fDetail.sk_aggregated_dim_legal_entity,
-					fDetail.sk_aggregated_dim_customer,
-					fDetail.sk_aggregated_dim_cost_center,
-					fDetail.sk_aggregated_dim_date_post_date,
-					fDetail.sk_aggregated_dim_date_record,
-					fDetail.sk_aggregated_dim_time_record,
-					ROW_NUMBER() OVER(PARTITION BY contract.bk_aggregated_dim_contract_id ORDER BY fDetail.sk_aggregated_dim_contract DESC, fDetail.sk_aggregated_dim_customer DESC, leaseIR.sk_aggregated_dim_lease_interest_rate DESC, fDetail.sk_aggregated_dim_date_record DESC, fDetail.sk_aggregated_dim_time_record DESC) AS current_contract_detail,		
-					ROW_NUMBER() OVER(PARTITION BY fDetail.sk_aggregated_dim_lease_finance ORDER BY fDetail.sk_aggregated_dim_contract DESC, fDetail.sk_aggregated_dim_customer DESC, leaseIR.sk_aggregated_dim_lease_interest_rate DESC, fDetail.sk_aggregated_dim_date_record DESC, fDetail.sk_aggregated_dim_time_record DESC) AS current_lease_detail,
-					fDetail.sk_aggregated_dim_contract AS sk_current_fact_contract,
-                    contract.sk_aggregated_dim_contract AS sk_current_dim_contract,
-
-					fDetail.sk_aggregated_dim_customer AS sk_current_fact_customer,
-                    customerCurrent.sk_aggregated_dim_customer AS sk_current_dim_customer,
-					dFinance.sk_aggregated_dim_lease_finance AS sk_current_dim_lease_finance,
-
-                    fDetail.sk_aggregated_dim_contract,
-					fDetail.sk_aggregated_dim_branch,
-					fDetail.sk_aggregated_dim_lease_finance,
-                    contract.bk_aggregated_dim_contract_id AS contract_id ,
-                    contract.sequence_number,
-                    leaseIR.interest_rate_detail_id,
-                    IRdetail.bk_aggregated_dim_interest_rate_detail_id		                 
-
-	FROM aggregated_odessa_fact_lease_finance_detail AS fDetail
-    JOIN aggregated_odessa_dim_lease_finance AS dFinance ON dFinance.sk_aggregated_dim_lease_finance = fDetail.sk_aggregated_dim_lease_finance AND dFinance.is_current = 1 AND dFinance.current_flag = 1
-    LEFT JOIN aggregated_odessa_dim_lease_interest_rate AS leaseIR ON leaseIR.lease_finance_detail_id = dFinance.bk_aggregated_dim_lease_finance_id AND leaseIR.current_flag = 1
-	LEFT JOIN aggregated_odessa_dim_interest_rate_detail AS IRdetail ON IRdetail.bk_aggregated_dim_interest_rate_detail_id = leaseIR.interest_rate_detail_id AND IRdetail.is_active = 1 AND IRdetail.current_flag = 1 
-    JOIN aggregated_odessa_dim_contract AS contract ON contract.sk_aggregated_dim_contract = fDetail.sk_aggregated_dim_contract AND contract.current_flag = 1
-    JOIN aggregated_odessa_dim_customer AS customer ON customer.sk_aggregated_dim_customer = fDetail.sk_aggregated_dim_customer 
-    LEFT JOIN aggregated_odessa_dim_customer AS customerCurrent ON customerCurrent.bk_aggregated_dim_customer_id = customer.bk_aggregated_dim_customer_id AND customerCurrent.current_flag = 1    
-	JOIN aggregated_odessa_dim_branch AS branch ON branch.sk_aggregated_dim_branch = fDetail.sk_aggregated_dim_branch  AND branch.current_flag = 1	
-    JOIN aggregated_odessa_dim_line_of_business AS lob ON lob.sk_aggregated_dim_line_of_business = fDetail.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
-    JOIN aggregated_odessa_dim_cost_center AS cc ON cc.sk_aggregated_dim_cost_center = fDetail.sk_aggregated_dim_cost_center AND cc.current_flag = 1 
-) AS a 
-WHERE a.current_contract_detail = 1
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[vw_leases_inc_history];
-GO
-
-
-DROP VIEW if EXISTS [dbo].[vw_lease_payments];
-GO
-
-CREATE VIEW dbo.vw_lease_payments
-AS
-SELECT *
-FROM
-(
-SELECT 
-			payments.sk_aggregated_dim_lease_payment_schedule,
-		    payments.payment_number,
-			payments.begin_balance_amount,			
-			payments.lease_finance_detail_id,
-			payments.non_rental_tax_amount,
-			payments.original_stub_payment_amount_amount,
-			payments.pre_capitalization_payment_amount,
-			payments.deferred_capitalized_sales_tax_amount,
-			payments.non_rental_amount_amount,
-			payments.customer_id,
-			payments.vat_amount_amount,
-			payments.interest_accrued_amount,
-			payments.receivable_adjustment_amount_amount,
-			payments.actual_payment_amount,
-			payments.principal_amount,
-			payments.interest_amount,
-			payments.payment_structure,
-			payments.amount_amount,
-			payments.payment_type,
-			payments.end_balance_amount,
-			payments.due_date,
-			payments.start_date,
-			payments.end_date,
-			payments.disbursement_amount,
-			payments.bk_aggregated_dim_lease_payment_schedule_id AS income_stream_id,
-			finance.bk_aggregated_dim_lease_finance_id,
-			contractCurrent.status AS booking_status,
-			finance.approval_status,
-			finance.term_in_months,
-			finance.total_economic_life_in_months,
-			finance.total_economic_life_test_result,
-			finance.compounding_frequency,
-			finance.profit_loss_status,
-			finance.ninety_percent_test_result_passed,
-			finance.tax_deferral_start_payment_number,
-			finance.remaining_economic_life_in_months,
-			finance.investment_modified_after_payment,
-			finance.remaining_lease_term_in_months,
-			finance.payment_frequency_days,
-			finance.number_of_over_term_payments,
-			finance.maturity_date_basis,
-			finance.lease_contract_type,
-			finance.purchase_option,	
-			finance.payment_frequency,
-			finance.is_advance,
-			finance.due_day,
-			finance.aag_contract_type,
-			postDt.bk_aggregated_dim_date AS post_date,
-			maturityDt.bk_aggregated_dim_date AS maturity_date,	
-			commDt.bk_aggregated_dim_date AS commencement_date,					
-			contractCurrent.bk_aggregated_dim_contract_id AS contract_id,
-			contractCurrent.sequence_number,
-			contractCurrent.alias,
-			contractCurrent.status,
-			contractCurrent.report_status,			
-			customer.company_name,
-			productType.transaction_type AS deal_type,
-			productType.code AS deal_type_code,
-			ROW_NUMBER() OVER(PARTITION BY contractCurrent.bk_aggregated_dim_contract_id ORDER BY payments.sk_aggregated_dim_lease_payment_schedule ASC) AS schedule_number
-
-
-FROM vw_lease_finance_detail AS fDetail
-JOIN aggregated_odessa_dim_lease_finance AS finance ON finance.sk_aggregated_dim_lease_finance = fDetail.sk_aggregated_dim_lease_finance 
-JOIN aggregated_odessa_dim_lease_payment_schedule AS payments ON payments.lease_finance_detail_id = finance.bk_aggregated_dim_lease_finance_id
-JOIN aggregated_odessa_dim_date AS postDt ON postDt.sk_aggregated_dim_date = fDetail.sk_aggregated_dim_date_post_date
-JOIN aggregated_odessa_dim_date AS maturityDt ON maturityDt.sk_aggregated_dim_date = fDetail.sk_aggregated_dim_date_maturity_date
-JOIN aggregated_odessa_dim_contract AS contractCurrent ON contractCurrent.sk_aggregated_dim_contract = fDetail.sk_current_dim_contract
-JOIN aggregated_odessa_dim_date AS commDt ON commDt.sk_aggregated_dim_date = fDetail.sk_aggregated_dim_date_commencement_date	
-JOIN aggregated_odessa_dim_branch AS branch ON branch.sk_aggregated_dim_branch = fDetail.sk_aggregated_dim_branch 
-JOIN aggregated_odessa_dim_line_of_business AS lob ON lob.sk_aggregated_dim_line_of_business = fDetail.sk_aggregated_dim_line_of_business 
-JOIN aggregated_odessa_dim_legal_entity AS legalE ON legalE.sk_aggregated_dim_legal_entity = fDetail.sk_aggregated_dim_legal_entity 
-JOIN aggregated_odessa_dim_customer AS customer ON customer.sk_aggregated_dim_customer = fDetail.sk_current_dim_customer 
-JOIN aggregated_odessa_dim_cost_center AS center ON center.sk_aggregated_dim_cost_center = fDetail.sk_aggregated_dim_cost_center 
-JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = contractCurrent.deal_product_type_id
-WHERE payments.current_flag = 1 AND payments.is_active = 1 AND fDetail.current_contract_detail = 1
-) as a
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_lease_payments_current];
-GO
-
-CREATE VIEW [dbo].[vw_lease_payments_current]
-AS
-SELECT 
-         payments.*
-        ,ROW_NUMBER() OVER(PARTITION BY payments.contract_id ORDER BY payments.sk_aggregated_dim_lease_payment_schedule DESC) AS latest_schedule
-        ,ROW_NUMBER() OVER(PARTITION BY payments.contract_id ORDER BY payments.sk_aggregated_dim_lease_payment_schedule ASC) AS initial_schedule	
-    FROM vw_lease_payments AS payments
-    WHERE due_date <= GETDATE()
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_lease_payment_vat_deferrals];
-GO
-
-CREATE VIEW [dbo].[vw_lease_payment_vat_deferrals]
-AS
-SELECT 
-taxesDeferrals.[due_date] 
-,taxesDeferrals.[contract_id] 
-,deferred_capitalized_sales_tax_amount
-,ROW_NUMBER() OVER(PARTITION BY taxesDeferrals.contract_id ORDER BY taxesDeferrals.due_date DESC) AS latest_due_date 
-FROM vw_lease_payments AS taxesDeferrals
-JOIN
-(
-    SELECT 
-        MIN(due_date) AS due_date
-        ,[contract_id] 
-    FROM vw_lease_payments
-    GROUP BY contract_id
-) AS payments ON payments.contract_id = taxesDeferrals.contract_id
-WHERE deferred_capitalized_sales_tax_amount <> 0
-AND taxesDeferrals.due_date <> payments.due_date
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_lease_asset_all];
-GO
-
-CREATE VIEW dbo.vw_lease_asset_all
-AS
-SELECT DISTINCT
-asset.nbv_amount,
-asset.customer_cost_amount,
-asset.specific_cost_adjustment_amount,
-asset.rent_amount,
-asset.accumulated_depreciation_amount,
-asset.fmv_amount,
-asset.initial_customer_cost_amount,
-asset.initial_nbv_amount,
-asset.capitalized_additional_charge_amount,
-asset.sk_aggregated_dim_customer,
-asset.sk_aggregated_dim_date_value_as_of_date,
-asset.sk_aggregated_dim_date_termination_date,	
-asset.booked_residual_amount,
-asset.rv_recap_amount_amount,
-asset.bk_aggregated_dim_asset_id AS asset_id,
-asset.bk_aggregated_dim_asset_id,
-asset.is_eligible_for_billing,
-asset.is_approved,
-asset.bk_aggregated_dim_contract_id AS contract_id,
-asset.sequence_number,
-asset.status,
-asset.bk_aggregated_dim_customer_id AS customer_id,
-td.[bk_aggregated_dim_date] as termination_date,
-ISNULL(charges.charges,0) AS asset_budget_value,
-ISNULL(charges.charges,0) + ISNULL(asset.rent_amount,0) AS total_charge_to_customer
-FROM (
-SELECT 
-con.bk_aggregated_dim_contract_id,
-con.sequence_number,
-con.status,
-cu.bk_aggregated_dim_customer_id,
-a.bk_aggregated_dim_asset_id,
-ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
-fla.sk_aggregated_dim_date_termination_date,
-fla.nbv_amount,
-fla.customer_cost_amount,
-fla.specific_cost_adjustment_amount,
-fla.rent_amount,
-fla.accumulated_depreciation_amount,
-fla.fmv_amount,
-fla.initial_customer_cost_amount,
-fla.initial_nbv_amount,
-fla.capitalized_additional_charge_amount,
-fla.sk_aggregated_dim_customer,
-fla.sk_aggregated_dim_date_value_as_of_date,
-fla.booked_residual_amount,
-fla.rv_recap_amount_amount,
-dla.is_eligible_for_billing,
-dla.is_approved
-
-FROM aggregated_odessa_dim_contract AS con
-JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset and dla.is_approved = 1
-JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
-LEFT JOIN aggregated_odessa_dim_vehicle_detail AS vd ON a.bk_aggregated_dim_asset_id = vd.bk_aggregated_dim_vehicle_detail_id
-JOIN aggregated_odessa_dim_lease_finance AS lf ON fla.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1
-JOIN aggregated_odessa_dim_customer AS cu ON fla.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer
-LEFT JOIN aggregated_odessa_dim_branch AS b ON fla.[sk_aggregated_dim_branch] = b.sk_aggregated_dim_branch
-LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
-        WHERE con.current_flag = 1
-    ) AS asset
-LEFT JOIN aggregated_odessa_dim_date as td ON asset.sk_aggregated_dim_date_termination_date = td.sk_aggregated_dim_date 
-LEFT JOIN vw_asset_additional_charges AS charges ON charges.contract_id = asset.bk_aggregated_dim_contract_id AND charges.asset_id = asset.bk_aggregated_dim_asset_id       
-
-WHERE asset.rn = 1
-;
-GO
-
-
-
-DROP VIEW if EXISTS [dbo].[vw_lease_asset_current];
-GO
-
-CREATE VIEW [dbo].[vw_lease_asset_current]
-AS
-SELECT *
-FROM vw_lease_asset_all 
-WHERE termination_date = '9999-01-01'
-AND status <> 'Inactive' 
-;
-
-GO
-
-
-
-DROP VIEW if EXISTS [dbo].[vw_additional_charges_detail];
-GO
-
-CREATE VIEW [dbo].[vw_additional_charges_detail]
-AS
-SELECT 
-    a.sequence_number 
-    ,a.sundry_charge_amount AS charges 
-    ,a.vat_amount
-    ,a.contract_id
-    ,a.asset_id
-    ,a.charge_name AS charge_description
-FROM
-(
-SELECT 
-    C.sequence_number
-    ,C.bk_aggregated_dim_contract_id AS contract_id
-    ,RC.name AS charge_name
-    ,SRPD.asset_id
-    ,SUM(SRPD.amount_amount) AS sundry_charge_amount
-    ,SUM(SRPD.vat_amount_amount) AS vat_amount
- 
-FROM aggregated_odessa_dim_sundry_recurring SR
-JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS SRPD ON SR.bk_aggregated_dim_sundry_recurring_id = SRPD.sundry_recurring_id AND SRPD.current_flag = 1
-JOIN aggregated_odessa_dim_contract C ON SR.contract_id = C.bk_aggregated_dim_contract_id AND C.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_receivable_code RC ON SR.receivable_code_id = RC.bk_aggregated_dim_receivable_code_id AND RC.current_flag = 1
-WHERE SRPD.current_flag = 1
-    AND SR.current_flag = 1
-    AND C.current_flag = 1
-    AND RC.current_flag = 1
-    AND SR.is_asset_based = 1
-GROUP BY C.sequence_number ,C.bk_aggregated_dim_contract_id, SRPD.asset_id, RC.name
-) AS a
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_lease_additional_charges];
-GO
-
-CREATE VIEW [dbo].[vw_lease_additional_charges]
-AS
-SELECT      
-		SUM([charges]) AS charges,
-		SUM([vat_amount]) AS vat_amount,
-		[contract_id],
-		[sequence_number]		
-FROM vw_additional_charges_detail AS chgDetail
-GROUP BY 
-		[sequence_number],
-		[contract_id]
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_asset_additional_charges];
-GO
-
-
-
-CREATE VIEW [dbo].[vw_asset_additional_charges]
-AS
-SELECT      
-			SUM([charges]) AS charges,
-			SUM([vat_amount]) AS vat_amount,
-			[sequence_number],
-			[contract_id],
-			[asset_id]
-FROM vw_additional_charges_detail
-GROUP BY 
-			[contract_id],
-			[sequence_number],
-			[asset_id]
-;
-GO
-
-
-
-DROP VIEW if EXISTS [dbo].[vw_sundry_details];
-GO
-
-
-CREATE VIEW [dbo].[vw_sundry_details]
-AS
-
-SELECT DISTINCT 
-
-	sundry.[bk_aggregated_dim_sundry_id]
-	,sundry.[sundry_type]
-	,sundry.[amount_amount]
-	,sundry.[amount_currency]
-	,sundry.[receivable_due_date]
-	--,sundry.[start_date]
-	--,sundry.[end_date]
-	,sundry.[created_time]
-	,sundry.[sk_aggregated_dim_sundry]
-	,sundry.[r2_c_invoice_number]
-	,sundry.[projected_vat_amount_amount]
-	,sundry.[payable_amount_amount]
-	,sundry.[cost_center_id]
-	,sundry.[branch_id]
-	,sundry.[lineof_business_id]
-	,sundry.[bill_to_id]
-	,sundry.[payable_code_id]
-	,sundry.[contract_id]
-	,sundry.[customer_id]
-	,sundry.vendor_id
-	,sundry.[is_active]
-	,sundry.[payable_due_date]
-	,sundry.[invoice_comment]
-    ,sundry.amount_amount + sundry.[projected_vat_amount_amount] AS total_due_amount
-	,taxes.[balance_amount]
-	,ReceivableCode.name AS Recharge_Fee_Name
-	,PayableCode.name AS Expense_Fee_Name
-	,Customer.company_name
-	,SundryDetail.asset_id
-
-
-FROM aggregated_odessa_dim_sundry AS sundry
-LEFT JOIN aggregated_odessa_dim_receivable AS receivables ON receivables.[bk_aggregated_dim_receivable_id] = sundry.[receivable_id] AND receivables.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON sundry.[receivable_code_id] = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1 AND ReceivableCode.is_active = 1
-LEFT JOIN aggregated_odessa_dim_payable_code AS PayableCode ON sundry.payable_code_id = PayableCode.[bk_aggregated_dim_payable_code_id] AND PayableCode.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_receivable_tax AS taxes ON taxes.[receivable_id] = receivables.[bk_aggregated_dim_receivable_id] AND taxes.current_flag = 1 AND taxes.is_active = 1
-LEFT JOIN aggregated_odessa_dim_customer AS Customer ON sundry.customer_id = Customer.[bk_aggregated_dim_customer_id] AND Customer.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_sundry_detail AS SundryDetail ON sundry.[bk_aggregated_dim_sundry_id] = SundryDetail.[sundry_id] AND SundryDetail.current_flag = 1 AND SundryDetail.is_active = 1
-
-where sundry.current_flag = 1 AND sundry.is_active = 1
-
-
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[vw_sundry];
-GO
-
-CREATE VIEW dbo.vw_sundry
-AS
-SELECT * --COUNT(*)
-FROM
-(
-SELECT     
-			sundry.amount_amount,
-			sundry.bk_aggregated_dim_sundry_id,
-			sundry.entity_type,
-			sundry.payable_tax_detail_id,
-			sundry.r2_c_invoice_number,
-			sundry.projected_vat_amount_amount,
-			sundry.status,
-			sundry.cost_center_id,
-			sundry.branch_id,
-			sundry.lineof_business_id,
-			sundry.customer_id,
-			sundry.receivable_id,
-			sundry.currency_id,
-			sundry.receivable_code_id,
-			sundry.bill_to_id,
-			sundry.legal_entity_id,
-			sundry.contract_id,
-			sundry.sundry_type,
-			sundry.receivable_due_date,
-			sundry.invoice_comment,
-			sundry.[po_number],
-			sundry.[customer_po_number],
-			sundry.[created_time] AS sundry_created_date,
-
-			rCode.name receivable_code,
-		    rCode.name AS charge_name,
-			invoiceReceivable.invoice_number,
-			contract.sequence_number,
-			contract.alias AS aag_contract_number,
-			pType.transaction_type AS product_name2,
-			customer.company_name,
-			taxes.balance_amount AS tax_balance_amount2,
-			
-			invoiceReceivable.invoice_date,
-			invoiceReceivable.[due_date] AS invoice_due_date,
-			invoiceReceivable.[product_name],
-			invoiceReceivable.[bk_aggregated_dim_receivable_invoice_id] AS invoice_id,
-			invoiceReceivable.receivable_type,
-
-			invoiceReceivable.[receivable_amount_amount],
-			invoiceReceivable.[tax_balance_amount],
-			invoiceReceivable.[effective_tax_balance_amount],
-			invoiceReceivable.[effective_balance_amount],
-			invoiceReceivable.balance_amount,
-    		sundry.amount_amount + sundry.[projected_vat_amount_amount] AS total_due_amount,
-    		taxes.[balance_amount] + invoiceReceivable.balance_amount AS total_balance_amount						
-
-FROM aggregated_odessa_dim_sundry AS sundry
-LEFT JOIN aggregated_odessa_dim_receivable_code AS rCode ON rCode.bk_aggregated_dim_receivable_code_id = sundry.receivable_code_id AND rCode.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_contract AS contract ON contract.bk_aggregated_dim_contract_id = sundry.contract_id AND contract.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS pType ON pType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND pType.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_customer AS customer ON sundry.customer_id = customer.bk_aggregated_dim_customer_id AND customer.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_receivable AS receivables ON receivables.bk_aggregated_dim_receivable_id = sundry.receivable_id AND receivables.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_receivable_tax AS taxes ON taxes.receivable_id = receivables.bk_aggregated_dim_receivable_id AND taxes.current_flag = 1
-LEFT JOIN vw_receivables AS invoiceReceivable ON invoiceReceivable.receivable_id = receivables.bk_aggregated_dim_receivable_id
-) AS a
-;
-GO
-
-
-
-DROP VIEW if EXISTS [dbo].[vw_asset_rentals];
-GO
-
-CREATE OR ALTER VIEW [dbo].[vw_asset_rentals]
-AS 
-SELECT a.*, COALESCE(a.f_o_c, a.leased, a.in_application, 'No') AS [Utilised]  
-FROM
-(
-SELECT 
-    asset.asset_id
-    ,contracts.company_name AS lease_company_name
-    ,contracts.branch_name 
-    ,contracts.[sequence_number]
-	,contracts.is_migrated
-    ,asset.[asset_status]
-    ,asset.alias AS [registration_number]
-    ,[serial_number]
-    ,asset.[description]
-    ,contracts.[cost_center] AS cost_centre
-    ,lease.total_charge_to_customer
-    ,asset.term
-    ,asset_contract_type
-    ,asset.[asset_sub_type]
-    ,contracts.product_name AS lease_product_name
-    ,asset.[make_name]
-    ,asset.[model_year]
-    ,asset.gvw
-    ,asset.[service_intervals_vehicle]
-    ,commDt.bk_aggregated_dim_date AS commenced_date
-    ,contracts.lease_start_date	
-    ,matDt.bk_aggregated_dim_date AS maturity_date
-    ,asset.[depreciation_value]
-    ,lease.rent_amount 
-    ,contracts.[customer_term_in_months] AS lease_term
-    ,asset.equipment_nbv   
-
-    ,asset.oal
-    ,asset.[rental_availability_status] 
-    ,asset.route_into_rental_fleet
-    ,asset.[body_type] 
-    ,asset.[manufacturer_name]
-    ,asset.city
-    ,asset.legal_entity_number
-    ,asset.[asset_category]
-    ,asset.category_name
-    ,asset.location_city 
-    ,asset.[collateral_id]
-    ,asset.model_name    
-
-    ,asset.cost_basis_amount
-    ,appAsset.combined_opp_number AS [application_id]
-    ,appAsset.stage AS application_stage
-    ,appAsset.combined_created_by AS created_by
-    ,appAsset.combined_product_name AS application_product_name
-    ,appAsset.loc_status
-    ,appAsset.app_status AS application_status
-    ,appAsset.combined_company_name AS application_company_name
-    ,CASE WHEN appAsset.bk_aggregated_dim_asset_id IS NOT NULL THEN 'In Application' ELSE NULL END AS in_application    
-    ,asset.body_description 
-    ,asset.[vehicle_service_status] 
-    ,asset.product_name AS vehicle_type
-    ,asset.in_service_date 
-    ,asset.[mot_passed_date]
-    ,asset.[allocated_status] 
-    ,asset.[reserved_by]
-    ,asset.[reserved_for] 
-    ,asset.[reserve_date]
-    ,asset.dvsr_star_rating
-    ,asset.dhl_compliant
-    ,contracts.status AS lease_status
-    ,CASE WHEN asset.asset_status = 'Leased' AND LOWER(contracts.status) = 'commenced' THEN 'Yes' ELSE NULL END AS leased
-    --,CASE WHEN asset.asset_status <> 'Leased' THEN 'Available' ELSE NULL END AS available
-    ,CASE WHEN asset.asset_status = 'Leased' AND LOWER(contracts.status) = 'commenced' AND contracts.product_name = 'Rental' AND lease.total_charge_to_customer = 0.01 THEN 'Yes (FoC)' ELSE NULL END AS f_o_c
-FROM vw_asset AS asset
-LEFT JOIN vw_lease_asset_current AS lease ON asset.asset_id = lease.asset_id AND lease.status IN ('Pending','Commenced','InstallingAssets')
-LEFT JOIN vw_lease_contracts AS contracts ON contracts.contract_id = lease.contract_id
-LEFT JOIN aggregated_odessa_dim_date AS commDt on commDt.[sk_aggregated_dim_date] = contracts.lease_commencement_date
-LEFT JOIN aggregated_odessa_dim_date AS matDt on matDt.[sk_aggregated_dim_date] = contracts.lease_maturity_date
-LEFT JOIN vw_in_application AS appAsset ON appAsset.bk_aggregated_dim_asset_id = asset.asset_id 
-WHERE asset.[asset_contract_type] = 'Rental'
-AND asset.asset_status IN ('Leased','Inventory','AwaitingDelivery')
-) as a
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[rpt_rental_availability_report];
-GO
-
-CREATE VIEW [dbo].[rpt_rental_availability_report]
-AS
-SELECT 
-      ISNULL(asset.collateral_id,'-') AS 'Collateral ID' ----TBC
-      ,asset.asset_id
-      ,asset.registration_number AS 'Registration Number'    
-      ,asset.[manufacturer_name] AS 'MAKE'
-      ,asset.[make_name] AS 'Model Range'
-      ,asset.model_name AS 'Model'
-      ,asset.[description] AS 'Equipment Description' ----TBC
-      ,asset.[location_city] AS 'Current Location'  
-      ,asset.[gvw] AS 'GVW'  
-      ,asset.body_description AS 'Body Type'
-      ,asset.[vehicle_service_status] AS 'Vehicle Service Status'
-      ,asset.in_service_date AS 'Next Service date'  ---TBC
-      ,DATEADD(YEAR,1,asset.[mot_passed_date]) AS 'Mot Expiry Date'
-      ,asset.[asset_contract_type] AS 'Vehicle Type' ---TBC 
-      ,asset.asset_status AS 'Status' 
-       ,CASE WHEN asset.in_application IS NOT NULL THEN 1 ELSE 0 END AS 'In Application'           
-      ,asset.[allocated_status] AS 'Allocated Status'
-      ,asset.[reserved_by] AS 'Reserved By' 
-      ,asset.[reserved_for] AS 'Reserved For' 
-      ,asset.[reserve_date] AS 'Reserve Date'---- TBC   
-      ,asset.rental_availability_status AS 'Rental Availability Status' 
-      ,asset.dvsr_star_rating AS 'DVSR Star Rating'   
-      ,asset.dhl_compliant AS 'DHL Compliant'
-      ,asset.legal_entity_number AS 'Company'  
-      ,asset.asset_category     
-FROM
-vw_asset_rentals AS asset
-WHERE asset.category_name = 'Commercial Vehicles'
-AND asset.Utilised IN ('In_application','Available')
-AND asset.asset_status IN ('Inventory','Leased')
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[Assets Awaiting Delivery];
-GO
-
-
-
-CREATE OR ALTER   VIEW [Assets Awaiting Delivery] AS
-
-SELECT 
-	asset.[registration_number] AS 'Registration Number',
-	asset.[alias],
-	asset.asset_id AS 'Asset Id',
-    asset.aag_fleet_number AS 'AAG Fleet Number',
-    ISNULL(asset.[serial_number],'-') AS 'Chassis Number',
-	ISNULL(asset.collateral_id, '-') AS 'Collateral: ID', 			
-	asset.equipment_id AS 'Equipment Id',
-	asset.delivery_status AS 'Delivery Status',
-    asset.project_number AS 'Project Number',
-    CONVERT(VARCHAR , asset.acquisition_date , 103) AS 'Purchased Date',
-	CONVERT(VARCHAR , asset.original_chassis_delivery_date , 103) AS 'Original Chassis Delivery Date',
-	CONVERT(VARCHAR , asset.original_delivery_date_to_customer , 103) AS 'Original Delivery Date to Customer',
-	CONVERT(VARCHAR , asset.expected_chassis_delivery_date , 103) AS 'Expected Chassis Delivery Date',         	
-	CONVERT(VARCHAR , asset.expected_delivery_date_to_customer ,103) AS 'Expected Delivery Date to Customer',		
-	CONVERT(VARCHAR , asset.actual_chassis_delivery_date , 103) AS 'Actual Chassis Delivery Date',			
-	CONVERT(VARCHAR , asset.actual_delivery_date_to_customer , 103) AS 'Actual Delivery Date to Customer',	
-    asset.model_year AS 'YEAR',
-	asset.product_name AS 'Vehicle Category',
-	asset.manufacturer_name AS 'MAKE',
-	asset.make_name AS 'Model Range',
-	asset.model_name AS 'MODEL',
-    asset.cab AS 'CAB', 							
-	asset.cab_model AS 'Cab Model', 
-	asset.description AS 'Equipment Description',				
-	asset.gearbox AS 'Gearbox',			
-	asset.[emission_code] AS 'Emissions',					
-	CAST (asset.gvw AS INT) AS 'GVW',
-	asset.body_type AS 'Body Type', 				
-	asset.body_builder AS 'Body Builder', 			
-	asset.axle_config AS 'Axle Config', 					
-	asset.bhp AS 'BHP',
-	asset.city AS 'Current Location', 				
-	asset.asset_contract_type AS 'Vehicle Type',
-	asset.asset_status AS 'Status',
-	asset.in_application AS 'In Application',
-	asset.allocated_status AS 'Allocated Status', 		
-	asset.reserved_by AS 'Reserved By', 					
-	asset.reserved_for AS 'Reserved For', 					
-	CONVERT(VARCHAR , asset.reserve_date , 103) AS 'Reserve Date', 			
-	asset.legal_entity_number AS 'Company',
-	asset.residual_amount AS 'Residual Value',	
-	CONVERT(VARCHAR , asset.rv_maturity_date , 103) AS 'RV Maturity Date',				
-	asset.asset_sub_type AS 'Asset Sub Type',					
-	asset.cost_amount AS 'Book Value',						
-	asset.equipment_nbv AS 'Equipment NBV',					
-	asset.overall_asset_life_in_months AS 'Equipment Life in Months',		
-	asset.asset_value_amount AS 'Purchased Price',					
-	CONVERT(VARCHAR , asset.[available_to_aag_from] , 103) AS 'Available to AAG From'
-        
-FROM
-vw_asset AS asset
-
-WHERE asset.asset_status = 'AwaitingDelivery'
-AND asset.asset_type <> 'Ancillary'
-AND asset.asset_contract_type <> 'Backed Off Asset'
-AND asset.[current_flag] = 1
-;
-
-
-GO
-
-
-
-DROP VIEW if EXISTS [dbo].[vw_credit_applications_with_assets];
-GO
-
-
-DROP VIEW if EXISTS [dbo].[vw_asset_rentals_current_application];
-GO
-
-
-DROP VIEW if EXISTS [dbo].[vw_sundry_recurring_charges];
-GO
-
-CREATE VIEW [dbo].[vw_sundry_recurring_charges] 
-AS
-SELECT *
-FROM  
-(
-SELECT DISTINCT 
-		
-			SundryRecurring.[bk_aggregated_dim_sundry_recurring_id],
-			SundryRecurring.[sundry_type],
-			SundryRecurring.[invoice_comment],
-			SundryRecurring.[current_flag],
-			SundryRecurring.[sk_aggregated_dim_sundry_recurring],
-			SundryRecurring.[branch_id],
-			SundryRecurring.[regular_amount_amount],
-			SundryRecurring.[regular_amount_currency],
-			SundryRecurring.[lineof_business_id],
-			SundryRecurring.[status],
-			SundryRecurring.[payable_amount_amount],
-			SundryRecurring.[payable_amount_currency],
-			SundryRecurring.[bill_to_id],
-			SundryRecurring.[vendor_id],
-			SundryRecurring.[legal_entity_id],
-			SundryRecurring.[contract_id],
-			SundryRecurring.[customer_id],
-			SundryRecurring.[receivable_code_id],
-			SundryRecurring.[frequency],
-			SundryRecurring.[due_day],
-			SundryRecurring.[is_asset_based],
-			SundryRecurring.[is_rental_based],
-			SundryRecurring.[number_of_payments],
-
-			ReceivableCode.name,
-			ReceivableCode.name AS 	charge_name,		
-
-    		contract.sequence_number
-
-FROM [aggregated_odessa_dim_sundry_recurring] AS SundryRecurring
-
-LEFT JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON SundryRecurring.[receivable_code_id] = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_contract contract ON SundryRecurring.[contract_id] = contract.[bk_aggregated_dim_contract_id] AND contract.current_flag = 1
-
-WHERE
-
-SundryRecurring.current_flag = 1
-) AS a
-;
-GO
-
-
-
-DROP VIEW if EXISTS [dbo].[vw_sundry_recurring_charge_details];
-GO
-
-CREATE VIEW [dbo].[vw_sundry_recurring_charge_details] 
-AS 
-SELECT *
-from
-(
-    SELECT 
-
-    SundryRecurringDetail.[bk_aggregated_dim_sundry_recurring_payment_detail_id],
-    SundryRecurringDetail.[amount_amount],
-    SundryRecurringDetail.[amount_currency],
-    SundryRecurringDetail.[current_flag],
-    SundryRecurringDetail.[sundry_recurring_id],
-    SundryRecurringDetail.[payable_amount_amount],
-    SundryRecurringDetail.[payable_amount_currency],
-    SundryRecurringDetail.[bill_to_id],
-
-
-    SR.sequence_number,
-    SR.contract_id AS contract_id,
-    SR.charge_name,
-    SundryRecurringDetail.asset_id,
-    SundryRecurringDetail.[amount_amount] sundry_amount,
-    SundryRecurringDetail.[vat_amount_amount] vat_amount,
-    AC.[amount_amount] additional_charge_amount    
-
-    FROM aggregated_odessa_dim_sundry_recurring_payment_detail AS SundryRecurringDetail
-    JOIN vw_sundry_recurring_charges AS SR ON SundryRecurringDetail.[bk_aggregated_dim_sundry_recurring_payment_detail_id] = SR.[bk_aggregated_dim_sundry_recurring_id]
-
-    JOIN aggregated_odessa_dim_lease_finance_additional_charge LFAC ON LFAC.[recurring_sundry_id] = SR.[bk_aggregated_dim_sundry_recurring_id]
-    JOIN aggregated_odessa_dim_additional_charge AS AC ON AC.[bk_aggregated_dim_additional_charge_id] = LFAC.[additional_charge_id]
-  
-    WHERE SundryRecurringDetail.current_flag = 1
-    AND AC.current_flag = 1
-    AND SR.current_flag = 1
-    AND LFAC.current_flag = 1
-   
-) as a
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_sundry_recurring_schedule];
-GO
-
-CREATE VIEW [dbo].[vw_sundry_recurring_schedule] 
-AS 
-(
-	SELECT [sk_aggregated_dim_sundry_recurring_payment_schedule],
-			[current_flag],
-			[payable_amount_currency],
-			[receivable_id],
-			[payable_id],
-			[sundry_recurring_id],
-			[payable_amount_amount],
-			[created_time],
-			[bk_aggregated_dim_sundry_recurring_payment_schedule_id],
-			[due_date],
-			[amount_amount],
-			[amount_currency]
-	FROM [aggregated_odessa_dim_sundry_recurring_payment_schedule]
-	WHERE current_flag = 1
-)
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[vw_asset_in_application];
-GO
-
-
-
-CREATE VIEW dbo.vw_asset_in_application 
-AS 
-SELECT
-    b.*
-    , ROW_NUMBER() OVER(PARTITION BY b.asset_id ORDER BY b.application_created_date DESC) AS latest_application	
-
-FROM
-(
-    SELECT a.*
-    ,COALESCE(
-                CASE WHEN a.lease_status IS NOT NULL THEN 'Pre-Contract' ELSE NULL END 
-                , CASE WHEN a.loc_status IS NOT NULL THEN 'Line of Credit' ELSE NULL END
-                , CASE WHEN a.application_status IS NOT NULL THEN 'Credit App' ELSE NULL END 
-                , 'Unknown'
-                   
-             ) AS application_stage  
-    FROM
-    (
-    SELECT DISTINCT
-        cAppAssets.application_id AS application_id,
-        cAppAssets.loc_status, ---- application_status
-        cAppAssets.application_status, ---- application_stage
-        cAppAssets.credit_profile_number,	
-        lease.status AS lease_status,        
-        cAppAssets.expected_commencement_date AS application_expected_commencement_date,	
-        cAppAssets.submitted_to_credit_date,
-        cAppAssets.application_created_date,	
-        asset.asset_status,
-        cAppAssets.transaction_type AS Lease_type,
-        cAppAssets.transaction_type AS product_name,	
-        cAppAssets.company_name,
-        cAppAssets.legal_entity,
-        cAppAssets.opportunity_number,
-        cAppAssets.application_created_by AS created_by,	
-
-        cAppAssets.asset_id,
-        cAppAssets.application_id AS application_asset_id,
-
-        asset.model_name,
-        asset.make_name,
-        asset.alias AS registration_number,
-        asset.manufacturer_name,
-        asset.aag_fleet_number,
-        asset.asset_sub_type
-    FROM
-    (
-        SELECT 
-            creditApps.application_id,
-            crAsset.asset_id,
-            creditApps.credit_profile_number,		
-            creditApps.loc_status, 
-            creditApps.application_status,
-            creditApps.expected_commencement_date,	
-            creditApps.application_created_date,	
-            creditApps.transaction_type,	
-            creditApps.company_name,
-            creditApps.legal_entity,
-            creditApps.opportunity_number,
-            creditApps.application_created_by,
-            creditApps.submitted_to_credit_date			
-        FROM vw_credit_application AS creditApps
-        JOIN aggregated_odessa_dim_credit_profile_asset AS crAsset ON crAsset.credit_profile_id = creditApps.credit_profile_id AND crAsset.current_flag = 1	
-        WHERE lOWER(creditApps.loc_status) IN ('pending','datagathering','creditanalysis','amendment','approved')   
-        UNION
-
-        SELECT 
-            creditApps.application_id,
-            appAsset.asset_id,
-            creditApps.credit_profile_number,
-            creditApps.loc_status, 
-            creditApps.application_status,
-            creditApps.expected_commencement_date,	
-            creditApps.application_created_date,	
-            creditApps.transaction_type,
-            creditApps.company_name,
-            creditApps.legal_entity,
-            creditApps.opportunity_number,
-            creditApps.application_created_by,
-            creditApps.submitted_to_credit_date
-        FROM vw_credit_application AS creditApps
-        JOIN aggregated_odessa_dim_credit_application_asset AS appAsset ON creditApps.opportunity_id = appAsset.credit_application_id
-        WHERE LOWER(creditApps.application_status) = 'pending'
-        AND appAsset.current_flag = 1
-    ) AS cAppAssets
-    LEFT JOIN vw_asset AS asset ON cAppAssets.asset_id = asset.bk_aggregated_dim_asset_id
-    LEFT JOIN vw_lease_contracts AS lease ON lease.opportunity_number = cAppAssets.opportunity_number 
-    ) AS a
-    
-    WHERE LOWER(a.application_status) = 'pending'
-    OR 
-    (LOWER(a.application_status) IN ('submittedtocredit') AND LOWER(a.loc_status) IN ('pending','datagathering','creditanalysis','amendment'))
-    OR
-    LOWER(a.loc_status) = ('approved') AND (LOWER(a.lease_status) IN ('installingassets','pending'))
-    OR
-    LOWER(a.loc_status) = ('approved') AND a.lease_status IS NULL
-    
-) AS b
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[vw_receivable_invoice_detail];
-GO
-
-CREATE VIEW dbo.vw_receivable_invoice_detail
-AS
-SELECT *
-FROM
-(
-SELECT      
-
-			fDetails.tax_balance_amount,
-			fDetails.effective_balance_amount,
-			fDetails.effective_tax_balance_amount,
-			fDetails.invoice_amount_amount,
-			fDetails.invoice_tax_amount_amount,
-			fDetails.balance_amount,
-			fDetails.receivable_amount_amount,
-			fDetails.tax_amount_amount,	
-			fDetails.sk_aggregated_dim_receivable,				
-
-			customer.company_name AS customer_name,
-			customer.external_reference_id AS customer_number,
-			dInvoice.bk_aggregated_dim_receivable_invoice_id,
-			dInvoiceCurrent.sk_aggregated_dim_receivable_invoice,	
-			dInvoiceCurrent.days_late_count,
-			fDetails.[sk_aggregated_dim_customer] AS customer_id,
-
-			dDetail.entity_type,
-			contract.sequence_number,				
-			
-			branch.branch_name as branch_name,
-
-			dDate.bk_aggregated_dim_date as due_date,
-			DATEDIFF(day, dDate.bk_aggregated_dim_date, GETDATE()) AS days_since_due,	
-
-			pType.transaction_type as product_name,
-			rType.name AS receivable_type,
-			invoiceDate.bk_aggregated_dim_date AS invoice_date,
-			dInvoice.number AS invoice_number,
-			receivable.bk_aggregated_dim_receivable_id AS receivable_id,
-			contract.bk_aggregated_dim_contract_id AS contract_id,
-			contract.status as contract_status,
-			ROW_NUMBER() OVER(PARTITION BY dInvoice.bk_aggregated_dim_receivable_invoice_id ORDER BY fDetails.sk_aggregated_dim_date_record DESC, fDetails.sk_aggregated_dim_time_record DESC) AS current_invoice          
-
-
-FROM aggregated_odessa_fact_receivable_invoice_detail AS fDetails
-JOIN aggregated_odessa_dim_receivable_invoice AS dInvoice ON dInvoice.sk_aggregated_dim_receivable_invoice = fDetails.sk_aggregated_dim_receivable_invoice
-JOIN aggregated_odessa_dim_receivable_invoice AS dInvoiceCurrent ON dInvoiceCurrent.bk_aggregated_dim_receivable_invoice_id = dInvoice.bk_aggregated_dim_receivable_invoice_id AND dInvoiceCurrent.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_invoice_detail AS dDetail ON dDetail.sk_aggregated_dim_receivable_invoice_detail = fDetails.sk_aggregated_dim_receivable_invoice_detail AND dDetail.current_flag = 1
-JOIN aggregated_odessa_dim_receivable AS receivable ON receivable.sk_aggregated_dim_receivable = fDetails.sk_aggregated_dim_receivable --AND receivable.current_flag = 1
-JOIN aggregated_odessa_dim_contract AS contract ON contract.bk_aggregated_dim_contract_id = dDetail.entity_id AND contract.current_flag = 1
-LEFT JOIN vw_lease_finance_detail AS lease ON lease.sk_current_dim_contract = contract.sk_aggregated_dim_contract 
-LEFT JOIN aggregated_odessa_dim_branch AS branch ON branch.sk_aggregated_dim_branch = lease.sk_aggregated_dim_branch AND branch.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_customer AS customer ON customer.sk_aggregated_dim_customer = lease.sk_current_dim_customer
-JOIN aggregated_odessa_dim_deal_product_type AS pType ON pType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND pType.current_flag = 1 
-JOIN aggregated_odessa_dim_date as dDate ON dDate.sk_aggregated_dim_date = fDetails.sk_aggregated_dim_due_date
-JOIN aggregated_odessa_dim_receivable_type AS rType ON rType.sk_aggregated_dim_receivable_type = fDetails.sk_aggregated_dim_receivable_type AND rType.current_flag = 1 
-JOIN aggregated_odessa_dim_date AS invoiceDate ON invoiceDate.sk_aggregated_dim_date = fDetails.sk_aggregated_dim_invoice_run_date
-) AS a 
-WHERE a.current_invoice = 1
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_receivable_invoices];
-GO
-
-CREATE VIEW [dbo].[vw_receivable_invoices]
-AS
-SELECT      
-            SUM([tax_balance_amount]) AS tax_balance_amount,
-			SUM([effective_balance_amount]) AS effective_balance_amount,
-			SUM([effective_tax_balance_amount]) AS effective_tax_balance_amount,
-			SUM([invoice_amount_amount]) AS invoice_amount_amount,
-			SUM([invoice_tax_amount_amount]) AS invoice_tax_amount_amount,
-			SUM([balance_amount]) AS balance_amount,
-			SUM([receivable_amount_amount]) AS receivable_amount_amount,
-			SUM([tax_amount_amount]) AS tax_amount_amount,
-			MAX(days_late_count) AS days_late_count,
-			MAX(days_since_due) AS days_since_due,				
-			[customer_name],
-			[customer_number],
-			customer_id,
-			[bk_aggregated_dim_receivable_invoice_id],
-			[sequence_number],
-			[contract_id],
-			contract_status,
-			[branch_name],
-			[entity_type],
-			[due_date],
-			[product_name],
-			[receivable_type],
-			[invoice_date],
-			[invoice_number]
-
-FROM vw_receivable_invoice_detail 
-GROUP BY 
-			[customer_name],
-			[customer_number],
-			customer_id,
-			[bk_aggregated_dim_receivable_invoice_id],
-			[sequence_number],
-			[contract_id],
-			contract_status,
-			[branch_name],
-			[entity_type],
-			[due_date],
-			[product_name],
-			[receivable_type],
-			[invoice_date],
-			[invoice_number]
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_receivables];
-GO
-
-CREATE VIEW [dbo].[vw_receivables]
-AS
-SELECT      
-            SUM([tax_balance_amount]) AS tax_balance_amount,
-			SUM([effective_balance_amount]) AS effective_balance_amount,
-			SUM([effective_tax_balance_amount]) AS effective_tax_balance_amount,
-			SUM([invoice_amount_amount]) AS invoice_amount_amount,
-			SUM([invoice_tax_amount_amount]) AS invoice_tax_amount_amount,
-			SUM([balance_amount]) AS balance_amount,
-			SUM([receivable_amount_amount]) AS receivable_amount_amount,
-			SUM([tax_amount_amount]) AS tax_amount_amount,
-			MAX(days_late_count) AS days_late_count,
-			MAX(days_since_due) AS days_since_due,				
-			[customer_name],
-			[customer_number],
-			customer_id,
-			[bk_aggregated_dim_receivable_invoice_id],
-			[receivable_id],			
-			[sequence_number],
-			[contract_id],
-			[branch_name],
-			[entity_type],
-			[due_date],
-			[product_name],
-			[receivable_type],
-			[invoice_date],
-			[invoice_number]
-
-FROM vw_receivable_invoice_detail 
-GROUP BY 
-			[customer_name],
-			[customer_number],
-			[customer_id],
-			[bk_aggregated_dim_receivable_invoice_id],
-			[receivable_id],
-			[sequence_number],
-			[contract_id],
-			[branch_name],
-			[entity_type],
-			[due_date],
-			[product_name],
-			[receivable_type],
-			[invoice_date],
-			[invoice_number]
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_lease_receivables];
-GO
-
-CREATE VIEW [dbo].[vw_lease_receivables]
-AS
-SELECT a.*
-	   ,b.next_due_date
-	   ,CASE WHEN a.effective_balance_amount > 0 THEN days_late_count ELSE 0 END AS days_past_due   
-FROM
-(
-SELECT 
-		SUM(tax_balance_amount) AS tax_balance_amount,
-		SUM(effective_balance_amount) AS effective_balance_amount,
-		SUM(effective_tax_balance_amount) AS effective_tax_balance_amount,
-		SUM(invoice_amount_amount) AS invoice_amount_amount,
-		SUM(invoice_tax_amount_amount) AS invoice_tax_amount_amount,
-		SUM(balance_amount) AS balance_amount,
-		SUM(receivable_amount_amount) AS receivable_amount_amount,
-		SUM(tax_amount_amount) AS tax_amount_amount,
-		MAX(days_late_count) AS days_late_count,
-		MAX(days_since_due) AS days_since_due,	
-		[customer_name],
-		[customer_number],
-		[sequence_number],
-		[contract_id],
-		[customer_id],
-		[product_name]
-FROM vw_receivable_invoices AS receivables
-GROUP BY
-		[customer_name],
-		[customer_number],
-		[customer_id],
-		[sequence_number],
-		[contract_id],
-		[product_name]
-) AS a
-JOIN 
-(
-	SELECT contract_id, MIN(due_date) AS next_due_date
-	FROM vw_receivable_invoices
-	WHERE due_date >= GETDATE()
-	GROUP BY contract_id
-) AS b
-ON a.contract_id = b.contract_id
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_customer_receivables];
-GO
-
-CREATE VIEW [dbo].[vw_customer_receivables]
-AS
-SELECT 
-		SUM(tax_balance_amount) AS tax_balance_amount,
-		SUM(effective_balance_amount) AS effective_balance_amount,
-		SUM(effective_tax_balance_amount) AS effective_tax_balance_amount,
-		SUM(invoice_amount_amount) AS invoice_amount_amount,
-		SUM(invoice_tax_amount_amount) AS invoice_tax_amount_amount,
-		SUM(balance_amount) AS balance_amount,
-		SUM(receivable_amount_amount) AS receivable_amount_amount,
-		SUM(tax_amount_amount) AS tax_amount_amount,
-		SUM(days_late_count) AS days_late_count,
-		customer_id
-FROM vw_lease_receivables AS receivables
-GROUP BY
-		customer_id
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_lease_contracts];
-GO
-
-CREATE VIEW dbo.vw_lease_contracts
-AS
-SELECT *
-FROM
-(
-SELECT          
-				contract.sk_aggregated_dim_contract,						
-				contract.bk_aggregated_dim_contract_id AS contract_id,					
-				contract.sequence_number,
-				contract.external_reference_number,				
-				contract.contract_type,
-				contract.status,
-				contract.report_status,
-				contract.previous_schedule_number,
-				contract.current_flag,
-				contract.alias AS aag_contract_number,
-				contract.grace_delinquency_days,	
-				contract.created_time,
-				contract.updated_time,	
-				contractOrigins.start_date AS lease_start_date,				
-				first_value(lFinanceDetail.sk_aggregated_dim_date_record) OVER (PARTITION BY contract.bk_aggregated_dim_contract_id ORDER BY lFinanceDetail.sk_aggregated_dim_date_record ASC , lFinanceDetail.sk_aggregated_dim_time_record ASC) AS sk_created_date,				
-				CASE WHEN opportunity.number IS NULL THEN 'Yes' ELSE 'No' END AS is_migrated,
-
-				customer.party_name AS company_name,
-				customer.bk_aggregated_dim_customer_id AS customer_id,			
-				customer.creation_date as customer_account_created_date,
-				customer.external_reference_id,
-				customer.external_reference_id AS account_number,					
-
-				opportunity.number,
-				opportunity.number AS opportunity_number,
-				contractSalesRep.employee_name AS sales_rep,
-				contractManager.employee_name AS account_manager,
-				contractUser.full_name AS contract_created_by,				
-
-				CASE WHEN dfinance.is_advance = 1 THEN 'Advance' ELSE 'ARREAS' END AS 'payment_method', 
-				lFinanceDetail.sk_aggregated_dim_date_maturity_date AS lease_maturity_date,										
-				lFinanceDetail.sk_aggregated_dim_date_commencement_date AS lease_commencement_date,
-
-				assetleases.nbv_amount,
-				assetleases.customer_cost_amount,
-				assetleases.rent_amount,
-				assetleases.accumulated_depreciation_amount,
-				assetleases.fmv_amount,
-				assetleases.initial_customer_cost_amount,
-				assetleases.total_nbv_amount,
-				assetleases.capitalized_additional_charge_amount,
-				assetleases.asset_budget_value,
-				assetleases.total_charge_to_customer,
-				assetleases.number_of_assets,
-
-				legalE.legal_entity_number,
-
-				productType.transaction_type AS product_name,
-				productType.transaction_type AS deal_type,
-
-				classificationCode.code AS sic_code,
-				classificationCode.description AS sic_desc,					
-
-				businessType.name AS business_type,	
-				cCenter.description AS cost_center,	
-                lBusiness.name AS line_of_business, 	
-                branch.branch_name,		
-
-				dfinance.booking_status,
-				dfinance.approval_status,
-				dfinance.is_current,
-				dfinance.customer_term_in_months,
-				dfinance.term_in_months,		
-				dfinance.remaining_lease_term_in_months,							
-				dfinance.payment_frequency,
-				dfinance.purchase_option,
-				dfinance.classification_contract_type,
-				dfinance.lease_contract_type,
-				dfinance.payment_frequency_days,
-				dfinance.bk_aggregated_dim_lease_finance_id AS lease_finance_id,
-				dfinance.sk_aggregated_dim_lease_finance,
-
-				lFinanceDetail.booked_residual_amount, 
-				lFinanceDetail.total_yield,
-				lFinanceDetail.regular_payment_amount_amount,
-				lFinanceDetail.total_down_payment_amount,
-				lFinanceDetail.interest_rate,
-				lFinanceDetail.rent_amount AS lease_rent_amount,
-				lFinanceDetail.net_investment_amount,
-				lFinanceDetail.base_rate,
-				lFinanceDetail.spread,
-				lFinanceDetail.bank_yield_spread,
-				lFinanceDetail.sk_aggregated_dim_date_post_date,
-                lFinanceDetail.sk_aggregated_dim_customer,
-				lFinanceDetail.capitalized_sales_tax_down_payment_amount AS tax_down_payment_amount,
-				lFinanceDetail.calculated_tax_deferral_amount_amount AS tax_deferral_amount,
-				lFinanceDetail.tax_deferral_numberof_payments,
-				lFinanceDetail.tax_deferral_payment_number,
-				lFinanceDetail.down_payment_amount,
-				lFinanceDetail.inception_payment_amount,
-				lFinanceDetail.is_over_term_lease,				
-				crStructure.estimated_balloon_amount_amount AS balloon_payment_amount,
-				ROW_NUMBER() OVER(PARTITION BY contract.bk_aggregated_dim_contract_id ORDER BY lFinanceDetail.sk_current_dim_contract DESC, lFinanceDetail.sk_current_dim_customer DESC, lFinanceDetail.sk_aggregated_dim_date_commencement_date DESC, lFinanceDetail.sk_aggregated_dim_lease_finance DESC, lFinanceDetail.sk_aggregated_dim_date_record DESC, lFinanceDetail.sk_aggregated_dim_time_record DESC) AS is_latest
-
-FROM aggregated_odessa_dim_contract AS contract 
-LEFT JOIN 
-(
-    SELECT  DISTINCT
-                    CASE WHEN first_value(contractOrigins.start_date) OVER (PARTITION BY contractOrigins.sequence_number ORDER BY contractOrigins.start_date) = '1900-01-01 00:00:00.000000' THEN contractOrigins.dp_process_date
-                        ELSE first_value(contractOrigins.start_date) OVER (PARTITION BY contractOrigins.sequence_number ORDER BY contractOrigins.start_date)
-                    END AS start_date
-                    ,contractOrigins.[bk_aggregated_dim_contract_id] AS contract_id
-    FROM aggregated_odessa_dim_contract AS contractOrigins 
-    WHERE contractOrigins.status = 'Commenced' --AND contractOrigins.report_status = 'Active'
-) AS contractOrigins ON contractOrigins.contract_id = contract.bk_aggregated_dim_contract_id
-LEFT JOIN 
-(
-SELECT 
-        lease.contract_id,						
-        SUM(nbv_amount) AS nbv_amount,
-        SUM(customer_cost_amount) AS customer_cost_amount,
-        SUM(rent_amount) AS rent_amount,
-        SUM(accumulated_depreciation_amount) AS accumulated_depreciation_amount,
-        SUM(fmv_amount) AS fmv_amount,
-        SUM(initial_customer_cost_amount) AS initial_customer_cost_amount,
-        SUM(nbv_amount) AS total_nbv_amount,
-        SUM(capitalized_additional_charge_amount) AS capitalized_additional_charge_amount,
-        SUM(asset_budget_value) AS asset_budget_value,
-        SUM(total_charge_to_customer) AS total_charge_to_customer,
-        COUNT(*) AS number_of_assets
-
-FROM vw_lease_asset_all AS lease
-WHERE lease.is_approved = 1
-GROUP BY
-				lease.contract_id
-
-) AS assetleases ON contract.bk_aggregated_dim_contract_id = assetleases.contract_id 
-JOIN vw_lease_finance_detail AS lFinanceDetail ON contract.sk_aggregated_dim_contract = lFinanceDetail.sk_current_dim_contract AND lFinanceDetail.current_contract_detail = 1
-LEFT JOIN aggregated_odessa_dim_customer AS customer ON lFinanceDetail.sk_current_dim_customer = customer.sk_aggregated_dim_customer 
-LEFT JOIN aggregated_odessa_dim_opportunity AS opportunity ON opportunity.number = contract.opportunity_number AND opportunity.current_flag = 1	
-LEFT JOIN aggregated_odessa_dim_user AS contractUser ON contractUser.bk_aggregated_dim_user_id = contract.created_by_id  AND contractUser.current_flag = 1
-LEFT JOIN vw_contract_assignments AS contractSalesRep ON contractSalesRep.contract_id = contract.bk_aggregated_dim_contract_id AND contractSalesRep.system_defined_name = 'SalesRep'     
-LEFT JOIN vw_contract_assignments AS contractManager ON contractManager.contract_id = contract.bk_aggregated_dim_contract_id AND contractManager.system_defined_name = 'AccountManager'
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND productType.current_flag = 1	
-LEFT JOIN aggregated_odessa_dim_cost_center AS cCenter on cCenter.bk_aggregated_dim_cost_center_id = contract.cost_center_id
-LEFT JOIN aggregated_odessa_dim_legal_entity AS legalE on legalE.sk_aggregated_dim_legal_entity = lFinanceDetail.sk_aggregated_dim_legal_entity 	
-LEFT JOIN aggregated_odessa_dim_line_of_business AS lBusiness ON lBusiness.sk_aggregated_dim_line_of_business = lFinanceDetail.sk_aggregated_dim_line_of_business 
-LEFT JOIN aggregated_odessa_dim_date AS commencement on commencement.sk_aggregated_dim_date = lFinanceDetail.sk_aggregated_dim_date_commencement_date
-LEFT JOIN aggregated_odessa_dim_business_type AS businessType ON businessType.bk_aggregated_dim_business_type_id = customer.business_type_id AND businessType.current_flag = 1	
-LEFT JOIN aggregated_odessa_dim_classification_code AS classificationCode ON customer.sic_code_id = classificationCode.bk_aggregated_dim_classification_code_id AND classificationCode.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_branch AS branch on branch.sk_aggregated_dim_branch = lFinanceDetail.sk_aggregated_dim_branch 
-LEFT JOIN aggregated_odessa_dim_lease_finance AS dfinance ON dfinance.sk_aggregated_dim_lease_finance = lFinanceDetail.sk_aggregated_dim_lease_finance 
-LEFT JOIN vw_credit_application AS crStructure ON crStructure.opportunity_number = contract.opportunity_number
-) AS a
-WHERE a.is_latest = 1
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_contract_origination];
-GO
-
-CREATE VIEW dbo.vw_contract_origination
-AS
-SELECT 
-    contract.sequence_number
-    ,contract.contract_id
-    ,contract.aag_contract_number
-    ,contract.opportunity_number
-    ,contract.company_name
-    ,contract.base_rate
-    ,contract.spread
-    ,contract.base_rate + contract.spread AS yield
-    ,contract.total_yield
-    ,contract.cost_center 
-    ,contract.sales_rep
-    ,contract.legal_entity_number
-    ,contract.product_name
-    ,contract.report_status
-    ,contract.accumulated_depreciation_amount
-    ,contract.external_reference_id AS account_number
-    ,commDt.bk_aggregated_dim_date AS commencement_date
-    ,matDT.bk_aggregated_dim_date AS maturity_date
-    ,postDT.bk_aggregated_dim_date AS contract_created_date
-    ,contract.term_in_months
-    ,contract.total_down_payment_amount
-    ,contract.total_nbv_amount
-    ,contract.status
-    ,contract.lease_start_date
-    ,contract.asset_budget_value AS budget
-    ,contract.customer_cost_amount 
-    ,contract.customer_cost_amount AS asset_cost_amount
-    ,contract.down_payment_amount
-    ,contract.tax_deferral_amount
-    ,contract.tax_deferral_payment_number
-    ,contract.balloon_payment_amount
-    ,contract.inception_payment_amount
-    ,contract.line_of_business
-    ,contract.number_of_assets
-    ,contract.payment_frequency
-    ,contract.is_migrated
-    ,contract.nbv_amount   
-    ,contract.branch_name 
-    ,payments.begin_balance_amount
-
-FROM vw_lease_contracts AS contract
-LEFT JOIN aggregated_odessa_dim_date AS commDt ON commDt.sk_aggregated_dim_date = contract.lease_commencement_date
-LEFT JOIN aggregated_odessa_dim_date AS matDT ON matDT.sk_aggregated_dim_date = contract.lease_maturity_date
-LEFT JOIN aggregated_odessa_dim_date AS postDT ON postDT.sk_aggregated_dim_date = contract.sk_aggregated_dim_date_post_date
-LEFT JOIN vw_lease_payments AS payments ON payments.contract_id = contract.contract_id AND payments.schedule_number = 1
-WHERE contract.sequence_number NOT LIKE '00%'
-AND LOWER(contract.status) = 'commenced'
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_customer];
-GO
-
-CREATE VIEW [dbo].[vw_customer]
-AS
-SELECT *
-FROM
-(
-SELECT 
-			ROW_NUMBER() OVER(PARTITION BY customer.bk_aggregated_dim_customer_id ORDER BY exposure.[exposure_date] DESC, policy.activation_date DESC) AS is_current_exposure,
-			customer.current_flag,
-			customer.external_reference_id,
-			customer.primary_role,
-			customer.vat_registration_number,
-			customer.sic_code_id,
-			customer.party_number,
-			classificationCode.code AS sic_code,
-			classificationCode.description AS sic_desc,				
-			customer.organization_id,
-			customer.party_name,
-			customer.incorporation_date,
-			customer.default_automated_payment_method,
-			customer.company_name,
-			customer.creation_date,
-			customer.current_role,
-			customer.status,
-			customer.credit_term,
-			customer.next_review_date,
-			customer.invoice_grace_days,
-			customer.invoice_lead_days,
-			customer.credit_review_frequency,
-			customer.credit_score,
-			customer.annual_credit_review_date,
-			customer.sk_aggregated_dim_customer,
-			customer.bk_aggregated_dim_customer_id AS customer_id,
-			customer.activation_date,
-			exposure.total_proposed_customer_exposure_amount,
-        	exposure.bk_aggregated_dim_customer_exposure_id AS exposure_id,			
-			cSummary.primary_customer_amount,
-			policy.[expiration_date] AS policy_expiration_date,
-			DATEDIFF(MONTH, GETDATE(), customer.next_review_date) AS months_to_annual_review,
-			policy.[type] AS policy_type,		
-            policy.[policy_number],
-			salesRep.employee_name AS account_manager,
-			invoices.effective_balance_amount,
-						
-			leases.nbv_amount,
-			leases.customer_cost_amount,
-			leases.rent_amount,
-			leases.accumulated_depreciation_amount,
-			leases.fmv_amount,
-			leases.initial_customer_cost_amount,
-			leases.total_nbv_amount,
-			leases.capitalized_additional_charge_amount,
-			leases.asset_budget_value,
-			leases.total_charge_to_customer,
-			leases.number_of_assets,
-			leases.yield 					
-
-FROM aggregated_odessa_dim_customer AS customer
-LEFT JOIN aggregated_odessa_dim_insurance_policy AS policy ON policy.customer_id = customer.bk_aggregated_dim_customer_id AND policy.current_flag = 1 AND is_active = 1
-LEFT JOIN aggregated_odessa_dim_customer_exposure AS exposure ON exposure.exposure_customer_id = customer.bk_aggregated_dim_customer_id AND exposure.current_flag = 1 AND exposure.is_active = 1
-JOIN aggregated_odessa_dim_credit_summary_exposure AS cSummary ON cSummary.customer_id = customer.bk_aggregated_dim_customer_id AND cSummary.current_flag = 1 AND cSummary.exposure_type = 'EF'
-LEFT JOIN aggregated_odessa_dim_classification_code AS classificationCode ON customer.sic_code_id = classificationCode.bk_aggregated_dim_classification_code_id AND classificationCode.current_flag = 1
-LEFT JOIN vw_customer_assignments AS salesRep ON salesRep.customer_id = customer.bk_aggregated_dim_customer_id AND salesRep.system_defined_name = 'SalesRep'
-LEFT JOIN vw_customer_receivables AS invoices ON invoices.customer_id = customer.bk_aggregated_dim_customer_id 
-LEFT JOIN 
-	(
-		SELECT 
-				lease.customer_id,						
-				SUM(nbv_amount) AS nbv_amount,
-				SUM(customer_cost_amount) AS customer_cost_amount,
-				SUM(rent_amount) AS rent_amount,
-				SUM(accumulated_depreciation_amount) AS accumulated_depreciation_amount,
-				SUM(fmv_amount) AS fmv_amount,
-				SUM(initial_customer_cost_amount) AS initial_customer_cost_amount,
-				SUM(nbv_amount) AS total_nbv_amount,
-				SUM(capitalized_additional_charge_amount) AS capitalized_additional_charge_amount,
-				SUM(asset_budget_value) AS asset_budget_value,
-				SUM(total_charge_to_customer) AS total_charge_to_customer,
-				SUM(number_of_assets) AS number_of_assets,
-				AVG(total_yield) AS yield
-
-		FROM vw_lease_contracts AS lease
-		GROUP BY lease.customer_id
-	) AS leases ON customer.bk_aggregated_dim_customer_id = leases.customer_id 
-WHERE customer.current_flag = 1
-) as a
-WHERE a.is_current_exposure = 1
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[vw_in_application];
-GO
-CREATE VIEW [dbo].[vw_in_application] AS 
-
-WITH app_asset AS (
-SELECT 
-ca.bk_aggregated_dim_credit_application_id,
-cu.party_name,
-ca.status,
-o.number AS opp_number,
-o.report_status,
-cc.description AS cost_center,
-caa.asset_id,
-ca.created_by_id,
-applicationUser.full_name AS app_created_by 
-
-
-FROM aggregated_odessa_dim_credit_application AS ca 
-JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = ca.[bk_aggregated_dim_credit_application_id] AND o.current_flag = 1
-JOIN aggregated_odessa_dim_credit_application_asset AS caa ON ca.bk_aggregated_dim_credit_application_id = caa.[credit_application_id] AND caa.current_flag = 1
-JOIN aggregated_odessa_dim_customer AS cu ON o.customer_id = cu.[bk_aggregated_dim_customer_id] AND cu.current_flag = 1
-JOIN aggregated_odessa_dim_cost_center AS cc ON o.[cost_center_id] = cc.[bk_aggregated_dim_cost_center_id] AND cc.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_credit_profile AS cp ON ca.[bk_aggregated_dim_credit_application_id] = cp.opportunity_id AND cp.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_user AS applicationUser ON ca.[created_by_id] = applicationUser.[bk_aggregated_dim_user_id] AND applicationUser.current_flag = 1
-
-WHERE ca.current_flag = 1
-AND ca.status IN ('Pending', 'SubmittedToCredit')
-AND cp.bk_aggregated_dim_credit_profile_id IS NULL
-),
-app_asset_structure AS (
-SELECT 
-ca.bk_aggregated_dim_credit_application_id,
-o.customer_id,
-cu.party_name,
-ca.status,
-o.number AS opp_number,
-o.report_status,
-cas.number AS exhibit_number, 
-capr.expected_disbursement_date,
-casa.asset_id,
-cp.[bk_aggregated_dim_credit_profile_id],
-dt.product_type,
-tt.transaction_type
-
-FROM aggregated_odessa_dim_credit_application AS ca 
-JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = ca.[bk_aggregated_dim_credit_application_id] AND o.current_flag = 1
-JOIN aggregated_odessa_dim_credit_application_structure AS cas ON ca.bk_aggregated_dim_credit_application_id = cas.credit_application_id AND cas.current_flag = 1  AND cas.is_active = 1
-JOIN aggregated_odessa_dim_credit_application_structure_asset AS casa ON cas.[bk_aggregated_dim_credit_application_structure_id] = casa.[credit_application_structure_id] and casa.current_flag = 1 AND casa.is_active = 1
-JOIN aggregated_odessa_dim_credit_application_pricing_detail AS capr ON cas.[bk_aggregated_dim_credit_application_structure_id]  = capr.[bk_aggregated_dim_credit_application_pricing_detail_id] AND capr.current_flag = 1 AND capr.is_active = 1
-JOIN aggregated_odessa_dim_customer AS cu ON o.customer_id = cu.[bk_aggregated_dim_customer_id] AND cu.current_flag = 1
-JOIN aggregated_odessa_dim_deal_type AS dt ON cas.[deal_type_id] = dt.[bk_aggregated_dim_deal_type_id] AND dt.current_flag = 1
-JOIN aggregated_odessa_dim_deal_product_type AS tt ON cas.[transaction_type_id] = tt.[bk_aggregated_dim_deal_product_type_id] AND tt.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_credit_profile AS cp ON ca.[bk_aggregated_dim_credit_application_id] = cp.opportunity_id AND cp.current_flag = 1
-WHERE ca.current_flag = 1
-AND ca.status IN ('Pending', 'SubmittedToCredit')
-AND cp.bk_aggregated_dim_credit_profile_id IS NULL
-),
-credit_profile AS (
-SELECT 
-cp.[bk_aggregated_dim_credit_profile_id],
-cu.party_name,
-cp.number AS credit_number,
-o.number AS opp_number,
-cc.description AS cost_center,
---cp.opportunity_id,
-cp.status,
-cp.report_status,
---cp.master_lease_agreement,
-cas.number,
-cas.expected_commencement_date,
-cpasa.asset_id,
-contract.sequence_number,
-contract.status AS booking_status,
-dt.product_type,
-dpt.transaction_type,
-applicationUser.full_name AS opp_created_by,
-ROW_NUMBER() OVER( PARTITION BY cpasa.asset_id, cp.number ORDER BY cas.number DESC) AS child_app
-FROM aggregated_odessa_dim_credit_profile as cp
-JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = cp.[opportunity_id] AND o.current_flag = 1
-JOIN aggregated_odessa_dim_credit_approved_structure AS cas ON cp.[bk_aggregated_dim_credit_profile_id] = cas.credit_profile_id AND cas.current_flag = 1 AND cas.is_active = 1
-JOIN aggregated_odessa_dim_credit_profile_approved_structure_asset AS cpasa ON cas.[bk_aggregated_dim_credit_approved_structure_id] = cpasa.[credit_approved_structure_id] AND cpasa.current_flag = 1 AND cpasa.is_active = 1
-JOIN aggregated_odessa_dim_customer AS cu ON o.customer_id = cu.[bk_aggregated_dim_customer_id] AND cu.current_flag = 1
-JOIN aggregated_odessa_dim_deal_type AS dt ON cas.[deal_type_id] = dt.[bk_aggregated_dim_deal_type_id] AND dt.current_flag = 1
-JOIN aggregated_odessa_dim_deal_product_type AS dpt ON cas.[deal_product_type_id] = dpt.[bk_aggregated_dim_deal_product_type_id] AND dpt.current_flag = 1
-JOIN aggregated_odessa_dim_cost_center AS cc ON cp.[cost_center_id] = cc.[bk_aggregated_dim_cost_center_id] AND cc.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_contract AS contract ON cas.[bk_aggregated_dim_credit_approved_structure_id]= contract.[credit_approved_structure_id] AND contract.current_flag = 1 AND contract.status != 'Inactive'
-LEFT JOIN aggregated_odessa_dim_user AS applicationUser ON o.[created_by_id] = applicationUser.[bk_aggregated_dim_user_id] AND applicationUser.current_flag = 1
-
-WHERE cp.current_flag = 1
-AND cp.status NOT IN ('Inactivate', 'Declined', 'OpportunityWithdrawn', 'Cancelled')
-),
-in_app AS (
-SELECT asset.bk_aggregated_dim_asset_id, asset.alias, 
---CASE WHEN (app_asset_structure.status IS NULL AND credit_profile.credit_number IS NULL AND app_asset.status IS NULL) THEN 0 ELSE 1 END AS in_application,
-CASE
-WHEN credit_profile.sequence_number IS NOT NULL AND credit_profile.booking_status = 'InstallingAssets'  THEN 'contract installing assets'
-WHEN credit_profile.sequence_number IS NOT NULL AND credit_profile.booking_status = 'Pending'  THEN 'contract pending'
-WHEN credit_profile.sequence_number IS NOT NULL AND credit_profile.booking_status <> 'Pending'THEN 'converted to contract'
-    WHEN credit_profile.sequence_number is null and credit_profile.credit_number IS NOT NULL THEN 'line of credit'
-        WHEN (credit_profile.credit_number IS NULL AND app_asset_structure.status IS NOT NULL) THEN 'app structure'
-        WHEN (credit_profile.credit_number IS NULL AND app_asset_structure.status IS NULL and app_asset.bk_aggregated_dim_credit_application_id IS NOT NULL) THEN 'app'
-    ELSE 'not in application'
-END AS stage,
-
---APP ASSET
-app_asset.bk_aggregated_dim_credit_application_id,
-app_asset.party_name AS app_company_name,
-app_asset.opp_number AS app_opp_number,
-app_asset.cost_center AS app_cost_center,
-app_asset.app_created_by,
-app_asset.status AS app_status,
-
-
---APP ASSET STRUCTURE
-app_asset_structure.party_name AS app_structure_company_name,
-app_asset_structure.opp_number AS app_structure_opp_number,
-app_asset_structure.exhibit_number, 
-app_asset_structure.expected_disbursement_date,
-app_asset_structure.product_type AS app_structure_product_type,
-app_asset_structure.transaction_type AS app_structure_transaction_type,
-
-
---CREDIT PROFILE
-credit_profile.[bk_aggregated_dim_credit_profile_id],
-credit_profile.party_name AS loc_company_name,
-credit_profile.credit_number,
-credit_profile.opp_number AS loc_opp_number,
-credit_profile.cost_center AS loc_cost_center,
-credit_profile.status AS loc_status,
-credit_profile.number,
-credit_profile.child_app,
-credit_profile.expected_commencement_date,
-credit_profile.sequence_number,
-credit_profile.booking_status,
-credit_profile.product_type,
-credit_profile.transaction_type,
-credit_profile.opp_created_by,
-COALESCE(credit_profile.transaction_type, app_asset_structure.transaction_type) AS combined_product_name,
-COALESCE(credit_profile.party_name, app_asset.party_name) as combined_company_name,
-COALESCE(credit_profile.opp_number, app_asset_structure.opp_number, app_asset.opp_number) AS combined_opp_number,
-COALESCE(app_asset.app_created_by, credit_profile.opp_created_by) AS combined_created_by
-
-
-FROM aggregated_odessa_dim_asset as asset
-LEFT JOIN app_asset ON asset.bk_aggregated_dim_asset_id = app_asset.asset_id
-LEFT JOIN app_asset_structure ON asset.bk_aggregated_dim_asset_id = app_asset_structure.asset_id 
-LEFT JOIN credit_profile ON asset.bk_aggregated_dim_asset_id = credit_profile.asset_id AND credit_profile.child_app = 1 
-WHERE asset.current_flag = 1
-)
-SELECT * FROM in_app 
-WHERE stage NOT IN ('converted to contract', 'not in application')
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[vw_asset_description];
-GO
-
-CREATE OR ALTER                 VIEW [dbo].[vw_asset_description] AS 
--- equipment description to use when grouping assets 
-WITH tidy_up AS (
-SELECT  DISTINCT
-asset.bk_aggregated_dim_asset_id as asset_id,
-asset.manufacturer_name,
-CASE WHEN COALESCE(asset.make_name, '') = 'Other' THEN '' ELSE asset.make_name END AS make_name_for_asset_description,
-CASE WHEN COALESCE(asset.model_name, '') = 'Other' THEN '' ELSE asset.model_name END AS model_name_for_asset_description,
-CASE WHEN axleconfig.value IS NULL THEN '' END AS axle_config_for_asset_description,
-bodytype.body_type_code AS body_type,
-CASE WHEN COALESCE(bodytype.body_type_code, '') LIKE '%Bus%' and asset.product_name LIKE '%Bus%' THEN '' ELSE asset.product_name END AS vehicle_category_for_asset_description,
-asset.product_name
-
-FROM aggregated_odessa_dim_asset asset
-JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
-JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
-JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status 
-JOIN aggregated_odessa_dim_asset_type type ON type.sk_aggregated_dim_asset_type = fstatus.sk_aggregated_dim_asset_type AND type.current_flag = 1
-JOIN aggregated_odessa_dim_vehicle_detail detail ON detail.[sk_aggregated_dim_vehicle_detail] = fstatus.sk_aggregated_dim_vehicle_detail AND detail.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS axleconfig ON  axleconfig.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[axle_config_id] AND axleconfig.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_body_type_config AS bodytype ON detail.body_type_config_id = bodytype.[bk_aggregated_dim_body_type_config_id] AND bodytype.current_flag = 1
-
-WHERE asset.current_flag = 1
-) , manufacturer_and_make AS (
-SELECT 
-asset_id, 
-CASE WHEN make_name_for_asset_description IS NOT NULL 
-AND make_name_for_asset_description != ''
-AND manufacturer_name != make_name_for_asset_description
- THEN CONCAT([manufacturer_name], ' ', [make_name_for_asset_description]) ELSE manufacturer_name END AS manufacturer_and_make,
- manufacturer_name,
-model_name_for_asset_description,
-axle_config_for_asset_description,
-body_type,
-vehicle_category_for_asset_description
-FROM tidy_up
-), manufacturer_make_and_model AS (
-SELECT 
-asset_id, 
-CASE WHEN model_name_for_asset_description IS NOT NULL 
-AND model_name_for_asset_description != '' 
-THEN  CONCAT(manufacturer_and_make, ' ', model_name_for_asset_description) ELSE manufacturer_and_make END AS manufacturer_make_and_model,
-axle_config_for_asset_description,
-body_type,
-vehicle_category_for_asset_description
-FROM manufacturer_and_make
-), manufacturer_make_model_and_axl AS (
-SELECT
-asset_id, 
-CASE WHEN axle_config_for_asset_description IS NOT NULL 
-AND axle_config_for_asset_description != ''
-THEN  CONCAT(manufacturer_make_and_model, ' ', axle_config_for_asset_description) ELSE manufacturer_make_and_model END AS manufacturer_make_model_and_axl,
-body_type,
-vehicle_category_for_asset_description
-FROM manufacturer_make_and_model
-), manufacturer_make_model_body_and_axl AS (
-SELECT 
-asset_id, 
-CASE WHEN body_type IS NOT NULL  
-AND body_type != '' 
-THEN CONCAT(manufacturer_make_model_and_axl, ' ', body_type) ELSE manufacturer_make_model_and_axl END AS manufacturer_make_model_body_and_axl,
-vehicle_category_for_asset_description
-FROM manufacturer_make_model_and_axl
-)
-SELECT 
-asset_id,
-CASE WHEN vehicle_category_for_asset_description IS NOT NULL  
-AND vehicle_category_for_asset_description != ''
-THEN CONCAT(manufacturer_make_model_body_and_axl, ' ', vehicle_category_for_asset_description) ELSE manufacturer_make_model_body_and_axl END AS asset_description
-FROM manufacturer_make_model_body_and_axl
-
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[rpt_ts_asset_funding_analysis];
-GO
-
-CREATE VIEW [dbo].[rpt_ts_asset_funding_analysis]
-AS
-SELECT DISTINCT
-      CAST(asset.[alias] AS VARCHAR(8)) AS 'Registration Number'
-     ,ISNULL(asset.[production_number],'-') AS 'Production Number'  
-     ,asset.[asset_contract_type] AS 'Vehicle Type' 
-     ,asset.[is_migrated] AS 'IsMigrated'  
-     ,asset.asset_status AS 'Status'    
-     ,ISNULL(asset.asset_funding_status,'-') AS 'Dealer Funding Status'
-     ,asset.[original_chassis_delivery_date] AS 'Original Chassis Delivery Date'
-     ,asset.[expected_chassis_delivery_date] AS 'Expected Chassis Delivery Date'
-     ,asset.[expected_delivery_date_to_customer] AS 'Expected Delivery Date to Customer'
-     ,asset.[actual_chassis_delivery_date] AS 'Actual Chassis Delivery Date'
-     ,ISNULL(asset.serial_number,'-') AS [Chassis Number]  
-     ,asset.[manufacturer_name] AS 'MAKE'    
-     ,asset.[make_name] AS 'Model Range' 
-     ,asset.model_name AS 'Model' 
-     ,asset.[body_type] AS 'Body Type' 
-     ,asset.[description] AS 'Equipment Description' 
-     ,asset.[asset_value_amount] AS 'Purchased Price' ----- tbc
-     ,ISNULL(asset.allocated_status,'-') AS 'Allocated Status'
-     ,ISNULL(asset.[reserved_by],'-') AS 'Reserved By'   
-     ,ISNULL(asset.[reserved_for],'-') AS 'Reserved For'   
-FROM vw_asset asset
-WHERE asset.current_flag = 1
-AND asset.asset_type <> 'Ancillary'
-AND asset.asset_status IN ('Inventory','AwaitingDelivery','OnHold') ---- Warehouse = Inventory ???
-AND asset.[asset_contract_type] IN ('Lease','Rental')
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_ts_ls_income_streams];
-GO
-
-CREATE VIEW [dbo].[rpt_ts_ls_income_streams]
-AS
-SELECT *
-FROM
-(
-SELECT DISTINCT  
-    payments.[sequence_number] AS 'Lending Account ID'
-    ,payments.[company_name] AS 'Account Name'
-    ,payments.[report_status] AS 'Status'
-    ,payments.deal_type AS 'Product Name'
-    ,payments.income_stream_id AS 'Income Stream Id' 
-    ,payments.due_date AS 'Income Date' 
-	,payments.[amount_amount] AS 'Payment Amount' 
-    ,payments.begin_balance_amount AS 'Beginning Net Investment'
-    ,payments.[interest_amount] AS 'Income' 
-    ,payments.principal_amount AS 'Capital Recovery'
-    ,payments.end_balance_amount AS 'Ending Net Investment'
-    ,vatDates.due_date AS 'VAT Deferral Date'
-    ,vatDates.deferred_capitalized_sales_tax_amount AS 'Deferred VAT Amount'
-    ,payments.maturity_date AS 'Income Maturity Date'
-    ,payments.commencement_date  AS commencement_date
-    ,CASE WHEN payments.is_advance = 1 THEN 'ADVANCE' ELSE 'AREAS' END AS 'payment_method'   
-FROM [vw_lease_payments] AS payments
-LEFT JOIN vw_lease_payment_vat_deferrals AS vatDates ON vatDates.contract_id = payments.contract_id AND vatDates.due_date = payments.due_date
-WHERE LOWER(payments.[booking_status]) = 'commenced'
-AND payments.[deal_type_code] IN ('HP','FL')
-) as a
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_contracts_terminated_live];
-GO
-
-CREATE VIEW [dbo].[rpt_contracts_terminated_live]
-AS
-SELECT 
-
-asset.[alias] AS 'Registration Number',
-'LES-' + contract.[sequence_number] AS 'Lending Account ID',
-contract.[product_name] AS 'Product Name',
-contract.company_name AS 'Customer',
-contract.[payment_method] AS 'Payment Method',
-contract.[payment_frequency] AS 'Rental Term Unit',
-dt3.[bk_aggregated_dim_date] AS 'Termination Date',
-dt1.[bk_aggregated_dim_date] AS 'Maturity Date',
-'GBP' AS 'Rent Currency',
-lease.[rent_amount] AS 'Rent',
-'GBP' AS 'Charge To Customer Currency',
-lease.[total_charge_to_customer] AS 'Charge To Customer'
-
-FROM vw_lease_asset_current AS lease 
-      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
-      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
-      LEFT JOIN aggregated_odessa_dim_date AS dt1 on dt1.[sk_aggregated_dim_date] = contract.lease_maturity_date
-      LEFT JOIN aggregated_odessa_dim_date AS dt3 on dt3.[sk_aggregated_dim_date] = lease.[sk_aggregated_dim_date_termination_date]      
-WHERE lease.[sk_aggregated_dim_date_termination_date] > 0
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_ts_arbuthnot_regulatory_report_v2];
-GO
-
-CREATE OR ALTER   VIEW [dbo].[rpt_ts_arbuthnot_regulatory_report_v2] as
-
-SELECT
-Contracts.*,
-Assets.registration_number,
-Assets.alias,
-Assets.bk_aggregated_dim_asset_id,
-Assets.rent_amount,
-Assets.nbv_amount,
-Assets.cost_amount AS net_value_amount,
-Assets.VAT_on_asset,
-AdditionalCharges.asset_budget_value,
-ISNULL(Assets.rent_amount, 0) + ISNULL(AdditionalCharges.asset_budget_value, 0) AS charge_to_customer,
-PS.end_balance_amount AS contract_ending_net_investment,
-NextPayment.next_due_date AS contract_next_due_date,
-BillsDue.days_past_due,
-CASE 
-WHEN BillsDue.days_past_due - Contracts.grace_delinquency_days <= 0 THEN 0
-ELSE BillsDue.days_past_due - Contracts.grace_delinquency_days 
-END AS days_past_due_for_arrears,
-BillsDue.bills_balance_due
-
-
- FROM (
-SELECT
-ROW_NUMBER() OVER (PARTITION BY Contract.bk_aggregated_dim_contract_id ORDER BY FLFinanceDetail.sk_aggregated_dim_date_record DESC, FLFinanceDetail.sk_aggregated_dim_time_record DESC) AS rn,
-Contract.sk_aggregated_dim_contract,
-Contract.bk_aggregated_dim_contract_id,
-Contract.alias AS 'AAG Contract Number',
-Contract.sequence_number AS 'Contract Sequence',
-Contract.grace_delinquency_days,
-ContractDate.bk_aggregated_dim_date AS contract_commencement_date,
-ContractMaturityDate.bk_aggregated_dim_date AS contract_maturity_date,
-
-Customer.party_number AS 'Account Number',
-Customer.creation_date AS 'Account Created Date',
-NULL AS 'SME',
-
-Customer.company_name,
-BusinessType.name AS account_legal_entity,
-CONCAT(ClassificationCode.code, ' - ', ClassificationCode.description) AS SIC_description,
-
-LeaseFinance.bk_aggregated_dim_lease_finance_id,
-LeaseFinance.customer_term_in_months,
-LeaseFinance.payment_frequency,
-productType.transaction_type AS product_name,
-
-CAST(ROUND(FLFinanceDetail.total_yield * 100, 2) as DECIMAL(10,2)) AS yield, 
-FLFinanceDetail.total_down_payment_amount AS contract_deposit,
-NULL AS contract_balance
-
-
-FROM aggregated_odessa_dim_contract AS Contract
-JOIN aggregated_odessa_fact_lease_finance_detail AS FLFinanceDetail ON Contract.sk_aggregated_dim_contract = FLFinanceDetail.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FLFinanceDetail.sk_aggregated_dim_lease_finance = LeaseFinance.sk_aggregated_dim_lease_finance AND LeaseFinance.is_current = 1  and LeaseFinance.current_flag = 1
-JOIN aggregated_odessa_dim_customer AS Customer ON Customer.sk_aggregated_dim_customer = FLFinanceDetail.sk_aggregated_dim_customer  and  Customer.current_flag = 1
-left JOIN aggregated_odessa_dim_classification_code AS ClassificationCode ON Customer.sic_code_id = ClassificationCode.bk_aggregated_dim_classification_code_id AND ClassificationCode.current_flag = 1
-left JOIN aggregated_odessa_dim_business_type AS BusinessType ON Customer.business_type_id = BusinessType.bk_aggregated_dim_business_type_id AND BusinessType.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_date AS ContractDate ON FLFinanceDetail.sk_aggregated_dim_date_commencement_date = ContractDate.sk_aggregated_dim_date
-LEFT JOIN aggregated_odessa_dim_date AS ContractMaturityDate ON FLFinanceDetail.sk_aggregated_dim_date_maturity_date = ContractMaturityDate.sk_aggregated_dim_date
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = Contract.deal_product_type_id AND productType.current_flag = 1
-WHERE Contract.current_flag = 1 AND Contract.status = 'Commenced'
-) AS Contracts 
-
-JOIN (
-SELECT
-Asset.bk_aggregated_dim_asset_id,
-Asset.alias,
-Contract.bk_aggregated_dim_contract_id AS ContractBK,
-Contract.sequence_number,
-reg.registration_number,
-DAssetStatus.asset_status,
-FactLeaseAsset.sk_aggregated_dim_contract AS ContractSK,
-FactLeaseAsset.rent_amount,
-FactLeaseAsset.nbv_amount,
-AssetValue.cost_amount,
-FactLeaseAsset.sales_tax_amount_amount AS VAT_on_asset,
-FactLeaseAsset.sk_aggregated_dim_lease_finance,
-assetSubType.value AS asset_sub_type
-
-FROM aggregated_odessa_dim_contract AS Contract
-JOIN aggregated_odessa_fact_lease_asset AS FactLeaseAsset ON Contract.sk_aggregated_dim_contract = FactLeaseAsset.sk_aggregated_dim_contract AND FactLeaseAsset.sk_aggregated_dim_date_termination_date = -1
-JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FactLeaseAsset.sk_aggregated_dim_lease_finance = LeaseFinance.sk_aggregated_dim_lease_finance AND LeaseFinance.is_current = 1 and LeaseFinance.current_flag = 1
-JOIN aggregated_odessa_dim_lease_asset AS LeaseAsset ON LeaseAsset.sk_aggregated_dim_lease_asset = FactLeaseAsset.sk_aggregated_dim_lease_asset AND LeaseAsset.is_approved = 1
-JOIN aggregated_odessa_dim_asset AS Asset ON FactLeaseAsset.sk_aggregated_dim_asset = Asset.sk_aggregated_dim_asset and Asset.current_flag = 1
-JOIN aggregated_odessa_dim_customer AS Customer ON Customer.sk_aggregated_dim_customer = FactLeaseAsset.sk_aggregated_dim_customer  and  Customer.current_flag = 1
- LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON reg.asset_id = Asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
-LEFT JOIN vw_aggregated_odessa_fact_asset_status_latest AS AssetStatus ON Asset.bk_aggregated_dim_asset_id = AssetStatus.bk_aggregated_dim_asset_id
-LEFT JOIN aggregated_odessa_dim_asset_status AS DAssetStatus ON AssetStatus.sk_aggregated_dim_asset_status = DAssetStatus.sk_aggregated_dim_asset_status
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.bk_aggregated_dim_asset_vehicle_additional_details_id = Asset.bk_aggregated_dim_asset_id AND addDetails.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS assetSubType ON  assetSubType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.asset_sub_type_id AND assetSubType.current_flag = 1 
-LEFT JOIN vw_asset_value AS AssetValue ON Asset.bk_aggregated_dim_asset_id = AssetValue.asset_id 
-
-WHERE Contract.current_flag = 1
-AND Contract.status = 'Commenced'
-AND (assetSubType.value IS NULL OR assetSubType.value NOT IN ('Company Car', 'Company Owned Asset' ,'Fleet Managed Asset' ,'No Liability Asset', 'Purchase for Resale'))
-AND (DAssetStatus.asset_status IS NULL OR DAssetStatus.asset_status = 'Leased')
-) AS Assets ON Contracts.bk_aggregated_dim_contract_id = Assets.ContractBK --AND LeaseFinance.bk_aggregated_dim_lease_finance_id = Asset.leasefinanceBK
-
-LEFT JOIN (
-SELECT 
-SUM(amount_amount) as asset_budget_value,
-contract_id,
-asset_id
-FROM(
-SELECT 
-srpd.amount_amount,
-con.bk_aggregated_dim_contract_id as contract_id,
-srpd.asset_id,
-rc.name
-
- 
-FROM aggregated_odessa_dim_sundry_recurring AS sr
-JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS srpd ON sr.bk_aggregated_dim_sundry_recurring_id = srpd.sundry_recurring_id AND srpd.current_flag = 1
- JOIN aggregated_odessa_dim_contract AS con ON sr.contract_id = con.bk_aggregated_dim_contract_id AND con.current_flag = 1
- JOIN aggregated_odessa_dim_customer AS cu ON sr.customer_id = cu.bk_aggregated_dim_customer_id AND cu.current_flag = 1
- JOIN aggregated_odessa_dim_receivable_code AS rc ON sr.receivable_code_id = rc.bk_aggregated_dim_receivable_code_id AND rc.current_flag = 1
- JOIN aggregated_odessa_dim_asset AS a ON srpd.asset_id = a.bk_aggregated_dim_asset_id AND a.current_flag = 1
-  JOIN (
-SELECT DISTINCT
-sundry_recurring_id,
-due_date
-from  aggregated_odessa_dim_sundry_recurring_payment_schedule AS SundryRecurringSchedule
-WHERE SundryRecurringSchedule.current_flag = 1 AND SundryRecurringSchedule.is_active = 1
-AND YEAR(SundryRecurringSchedule.due_date) = YEAR(GETDATE())
-AND MONTH(SundryRecurringSchedule.due_date) = MONTH(GETDATE())
-) AS srs ON srs.sundry_recurring_id = sr.bk_aggregated_dim_sundry_recurring_id
- 
-WHERE sr.current_flag = 1 AND sr.is_active = 1 
-) AS ac 
---WHERE contract_id = 2015
-GROUP BY 
-contract_id,
-asset_id
-) AS AdditionalCharges ON AdditionalCharges.asset_id = Assets.bk_aggregated_dim_asset_id
---AND Asset_AdditionalCharges.lease_finance_id = LeaseFinance.bk_aggregated_dim_lease_finance_id
-AND Contracts.bk_aggregated_dim_contract_id = AdditionalCharges.contract_id
-
-LEFT JOIN (SELECT
-PaymentSchedule.lease_finance_detail_id,
-PaymentSchedule.end_balance_amount,
-ROW_NUMBER() OVER(PARTITION BY lease_finance_detail_id ORDER BY due_date DESC, end_balance_amount DESC) AS rn
-FROM aggregated_odessa_dim_lease_payment_schedule AS PaymentSchedule
-WHERE PaymentSchedule.current_flag = 1 AND PaymentSchedule.payment_type = 'FixedTerm'
-AND YEAR(PaymentSchedule.due_date) = YEAR(GETDATE())
-AND MONTH(PaymentSchedule.due_date) = MONTH(GETDATE())
-) AS PS ON PS.lease_finance_detail_id = Contracts.bk_aggregated_dim_lease_finance_id AND PS.rn = 1
-
-LEFT JOIN (SELECT
-PaymentSchedule.lease_finance_detail_id,
-MIN(PaymentSchedule.due_date) AS next_due_date
-FROM aggregated_odessa_dim_lease_payment_schedule AS PaymentSchedule
-WHERE PaymentSchedule.current_flag = 1 AND PaymentSchedule.payment_type IN ('FixedTerm', 'OTP')
-AND PaymentSchedule.due_date > GETDATE()
-GROUP BY PaymentSchedule.lease_finance_detail_id
-)AS NextPayment ON NextPayment.lease_finance_detail_id = Contracts.bk_aggregated_dim_lease_finance_id
-
-LEFT JOIN (SELECT
-DimInvoiceDetail.entity_id,
-SUM(InvoiceDetail.invoice_amount_amount) AS bills_balance_due,
-SUM(InvoiceDetail.invoice_tax_amount_amount) AS bills_balance_due_tax,
-DATEDIFF(day, MIN(Receivable.due_date), GETDATE()) AS days_past_due
-FROM aggregated_odessa_dim_receivable_invoice_detail AS DimInvoiceDetail
-JOIN aggregated_odessa_fact_receivable_invoice_detail AS InvoiceDetail ON InvoiceDetail.sk_aggregated_dim_receivable_invoice_detail = DimInvoiceDetail.sk_aggregated_dim_receivable_invoice_detail
-JOIN aggregated_odessa_dim_receivable AS Receivable ON Receivable.sk_aggregated_dim_receivable = InvoiceDetail.sk_aggregated_dim_receivable --AND Receivable.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_category AS Category ON InvoiceDetail.sk_aggregated_dim_receivable_category = Category.sk_aggregated_dim_receivable_category --AND Category.current_flag = 1
-WHERE DimInvoiceDetail.entity_type = 'CT'
-AND COALESCE(InvoiceDetail.effective_balance_amount, InvoiceDetail.effective_tax_balance_amount) > 0 
-AND Receivable.due_date <= GETDATE()
-AND Category.name = 'Rental'
-GROUP BY DimInvoiceDetail.entity_id) AS BillsDue ON BillsDue.entity_id = Contracts.bk_aggregated_dim_contract_id
-
-WHERE Contracts.rn = 1 
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_ts_contracts_not_activated];
-GO
-
-CREATE VIEW [dbo].[rpt_ts_contracts_not_activated]
-AS
-SELECT 
-
-contract.company_name AS 'Account Name',
-contract.[aag_contract_number] AS 'AAG Contract Number',
-'LES-' + contract.[sequence_number] AS 'Lending Account ID',
-contract.[status] AS 'Status',
-asset.[Company] AS 'Branch: Company',
-contract.[opportunity_number] AS 'Contract: Application Number',
-asset.[alias] AS 'Registration Number',
-'-' AS 'Lease Receivable Amount',
-application.[requested_amount_amount] AS 'Financed Amount',
-contract.[customer_cost_amount] AS 'Invoiced Price(+)',
-contract.[booked_residual_amount] AS 'Residual Amount',
-contract.[rent_amount] AS 'Rent',
-contract.[rent_amount] AS 'Fee Amount',
-charges.[charge_description] AS 'Fee Definition',
-asset.[description] AS 'Equipment Description',
-contract.[payment_frequency] AS 'Rental Term Unit',
-contract.[product_name] AS 'Lease Product',
-dd1.[bk_aggregated_dim_date] AS 'Contract Date',
---date2.[bk_aggregated_dim_date] AS 'Amortization Start Date',
-dd2.[bk_aggregated_dim_date] AS 'Maturity Date',
---contract.[lease_commencement_date] AS 'Contract Date',
-asset.[depreciation_start_date] AS 'Amortization Start Date',
---contract.[lease_maturity_date] AS 'Maturity Date',
-contract.[customer_term_in_months] AS 'Rental Term',
-contract.[payment_method] AS 'Payment Method',
-contract.[branch_name] AS 'Dimension 1',
-contract.[cost_center] AS 'Dimension 3',
-contract.[sales_rep] AS 'Dimension 4'
-FROM vw_lease_asset_current AS lease 
-      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
-      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
-      LEFT JOIN vw_credit_application AS application ON application.[opportunity_number] = contract.opportunity_number
-      LEFT JOIN aggregated_odessa_dim_date AS dd2 on dd2.[sk_aggregated_dim_date] = contract.lease_maturity_date
-      LEFT JOIN aggregated_odessa_dim_date AS dd1 on dd1.[sk_aggregated_dim_date] = contract.lease_commencement_date  
-      LEFT JOIN vw_additional_charges_detail AS charges ON charges.asset_id = lease.asset_id AND charges.contract_id = lease.contract_id  
-          
-WHERE asset.asset_status = 'Leased'
-AND LOWER(contract.[status]) IN ('installingassets','pending')
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_ts_invoices_outstanding];
-GO
-
-CREATE VIEW [dbo].[rpt_ts_invoices_outstanding]
-AS
-SELECT *
-FROM
-(
-    SELECT 
-
-        invoices.sequence_number AS 'Lending Account ID'
-        ,invoices.customer_name AS 'Account Name'
-        ,invoices.branch_name AS 'Branch'
-        ,invoices.invoice_date AS 'Created Date' 
-        ,invoices.due_date AS 'Due Date' 
-        ,invoices.invoice_number AS 'Invoice No'
-        ,invoices.product_name AS 'Product Name'
-        ,invoices.invoice_amount_amount AS 'Bill Amount'
-        ,invoices.tax_amount_amount AS 'Tax Amount'
-        ,invoices.receivable_amount_amount 
-        ,invoices.balance_amount AS 'Balance Due'
-        ,invoices.invoice_amount_amount - invoices.balance_amount AS 'Rent Paid'
-        ,invoices.receivable_type AS invoice_type
-    FROM vw_receivable_invoices AS invoices
-    WHERE --invoices.receivable_type IN ('Sundry','OperatingLeaseRental') AND 
-    invoices.entity_type = 'CT'
-    AND invoices.effective_balance_amount > 0
-    AND invoices.due_date <= GETDATE()
-    --AND invoices.due_date IS NOT NULL
-) AS a
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_annual_reviews_proposed_exposure_greater_than_0];
-GO
-
-CREATE VIEW [dbo].[rpt_annual_reviews_proposed_exposure_greater_than_0] AS (
-
-SELECT DISTINCT
-COALESCE(NULLIF(TRIM(company_name), ''), party_name) AS company_name,
-Customer.creation_date,
-Customer.external_reference_id,
-Customer.credit_score,
-AccountManager.account_manager,
-SalesRep.primary_sales_rep,
-CreditExposure.*,
-Customer.[annual_credit_review_date] AS last_review_date,
-Customer.[next_review_date],
-InsurancePolicy.expiration_date
-
-FROM aggregated_odessa_dim_customer AS Customer
-LEFT JOIN aggregated_odessa_dim_insurance_policy AS InsurancePolicy ON Customer.bk_aggregated_dim_customer_id = InsurancePolicy.customer_id AND InsurancePolicy.current_flag = 1 AND InsurancePolicy.is_active = 1
-
-LEFT JOIN (SELECT DISTINCT
-EmployeeAssigned.employee_id,
-EmployeeAssigned.party_id,
-DimUser.full_name AS account_manager
-
-FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
-JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Account Manager'
-JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
-
-WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1) AS AccountManager ON Customer.bk_aggregated_dim_customer_id = AccountManager.party_id
-
-LEFT JOIN (SELECT DISTINCT
-EmployeeAssigned.employee_id,
-EmployeeAssigned.party_id,
-DimUser.full_name AS primary_sales_rep
-
-FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
-JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Sales Rep'
-JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
-
-WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1) AS SalesRep ON Customer.bk_aggregated_dim_customer_id = SalesRep.party_id
-
-
-LEFT JOIN (SELECT DISTINCT
-CE.is_active,
-CE.exposure_date,
-CSE.customer_id,
-CE.[exposure_customer_id],
-CE.[total_proposed_customer_exposure_amount] AS proposed_exposure,
-CSE.primary_customer_amount AS AAG_current_exposure,
-CSE.direct_amount + CSE.indirect_amount + CSE.primary_customer_amount AS AAG_current_group_exposure,
-CE.[total_proposed_customer_exposure_amount] + CSE.primary_customer_amount AS AAG_proposed_exposure,
-CSE.direct_amount AS direct_amount,
-CSE.indirect_amount AS indirect_amount,
-CSE.primary_customer_amount AS primary_customer_amount,
-ROW_NUMBER() OVER(PARTITION BY CE.exposure_customer_id ORDER BY CE.exposure_date DESC) AS rn
-
-FROM aggregated_odessa_dim_customer_exposure AS CE
-JOIN aggregated_odessa_dim_credit_summary_exposure AS CSE On CE.exposure_customer_id = CSE.customer_id AND CSE.current_flag = 1 --AND CSE.is_active = 1
-Where  CE.exposure_customer_id = CSE.customer_id AND CE.is_active=1 AND CSE.exposure_type='EF' AND CE.current_flag = 1 ) AS CreditExposure ON Customer.bk_aggregated_dim_customer_id = CreditExposure.exposure_customer_id AND CreditExposure.rn = 1
-
-WHERE 
-Customer.current_flag = 1
-AND AAG_proposed_exposure > 0
-AND Customer.status = 'Active'
-)
-
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[rpt_ts_recharge_for_debt_reporting];
-GO
-
-CREATE VIEW [dbo].[rpt_ts_recharge_for_debt_reporting] AS 
-with invoice_fact_order_p1 as (
-SELECT invoice.bk_aggregated_dim_receivable_invoice_id, 
-Receivables.bk_aggregated_dim_receivable_id,
-ROW_NUMBER() OVER(
-    PARTITION BY invoice.bk_aggregated_dim_receivable_invoice_id, Receivables.bk_aggregated_dim_receivable_id
-    ORDER BY invoice.sk_aggregated_dim_receivable_invoice DESC, Receivables.sk_aggregated_dim_receivable DESC
-) AS invoice_receivable_fact_order, 
-fact_table.*
-FROM aggregated_odessa_dim_receivable_invoice invoice
-LEFT JOIN aggregated_odessa_fact_receivable_invoice_detail fact_table ON fact_table.sk_aggregated_dim_receivable_invoice = invoice.sk_aggregated_dim_receivable_invoice
-LEFT JOIN aggregated_odessa_dim_receivable AS Receivables ON fact_table.[sk_aggregated_dim_receivable] = Receivables.sk_aggregated_dim_receivable
-WHERE fact_table.sk_aggregated_dim_receivable_invoice IS NOT NULL  and fact_table.sk_aggregated_dim_receivable IS NOT NULL
-), 
-invoice_receivable_fact_order as (
-select  *
-from invoice_fact_order_p1 
-where invoice_receivable_fact_order = 1)
-
-SELECT DISTINCT
-Sundry.bk_aggregated_dim_sundry_id AS Sundry_Id,
---DimInvoice.[sk_aggregated_dim_receivable_invoice],
-DimInvoice.[bk_aggregated_dim_receivable_invoice_id],
-DimInvoice.number AS 'Invoice',
-DimInvoice.customer_name AS 'Customer Name',
-Contract.sequence_number AS 'Contract: Sequence Number',
-ReceivableCode.name AS 'Fee Definition Name',
-FactInvoiceDetail.balance_amount 'Invoice: Balance Amount',
-FactInvoiceDetail.receivable_amount_amount AS 'Invoice: Receivable Amount',
-FactInvoiceDetail.tax_amount_amount AS 'Invoice: Tax Amount',
-Asset.alias AS 'Asset Registration Number',
-Sundry.receivable_due_date AS 'Sundry: Receivable Due Date'
- 
-FROM aggregated_odessa_dim_receivable_invoice AS DimInvoice
-JOIN invoice_receivable_fact_order AS FactInvoiceDetail ON DimInvoice.[bk_aggregated_dim_receivable_invoice_id] = FactInvoiceDetail.bk_aggregated_dim_receivable_invoice_id --AND DimInvoice.current_flag = 1
-JOIN aggregated_odessa_dim_receivable AS Receivables ON FactInvoiceDetail.[bk_aggregated_dim_receivable_id] = Receivables.bk_aggregated_dim_receivable_id and Receivables.current_flag = 1
-JOIN aggregated_odessa_dim_sundry AS Sundry ON Sundry.[receivable_id] = Receivables.bk_aggregated_dim_receivable_id AND Sundry.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON Sundry.receivable_code_id = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_contract AS Contract ON Sundry.contract_id = Contract.[bk_aggregated_dim_contract_id] AND Contract.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_sundry_detail AS SundryDetail ON Sundry.bk_aggregated_dim_sundry_id = SundryDetail.sundry_id AND SundryDetail.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset AS Asset ON SundryDetail.asset_id = Asset.[bk_aggregated_dim_asset_id] AND Asset.current_flag = 1
- 
-WHERE FactInvoiceDetail.balance_amount > 0 AND DimInvoice.current_flag = 1 AND ReceivableCode.name LIKE '%Recharge%'
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_warehouse_assets_inc_stock];
-GO
-
-CREATE VIEW [dbo].[rpt_warehouse_assets_inc_stock] AS
-
-SELECT
-      asset.alias,
-      asset.[product_name] AS 'Vehicle Category'
-      ,asset.registration_number AS 'Registration Number'
-      ,CAST(asset.[gvw] AS INT) AS 'GVW'
-      ,asset.[manufacturer_name] AS 'MAKE'
-      ,asset.[make_name] AS 'Model Range'
-      ,asset.[body_type] AS 'Body Type'
-      ,asset.[description] AS 'Equipment Description'
-      ,asset.[asset_contract_type] AS 'Vehicle Type'      
-      ,asset.asset_status AS 'Status'     
-      ,asset.asset_sub_type AS 'Asset Sub Type'   
-  --    ,lease.accumulated_depreciation_amount AS 'Depreciation Basis Amount'
-      ,asset.depreciation_value AS 'Monthly Depreciation Amount'
-      ,equipment_nbv AS 'Equipment NBV'  
-      ,asset.[residual_value_amount] AS 'Residual Value'   
-      ,asset.[salvage_amount] AS 'Salvage Value' 
-      ,CASE WHEN applications.asset_id IS NULL THEN 'FALSE' ELSE 'TRUE' END AS 'In Application' 
-      ,asset.legal_entity_number AS 'Company'                       
-FROM
-      vw_asset AS asset
-      LEFT JOIN vw_asset_in_application AS applications ON applications.asset_id = asset.asset_id AND [latest_application] = 1
-WHERE asset.[asset_status] = 'Inventory'
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_rv_rcv_assets_not_hire];
-GO
-
-CREATE VIEW [dbo].[rpt_rv_rcv_assets_not_hire]
-AS
-SELECT DISTINCT
-
-      asset.[asset_sub_type] AS 'Asset Sub Type'
-      ,asset.[rv_maturity_date] AS 'RV Maturity Date'---TBC    
-      ,asset.asset_status AS 'Status'    
-      ,asset.book_value_amount AS 'Book Value'---TBC
-      ,ISNULL(asset.[depreciation_value],0) AS 'Depreciation Value'
-      ,asset.equipment_nbv  AS 'Equipment NBV'    
-      ,0  AS 'Fair Value Adjustment'
-      ,asset.fair_value_adjustment_date AS 'Fair Value Adjustment Date'            
-      ,asset.[asset_contract_type] AS 'Vehicle Type'
-      ,asset.[product_name] AS 'Vehicle Category'
-      ,asset.registration_number AS 'Registration Number' 
-      ,asset.alias AS 'Asset Alias'
-      ,asset.[gvw] AS 'GVW'
-      ,asset.[manufacturer_name] AS 'MAKE'
-      ,asset.[make_name] AS 'Model Range'     
-      ,asset.body_description AS 'Body Type'
-      ,asset.[description] AS 'Equipment Description'
-      ,asset.residual_value_amount AS 'Residual Value'
-      ,asset.[retail_value_amount] AS 'Retail Value' 
-      ,asset.retail_valuation_date AS 'Retail Valuation Date'  
-      ,asset.[vehicle_service_status] AS 'Vehicle Service Status'            
-      ,asset.location_city AS 'Current Location'  
-      ,0 AS 'In Application'
-      ,asset.allocated_status AS 'Allocated Status'  
-      ,asset.reserved_by AS 'Reserved By'  
-      ,asset.reserved_for AS 'Reserved For'      
-      ,asset.reserve_date AS 'Reserve Date'               
-
-FROM
-vw_asset AS asset
-WHERE asset.asset_status IN ('Inventory','AwaitingDelivery')
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_individual_customers];
-GO
-
-CREATE VIEW [dbo].[rpt_individual_customers]
-AS
-SELECT 
-      contract.company_name AS 'Account Name'
-      ,contract.aag_contract_number AS 'AAG Contract Number'      
-      ,contract.[sequence_number] AS 'LS Contract: Lending Account ID'
-      ,asset.registration_number AS 'Registration Number'
-      ,ISNULL(asset.[serial_number],'-') AS 'Serial Number' 
-      ,asset.[description] AS 'Equipment Description'     
-      ,asset.product_name AS 'Vehicle Category' 
-      ,asset.[manufacturer_name] AS 'MAKE'
-      ,asset.[make_name] AS 'Model Range'
-      ,asset.[model_year] AS 'YEAR'       
-      ,asset.[gvw] AS 'GVW'
-      ,lease.[rent_amount] AS 'Rent'
-      ,lease.[asset_budget_value] AS 'Asset Budget Value'
-      ,lease.[total_charge_to_customer] AS 'Charge To Customer' 
-      ,contract.payment_frequency AS 'Rental Term Unit'  
-      ,asset.[asset_contract_type] AS 'Vehicle Type'            
-      ,contract.product_name AS [Product Name]
-      ,commenceDate.bk_aggregated_dim_date AS 'Contract Date'
-      ,contract.customer_term_in_months AS 'Current Term'
-      ,maturityDate.bk_aggregated_dim_date AS 'Maturity Date' 
-      ,contract.payment_method AS 'Payment Method'
-      ,contract.booking_status AS 'Contract: Status' 
-      ,contract.branch_name AS 'Dimension 1' 
-      ,contract.cost_center AS 'Dimension 3'
-      ,contract.sales_rep AS 'Dimension 4' 
-      ,asset.equipment_nbv AS 'Equipment NBV'
-      ,asset.asset_status  AS 'Equipment Status' 
-
-FROM vw_lease_asset_current AS lease 
-      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
-      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
-      LEFT JOIN aggregated_odessa_dim_date AS commenceDate on commenceDate.sk_aggregated_dim_date = contract.lease_commencement_date
-      LEFT JOIN aggregated_odessa_dim_date AS maturityDate on maturityDate.sk_aggregated_dim_date = contract.lease_maturity_date   
-WHERE asset.asset_contract_type NOT IN ('Stock','BackedOffAsset')
-      AND LOWER(contract.status) = 'commenced'
-      AND asset.asset_status <> 'Sold'
-      AND asset.asset_status = 'Leased'         
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[rpt_arbuthnot_mi_report];
-GO
-
-
-CREATE VIEW [dbo].[rpt_arbuthnot_mi_report]
-AS
-SELECT 
-			customer.party_number AS 'Account Number',
-			customer.sic_code + ' - ' + customer.sic_desc AS 'SIC Code',
-			customer.party_name AS 'Account Name',
-			customer.creation_date AS 'Account Created Date',
-			customer.next_review_date AS 'Next Review Date',
-			customer.credit_score AS 'Credit Score',
-			customer.annual_credit_review_date AS 'Last Review Date',
-			customer.primary_customer_amount AS 'Primary Customer Exposure',
-			customer.total_nbv_amount AS 'Equipment NBV'
-FROM vw_customer AS customer
-WHERE customer.exposure_id IS NOT NULL
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_arbuthnot_loan_agreement];
-GO
-
-CREATE VIEW dbo.[rpt_arbuthnot_loan_agreement]
-
-AS
-
-SELECT
-
-agreement.[Account Number]
-,agreement.[Contract Sequence] AS 'Contract Sequence' -- not available in Odessa
-,agreement.[company_name] AS 'Account Name'
---,customer.[status] AS 'Status'
-,agreement.[Account Created Date] AS 'Created Date'
-,agreement.SME
-,agreement.[account_legal_entity] AS 'Legal Entity Type'
-,agreement.[SIC_description] AS 'SIC Description'
-,'LES-' + agreement.[Contract Sequence] AS 'Lending Account ID'
-,agreement.[product_name] AS 'Lease Product Name'
-,agreement.[yield] AS 'Yield (%)'
-,agreement.[contract_commencement_date] 'Contract Date'
-,agreement.[contract_maturity_date] AS 'Maturity Date'
-,agreement.[customer_term_in_months] AS 'Current Term'
-,agreement.[charge_to_customer] AS 'Charge To Customer'
-,agreement.[payment_frequency] AS 'Rental Term Unit'
-,agreement.[bills_balance_due] AS 'Bills Balance Due'
-,agreement.[contract_next_due_date] AS 'Next Due Date'
-,agreement.[contract_balance] AS 'Contract Balance' -- WAITING ON ODESSA
-,agreement.[nbv_amount] AS 'Equipment NBV'
-
-FROM
-
-rpt_ts_arbuthnot_regulatory_report_v2 AS agreement
-
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[rpt_customer_cw_credit_rating];
-GO
-
-
-CREATE VIEW dbo.rpt_customer_cw_credit_rating AS
-
-SELECT DISTINCT
-customer.creation_date
-,customer.external_reference_id AS 'Account Number'
-,customer.primary_role AS 'Account Record Type'
-,customer.party_name AS 'Account Name'
-,customer.status AS 'Account Status'
-,address.address_line1 AS 'Billing Street'
-,address.address_line2 AS 'Billing Address Line 2'
-,address.address_line2 AS 'Billing Address Line 3'
-,address.city AS 'Billing City'
-,address.postal_code AS 'Billing Zip/Postal Code'
-,contact.phone_number1 AS 'Phone'
-,customer.current_role AS 'Type'
-,customer.organization_id AS 'Company Reg Number'
-, 'tba' AS 'SalesPerson'
-,CreditExposure.AAG_current_exposure AS 'Current Exposure'
-,CreditExposure.AAG_proposed_exposure AS 'Proposed Exposure'
-,CASE WHEN customers_arrears.customer_id IS NOT NULL THEN 'TRUE' ELSE 'FALSE' END AS 'In Arrears'
-,insurer.name AS 'Insurance Provider'
-,CASE WHEN policy.is_self_insured =1 THEN 'TRUE' ELSE 'FALSE' END AS 'Self Insurance Checkbox'
-,policy.expiration_date AS 'Policy Expiry Date'
-,policy.type AS 'Policy Type'
-,policy.policy_number AS 'Policy number'
-,customer.default_automated_payment_method AS 'Master DD AALL'
-,customer.annual_credit_review_date AS 'Last KYC Date'
-,customer.next_review_date AS 'Next KYC Date'
-,customer.company_name AS 'Parent Account'
-,SalesRep.primary_sales_rep AS 'Primary Sales Rep'
-,AccountManager.account_manager as 'Account Manager'
-
-
-FROM aggregated_odessa_dim_customer AS customer
-LEFT JOIN aggregated_odessa_dim_insurance_policy AS policy ON  customer.bk_aggregated_dim_customer_id = policy.customer_id AND policy.current_flag = 1 AND policy.is_active = 1
-LEFT JOIN aggregated_odessa_dim_party_address AS address ON address.bk_aggregated_dim_party_address_id = customer.bk_aggregated_dim_customer_id AND address.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_party_contact AS contact ON contact.bk_aggregated_dim_party_contact_id = customer.bk_aggregated_dim_customer_id AND contact.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_insurance_company AS insurer ON insurer.bk_aggregated_dim_insurance_company_id = policy.insurance_company_id AND insurer.current_flag = 1 AND insurer.is_active = 1
-
-
-LEFT JOIN (
-SELECT DISTINCT
-customer_id
-FROM vw_receivable_invoices
-
-WHERE effective_balance_amount > 0 
-AND GETDATE() > due_date ) AS customers_arrears ON customer.sk_aggregated_dim_customer = customers_arrears.customer_id 
-
-LEFT JOIN (
-SELECT DISTINCT
-CE.exposure_date,
-CE.exposure_customer_id,
-CSE.primary_customer_amount AS AAG_current_exposure,
-CE.total_proposed_customer_exposure_amount + CSE.primary_customer_amount AS AAG_proposed_exposure,
-ROW_NUMBER() OVER ( PARTITION BY CE.exposure_customer_id ORDER BY CE.exposure_date DESC ) AS RN
-
-FROM aggregated_odessa_dim_customer_exposure AS CE
-JOIN aggregated_odessa_dim_credit_summary_exposure AS CSE On CE.exposure_customer_id = CSE.customer_id AND CSE.current_flag = 1 --AND CSE.is_active = 1
-Where  CE.exposure_customer_id = CSE.customer_id AND CE.is_active=1 AND CSE.exposure_type='EF' AND CE.current_flag = 1 ) AS CreditExposure ON customer.bk_aggregated_dim_customer_id = CreditExposure.exposure_customer_id AND CreditExposure.RN = 1
-
-LEFT JOIN (SELECT DISTINCT
-EmployeeAssigned.employee_id,
-EmployeeAssigned.party_id,
-DimUser.full_name AS primary_sales_rep
-
-FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
-JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Sales Rep'
-JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
-
-WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1) AS SalesRep ON customer.bk_aggregated_dim_customer_id = SalesRep.party_id
-
-LEFT JOIN (SELECT DISTINCT
-EmployeeAssigned.employee_id,
-EmployeeAssigned.party_id,
-DimUser.full_name AS account_manager
-
-FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
-JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Account Manager'
-JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
-
-WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1) AS AccountManager ON customer.bk_aggregated_dim_customer_id = AccountManager.party_id
-
-
-WHERE customer.primary_role = 'Customer'
-AND customer.current_flag = 1 
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_cash_collection_totals_by_age_bracket];
-GO
-
-
-CREATE VIEW [dbo].[pbi_cash_collection_totals_by_age_bracket] AS 
-SELECT 
-a.company_name,
-a.ct_due_date,
-a.credit_term,
-a.number,
-a.sequence_number,
-a.[Credit Controller],
-
-CASE WHEN DATEDIFF(DAY, a.ct_due_date, GETDATE()) BETWEEN 1 AND 30 THEN a.balance_amount + a.tax_balance_amount ELSE 0 END AS '1-30 Days',
-CASE WHEN DATEDIFF(DAY, a.ct_due_date, GETDATE()) BETWEEN 31 AND 60 THEN a.balance_amount + a.tax_balance_amount ELSE 0 END AS '31-60 Days',
-CASE WHEN DATEDIFF(DAY, a.ct_due_date, GETDATE()) BETWEEN 61 AND 90 THEN a.balance_amount + a.tax_balance_amount ELSE 0 END AS '61-90 Days',
-CASE WHEN DATEDIFF(DAY, a.ct_due_date, GETDATE()) >90 THEN a.balance_amount + a.tax_balance_amount ELSE 0 END AS '91+ Days',
-a.effective_balance_amount,
-a.effective_tax_balance_amount,
-a.[balance_amount],
-a.[tax_balance_amount]
-
-
- FROM (
-
-SELECT 
-customer.company_name,
-customer.credit_term,
-drid.sequence_number,
-
-payment_method.is_advance,
-d.bk_aggregated_dim_date as due_date,
-
-CASE
-    WHEN drid.entity_type = 'CT' THEN 
-        CASE
-        WHEN payment_method.is_advance = 0 THEN DATEADD(day, customer.credit_term, d.bk_aggregated_dim_date)
-        ELSE d.bk_aggregated_dim_date
-    END
-    ELSE
-        CASE
-        WHEN drid.entity_type = 'CU' THEN DATEADD(day, customer.credit_term, d.bk_aggregated_dim_date)
-
-        END
-    END AS 'ct_due_date',
-
-CASE
-    WHEN customer.company_name LIKE 'DHL%' THEN 'Chantelle Lowe'
-    WHEN LEFT(customer.company_name, 1) LIKE '[A-E]' THEN 'Rebecca Victor'
-     WHEN LEFT(customer.company_name, 1) LIKE '[F-O]' THEN 'Chantelle Lowe'
-     ELSE 'Simon Hodge'
-    END AS 'Credit Controller',
-
-dri.number,
-frid.[balance_amount],
-frid.[tax_balance_amount],
-frid.effective_balance_amount,
-frid.effective_tax_balance_amount,
-contract.[bk_aggregated_dim_contract_id]
---frid.*
-FROM aggregated_odessa_fact_receivable_invoice_detail AS frid
-JOIN aggregated_odessa_dim_receivable_invoice_detail AS drid ON frid.[sk_aggregated_dim_receivable_invoice_detail] = drid.sk_aggregated_dim_receivable_invoice_detail AND drid.current_flag = 1
-JOIN aggregated_odessa_dim_customer AS customer ON frid.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer AND customer.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_type AS rt ON frid.[sk_aggregated_dim_receivable_type] = rt.[sk_aggregated_dim_receivable_type] AND rt.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_category AS rc ON frid.[sk_aggregated_dim_receivable_category] = rc.sk_aggregated_dim_receivable_category AND rc.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_invoice AS dri ON frid.[sk_aggregated_dim_receivable_invoice] = dri.sk_aggregated_dim_receivable_invoice AND dri.current_flag = 1
-JOIN aggregated_odessa_dim_receivable AS r ON frid.[sk_aggregated_dim_receivable] = r.sk_aggregated_dim_receivable AND r.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_detail AS rd ON frid.[sk_aggregated_dim_receivable_detail] = rd.sk_aggregated_dim_receivable_detail AND rd.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_contract AS contract ON drid.entity_id = contract.[bk_aggregated_dim_contract_id] AND contract.current_flag = 1 AND drid.entity_type = 'CT'
-LEFT JOIN aggregated_odessa_dim_date AS d ON frid.[sk_aggregated_dim_due_date] = d.[sk_aggregated_dim_date]
-
-LEFT JOIN (SELECT * FROM(
-SELECT 
-c.[bk_aggregated_dim_contract_id],
-c.sequence_number,
-dlf.is_advance,
-ROW_NUMBER() OVER( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY flfd.[sk_aggregated_dim_date_record] DESC, flfd.[sk_aggregated_dim_time_record] DESC ) AS rn
-
-FROM [aggregated_odessa_fact_lease_finance_detail] AS flfd
-JOIN aggregated_odessa_dim_contract AS c ON flfd.[sk_aggregated_dim_contract] = c.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_finance  AS dlf ON flfd.[sk_aggregated_dim_lease_finance] = dlf.sk_aggregated_dim_lease_finance --AND dlf.current_flag = 1
-) AS a WHERE a.rn=1) AS payment_method ON contract.[bk_aggregated_dim_contract_id] = payment_method.bk_aggregated_dim_contract_id
-WHERE (frid.balance_amount > 0 OR frid.[tax_balance_amount] > 0) 
-) AS a WHERE GETDATE() > a.ct_due_date 
-
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_cash_collections_receipts];
-GO
-
-CREATE VIEW [dbo].[pbi_cash_collections_receipts] AS
- (SELECT 
-receipt.created_by AS 'Cash Allocator',
-customer.company_name,
-receipt.[bk_aggregated_dim_receipt_id],
-receipt.[number],
-receipt.[receipt_amount_amount],
-receipt.[balance_amount],
-receipt.[receipt_source],
-receipt.[approval_status],
-receipt.[type_id],
-receipt.[customer_id],
-receipt.[check_number],
-receipt.[post_date],
-receipt.[received_date],
-receipt.[status],
-receipt.reversal_as_of_date,
-receipt.[receipt_type_name]
-
-FROM vw_receipts AS receipt 
-LEFT JOIN aggregated_odessa_dim_customer AS customer ON receipt.[customer_id] = customer.[bk_aggregated_dim_customer_id] AND customer.current_flag = 1
-WHERE receipt.created_by IN ('Barbara Woodall', 'Philip Armstrong', 'Nicola Giles'))
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_incoming_payments];
-GO
-
-CREATE VIEW [dbo].[rpt_incoming_payments]
-AS
-SELECT 
-      receipts.number AS 'Transaction ID'
-      ,receipts.check_number
-      ,receipts.post_date AS 'Transaction Date'
-      ,lease.sequence_number AS 'Lending Account ID'   
-      ,lease.[company_name] AS 'Account'
-      ,lease.report_status AS 'Contract: Status'
-      ,receipts.created_by AS 'Created By'
-      ,receipts.[legal_entity] 
-      ,lease.[deal_type] AS 'Product_name'
-      ,receipts.receipt_type_name AS 'Payment Mode'
-      ,receipts.received_date AS 'Clearing Date'
-      ,receipts.post_date AS 'Receipt Date'
-      ,receipts.balance_amount  AS 'Excess'    
-      ,receipts.receipt_amount_amount AS 'Transaction Amount'
-      ,CASE WHEN receipts.status = 'Reversed' THEN 1 ELSE 0 END AS 'Reversed'
-      ,receipts.updated_by AS 'Created Alias'
-
-FROM vw_receipts AS receipts
-LEFT JOIN vw_lease_contracts AS lease ON lease.contract_id = receipts.contract_id
-WHERE receipts.status <> 'Reversed'
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[rpt_contracts_with_maintenance_budgets];
-GO
-CREATE VIEW [dbo].[rpt_contracts_with_maintenance_budgets] AS 
-with contract_fact_order_p1 as (
-SELECT contract.bk_aggregated_dim_contract_id, 
-asset.bk_aggregated_dim_asset_id,
-LeaseFinance.bk_aggregated_dim_lease_finance_id,
-ROW_NUMBER() OVER(
-    PARTITION BY contract.bk_aggregated_dim_contract_id, asset.bk_aggregated_dim_asset_id, LeaseFinance.bk_aggregated_dim_lease_finance_id 
-    ORDER BY contract.sk_aggregated_dim_contract DESC, LeaseFinance.[sk_aggregated_dim_lease_finance] DESC, asset.sk_aggregated_dim_asset DESC
-) AS fact_contract_order, 
-fact_table.*
-FROM aggregated_odessa_dim_contract contract
-LEFT JOIN aggregated_odessa_fact_lease_asset fact_table ON fact_table.sk_aggregated_dim_contract = contract.sk_aggregated_dim_contract
-left join aggregated_odessa_dim_asset asset ON fact_table.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset
-left JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON fact_table.[sk_aggregated_dim_lease_finance] = LeaseFinance.sk_aggregated_dim_lease_finance --AND LeaseFinance.is_current = 1
-WHERE fact_table.sk_aggregated_dim_contract IS NOT NULL  and fact_table.sk_aggregated_dim_asset IS NOT NULL and fact_table.[sk_aggregated_dim_lease_finance] is not null
-), 
-contract_fact_order as (
-select  *
-from contract_fact_order_p1 
-where fact_contract_order = 1),
-contract_lease_fact_order_p1 as (
-SELECT contract.bk_aggregated_dim_contract_id, 
-Customer.bk_aggregated_dim_customer_id,
-LeaseFinance.bk_aggregated_dim_lease_finance_id,
-fact_table.[sk_aggregated_dim_date_commencement_date],
-fact_table.[sk_aggregated_dim_date_maturity_date], total_yield, total_down_payment_amount,
-ROW_NUMBER() OVER(
-    PARTITION BY contract.bk_aggregated_dim_contract_id, LeaseFinance.bk_aggregated_dim_lease_finance_id, Customer.bk_aggregated_dim_customer_id 
-    ORDER BY contract.sk_aggregated_dim_contract DESC, LeaseFinance.[sk_aggregated_dim_lease_finance] DESC, Customer.[sk_aggregated_dim_customer] DESC
-) AS fact_contract_lease_order 
-FROM aggregated_odessa_dim_contract contract
-LEFT JOIN aggregated_odessa_fact_lease_finance_detail fact_table ON fact_table.sk_aggregated_dim_contract = contract.sk_aggregated_dim_contract
-left JOIN aggregated_odessa_dim_customer AS Customer ON fact_table.sk_aggregated_dim_customer = Customer.[sk_aggregated_dim_customer] 
-left JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON fact_table.[sk_aggregated_dim_lease_finance] = LeaseFinance.sk_aggregated_dim_lease_finance --AND LeaseFinance.is_current = 1
-WHERE fact_table.sk_aggregated_dim_contract IS NOT NULL  and fact_table.sk_aggregated_dim_customer IS NOT NULL and fact_table.[sk_aggregated_dim_lease_finance] is not null
-),
-contract_lease_fact_order as (
-select  *
-from contract_lease_fact_order_p1 
-where fact_contract_lease_order = 1)
-
-SELECT DISTINCT 
-Customer.company_name,
-Contract.alias,
-Contract.sequence_number,
-Contract.status,
-CASE WHEN LeaseFinance.is_advance = 1 THEN 'ADVANCE'
-ELSE 'ARREARS'
-END AS payment_method,
-ContractDate.[bk_aggregated_dim_date] AS commencement_date,
-ContractMaturityDate.bk_aggregated_dim_date AS maturity_date,
-LeaseFinance.customer_term_in_months,
-LeaseFinance.payment_frequency,
-productType.transaction_type,
-
-Asset.*,
-ac.name,
-ac.amount_amount
-
-FROM aggregated_odessa_dim_contract AS Contract
-JOIN contract_lease_fact_order FLFinanceDetail ON Contract.[bk_aggregated_dim_contract_id] = FLFinanceDetail.[bk_aggregated_dim_contract_id]
-JOIN aggregated_odessa_dim_customer AS Customer ON Customer.[bk_aggregated_dim_customer_id] = FLFinanceDetail.bk_aggregated_dim_customer_id  and  Customer.current_flag = 1
-JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FLFinanceDetail.[bk_aggregated_dim_lease_finance_id] = LeaseFinance.bk_aggregated_dim_lease_finance_id AND LeaseFinance.is_current = 1  and LeaseFinance.current_flag = 1
-left JOIN aggregated_odessa_dim_classification_code AS ClassificationCode ON Customer.sic_code_id = ClassificationCode.[bk_aggregated_dim_classification_code_id] AND ClassificationCode.current_flag = 1
-left JOIN aggregated_odessa_dim_business_type AS BusinessType ON Customer.[business_type_id] = BusinessType.[bk_aggregated_dim_business_type_id] AND BusinessType.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_date AS ContractDate ON FLFinanceDetail.[sk_aggregated_dim_date_commencement_date] = ContractDate.[sk_aggregated_dim_date]
-LEFT JOIN aggregated_odessa_dim_date AS ContractMaturityDate ON FLFinanceDetail.[sk_aggregated_dim_date_maturity_date] = ContractMaturityDate.[sk_aggregated_dim_date]
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.[bk_aggregated_dim_deal_product_type_id] = Contract.[deal_product_type_id] AND productType.current_flag = 1
-
-
-JOIN (
-SELECT DISTINCT
-Asset.bk_aggregated_dim_asset_id,
-td.[bk_aggregated_dim_date] AS terminated_date,
-Asset.alias AS registration_number,
-serialNumber.serial_number,
-DAssetStatus.asset_status,
-Asset.product_name,
-Asset.make_name,
-Asset.manufacturer_name,
-Asset.model_year,
-CAST(vehDetail.gvw AS INT) AS gvw,
-Contract.bk_aggregated_dim_contract_id AS ContractBK,
-
-FactLeaseAsset.sk_aggregated_dim_contract AS ContractSK,
-FactLeaseAsset.rent_amount,
-FactLeaseAsset.nbv_amount,
-FactLeaseAsset.sk_aggregated_dim_lease_finance,
-LeaseFinance.bk_aggregated_dim_lease_finance_id as leasefinanceBK
-
-
-FROM aggregated_odessa_dim_contract AS Contract
-JOIN contract_fact_order AS FactLeaseAsset ON Contract.[bk_aggregated_dim_contract_id] = FactLeaseAsset.bk_aggregated_dim_contract_id --AND LeaseFinance.sk_aggregated_dim_lease_finance = FactLeaseAsset.sk_aggregated_dim_lease_finance
-JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FactLeaseAsset.[bk_aggregated_dim_lease_finance_id] = LeaseFinance.bk_aggregated_dim_lease_finance_id AND LeaseFinance.is_current = 1 and LeaseFinance.current_flag = 1
-JOIN aggregated_odessa_dim_asset AS Asset ON FactLeaseAsset.[bk_aggregated_dim_asset_id] = Asset.bk_aggregated_dim_asset_id and Asset.current_flag = 1
-LEFT JOIN vw_aggregated_odessa_fact_asset_status_latest AS AssetStatus ON Asset.[bk_aggregated_dim_asset_id] = AssetStatus.bk_aggregated_dim_asset_id
-LEFT JOIN aggregated_odessa_dim_asset_status AS DAssetStatus ON AssetStatus.[sk_aggregated_dim_asset_status] = DAssetStatus.sk_aggregated_dim_asset_status
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.[bk_aggregated_dim_asset_vehicle_additional_details_id] = Asset.bk_aggregated_dim_asset_id AND addDetails.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_serial_numbers AS serialNumber ON Asset.bk_aggregated_dim_asset_id = serialNumber.[asset_id] AND serialNumber.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_vehicle_detail AS vehDetail ON Asset.bk_aggregated_dim_asset_id = vehDetail.[bk_aggregated_dim_vehicle_detail_id]
-LEFT JOIN aggregated_odessa_dim_date AS td ON FactLeaseAsset.[sk_aggregated_dim_date_termination_date] = td.[sk_aggregated_dim_date]
-
-WHERE Contract.current_flag = 1
-AND Contract.status = 'Commenced'
-AND (DAssetStatus.asset_status IS NULL OR DAssetStatus.asset_status = 'Leased')
-
-) AS Asset ON Contract.[bk_aggregated_dim_contract_id] = Asset.ContractBK AND LeaseFinance.bk_aggregated_dim_lease_finance_id = Asset.leasefinanceBK
-
-
-LEFT JOIN (
-SELECT
-DLFAC.lease_finance_id,
-RC.name,
-AC.amount_amount,
-SPD.asset_id
-
-FROM aggregated_odessa_dim_lease_finance AS LeaseFinance 
-left JOIN aggregated_odessa_dim_lease_finance_additional_charge AS DLFAC on LeaseFinance.[bk_aggregated_dim_lease_finance_id] = DLFAC.lease_finance_id AND DLFAC.current_flag = 1
-left JOIN aggregated_odessa_dim_additional_charge as AC ON DLFAC.additional_charge_id = AC.[bk_aggregated_dim_additional_charge_id] AND AC.current_flag = 1 
-left JOIN aggregated_odessa_dim_receivable_code AS RC ON AC.[receivable_code_id] = RC.[bk_aggregated_dim_receivable_code_id] AND RC.current_flag = 1
-left JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS SPD ON SPD.[sundry_recurring_id] = DLFAC.recurring_sundry_id AND SPD.current_flag = 1
-WHERE LeaseFinance.current_flag = 1
-) AS ac ON Asset.bk_aggregated_dim_asset_id = ac.asset_id AND ac.lease_finance_id = LeaseFinance.bk_aggregated_dim_lease_finance_id
-
-WHERE Contract.current_flag = 1
-AND Contract.status = 'Commenced'
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[Evergreen Leased];
-GO
-/*
-CREATE VIEW [dbo].[Evergreen Leased] AS (
-
-SELECT 
-
-contract.[company_name] AS Account
-,asset.[registration_number] AS [Vehicle Registration Number]
-,contract.[external_reference_number] AS [AA Contract Number]
-,asset.[is_migrated] AS [Is Migrated]
-,contract.[deal_type] AS [Product Name]
-,asset.[model_year] AS [Year]
-,contract.[lease_contract_type] AS [Product Sub Type]
-,asset.[asset_sub_type] AS [Asset Sub Type]
-,contract.[cost_center] AS [Dimension 3]
-,CONVERT(VARCHAR,commenceDate.[bk_aggregated_dim_date] , 103) AS [Contract Date]
-,CONVERT(VARCHAR,maturityDate.[bk_aggregated_dim_date] , 103) AS [Maturity Date]
-,CONVERT(VARCHAR, asset.[rv_maturity_date] , 103) AS [RV Maturity Date]
-,contract.[customer_term_in_months] AS [Current Term]
-,contract.[rent_amount] AS [Rent]
-,contract.[asset_budget_value] AS [Asset Budget Value]
-,contract.[customer_term_in_months] AS [Current Term 2]
-,contract.[payment_frequency] AS [Rental Term Unit]
-,contract.[booking_status] AS [Status]
-,asset.[book_value_amount] AS [Equipment Book Value]
-,asset.[depreciation_value] AS [Equipment Depreciation Value] 
-,asset.[begin_book_value_amount] AS [Equipment NBV]
-,asset.[net_value_amount] AS [Equipment Fair Value Adjustment]
-,asset.[is_migrated] AS [Equipment Is Migrated]
-,asset.[asset_contract_type] AS [Equipment Vehicle Type]
-,asset.[product_name] AS [Equipment Vehicle Category]
-,asset.[registration_number] AS [Vehicle Registration Number 2]
-,asset.[gvw] AS [Equipment GVW]
-,asset.[manufacturer_name] AS [Equipment Manufacturer]
-,asset.[model_name] AS [Equipment Model Range]
-,asset.[body_type] AS [Body Type]
-,asset.[description] AS [Equipment Description]
-,asset.[residual_value_amount] AS [Equipment Residual Value]
-,asset.[retail_value_amount] AS [Equipment Retail Value]
-,CONVERT(VARCHAR, asset.[retail_valuation_date] , 103 ) AS [Equipment Retail Valuation Date]
-,contract.branch_name AS [Dimension 1]
-,asset.[contract_mileage] AS [Contract Mileage]
-,asset.[last_known_mileage] AS [Equipment Last Known Mileage]
-,CONVERT(VARCHAR, asset.[present_mileage_date] , 103 ) AS [Equipment Present Mileage Date]
-,CONVERT(VARCHAR, asset.[mot_expiry_date] , 103 ) AS [Equipment Mot Expiry Date]
-,asset.[is_returned]
-
-FROM vw_lease_asset_current AS lease 
-      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
-      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
-      LEFT JOIN aggregated_odessa_dim_date AS commenceDate on commenceDate.sk_aggregated_dim_date = contract.lease_commencement_date
-      LEFT JOIN aggregated_odessa_dim_date AS maturityDate on maturityDate.sk_aggregated_dim_date = contract.lease_maturity_date   
-      WHERE asset.[asset_contract_type] = 'Lease'        
-
-)
-;
-GO
-*/
-DROP VIEW if EXISTS [dbo].[Evergreen Rental];
-GO
-/*
-CREATE VIEW [dbo].[Evergreen Rental] AS (
-
-SELECT DISTINCT
-
-lease.[company_name] AS Account
-,asset.[registration_number] AS [Vehicle Registration Number]
-,lease.[external_reference_number] AS [AA Contract Number]
-,asset.[is_migrated] AS [Is Migrated]
-,lease.[deal_type] AS [Product Name]
-,asset.[model_year] AS [Year]
-,lease.[lease_contract_type] AS [Product Sub Type]
-,asset.[asset_sub_type] AS [Asset Sub Type]
-,lease.[cost_centre] AS [Dimension 3]
-,CONVERT(VARCHAR,dd1.[bk_aggregated_dim_date] , 103) AS [Contract Date]
-,CONVERT(VARCHAR,dd2.[bk_aggregated_dim_date] , 103) AS [Maturity Date]
-,CONVERT(VARCHAR, asset.[rv_maturity_date] , 103) AS [RV Maturity Date]
-,lease.[customer_term_in_months] AS [Current Term]
-,lease.[rent_amount] AS [Rent]
-,lease.[asset_budget_value] AS [Asset Budget Value]
-,lease.[customer_term_in_months] AS [Current Term 2]
-,lease.[payment_frequency] AS [Rental Term Unit]
-,lease.[booking_status] AS [Status]
-,asset.[book_value_amount] AS [Equipment Book Value]
-,lease.[depreciation_value] AS [Equipment Depreciation Value] 
-,asset.[begin_book_value_amount] AS [Equipment NBV]
-,asset.[net_value_amount] AS [Equipment Fair Value Adjustment]
-,asset.[is_migrated] AS [Equipment Is Migrated]
-,asset.[asset_contract_type] AS [Equipment Vehicle Type]
-,asset.[product_name] AS [Equipment Vehicle Category]
-,asset.[registration_number] AS [Vehicle Registration Number 2]
-,asset.[gvw] AS [Equipment GVW]
-,asset.[manufacturer_name] AS [Equipment Manufacturer]
-,asset.[model_name] AS [Equipment Model Range]
-,asset.[body_type] AS [Body Type]
-,asset.[description] AS [Equipment Description]
-,asset.[residual_value_amount] AS [Equipment Residual Value]
-,asset.[retail_value_amount] AS [Equipment Retail Value]
-,CONVERT(VARCHAR, asset.[retail_valuation_date] , 103 ) AS [Equipment Retail Valuation Date]
-,lease.branch_name AS [Dimension 1]
-,asset.[contract_mileage] AS [Contract Mileage]
-,asset.[last_known_mileage] AS [Equipment Last Known Mileage]
-,CONVERT(VARCHAR, asset.[present_mileage_date] , 103 ) AS [Equipment Present Mileage Date]
-,CONVERT(VARCHAR, asset.[mot_expiry_date] , 103 ) AS [Equipment Mot Expiry Date]
-,asset.[is_returned]
-
-FROM vw_asset AS asset
-JOIN vw_leases AS lease ON lease.bk_aggregated_dim_asset_id = asset.[bk_aggregated_dim_asset_id]
-LEFT JOIN [dbo].[aggregated_odessa_dim_date] AS dd1 ON dd1.[sk_aggregated_dim_date] = lease.[lease_commencement_date]
-LEFT JOIN [dbo].[aggregated_odessa_dim_date] AS dd2 ON dd2.[sk_aggregated_dim_date] = lease.[lease_maturity_date]
-WHERE asset.[asset_contract_type] = 'Rental'
-)
-;
-GO
-*/
-DROP VIEW if EXISTS [dbo].[rpt_evergreen_leased];
-GO
-
-CREATE OR ALTER   VIEW [dbo].[rpt_evergreen_leased]
-
-AS
-
-SELECT 
-
-contract.[company_name] AS Account
-,asset.[registration_number] AS [Vehicle Registration Number]
-,contract.[external_reference_number] AS [AA Contract Number]
-,asset.[is_migrated] AS [Is Migrated]
-,contract.[deal_type] AS [Product Name]
-,asset.[model_year] AS [Year]
-,contract.[lease_contract_type] AS [Product Sub Type]
-,asset.[asset_sub_type] AS [Asset Sub Type]
-,contract.[cost_center] AS [Dimension 3]
-,CONVERT(VARCHAR,commenceDate.[bk_aggregated_dim_date] , 103) AS [Contract Date]
-,CONVERT(VARCHAR,maturityDate.[bk_aggregated_dim_date] , 103) AS [Maturity Date]
-,CONVERT(VARCHAR, asset.[rv_maturity_date] , 103) AS [RV Maturity Date]
-,contract.[customer_term_in_months] AS [Current Term]
-,contract.[rent_amount] AS [Rent]
-,contract.[asset_budget_value] AS [Asset Budget Value]
-,contract.[customer_term_in_months] AS [Current Term 2]
-,contract.[payment_frequency] AS [Rental Term Unit]
-,contract.[booking_status] AS [Status]
-,asset.[book_value_amount] AS [Equipment Book Value]
-,asset.[depreciation_value] AS [Equipment Depreciation Value] 
-,asset.[begin_book_value_amount] AS [Equipment NBV]
-,asset.[cost_amount] AS [Equipment Fair Value Adjustment]
-,asset.[is_migrated] AS [Equipment Is Migrated]
-,asset.[asset_contract_type] AS [Equipment Vehicle Type]
-,asset.[product_name] AS [Equipment Vehicle Category]
-,asset.[registration_number] AS [Vehicle Registration Number 2]
-,asset.[gvw] AS [Equipment GVW]
-,asset.[manufacturer_name] AS [Equipment Manufacturer]
-,asset.[model_name] AS [Equipment Model Range]
-,asset.[body_type] AS [Body Type]
-,asset.[description] AS [Equipment Description]
-,asset.[residual_value_amount] AS [Equipment Residual Value]
-,asset.[retail_value_amount] AS [Equipment Retail Value]
-,CONVERT(VARCHAR, asset.[retail_valuation_date] , 103 ) AS [Equipment Retail Valuation Date]
-,contract.branch_name AS [Dimension 1]
-,asset.[contract_mileage] AS [Contract Mileage]
-,asset.[last_known_mileage] AS [Equipment Last Known Mileage]
-,CONVERT(VARCHAR, asset.[present_mileage_date] , 103 ) AS [Equipment Present Mileage Date]
-,CONVERT(VARCHAR, asset.[mot_expiry_date] , 103 ) AS [Equipment Mot Expiry Date]
-,asset.[is_returned]
-
-FROM vw_lease_asset_current AS lease 
-      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
-      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
-      LEFT JOIN aggregated_odessa_dim_date AS commenceDate on commenceDate.sk_aggregated_dim_date = contract.lease_commencement_date
-      LEFT JOIN aggregated_odessa_dim_date AS maturityDate on maturityDate.sk_aggregated_dim_date = contract.lease_maturity_date   
-      WHERE asset.[asset_contract_type] = 'Lease'  
-	  AND contract.is_over_term_lease = 1
-      --AND LOWER(contract.status) = 'commenced'   	
-	
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_evergreen_rental];
-GO
-
-
-CREATE OR ALTER   VIEW [dbo].[rpt_evergreen_rental]
-
-AS
-
-SELECT 
-
-contract.[company_name] AS Account
-,asset.[registration_number] AS [Vehicle Registration Number]
-,contract.[external_reference_number] AS [AA Contract Number]
-,asset.[is_migrated] AS [Is Migrated]
-,contract.[deal_type] AS [Product Name]
-,asset.[model_year] AS [Year]
-,contract.[lease_contract_type] AS [Product Sub Type]
-,asset.[asset_sub_type] AS [Asset Sub Type]
-,contract.[cost_center] AS [Dimension 3]
-,CONVERT(VARCHAR,commenceDate.[bk_aggregated_dim_date] , 103) AS [Contract Date]
-,CONVERT(VARCHAR,maturityDate.[bk_aggregated_dim_date] , 103) AS [Maturity Date]
-,CONVERT(VARCHAR, asset.[rv_maturity_date] , 103) AS [RV Maturity Date]
-,contract.[customer_term_in_months] AS [Current Term]
-,contract.[rent_amount] AS [Rent]
-,contract.[asset_budget_value] AS [Asset Budget Value]
-,contract.[customer_term_in_months] AS [Current Term 2]
-,contract.[payment_frequency] AS [Rental Term Unit]
-,contract.[booking_status] AS [Status]
-,asset.[book_value_amount] AS [Equipment Book Value]
-,asset.[depreciation_value] AS [Equipment Depreciation Value] 
-,asset.[begin_book_value_amount] AS [Equipment NBV]
-,asset.[cost_amount] AS [Equipment Fair Value Adjustment]
-,asset.[is_migrated] AS [Equipment Is Migrated]
-,asset.[asset_contract_type] AS [Equipment Vehicle Type]
-,asset.[product_name] AS [Equipment Vehicle Category]
-,asset.[registration_number] AS [Vehicle Registration Number 2]
-,asset.[gvw] AS [Equipment GVW]
-,asset.[manufacturer_name] AS [Equipment Manufacturer]
-,asset.[model_name] AS [Equipment Model Range]
-,asset.[body_type] AS [Body Type]
-,asset.[description] AS [Equipment Description]
-,asset.[residual_value_amount] AS [Equipment Residual Value]
-,asset.[retail_value_amount] AS [Equipment Retail Value]
-,CONVERT(VARCHAR, asset.[retail_valuation_date] , 103 ) AS [Equipment Retail Valuation Date]
-,contract.branch_name AS [Dimension 1]
-,asset.[contract_mileage] AS [Contract Mileage]
-,asset.[last_known_mileage] AS [Equipment Last Known Mileage]
-,CONVERT(VARCHAR, asset.[present_mileage_date] , 103 ) AS [Equipment Present Mileage Date]
-,CONVERT(VARCHAR, asset.[mot_expiry_date] , 103 ) AS [Equipment Mot Expiry Date]
-,asset.[is_returned]
-
-FROM vw_lease_asset_current AS lease 
-      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
-      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
-      LEFT JOIN aggregated_odessa_dim_date AS commenceDate on commenceDate.sk_aggregated_dim_date = contract.lease_commencement_date
-      LEFT JOIN aggregated_odessa_dim_date AS maturityDate on maturityDate.sk_aggregated_dim_date = contract.lease_maturity_date   
-      WHERE asset.[asset_contract_type] = 'Rental'  
-	  AND contract.is_over_term_lease = 1		
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_mot_tracker];
-GO
-
-
-CREATE VIEW [dbo].[pbi_mot_tracker] AS (
-
-SELECT DISTINCT
-reg.registration_number,
-asset.alias,
-asset.[mot_expiry_date],
-asset.[mot_preperationand_testing],
-asset.[asset_contract_type],
-asset.[manufacturer_name],
-asset.[model_name],
-asset.[make_name],
-asset.product_name AS Vehicle_Category,
-asset.[spare_vehicle_provision_for_mot_after_twenty_four_hours],
-addDetails.current_flag,
-addDetails.[r_and_m_expiry_date],
-addDetails.[mot_workshop],
-addDetails.[mot_prep_date],
-addDetails.[mot_booked_date],
-addDetails.[mot_time_slot],
-addDetails.[mot_failure_reason],
-addDetails.[mot_fleet_engineer_notified],
-addDetails.[mot_passed_date],
-addDetails.[mot_notes],
-addDetails.[mot_no_show_reason],
-addDetails.[mot_resubmission_passed_date], 
-addDetails.[mot_failed_date],
-
-
-MOTBookingStatus.[value] AS MOT_booking_status,
-
-bodytype.[body_type_code] AS [body_type],
-
-dstatus.asset_status,
-location.city,
-
-contract.*,
-AssetsOnApp.stage,
-CASE WHEN AssetsOnApp.stage = 'app' THEN AssetsOnApp.[app_company_name]
-WHEN AssetsOnApp.stage = 'app structure' THEN AssetsOnApp.[app_structure_company_name]
-WHEN AssetsOnApp.stage = 'line of credit' THEN AssetsOnApp.[loc_company_name] END AS company_in_application,
-CASE WHEN AssetsOnApp.stage = 'app structure' THEN AssetsOnApp.[app_structure_transaction_type]
-WHEN AssetsOnApp.stage = 'line of credit' THEN AssetsOnApp.[transaction_type] END AS transaction_type_in_application
-
-
- FROM [aggregated_odessa_dim_asset] AS asset  
- JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
- JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details = fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
- LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS MOTBookingStatus ON  MOTBookingStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[mot_booking_status_id] AND MOTBookingStatus.current_flag = 1
- JOIN aggregated_odessa_dim_vehicle_detail detail ON detail.[sk_aggregated_dim_vehicle_detail] = fstatus.sk_aggregated_dim_vehicle_detail AND detail.current_flag = 1
- left JOIN aggregated_odessa_dim_body_type_config AS bodytype ON detail.body_type_config_id = bodytype.[bk_aggregated_dim_body_type_config_id] AND bodytype.current_flag = 1 and bodytype.is_active = 1
-LEFT JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status
-  left JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON reg.asset_id = asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1 AND reg.is_active = 1
-        LEFT JOIN aggregated_odessa_dim_asset_location AS assetLocation ON assetLocation.asset_id = asset.bk_aggregated_dim_asset_id AND assetLocation.current_flag = 1 AND assetLocation.is_current = 1 AND assetLocation.is_active = 1
-LEFT JOIN aggregated_odessa_dim_location AS location ON location.[bk_aggregated_dim_location_id] = assetLocation.location_id AND location.current_flag = 1 AND location.is_active = 1
-
- LEFT JOIN (SELECT DISTINCT
-contract.sequence_number,
-customer.company_name,
-productType.transaction_type AS deal_type,				 
-asset.[bk_aggregated_dim_asset_id]
-FROM aggregated_odessa_dim_contract AS contract
-JOIN aggregated_odessa_fact_lease_asset AS flAsset ON contract.sk_aggregated_dim_contract = flAsset.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_asset AS lAsset ON flAsset.[sk_aggregated_dim_lease_asset] = lAsset.sk_aggregated_dim_lease_asset AND lAsset.current_flag = 1
-JOIN aggregated_odessa_dim_customer AS customer ON flAsset.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer AND customer.current_flag = 1
-JOIN aggregated_odessa_dim_asset AS asset ON flAsset.[sk_aggregated_dim_asset] = asset.sk_aggregated_dim_asset AND asset.current_flag = 1
-JOIN aggregated_odessa_dim_bill_to as bill ON flAsset.[sk_aggregated_dim_bill_to] = bill.sk_aggregated_dim_bill_to AND bill.current_flag = 1
-JOIN aggregated_odessa_dim_branch AS branch ON flAsset.[sk_aggregated_dim_branch] = branch.sk_aggregated_dim_branch AND branch.current_flag = 1
-JOIN aggregated_odessa_dim_lease_finance as finance ON flAsset.[sk_aggregated_dim_lease_finance] = finance.sk_aggregated_dim_lease_finance AND finance.is_current = 1
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND productType.current_flag = 1 AND productType.is_active = 1
-
-WHERE contract.current_flag = 1 AND contract.status = 'Commenced') AS contract ON contract.bk_aggregated_dim_asset_id = asset.[bk_aggregated_dim_asset_id] 
-
-LEFT JOIN vw_in_application AS AssetsOnApp ON asset.bk_aggregated_dim_asset_id = AssetsOnApp.[bk_aggregated_dim_asset_id]
-
-WHERE asset.current_flag = 1
- 
-
- )
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_ts_contracts_origination];
-GO
-
-CREATE VIEW [dbo].[rpt_ts_contracts_origination]
-AS
-SELECT 
-    originations.sequence_number AS 'Lending Account ID'
-    ,originations.aag_contract_number AS 'AAG Contract Number'
-    ,originations.opportunity_number AS 'Application ID'
-    ,originations.company_name AS 'Customer'
-    ,originations.[base_rate] AS 'COF'
-    ,originations.[spread] AS 'Margin'
-    ,originations.[base_rate] + originations.[spread] AS Yield
-    ,originations.[total_yield] AS 'Interest Rate'
-    ,originations.cost_center AS 'Cost Centre'
-    ,originations.[sales_rep] AS 'Sales Person'
-    ,originations.[legal_entity_number] AS 'Legal Entity'
-    ,originations.product_name AS 'Product Name'
-    ,originations.[report_status]
-    ,originations.sequence_number AS 'External Reference#'
-    ,originations.commencement_date AS 'Commencement Date'
-    ,originations.maturity_date AS 'Maturity Date'
-    ,originations.contract_created_date AS 'Contract Created Date'
-    ,originations.[term_in_months] AS 'Rental Term'
-    ,originations.[total_down_payment_amount] AS Deposit
-    ,originations.[accumulated_depreciation_amount] AS 'Accumulated Depreciation'
-    ,originations.status
-    ,originations.lease_start_date
-    ,originations.customer_cost_amount AS 'Total Customer Cost'
-    ,originations.customer_cost_amount AS 'Customer Cost'
-    ,originations.down_payment_amount AS 'Down Payment'--
-    ,originations.tax_deferral_amount AS 'Tax Deferral Amount'--
-    ,originations.tax_deferral_payment_number AS 'Tax Deferral Payment (Months)'
-    ,originations.balloon_payment_amount AS 'Balloon Payment'
-    ,originations.nbv_amount    
-    ,originations.account_number
-    ,originations.total_nbv_amount - originations.total_down_payment_amount - originations.tax_deferral_amount AS 'Origination Amount' 
-
-FROM vw_contract_origination AS originations
-WHERE originations.sequence_number NOT LIKE '00%'
-AND LOWER(originations.status) = 'commenced'
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_fleetspendreporting1];
-GO
-
-CREATE VIEW [dbo].[pbi_fleetspendreporting1] AS 
-
-
-SELECT DISTINCT
-Asset.registration_number,
-Asset.product_name,
-Asset.asset_status,
-Asset.manufacturer_name,
-Asset.model_name,
-Asset.gvw,
-Asset.body_builder,
-Asset.serial_number,
-Asset.comments,
-Asset.model_year,
-Asset.asset_contract_type,
-SundryRecurring.[bk_aggregated_dim_sundry_recurring_id] AS Id,
-SundryRecurring.[sundry_type] AS type,
-SundryRecurringDetail.[amount_amount] AS amount,
-null as r2_c_invoice_number,
-    ReceivableCode.name AS recurring_sundry_name,
-    nulL AS Recharge_Fee_Name,
-    Null as Expense_Fee_Name,
---SundryRecurringSchedule.receivable_id,
-	SundryRecurringSchedule.due_date AS schedule_due_date,
-	null AS receivable_due_date,
-	null as sundry_created_date,
-
-	null AS sundry_payable_amount,
-	Null AS payable_due_date,
-	null AS invoice_comment,
-   Customer.company_name AS company
-   
-
-FROM aggregated_odessa_dim_sundry_recurring AS SundryRecurring
-JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS SundryRecurringDetail ON SundryRecurringDetail.[sundry_recurring_id] = SundryRecurring.bk_aggregated_dim_sundry_recurring_id AND SundryRecurringDetail.current_flag = 1
-JOIN aggregated_odessa_dim_sundry_recurring_payment_schedule AS SundryRecurringSchedule ON SundryRecurringSchedule.[sundry_recurring_id] = SundryRecurring.[bk_aggregated_dim_sundry_recurring_id] AND SundryRecurringSchedule.current_flag = 1
---JOIN aggregated_odessa_dim_receivable as Receivable ON SundryRecurringSchedule.receivable_id = Receivable.[bk_aggregated_dim_receivable_id] AND Receivable.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON SundryRecurring.[receivable_code_id] = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1
-JOIN aggregated_odessa_dim_customer AS Customer ON SundryRecurring.customer_id = Customer.bk_aggregated_dim_customer_id AND Customer.current_flag = 1
-JOIN vw_asset AS Asset ON SundryRecurringDetail.[asset_id] = Asset.[bk_aggregated_dim_asset_id]
-JOIN [aggregated_odessa_dim_contract] AS Contract ON SundryRecurring.[contract_id] = Contract.[bk_aggregated_dim_contract_id] AND Contract.current_flag = 1
-WHERE SundryRecurring.current_flag = 1
-AND SundryRecurringSchedule.due_date < GETDATE()
-
-
-UNION ALL
-
-SELECT  
-Asset.registration_number,
-Asset.product_name,
-Asset.asset_status,
-Asset.manufacturer_name,
-Asset.model_name,
-Asset.gvw,
-Asset.body_builder,
-Asset.serial_number,
-Asset.comments,
-Asset.model_year,
-Asset.asset_contract_type,
-
-		Sundry.[bk_aggregated_dim_sundry_id] AS Id,
- --   Sundry.number AS invoice_number,
-	Sundry.[sundry_type] AS type,
-    Sundry.[amount_amount] amount,
-	Sundry.[r2_c_invoice_number] AS r2_c_invoice_number,
-null AS recurring_sundry_name,
-    Sundry.Recharge_Fee_Name,
-    Sundry.Expense_Fee_Name,
-
- --null AS receivable_id,
-	nuLl  AS schedule_due_date,
-	Sundry.[receivable_due_date] AS receivable_due_date,
-	Sundry.[created_time] AS sundry_created_date,
-	Sundry.[payable_amount_amount] AS sundry_payable_amount,
-	Sundry.[payable_due_date] AS payable_due_date,
-	Sundry.[invoice_comment] AS invoice_comment,
-    Sundry.[company_name] AS company
-
-
-FROM vw_sundry_details AS Sundry
-LEFT JOIN vw_asset AS Asset ON Sundry.asset_id = Asset.[bk_aggregated_dim_asset_id]
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_fleetspendreporting2];
-GO
-
-CREATE VIEW [dbo].[pbi_fleetspendreporting2] AS 
-
-with contract_fact_order_p1 as (
-SELECT contract.bk_aggregated_dim_contract_id, 
-asset.bk_aggregated_dim_asset_id,
-LeaseFinance.bk_aggregated_dim_lease_finance_id,
-ROW_NUMBER() OVER(
-    PARTITION BY contract.bk_aggregated_dim_contract_id, asset.bk_aggregated_dim_asset_id, LeaseFinance.bk_aggregated_dim_lease_finance_id 
-    ORDER BY contract.sk_aggregated_dim_contract DESC, LeaseFinance.[sk_aggregated_dim_lease_finance] DESC, asset.sk_aggregated_dim_asset DESC
-) AS fact_contract_order, 
-fact_table.*
-FROM aggregated_odessa_dim_contract contract
-LEFT JOIN aggregated_odessa_fact_lease_asset fact_table ON fact_table.sk_aggregated_dim_contract = contract.sk_aggregated_dim_contract
-left join aggregated_odessa_dim_asset asset ON fact_table.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset
-left JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON fact_table.[sk_aggregated_dim_lease_finance] = LeaseFinance.sk_aggregated_dim_lease_finance --AND LeaseFinance.is_current = 1
-WHERE fact_table.sk_aggregated_dim_contract IS NOT NULL  and fact_table.sk_aggregated_dim_asset IS NOT NULL and fact_table.[sk_aggregated_dim_lease_finance] is not null
-), 
-contract_fact_order as (
-select  *
-from contract_fact_order_p1 
-where fact_contract_order = 1),
-contract_lease_fact_order_p1 as (
-SELECT contract.bk_aggregated_dim_contract_id, 
-Customer.bk_aggregated_dim_customer_id,
-LeaseFinance.bk_aggregated_dim_lease_finance_id,
-fact_table.[sk_aggregated_dim_date_commencement_date],
-fact_table.[sk_aggregated_dim_date_maturity_date], total_yield, total_down_payment_amount,
-ROW_NUMBER() OVER(
-    PARTITION BY contract.bk_aggregated_dim_contract_id, LeaseFinance.bk_aggregated_dim_lease_finance_id, Customer.bk_aggregated_dim_customer_id 
-    ORDER BY contract.sk_aggregated_dim_contract DESC, LeaseFinance.[sk_aggregated_dim_lease_finance] DESC, Customer.[sk_aggregated_dim_customer] DESC
-) AS fact_contract_lease_order 
-FROM aggregated_odessa_dim_contract contract
-LEFT JOIN aggregated_odessa_fact_lease_finance_detail fact_table ON fact_table.sk_aggregated_dim_contract = contract.sk_aggregated_dim_contract
-left JOIN aggregated_odessa_dim_customer AS Customer ON fact_table.sk_aggregated_dim_customer = Customer.[sk_aggregated_dim_customer] 
-left JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON fact_table.[sk_aggregated_dim_lease_finance] = LeaseFinance.sk_aggregated_dim_lease_finance --AND LeaseFinance.is_current = 1
-WHERE fact_table.sk_aggregated_dim_contract IS NOT NULL  and fact_table.sk_aggregated_dim_customer IS NOT NULL and fact_table.[sk_aggregated_dim_lease_finance] is not null
-),
-contract_lease_fact_order as (
-select  *
-from contract_lease_fact_order_p1 
-where fact_contract_lease_order = 1)
-
-SELECT 
-reg.registration_number,
-asset.alias,
-asset.[bk_aggregated_dim_asset_id] AS asset_id,	
-asset.[aag_fleet_number],
-asset.[asset_contract_type],
-asset.[description],
-asset.initial_mileage,
-asset.[gross_vehicle_weight],
-asset.[model_year],
-asset.[service_intervals_trailer],
-asset.[service_intervals_vehicle],
-asset.[manufacturer_name],
-asset.[manufacturer_description],
-asset.[model_name],
-asset.[category_name],
-asset.[category_description],
-asset.[make_name],
-asset.[product_name],
-asset.road_fund_licence,
-asset.[spare_vehicle_provision_for_mot_after_twenty_four_hours],
-asset.[spare_vehicle_provision_for_service_after_twenty_four_hours],
-asset.book_value_amount,
-asset.last_known_mileage,
-asset.[twenty_four_hours_breakdown_cover],
-asset.[online_o_licence],
-asset.[outof_hours_serviceand_maintenance],
-asset.[dand_c_schedule_services],
-asset.[replacement_vehiclefor_breakdown],
-asset.[full_service_and_maintenance_chassis],
-asset.[fridge_service_maintenance],
-asset.[service_intervals_fridgebox],
-asset.[tail_lift_service_maintenance],
-asset.[service_intervals_tail_lift],
-asset.[crane_service_maintenance],
-asset.[pto_service_maintenance],
-asset.[tyres_fair_wear_tear],
-asset.[windscreen_section],
-asset.[livery],
-asset.[gps_tracking],
-asset.[full_service_and_maintenance_trailer],
-detail.gvw,
-detail.[contract_mileage],
-serialNumber.serial_number,
-        bodybuilder.name,
-        --asset.asset_category,
-
-        asset.mot_preperationand_testing,
-        dstatus.asset_status,
-        asset.[excess_distance_charge_rate],
-        addDetails.original_location,
-        detail.maintenance_inclusions,
-        assetSubType.value,
-addDetails.current_flag,
-addDetails.[r_and_m_expiry_date],
-bodytype.[body_type_code] AS [body_type],
-location.city, 
-
-contractDetails.*,
-
-CASE WHEN AssetsOnApp.bk_aggregated_dim_asset_id IS NOT NULL THEN 1 ELSE 0 END AS in_application
-
-
-FROM [aggregated_odessa_dim_asset] AS asset
-JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
- JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details = fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
- JOIN aggregated_odessa_dim_vehicle_detail detail ON detail.[sk_aggregated_dim_vehicle_detail] = fstatus.sk_aggregated_dim_vehicle_detail AND detail.current_flag = 1
- left JOIN aggregated_odessa_dim_body_type_config AS bodytype ON detail.body_type_config_id = bodytype.[bk_aggregated_dim_body_type_config_id] AND bodytype.current_flag = 1 and bodytype.is_active = 1
-LEFT JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status
-
-  left JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1 AND is_active = 1) AS reg 
-        ON reg.asset_id = asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
-LEFT JOIN aggregated_odessa_dim_asset_location AS assetLocation ON assetLocation.asset_id = asset.bk_aggregated_dim_asset_id AND assetLocation.current_flag = 1 AND assetLocation.is_current = 1
-LEFT JOIN aggregated_odessa_dim_location AS location ON location.[bk_aggregated_dim_location_id] = assetLocation.location_id AND location.current_flag = 1
-LEFT JOIN (select *, row_number() over (partition by asset_id order by created_time desc) SN from aggregated_odessa_dim_asset_serial_numbers where current_flag = 1) AS serialNumber 
-        ON serialNumber.asset_id = asset.bk_aggregated_dim_asset_id AND serialNumber.current_flag = 1 AND SN=1
-
-LEFT JOIN aggregated_odessa_dim_body_builder_config AS bodybuilder ON detail.body_builder_config_id = bodybuilder.[bk_aggregated_dim_body_builder_config_id] AND bodybuilder.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS assetSubType ON  assetSubType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[asset_sub_type_id] AND assetSubType.current_flag = 1 
-
-LEFT JOIN (
-
-SELECT DISTINCT 
-Customer.company_name,
-Contract.alias AS contract_number,
-Contract.sequence_number,
-Contract.status,
-ContractDate.[bk_aggregated_dim_date] AS commencement_date,
-ContractMaturityDate.bk_aggregated_dim_date AS maturity_date,
-LeaseFinance.customer_term_in_months,
-LeaseFinance.payment_frequency,
-productType.transaction_type,
-ROW_NUMBER() OVER(PARTITION BY Asset.bk_aggregated_dim_asset_id ORDER BY ContractDate.[bk_aggregated_dim_date] DESC) AS current_lease,
-
-
-Asset.*
-
-FROM aggregated_odessa_dim_contract AS Contract
-JOIN contract_lease_fact_order FLFinanceDetail ON Contract.[bk_aggregated_dim_contract_id] = FLFinanceDetail.[bk_aggregated_dim_contract_id]
-JOIN aggregated_odessa_dim_customer AS Customer ON Customer.[bk_aggregated_dim_customer_id] = FLFinanceDetail.bk_aggregated_dim_customer_id  and  Customer.current_flag = 1
-JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FLFinanceDetail.[bk_aggregated_dim_lease_finance_id] = LeaseFinance.bk_aggregated_dim_lease_finance_id AND LeaseFinance.is_current = 1  and LeaseFinance.current_flag = 1
-left JOIN aggregated_odessa_dim_classification_code AS ClassificationCode ON Customer.sic_code_id = ClassificationCode.[bk_aggregated_dim_classification_code_id] AND ClassificationCode.current_flag = 1
-left JOIN aggregated_odessa_dim_business_type AS BusinessType ON Customer.[business_type_id] = BusinessType.[bk_aggregated_dim_business_type_id] AND BusinessType.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_date AS ContractDate ON FLFinanceDetail.[sk_aggregated_dim_date_commencement_date] = ContractDate.[sk_aggregated_dim_date]
-LEFT JOIN aggregated_odessa_dim_date AS ContractMaturityDate ON FLFinanceDetail.[sk_aggregated_dim_date_maturity_date] = ContractMaturityDate.[sk_aggregated_dim_date]
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.[bk_aggregated_dim_deal_product_type_id] = Contract.[deal_product_type_id] AND productType.current_flag = 1
-
-
-JOIN (
-SELECT DISTINCT
-Asset.bk_aggregated_dim_asset_id,
-td.[bk_aggregated_dim_date] AS terminated_date,
---Asset.alias AS asset_alias,
-Contract.bk_aggregated_dim_contract_id AS ContractBK,
-
-FactLeaseAsset.sk_aggregated_dim_contract AS ContractSK,
-FactLeaseAsset.rent_amount,
-FactLeaseAsset.nbv_amount,
-FactLeaseAsset.sk_aggregated_dim_lease_finance,
-LeaseFinance.bk_aggregated_dim_lease_finance_id as leasefinanceBK
-
-
-FROM aggregated_odessa_dim_contract AS Contract
-JOIN contract_fact_order AS FactLeaseAsset ON Contract.[bk_aggregated_dim_contract_id] = FactLeaseAsset.bk_aggregated_dim_contract_id --AND LeaseFinance.sk_aggregated_dim_lease_finance = FactLeaseAsset.sk_aggregated_dim_lease_finance
-JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FactLeaseAsset.[bk_aggregated_dim_lease_finance_id] = LeaseFinance.bk_aggregated_dim_lease_finance_id AND LeaseFinance.is_current = 1 and LeaseFinance.current_flag = 1
-JOIN aggregated_odessa_dim_asset AS Asset ON FactLeaseAsset.[bk_aggregated_dim_asset_id] = Asset.bk_aggregated_dim_asset_id and Asset.current_flag = 1
-LEFT JOIN vw_aggregated_odessa_fact_asset_status_latest AS AssetStatus ON Asset.[bk_aggregated_dim_asset_id] = AssetStatus.bk_aggregated_dim_asset_id
-LEFT JOIN aggregated_odessa_dim_date AS td ON FactLeaseAsset.[sk_aggregated_dim_date_termination_date] = td.[sk_aggregated_dim_date]
-
-WHERE Contract.current_flag = 1
-
-
-) AS Asset ON Contract.[bk_aggregated_dim_contract_id] = Asset.ContractBK AND LeaseFinance.bk_aggregated_dim_lease_finance_id = Asset.leasefinanceBK
-
-WHERE Contract.current_flag = 1) AS contractDetails ON asset.bk_aggregated_dim_asset_id = contractDetails.bk_aggregated_dim_asset_id
-
-LEFT JOIN vw_in_application AS AssetsOnApp ON asset.bk_aggregated_dim_asset_id = AssetsOnApp.[bk_aggregated_dim_asset_id]
-
-WHERE asset.current_flag = 1
-
-
-
-
-GO
-;
-
-DROP VIEW if EXISTS [dbo].[pbi_fleetspendreporting2_in_application];
-GO
-CREATE OR ALTER       VIEW [dbo].[pbi_fleetspendreporting2_in_application] AS (
-SELECT
-reg.registration_number,
-asset.aag_fleet_number,
-asset.[manufacturer_name],
-asset.[model_name],
-asset.[make_name],
-asset.[product_name],
-
-dstatus.asset_status,
-app.*
-
- FROM aggregated_odessa_dim_asset as asset
-LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1 AND is_active = 1) AS reg 
-        ON reg.asset_id = asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
-LEFT JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
-LEFT JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status
-
-JOIN vw_in_application AS app ON asset.[bk_aggregated_dim_asset_id] = app.bk_aggregated_dim_asset_id 
-WHERE asset.current_flag = 1
-)
-
-
-GO
-;
-
-
-DROP VIEW if EXISTS [dbo].[pbi_fleetspendreporting2_in_inventory];
-GO
-
-
-CREATE OR ALTER       VIEW [dbo].[pbi_fleetspendreporting2_in_inventory] AS 
-SELECT DISTINCT
-reg.registration_number,
-asset.alias AS asset_alias,
-asset.aag_fleet_number,
-asset.[manufacturer_name],
-asset.[model_name],
-asset.[make_name],
-asset.[product_name],
-dstatus.asset_status,
-contract.sequence_number AS sn,
-contract.contract_number,
-contract.status,
-contract.company_name AS last_customer,
-contract.termination_date,
-asset.[asset_contract_type],
-location.city,
-assetSubType.value,
-app.*
-
- FROM aggregated_odessa_dim_asset as asset
-LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1 AND is_active = 1) AS reg 
-        ON reg.asset_id = asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1  
-LEFT JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
-LEFT JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status
- JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details = fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS assetSubType ON  assetSubType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[asset_sub_type_id] AND assetSubType.current_flag = 1 
-LEFT JOIN aggregated_odessa_dim_asset_location AS assetLocation ON assetLocation.asset_id = asset.bk_aggregated_dim_asset_id AND assetLocation.current_flag = 1 AND assetLocation.is_current = 1
-LEFT JOIN aggregated_odessa_dim_location AS location ON location.[bk_aggregated_dim_location_id] = assetLocation.location_id AND location.current_flag = 1
-
- LEFT JOIN (SELECT DISTINCT
-contract.sequence_number,
-contract.[bk_aggregated_dim_contract_id],
-contract.alias as contract_number,
-contract.status,
-customer.company_name,
-productType.transaction_type AS deal_type,				 
-asset.[bk_aggregated_dim_asset_id],
-td.[bk_aggregated_dim_date] AS termination_date,
-ROW_NUMBER() OVER( PARTITION BY asset.[bk_aggregated_dim_asset_id] ORDER BY contract.[bk_aggregated_dim_contract_id] DESC) as rn
-
-
-FROM aggregated_odessa_dim_contract AS contract
-JOIN aggregated_odessa_fact_lease_asset AS flAsset ON contract.sk_aggregated_dim_contract = flAsset.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_asset AS lAsset ON flAsset.[sk_aggregated_dim_lease_asset] = lAsset.sk_aggregated_dim_lease_asset AND lAsset.current_flag = 1
-JOIN aggregated_odessa_dim_customer AS customer ON flAsset.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer AND customer.current_flag = 1
-JOIN aggregated_odessa_dim_asset AS asset ON flAsset.[sk_aggregated_dim_asset] = asset.sk_aggregated_dim_asset AND asset.current_flag = 1
-JOIN aggregated_odessa_dim_bill_to as bill ON flAsset.[sk_aggregated_dim_bill_to] = bill.sk_aggregated_dim_bill_to AND bill.current_flag = 1
-JOIN aggregated_odessa_dim_branch AS branch ON flAsset.[sk_aggregated_dim_branch] = branch.sk_aggregated_dim_branch AND branch.current_flag = 1
-JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND productType.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_date AS td ON flAsset.[sk_aggregated_dim_date_termination_date] = td.[sk_aggregated_dim_date]
-WHERE contract.current_flag = 1
-AND contract.status NOT IN ('Inactive', 'Pending', 'Installing Assets') 
-) AS contract ON contract.bk_aggregated_dim_asset_id = asset.[bk_aggregated_dim_asset_id] 
-AND contract.rn = 1
-
-LEFT JOIN vw_in_application AS app ON asset.[bk_aggregated_dim_asset_id] = app.bk_aggregated_dim_asset_id
-WHERE asset.current_flag = 1 AND dstatus.asset_status = 'Inventory'
-
-
-GO
-;
-
-DROP VIEW if EXISTS [dbo].[rpt_tts_sales];
-GO
-CREATE VIEW [dbo].[rpt_tts_sales] AS (
-
-SELECT
-
-detail.[net_value_amount] AS 'Equipment NBV',
-detail.[fair_market_value_amount] - detail.[net_value_amount] AS 'Profit',
-_user.[full_name] AS 'Salesperson',
-detail.[fair_market_value_amount] 'Sales Amount',
-customer.[party_name] AS 'Customer',
-sale.[transaction_date] AS 'Sales Date',
-code.[name] AS 'Route to Market',
-asset.[product_name] AS 'Vehicle Category',
-asset.[manufacturer_name] AS 'Manufacturer',
-address.[postal_code] AS 'Billing Post Code'
---address.[            ] AS 'Billing Country'
-
-
-FROM
-
-[aggregated_odessa_dim_asset_sale] AS sale
-LEFT JOIN [aggregated_odessa_dim_asset_sale_detail] AS detail ON detail.[asset_sale_id] = sale.[bk_aggregated_dim_asset_sale_id] AND detail.[current_flag] = 1 
-LEFT JOIN [aggregated_odessa_dim_asset] asset ON asset.[bk_aggregated_dim_asset_id] = detail.[asset_id] AND asset.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_customer] AS customer ON customer.[bk_aggregated_dim_customer_id] = sale.[buyer_id] AND customer.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_employees_assigned_to_asset_sale] AS employee ON employee.[asset_sale_id] = sale.[bk_aggregated_dim_asset_sale_id] AND employee.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_role_function] AS role ON role.[bk_aggregated_dim_role_function_id] = employee.[role_function_id] AND role.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_user] AS _user ON _user.[bk_aggregated_dim_user_id] = employee.[employee_id] AND _user.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_receivable_code] AS code ON code.[bk_aggregated_dim_receivable_code_id] = sale.[asset_sale_receivable_code_id] AND code.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_party_address] AS address ON address.[bk_aggregated_dim_party_address_id] = customer.[bk_aggregated_dim_customer_id] AND address.[current_flag] = 1
-
-WHERE
-
-sale.[current_flag] = 1 AND
-sale.[status] = 'Completed' AND
-customer.[party_name] <> 'Asset Alliance Leasing Ltd'
-)
-GO
-;
-
-
-DROP VIEW if EXISTS [dbo].[rpt_tts_stock];
-GO
-
-CREATE VIEW [dbo].[rpt_tts_stock]
-AS
- (
-
-SELECT
-
-asset.[registration_number], 
-asset.equipment_nbv AS 'Stock NBV',
-asset.asset_status AS 'Status',
-asset.asset_contract_type AS 'Vehicle Type',
-asset.product_name AS 'Vehicle Category',
-asset.[model_year] AS 'Year of Manufacture',
-asset.[manufacturer_name] AS 'Manufacturer',
-asset.make_name AS 'Model Range',
-asset.model_name AS 'Model',
-asset.axle_config AS 'Axle Config',
-asset.cab AS 'Cab',
-asset.cab_model AS 'Cab Model',
-asset.aag_fleet_number AS 'AAG Fleet Number',
-CAST (asset.gvw AS INT) AS'GVW',
-asset.body_type AS 'Body Type',
-[reserve_date] AS 'Reserve Date',
-asset.reserved_for AS 'Reserved For',
-asset.reserved_by AS 'Reserved By', 	
-asset.[emission_code] AS 'Emissions',
-asset.[comments] AS 'Comments',
-asset.[rental_availability_status] AS 'Rental Availability Status',
-tdate.[bk_aggregated_dim_date] AS 'Termination Date',
-DATEDIFF( DAY, tdate.[bk_aggregated_dim_date] , GETDATE()) AS 'Days Standing'
-
-FROM [dbo].[vw_asset] AS asset
-LEFT JOIN vw_lease_asset_current AS lease on lease.bk_aggregated_dim_asset_id = asset.bk_aggregated_dim_asset_id
-LEFT JOIN aggregated_odessa_dim_date AS tdate ON tdate.[sk_aggregated_dim_date] = lease.[sk_aggregated_dim_date_termination_date]
-)
-GO
-;
-
-DROP VIEW if EXISTS [dbo].[rpt_aged_debtors];
-GO
-
-
- CREATE VIEW [dbo].[rpt_aged_debtors] AS 
-
-SELECT 
-customer.party_name AS company_name,
-AccountManager.account_manager,
-SalesRep.primary_sales_rep,
-c.sequence_number,
-pt.transaction_type AS product_name,
-c.status,
-agg_aged_debt.customer_id,
-agg_aged_debt.contract_id,
-SUM(agg_aged_debt.[current]) AS 'Current',
-SUM(agg_aged_debt.[1-30 Days]) AS '1-30 Days',
-SUM(agg_aged_debt.[31-60 Days]) AS '31-60 Days',
-SUM(agg_aged_debt.[61-90 Days]) AS '61-90 Days',
-SUM(agg_aged_debt.[91-120 Days]) AS '91-120 Days',
-SUM(agg_aged_debt.[120+ Days]) AS '120+ Days',
-SUM(agg_aged_debt.total) AS 'balance' 
-
-FROM (
-
-SELECT 
-aged_debt.customer_id,
-aged_debt.contract_id,
-
-CASE WHEN age_bracket = 'Current' THEN SUM(balance_with_tax) END AS 'current',
-CASE WHEN age_bracket = '1-30 Days' THEN SUM(balance_with_tax) END AS '1-30 Days',
-CASE WHEN age_bracket = '31-60 Days' THEN SUM(balance_with_tax) END AS '31-60 Days',
-CASE WHEN age_bracket = '61-90 Days' THEN SUM(balance_with_tax) END AS '61-90 Days',
-CASE WHEN age_bracket = '91-120 Days' THEN SUM(balance_with_tax) END AS '91-120 Days',
-CASE WHEN age_bracket = '120+ Days' THEN SUM(balance_with_tax) END AS '120+ Days',
-CASE WHEN age_bracket != 'Current' THEN SUM(balance_with_tax) END AS 'total'
-
-FROM (
-
-SELECT 
-invoices.customer_id,
-invoices.contract_id,
-_date,
-CASE WHEN _date >= CAST(GETDATE() as date) THEN 'Current'
- WHEN _date >= DATEADD(DAY, -30, CAST(GETDATE() as date)) THEN '1-30 Days'
-  WHEN _date >= DATEADD(DAY, -60, CAST(GETDATE() as date)) THEN '31-60 Days'
-    WHEN _date >= DATEADD(DAY, -90, CAST(GETDATE() as date)) THEN '61-90 Days'
-        WHEN _date >= DATEADD(DAY, -120, CAST(GETDATE() as date)) THEN '91-120 Days'
-        ELSE '120+ Days'
- END as age_bracket,
-invoices.balance_with_tax 
-FROM
-(
-SELECT 
-
-customer.[bk_aggregated_dim_customer_id] AS customer_id,
-contract.[bk_aggregated_dim_contract_id] AS contract_id,
-d.bk_aggregated_dim_date as _date,
-DATEDIFF(DAY, d.bk_aggregated_dim_date, GETDATE()) AS date_diff,
-COALESCE(frid.balance_amount, 0) + COALESCE(frid.tax_balance_amount, 0) AS balance_with_tax
-
-FROM aggregated_odessa_fact_receivable_invoice_detail AS frid
-JOIN aggregated_odessa_dim_receivable_invoice_detail AS drid ON frid.[sk_aggregated_dim_receivable_invoice_detail] = drid.sk_aggregated_dim_receivable_invoice_detail AND drid.current_flag = 1
-JOIN aggregated_odessa_dim_customer AS customer ON frid.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer AND customer.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_type AS rt ON frid.[sk_aggregated_dim_receivable_type] = rt.[sk_aggregated_dim_receivable_type] AND rt.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_category AS rc ON frid.[sk_aggregated_dim_receivable_category] = rc.sk_aggregated_dim_receivable_category AND rc.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_invoice AS dri ON frid.[sk_aggregated_dim_receivable_invoice] = dri.sk_aggregated_dim_receivable_invoice AND dri.current_flag = 1 AND dri.is_active = 1 AND dri.is_dummy = 0
-JOIN aggregated_odessa_dim_receivable AS r ON frid.[sk_aggregated_dim_receivable] = r.sk_aggregated_dim_receivable AND r.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_detail AS rd ON frid.[sk_aggregated_dim_receivable_detail] = rd.sk_aggregated_dim_receivable_detail AND rd.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_contract AS contract ON drid.entity_id = contract.[bk_aggregated_dim_contract_id] AND contract.current_flag = 1 AND drid.entity_type = 'CT'
-LEFT JOIN aggregated_odessa_dim_date AS d ON frid.[sk_aggregated_dim_due_date] = d.[sk_aggregated_dim_date]
-WHERE COALESCE(frid.balance_amount, 0) + COALESCE(frid.tax_balance_amount, 0) != 0
-
-) AS invoices
-) AS aged_debt
-
-
-
-GROUP BY
-customer_id,
-contract_id,
-age_bracket
-
-) AS agg_aged_debt
-
-LEFT JOIN  aggregated_odessa_dim_customer AS customer ON agg_aged_debt.[customer_id] = customer.bk_aggregated_dim_customer_id AND customer.current_flag = 1 
-LEFT JOIN aggregated_odessa_dim_contract AS c ON agg_aged_debt.contract_id = c.bk_aggregated_dim_contract_id AND c.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS pt ON pt.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND pt.current_flag = 1
-
-LEFT JOIN (
-    SELECT DISTINCT
-    EmployeeAssigned.employee_id,
-    EmployeeAssigned.party_id,
-    DimUser.full_name AS account_manager
-
-    FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
-    JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Account Manager' AND RoleFunction.is_active = 1
-    JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1 
-
-    WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1 AND EmployeeAssigned.is_active = 1
-    ) AS AccountManager ON customer.[bk_aggregated_dim_customer_id] = AccountManager.party_id
-
-        LEFT JOIN (
-        SELECT DISTINCT
-        EmployeeAssigned.employee_id,
-        EmployeeAssigned.party_id,
-        DimUser.full_name AS primary_sales_rep
-
-        FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
-        JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Sales Rep' AND RoleFunction.is_active = 1
-        JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1 
-
-        WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1 AND EmployeeAssigned.is_active = 1
-        ) AS SalesRep ON customer.[bk_aggregated_dim_customer_id] = SalesRep.party_id
-
-GROUP BY
-customer_id,
-contract_id,
-customer.party_name,
-AccountManager.account_manager,
-SalesRep.primary_sales_rep,
-c.sequence_number,
-pt.transaction_type,
-c.status
-
-GO
-;
-
-DROP VIEW if EXISTS [dbo].[pbi_origination_old];
-GO
-
-CREATE VIEW [dbo].[pbi_origination_old]
-AS
-SELECT 
-    originations.sequence_number AS 'Lending Account ID'
-    ,originations.contract_id
-    ,originations.aag_contract_number AS 'AAG Contract Number'
-    ,originations.opportunity_number AS 'Application ID'
-    ,originations.company_name AS 'Customer'
-    ,originations.base_rate AS 'COF'
-    ,originations.spread AS 'Margin'
-    ,originations.base_rate + originations.spread AS Yield
-    ,originations.total_yield AS 'Interest Rate'
-    ,originations.cost_center AS 'Cost Centre'
-    ,originations.sales_rep AS 'Sales Person'
-    ,originations.legal_entity_number AS 'Legal Entity'
-    ,originations.product_name AS 'Product Name'
-    ,originations.report_status AS 'Lease Status'
-    ,originations.sequence_number AS 'External Reference#'
-    ,originations.commencement_date AS 'Commencement Date'
-    ,originations.maturity_date AS 'Maturity Date'
-    ,originations.contract_created_date AS 'Contract Created Date'
-    ,originations.term_in_months 'Lease Term (Months)'
-    ,originations.total_down_payment_amount AS Deposit
-    ,originations.accumulated_depreciation_amount AS 'Accumulated Depreciation'
-    ,originations.status AS 'Contract Status'
-    ,CAST(originations.lease_start_date AS DATE) AS 'Lease Commenced Date'
-    ,originations.customer_cost_amount AS 'Total Customer Cost'
-    ,originations.customer_cost_amount AS 'Customer Cost'
-    ,originations.down_payment_amount AS 'Down Payment'--
-    ,originations.tax_deferral_amount AS 'Tax Deferral Amount'--
-    ,originations.tax_deferral_payment_number AS 'Tax Deferral Payment (Months)'
-    ,originations.balloon_payment_amount AS 'Balloon Payment'
-    ,originations.nbv_amount AS 'NBV'   
-    ,CASE WHEN originations.product_name = 'Hire Purchase' THEN originations.total_nbv_amount - originations.total_down_payment_amount - originations.tax_deferral_amount ELSE originations.total_nbv_amount END AS 'Origination Amount'
-    ,originations.begin_balance_amount AS 'Begin Balance'
-    ,originations.line_of_business AS 'Line of Business'
-    ,originations.number_of_assets AS 'Number of Assets'
-    ,originations.payment_frequency AS 'Payment Frequency'
-    ,originations.is_migrated AS 'Migrated?'
-    ,originations.budget AS 'Budget'
-
-FROM vw_contract_origination AS originations
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_origination_asset];
-GO
-
-CREATE VIEW dbo.pbi_origination_asset
-AS
-SELECT 
-
-    lease.contract_id
-    ,asset.alias AS 'Registration Number'
-    ,asset.[service_intervals_vehicle] AS 'Service Intervals Vehicle'
-    ,asset.[service_intervals_tail_lift] AS 'Service Intervals Tail Lift'
-    ,asset.[service_intervals_trailer] AS 'Service Intervals Trailer'
-    ,asset.[service_intervals_fridgebox] AS 'Service Intervals Fridge Box'  
-    ,asset.[road_fund_licence] AS 'Road Fund Licence'  
-    ,asset.[full_service_and_maintenance_chassis] AS 'Full Service Maintenance Chassis'
-    ,asset.[full_service_and_maintenance_trailer] AS 'Full Service Maintenance Trailer'
-    ,asset.[mot_preperationand_testing] AS 'MOT Prep & Testing'
-    ,asset.[tail_lift_service_maintenance] AS 'Tail Lift Service Maintenance'
-    ,asset.[fridge_service_maintenance] AS 'Fridge Service Maintenance'
-    ,asset.[twenty_four_hours_breakdown_cover] AS '24 hrs Breakdown Cover'
-    ,asset.[crane_service_maintenance] AS 'Crane Service Maintenance'
-    ,asset.[term] AS 'Term'
-
-FROM vw_lease_asset_current AS lease 
-LEFT JOIN vw_asset AS asset ON asset.asset_id = lease.asset_id
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[rpt_all_asset_maintenance_costs];
-GO
-CREATE VIEW [dbo].[rpt_all_asset_maintenance_costs] AS (SELECT 
-b.registration_number,
-b.asset_id,
-
-CASE WHEN SUM(b.budget) IS NULL THEN 0 ELSE SUM(b.budget) END AS budget_income,
-CASE WHEN SUM(SUM(b.budget)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.budget)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_budget,
-
-CASE WHEN SUM(b.recharge) IS NULL THEN 0 ELSE SUM(b.recharge) END AS recharge_income,
-CASE WHEN SUM(SUM(b.recharge)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.recharge)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_recharge,
-
-CASE WHEN SUM(b.combined_income) IS NULL THEN 0 ELSE SUM(b.combined_income) END AS total_income,
-SUM(SUM(b.combined_income)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) AS cumulative_total_income,
-
-CASE WHEN SUM(b.expense) IS NULL THEN 0 ELSE SUM(b.expense) END AS expense_amount,
-CASE WHEN SUM(SUM(b.expense)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.expense)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_expense,
-
-COALESCE(SUM(b.combined_income), 0) - COALESCE(SUM(b.expense), 0) AS net,
-SUM(COALESCE(SUM(b.combined_income), 0) - COALESCE(SUM(b.expense), 0)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) AS cumulative_net,
-
-b.merge_date AS invoice_month
-
-
- FROM (
-
-SELECT 
-a.registration_number, 
-a.asset_id,
-
-budget,
-recharge,
-COALESCE(budget, 0) + COALESCE(recharge, 0) AS combined_income,
-expense, 
-invoice_date,
-FORMAT(invoice_date, 'yyyy-MM') AS merge_date
-
- FROM (
-
-SELECT 
-reg.registration_number,
-SundryRecurringDetail.[asset_id],
-SUM(SundryRecurringDetail.[amount_amount]) AS budget,
-null AS expense,
-NULL AS recharge,
-SundryRecurringSchedule.due_date AS invoice_date
-
-
-FROM aggregated_odessa_dim_sundry_recurring AS SundryRecurring
-JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS SundryRecurringDetail ON SundryRecurringDetail.[sundry_recurring_id] = SundryRecurring.bk_aggregated_dim_sundry_recurring_id AND SundryRecurringDetail.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON SundryRecurring.[receivable_code_id] = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1
- JOIN aggregated_odessa_dim_customer AS Customer ON SundryRecurring.customer_id = Customer.bk_aggregated_dim_customer_id AND Customer.current_flag = 1
- JOIN aggregated_odessa_dim_asset AS Asset ON SundryRecurringDetail.[asset_id] = Asset.[bk_aggregated_dim_asset_id] AND Asset.current_flag = 1
- LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON Asset.[bk_aggregated_dim_asset_id] = reg.[asset_id] AND reg.current_flag = 1 AND reg.is_active = 1
-
-LEFT JOIN (
-SELECT DISTINCT 
-sundry_recurring_id,
-due_date
-from  aggregated_odessa_dim_sundry_recurring_payment_schedule AS SundryRecurringSchedule
-WHERE SundryRecurringSchedule.current_flag = 1 and SundryRecurringSchedule.is_active = 1) AS SundryRecurringSchedule ON SundryRecurringSchedule.[sundry_recurring_id] = SundryRecurring.[bk_aggregated_dim_sundry_recurring_id]
-WHERE SundryRecurring.current_flag = 1
-AND SundryRecurringSchedule.due_date < GETDATE()
-GROUP BY 
-reg.registration_number,
-SundryRecurringDetail.[asset_id],
-SundryRecurringSchedule.due_date
-
-UNION ALL
-
-SELECT 
-registration_number,
-asset_id,
-NULL AS budget,
-SUM(expense) AS expense,
-SUM(recharge) AS recharge,
-invoice_date
- FROM (
-SELECT  
-Sundry.[bk_aggregated_dim_sundry_id],
-Sundry.asset_id,
-reg.registration_number,
-Sundry.contract_id,
-null AS budget,
-CASE WHEN Sundry.sundry_type = 'PayableOnly' THEN Sundry.[amount_amount] ELSE 0 END AS expense,
-CASE WHEN Sundry.sundry_type = 'ReceivableOnly' THEN Sundry.[amount_amount] ELSE 0 END AS recharge,
-CASE WHEN Sundry.sundry_type = 'PayableOnly' THEN Sundry.[payable_due_date]
-WHEN Sundry.sundry_type = 'ReceivableOnly' THEN Sundry.[receivable_due_date] END AS invoice_date
-
-
-FROM vw_sundry_details AS Sundry
- JOIN aggregated_odessa_dim_asset AS Asset ON Sundry.asset_id = Asset.[bk_aggregated_dim_asset_id] AND Asset.current_flag = 1
- LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON Asset.[bk_aggregated_dim_asset_id] = reg.[asset_id] AND reg.current_flag = 1 AND reg.is_active = 1
-) AS sundries
-
-GROUP BY
-sundries.registration_number,
-sundries.asset_id,
-sundries.invoice_date 
-)
-AS a
-
-WHERE a.registration_number IS NOT NULL 
-
-)
-AS b
-
-GROUP BY
-b.registration_number,
-b.asset_id,
-b.merge_date)
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_ch_maintenance_provision];
-GO
-
-CREATE VIEW [dbo].[rpt_ch_maintenance_provision] AS (
-SELECT 
-b.merge_date,
-b.registration_number,
-b.asset_id,
-b.sequence_number,
-b.status,
-b.description,
-b.company_name,
-b.commencement_date,
-b.contract_end_date,
-
-CASE WHEN SUM(b.budget) IS NULL THEN 0 ELSE SUM(b.budget) END AS budget_income,
-CASE WHEN SUM(SUM(b.budget)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.budget)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_budget,
-
-CASE WHEN SUM(b.recharge) IS NULL THEN 0 ELSE SUM(b.recharge) END AS recharge_income,
-CASE WHEN SUM(SUM(b.recharge)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.recharge)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_recharge,
-
-CASE WHEN SUM(b.combined_income) IS NULL THEN 0 ELSE SUM(b.combined_income) END AS total_income,
-SUM(SUM(b.combined_income)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) AS cumulative_total_income,
-
-CASE WHEN SUM(b.expense) IS NULL THEN 0 ELSE SUM(b.expense) END AS expense_amount,
-CASE WHEN SUM(SUM(b.expense)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.expense)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_expense,
-
-COALESCE(SUM(b.combined_income), 0) - COALESCE(SUM(b.expense), 0) AS net,
-SUM(COALESCE(SUM(b.combined_income), 0) - COALESCE(SUM(b.expense), 0)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) AS cumulative_net
-
-
-
-FROM (
-
-SELECT 
-asset_sundries.registration_number, 
-budget,
-recharge,
-COALESCE(budget, 0) + COALESCE(recharge, 0) AS combined_income,
-expense, 
-invoice_date,
-FORMAT(invoice_date, 'yyyy-MM') AS merge_date,
-contracts.*
-
-
- FROM (
-
-SELECT 
-reg.registration_number,
-SundryRecurringDetail.[asset_id],
-SUM(SundryRecurringDetail.[amount_amount]) AS budget,
-null AS expense,
-NULL AS recharge,
-SundryRecurringSchedule.due_date AS invoice_date
-
-FROM aggregated_odessa_dim_sundry_recurring AS SundryRecurring
-JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS SundryRecurringDetail ON SundryRecurringDetail.[sundry_recurring_id] = SundryRecurring.bk_aggregated_dim_sundry_recurring_id AND SundryRecurringDetail.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON SundryRecurring.[receivable_code_id] = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1
- JOIN aggregated_odessa_dim_customer AS Customer ON SundryRecurring.customer_id = Customer.bk_aggregated_dim_customer_id AND Customer.current_flag = 1
- JOIN aggregated_odessa_dim_asset AS Asset ON SundryRecurringDetail.[asset_id] = Asset.[bk_aggregated_dim_asset_id] AND Asset.current_flag = 1
- LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON Asset.[bk_aggregated_dim_asset_id] = reg.[asset_id] AND reg.current_flag = 1 AND reg.is_active = 1
-
- JOIN (
-SELECT DISTINCT 
-sundry_recurring_id,
-due_date
-from  aggregated_odessa_dim_sundry_recurring_payment_schedule AS SundryRecurringSchedule
-WHERE SundryRecurringSchedule.current_flag = 1  and SundryRecurringSchedule.is_active = 1) AS SundryRecurringSchedule ON SundryRecurringSchedule.[sundry_recurring_id] = SundryRecurring.[bk_aggregated_dim_sundry_recurring_id]
-WHERE SundryRecurring.current_flag = 1
-AND SundryRecurringSchedule.due_date < GETDATE()
-GROUP BY 
-reg.registration_number,
-SundryRecurringDetail.[asset_id],
-SundryRecurringSchedule.due_date
-
-UNION ALL
-
-SELECT 
-registration_number,
-asset_id,
-NULL AS budget,
-SUM(expense) AS expense,
-SUM(recharge) AS recharge,
-invoice_date
- FROM (
-SELECT  
-Sundry.[bk_aggregated_dim_sundry_id],
-Sundry.asset_id,
-reg.registration_number,
-Sundry.contract_id,
-null AS budget,
-CASE WHEN Sundry.sundry_type = 'PayableOnly' THEN Sundry.[amount_amount] ELSE 0 END AS expense,
-CASE WHEN Sundry.sundry_type = 'ReceivableOnly' THEN Sundry.[amount_amount] ELSE 0 END AS recharge,
-CASE WHEN Sundry.sundry_type = 'PayableOnly' THEN Sundry.[payable_due_date]
-WHEN Sundry.sundry_type = 'ReceivableOnly' THEN Sundry.[receivable_due_date] END AS invoice_date
-
-
-FROM vw_sundry_details AS Sundry
- JOIN aggregated_odessa_dim_asset AS Asset ON Sundry.asset_id = Asset.[bk_aggregated_dim_asset_id] AND Asset.current_flag = 1
- LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON Asset.[bk_aggregated_dim_asset_id] = reg.[asset_id] AND reg.current_flag = 1 AND reg.is_active = 1
-WHERE Sundry.is_active = 1
-) AS sundries
-
-GROUP BY
-sundries.registration_number,
-sundries.asset_id,
-sundries.invoice_date 
-
-) AS asset_sundries 
-
-LEFT JOIN (
-
-SELECT
-p.asset_id,
-p.ContractBK,
-p.sequence_number,
-p.status,
-p.company_name,
-p.commencement_date,
-p.maturity_date,
---p.terminated_date,
---p.transaction_type,
-CASE WHEN terminated_date = '9999-01-1' THEN NULL ELSE terminated_date END AS termination_date,
-CASE WHEN terminated_date < maturity_date THEN terminated_date
-ELSE maturity_date END AS contract_end_date,
-cc.description
-FROM pbi_fleetspendreporting2 AS p
-JOIN aggregated_odessa_dim_contract as c ON p.ContractBK = c.[bk_aggregated_dim_contract_id] AND c.current_flag = 1
-JOIN aggregated_odessa_dim_cost_center AS cc ON c.cost_center_id = cc.[bk_aggregated_dim_cost_center_id] AND cc.current_flag = 1
-
-WHERE p.sequence_number IS NOT NULL AND p.transaction_type = 'Contract Hire' AND p.status NOT IN ('Inactive', 'Pending', 'InstallingAssets')
-) AS contracts ON asset_sundries.asset_id = contracts.asset_id AND asset_sundries.invoice_date BETWEEN contracts.commencement_date AND contracts.contract_end_date
-
-) AS b
-WHERE b.asset_id IS NOT NULL
-GROUP BY
-b.registration_number,
-b.asset_id,
-b.merge_date,
-b.sequence_number,
-b.status,
-b.description,
-b.company_name,
-b.commencement_date,
-b.contract_end_date
-)
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_bdm_customer];
-GO
-
-CREATE VIEW [dbo].[pbi_bdm_customer]
-AS
-SELECT
-        customer.party_name AS 'Account Name'
-        ,customer.customer_id
-        ,customer.policy_number
-        ,customer.next_review_date AS 'Next Review Date'
-        ,DATEDIFF(DAY, GETDATE(), customer.next_review_date)  AS 'Next Review (Days)'
-        ,DATEDIFF(MONTH, GETDATE(), customer.next_review_date)  AS 'Next Review (Months)'  
-        ,COALESCE(
-                    CASE WHEN months_to_annual_review < 0 THEN 'Overdue' ELSE NULL END,
-                    CASE WHEN months_to_annual_review = 1 THEN '1 Month' ELSE NULL END,
-                    CASE WHEN months_to_annual_review > 1 THEN 'More than 2 Months' ELSE NULL END
-                ) AS 'Annual Review Due'
-        ,customer.total_proposed_customer_exposure_amount AS 'Direct Proposed Exposure'
-        ,customer.primary_customer_amount AS 'Direct Exposure'
-        ,COALESCE(
-                    CASE WHEN policy_expiration_date IS NULL THEN 'None Held' ELSE NULL END,
-                    CASE WHEN policy_expiration_date < GETDATE() THEN 'Overdue' ELSE NULL END,
-                    CASE WHEN policy_expiration_date >= GETDATE() THEN 'Up to Date' ELSE NULL END
-                ) AS 'Insurance Policy Status'       
-        ,customer.policy_expiration_date AS 'Policy Expiry Date'
-        ,customer.policy_type AS 'Policy Type'
-        ,customer.account_manager AS 'Account Manager'
-        ,CASE WHEN customer.effective_balance_amount > 0 THEN 1 ELSE 0 END AS 'In Arreas'
-        ,customer.exposure_id
- FROM vw_customer AS customer
- ;
- GO
-
-DROP VIEW if EXISTS [dbo].[pbi_bdm_credit_assets];
-GO
-
-CREATE VIEW dbo.pbi_bdm_credit_assets
-AS
-SELECT 
-    a.*
-    ,COALESCE(
-            CASE WHEN a.[Maturity Timeframe] <= 0 THEN 'Already Matured' ELSE NULL END,
-            CASE WHEN a.[Maturity Timeframe] <= 30 THEN '1 Month or Less' ELSE NULL END,
-            CASE WHEN a.[Maturity Timeframe] <= 60 THEN '1-2 Months' ELSE NULL END,
-            CASE WHEN a.[Maturity Timeframe] <= 90 THEN '2-3 Months' ELSE NULL END,
-            CASE WHEN a.[Maturity Timeframe] <= 180 THEN '3-6 Months' ELSE NULL END,
-            CASE WHEN a.[Maturity Timeframe] <= 365 THEN '6-12 Months' ELSE NULL END,
-            CASE WHEN a.[Maturity Timeframe] > 365 THEN 'More than 1 Year' ELSE NULL END                                       
-        ) AS 'Maturity Timeframe (Months)'  
-FROM
-(
-SELECT 
-
-    contracts.contract_id
-    ,contracts.customer_id
-    ,contracts.sequence_number AS 'Lease No'
-    ,contracts.aag_contract_number
-    ,asset.product_name AS 'Asset Category'
-    ,asset.alias AS 'Registration Number'
-    ,asset.description AS 'Equipment Description' 
-    ,asset.product_name AS 'Vehicle Category'
-    ,asset.manufacturer_name AS 'MAKE'
-    ,asset.make_name AS 'Model Range'
-    ,asset.model_year AS 'YEAR'       
-    ,asset.gvw AS 'GVW' 
-    ,asset.equipment_nbv AS NBV
-    ,asset.body_description AS 'Body Type'
-    ,contracts.product_name AS Product
-    ,lease.total_charge_to_customer AS Rate
-    ,contracts.payment_frequency AS 'Billing Period'
-    ,contracts.term_in_months AS 'Lease Term'
-    ,asset.term AS 'Term'
-    ,asset.emission_code AS Emission
-    ,maturity.bk_aggregated_dim_date AS 'Maturity Date'
-    ,DATEDIFF(DAY,GETDATE(),maturity.bk_aggregated_dim_date) AS 'Maturity Timeframe'  
-    ,commence.bk_aggregated_dim_date AS 'Commenced Date'
-    ,asset.service_intervals_vehicle AS 'Service Intervals Vehicle'
-    ,asset.rv_maturity_date AS 'RV Maturity Date'
-    ,contracts.status
-    ,contracts.sales_rep
-
-FROM vw_lease_asset_current AS lease 
-LEFT JOIN vw_asset AS asset ON asset.asset_id = lease.asset_id
-LEFT JOIN vw_lease_contracts AS contracts ON contracts.contract_id = lease.contract_id
-LEFT JOIN aggregated_odessa_dim_date AS maturity ON maturity.sk_aggregated_dim_date = contracts.lease_maturity_date 
-LEFT JOIN aggregated_odessa_dim_date AS commence ON commence.sk_aggregated_dim_date = contracts.lease_commencement_date 
-) AS a
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_open_lease_customers];
-GO
-
-CREATE VIEW dbo.rpt_open_lease_customers
-AS
-SELECT 
-      contracts.company_name AS 'Account Name'
-      ,contracts.aag_contract_number AS 'AAG Contract Number'      
-      ,contracts.sequence_number AS 'LS Contract: Lending Account ID'
-      ,asset.alias AS 'Registration Number'
-      ,ISNULL(asset.serial_number,'-') AS 'Serial Number' 
-      ,asset.description AS 'Equipment Description'
-      ,asset.service_intervals_vehicle AS 'Service Intervals-Vehicle'
-      ,asset.service_intervals_trailer AS 'Service Intervals-Trailer'      
-      ,asset.product_name AS 'Vehicle Category' 
-      ,asset.manufacturer_name AS 'MAKE'
-      ,asset.make_name AS 'Model Range'
-      ,asset.model_year AS 'YEAR'    
-      ,asset.gvw AS 'GVW'
-      ,lease.rent_amount AS 'Rent'
-      ,lease.asset_budget_value AS 'Asset Budget Value'
-      ,lease.total_charge_to_customer AS 'Charge To Customer'  
-      ,contracts.payment_frequency AS 'Rental Term Unit'
-      ,asset.asset_contract_type AS 'Vehicle Type'         
-      ,contracts.deal_type AS 'Product Name'
-      ,contracts.contract_type AS 'Contract Type'                 
-      ,commDate.bk_aggregated_dim_date AS 'Contract Date'
-      ,contracts.customer_term_in_months AS 'Current Term'
-      ,asset.term AS 'Asset Lease Term'
-      ,asset.rv_maturity_date AS 'RV Maturity Date'
-      ,matDate.bk_aggregated_dim_date AS 'Maturity Date'
-      ,contracts.payment_method AS 'Payment Method'
-      ,contracts.status AS 'Contract: Status'
-      ,asset.location_city AS 'Current Location'       
-      ,contracts.branch_name AS 'Branch'
-      ,contracts.cost_center AS 'Cost Center'
-      ,contracts.sales_rep AS 'Sales Person' 
-      ,asset.begin_book_value_amount AS 'Equipment NBV'
-      ,asset.asset_contract_type AS 'Asset Type'
-                           
-FROM
-vw_asset AS asset
-JOIN vw_lease_asset_current AS lease on lease.asset_id = asset.asset_id
-JOIN vw_lease_contracts AS contracts ON contracts.contract_id = lease.contract_id
-LEFT JOIN aggregated_odessa_dim_date AS matDate ON matDate.sk_aggregated_dim_date = contracts.lease_maturity_date
-LEFT JOIN aggregated_odessa_dim_date AS commDate ON commDate.sk_aggregated_dim_date = contracts.lease_commencement_date  
-WHERE asset.asset_status = 'Leased'
-AND LOWER(contracts.status) = 'commenced'
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_r2c_stock_assets];
-GO
-
-CREATE VIEW [dbo].[rpt_r2c_stock_assets]
-AS
-SELECT 
-      CAST(asset.[alias] AS VARCHAR(8)) AS 'Registration Number'
-      ,asset.aag_fleet_number AS 'AAG Fleet Number'
-      ,asset.[model_year] AS 'YEAR'     
-      ,ISNULL(asset.collateral_id,'-') AS 'Collateral: ID'
-      ,asset.[equipment_id] AS 'Equipment Id'
-      ,ISNULL(asset.asset_funding_status,'-') AS 'Dealer Funding Status'
-      ,asset.[product_name] AS 'Vehicle Category'
-      ,asset.city AS 'Current Location'
-      ,asset.[asset_contract_type] AS 'Vehicle Type'
-      ,asset.asset_status AS 'Status' 
-      ,asset.legal_entity_number AS 'Company'   
-      ,ISNULL(asset.asset_sub_type,'-') AS 'Asset Sub Type'  
-      ,ISNULL(asset.asset_value_amount,0) AS 'Purchased Price'  
-      ,ISNULL(asset.[book_value_amount],0) AS 'Book Value'
-      ,ISNULL(asset.begin_book_value_amount,0) AS 'Equipment NBV'  
-      ,ISNULL(asset.serial_number,'-') AS [Chassis Number]   
-      ,asset.[description] AS 'Equipment Description' 
-      ,asset.[manufacturer_name] AS 'Manufacturer'
-      ,asset.[make_name]  AS 'Make'
-      ,asset.model_name AS 'Model'                              
-FROM
-vw_asset AS asset
-      WHERE asset.[asset_contract_type] = 'Stock'
-;
-GO	
-
-
-DROP VIEW if EXISTS [dbo].[rpt_tts_unpaid_sales];
-GO
-CREATE OR ALTER VIEW dbo.rpt_tts_unpaid_sales AS
-
-SELECT 
-
-_user.full_name AS 'Salesperson',
-sale.transaction_date AS 'Sales Date',
-sale.attention_to AS 'Broker Name',
-customer.party_name AS 'Buyer Name',
-sale.transaction_number AS 'Sales Quote Name',
-sale.status AS 'Status',
---Sale Quote Number,
-a.aag_fleet_number AS 'AAG Fleet Number',
-reg.registration_number AS 'Registration Number',
-a.product_name AS 'Vehicle Category',
-'tba' AS 'CRM Opp No',
-b.branch_name AS 'Depot Sold',
-rc.name AS 'Route to Market',
-detail.fair_market_value_amount AS 'Equipment Sale Amount',
-detail.fair_market_value_amount + detail.projected_vat_amount_amount AS 'Sales Amount (Inc VAT)', --Sale Amount (inc VAT)
-dri.sk_aggregated_dim_receivable_invoice,
-dri.number
-
-FROM
-
-aggregated_odessa_dim_asset_sale AS sale
-LEFT JOIN aggregated_odessa_dim_asset_sale_detail AS detail ON detail.asset_sale_id = sale.bk_aggregated_dim_asset_sale_id AND detail.current_flag = 1 AND detail.is_active = 1
-LEFT JOIN aggregated_odessa_dim_asset a ON a.bk_aggregated_dim_asset_id = detail.asset_id AND a.current_flag = 1
-LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1LEFT JOIN aggregated_odessa_dim_customer AS customer ON customer.bk_aggregated_dim_customer_id = sale.buyer_id AND customer.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_employees_assigned_to_asset_sale AS employee ON employee.asset_sale_id = sale.bk_aggregated_dim_asset_sale_id AND employee.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_role_function AS role ON role.bk_aggregated_dim_role_function_id = employee.role_function_id AND role.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_user AS _user ON _user.bk_aggregated_dim_user_id = employee.employee_id AND _user.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_receivable_code AS rc ON rc.bk_aggregated_dim_receivable_code_id = sale.asset_sale_receivable_code_id AND rc.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_branch AS b ON b.bk_aggregated_dim_branch_id = sale.branch_id AND b.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_receivable_invoice AS dri ON sale.first_receivable_invoice_id = dri.bk_aggregated_dim_receivable_invoice_id AND dri.current_flag = 1
-LEFT JOIN aggregated_odessa_fact_receivable_invoice AS frid ON frid.sk_aggregated_dim_receivable_invoice = dri.sk_aggregated_dim_receivable_invoice AND dri.current_flag = 1
-
-WHERE
-
-sale.current_flag = 1 AND
-sale.status = 'Completed' AND
-customer.party_name <> 'Asset Alliance Leasing Ltd' AND
-(frid.balance_amount + frid.tax_balance_amount) > 0
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_rv_analysis];
-GO
-
-CREATE VIEW dbo.pbi_rv_analysis
-AS
-SELECT *
-FROM
-(
-	SELECT 
-				fAssetLeases.sk_aggregated_dim_asset,
-				fAssetLeases.sk_aggregated_dim_date_termination_date,
-				fAssetLeases.nbv_amount,
-				fAssetLeases.customer_cost_amount,
-				fAssetLeases.specific_cost_adjustment_amount,
-				fAssetLeases.rent_amount,
-				fAssetLeases.accumulated_depreciation_amount,
-				fAssetLeases.fmv_amount,
-				fAssetLeases.initial_customer_cost_amount,
-				fAssetLeases.initial_nbv_amount,
-				fAssetLeases.capitalized_additional_charge_amount,
-				ISNULL(charges.charges,0) AS asset_budget_value,
-				ISNULL(charges.charges,0) + ISNULL(fAssetLeases.rent_amount,0) AS total_charge_to_customer,
-	
-				customer.bk_aggregated_dim_customer_id AS customer_id,
-				customer.company_name,
-				customer.creation_date as customer_account_created_date,
-				customer.external_reference_id,
-				customer.external_reference_id AS account_number,				
-				fAssetLeases.sk_aggregated_dim_customer,
-
-				asset.bk_aggregated_dim_asset_id AS asset_id,		
-				asset.bk_aggregated_dim_asset_id,		
-				asset.current_flag AS 'current_asset',
-
-				db.branch_name,
-				contract.sk_aggregated_dim_contract,	
-				contract.bk_aggregated_dim_contract_id,										
-				contract.bk_aggregated_dim_contract_id AS contract_id,					
-				contract.sequence_number,
-				contract.external_reference_number,				
-				contract.contract_type,
-				contract.original_booking_date,
-				contract.final_acceptance_date,
-				contract.status,
-				contract.report_status,
-				contract.previous_schedule_number,
-				contract.vehicle_lease_type,
-				contract.current_flag,
-				contract.alias,
-				contract.alias AS aag_contract_number,
-				contract.grace_delinquency_days,				
-				lBusiness.description AS 'line_of_business',	
-
-				cCenter.description AS cost_centre,	
-
-				lFinance.booking_status,
-				lFinance.approval_status,
-				lFinance.is_current,
-				lFinance.customer_term_in_months,
-				lFinance.term_in_months,		
-				lFinance.remaining_lease_term_in_months,							
-				lFinance.payment_frequency,
-				lFinance.purchase_option,
-				lFinance.classification_contract_type,
-				lFinance.lease_contract_type,
-				lFinance.payment_frequency_days,
-				lFinance.is_advance,
-				lFinance.termination_notice_received,			
-				lFinance.is_supplemental_advance,
-				lFinance.lessor_notice_period,
-				lFinance.remaining_economic_life_in_months,
-				lFinance.total_economic_life_in_months,
-				lFinance.bk_aggregated_dim_lease_finance_id AS lease_finance_id,
-				lFinance.sk_aggregated_dim_lease_finance,
-
-				opportunity.number,
-				opportunity.number AS opportunity_number,
-				contractSalesRep.employee_name AS sales_rep,
-				contractManager.employee_name AS account_manager,
-				contractUser.full_name AS contract_created_by,
-
-				CASE WHEN lFinance.is_advance = 1 THEN 'Advance' ELSE NULL END AS 'payment_method', 
-				CASE WHEN lFinanceDetail.sk_aggregated_dim_date_maturity_date > 0 THEN lFinanceDetail.sk_aggregated_dim_date_maturity_date ELSE NULL END AS 'lease_maturity_date',
-				CASE WHEN lFinanceDetail.sk_aggregated_dim_date_commencement_date > 0 THEN lFinanceDetail.sk_aggregated_dim_date_commencement_date ELSE NULL END AS 'lease_commencement_date',				
-				CASE WHEN fAssetLeases.sk_aggregated_dim_date_value_as_of_date > 0 THEN  fAssetLeases.sk_aggregated_dim_date_value_as_of_date ELSE NULL END AS 'valuation_date',
-				CASE WHEN fAssetLeases.sk_aggregated_dim_date_termination_date > 0 THEN fAssetLeases.sk_aggregated_dim_date_termination_date ELSE NULL END AS 'termination_date',
-				ROW_NUMBER() OVER(PARTITION BY asset.bk_aggregated_dim_asset_id ORDER BY fAssetLeases.sk_aggregated_dim_lease_asset DESC, fAssetLeases.sk_aggregated_dim_date_record DESC, fAssetLeases.sk_aggregated_dim_time_record DESC) AS current_lease,
-
-  				(DENSE_RANK() OVER(PARTITION BY bk_aggregated_dim_contract_id ORDER BY bk_aggregated_dim_asset_id ASC) +
-				DENSE_RANK() OVER(PARTITION BY bk_aggregated_dim_contract_id ORDER BY bk_aggregated_dim_asset_id DESC) -1)
-				 AS equipment_count,	
-
-				 depreciation.per_day_depreciation_factor * 30 AS depreciation_value,	
-				 depreciation.begin_date AS depreciation_start_date,
-				 productType.transaction_type AS product_name,
-				 productType.transaction_type AS deal_type,				 
-				 legalE.legal_entity_number,
-				 classificationCode.code AS sic_code,
-				 classificationCode.description AS sic_desc,
-				 businessType.name AS business_type			 
-
-	FROM aggregated_odessa_fact_lease_asset AS fAssetLeases 
-	JOIN aggregated_odessa_dim_asset AS asset ON asset.sk_aggregated_dim_asset = fAssetLeases.sk_aggregated_dim_asset AND asset.current_flag = 1	
-	JOIN aggregated_odessa_dim_branch AS db on db.sk_aggregated_dim_branch = fAssetLeases.sk_aggregated_dim_branch 
-    JOIN aggregated_odessa_dim_legal_entity AS legalE on legalE.sk_aggregated_dim_legal_entity = fAssetLeases.sk_aggregated_dim_legal_entity 	
-    JOIN aggregated_odessa_dim_customer AS customer on fAssetLeases.sk_aggregated_dim_customer = customer.sk_aggregated_dim_customer --AND customer.current_flag = 1 --- lines dropped
-	JOIN aggregated_odessa_dim_contract AS contract on contract.sk_aggregated_dim_contract = fAssetLeases.sk_aggregated_dim_contract AND contract.current_flag = 1	
-	LEFT JOIN aggregated_odessa_dim_lease_finance AS lFinance on lFinance.sk_aggregated_dim_lease_finance = fAssetLeases.sk_aggregated_dim_lease_finance AND lFinance.current_flag = 1 AND lFinance.is_current = 1	
-	JOIN aggregated_odessa_dim_line_of_business AS lBusiness on lBusiness.sk_aggregated_dim_line_of_business = fAssetLeases.sk_aggregated_dim_line_of_business    
-	LEFT JOIN aggregated_odessa_dim_cost_center AS cCenter on cCenter.sk_aggregated_dim_cost_center = fAssetLeases.sk_aggregated_dim_cost_center
-	LEFT JOIN aggregated_odessa_dim_opportunity AS opportunity ON opportunity.number = contract.opportunity_number  AND opportunity.current_flag = 1	
-	LEFT JOIN aggregated_odessa_dim_user AS contractUser ON contractUser.bk_aggregated_dim_user_id = contract.created_by_id  AND contractUser.current_flag = 1
-	LEFT JOIN vw_contract_assignments AS contractSalesRep ON contractSalesRep.contract_id = contract.bk_aggregated_dim_contract_id AND contractSalesRep.system_defined_name = 'SalesRep'     
-	LEFT JOIN vw_contract_assignments AS contractManager ON contractManager.contract_id = contract.bk_aggregated_dim_contract_id AND contractManager.role_function = 'AccountManager'
-	LEFT JOIN vw_book_depreciation AS depreciation ON depreciation.asset_id = asset.bk_aggregated_dim_asset_id AND depreciation.current_contract_value = 1 
-	LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND productType.current_flag = 1
-	LEFT JOIN aggregated_odessa_dim_classification_code AS classificationCode ON customer.sic_code_id = classificationCode.bk_aggregated_dim_classification_code_id AND classificationCode.current_flag = 1
-    LEFT JOIN aggregated_odessa_dim_business_type AS businessType ON businessType.bk_aggregated_dim_business_type_id = customer.business_type_id AND businessType.current_flag = 1	
-	LEFT JOIN vw_lease_finance_detail AS lFinanceDetail on contract.sk_aggregated_dim_contract = lFinanceDetail.sk_current_dim_contract 	
-	LEFT JOIN vw_asset_additional_charges AS charges ON charges.contract_id = contract.bk_aggregated_dim_contract_id AND charges.asset_id = asset.bk_aggregated_dim_asset_id
-) 
-as a
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_contracts_created_month];
-GO
-
-CREATE VIEW [dbo].[rpt_contracts_created_month]
-AS
-SELECT 
-      contract.company_name AS 'Account Name'
-      ,contract.[aag_contract_number] AS ' AAG Contract Number'
-      ,contract.[sequence_number] AS 'LS Contract: Lending Account ID' 
-      ,asset.registration_number AS 'Registration Number'
-      ,contract.cost_center
-      ,asset.[serial_number] AS 'Serial Number'     
-      ,asset.[description] AS 'Equipment Description' 
-      ,asset.product_name AS 'Vehicle Category' 
-      ,asset.[manufacturer_name] AS 'MAKE'
-      ,asset.[make_name] AS 'Model Range'
-      ,asset.[model_year] AS 'YEAR'            
-      ,asset.[gvw] AS 'GVW'  
-      ,lease.rent_amount AS 'Rent'
-      ,lease.asset_budget_value AS 'Asset Budget Value'  
-      ,lease.total_charge_to_customer AS 'Charge To Customer'  
-      ,contract.payment_frequency AS 'Rental Term Unit' 
-      ,asset.[asset_contract_type] AS 'Vehicle Type'     
-      ,contract.product_name AS [Product Name] 
-      ,dt2.bk_aggregated_dim_date AS 'Contract Date'
-      ,contract.customer_term_in_months AS 'Current Term'
-      ,dt.bk_aggregated_dim_date AS 'Maturity Date' 
-      ,contract.payment_method AS 'Payment Method'
-      ,contract.report_status AS 'Contract: Status' 
-      ,contract.branch_name AS 'Current Location' 
-      ,ISNULL(contract.sales_rep,'-') AS 'Dimesion 4'        
-      ,contract.status AS 'Status'
-      ,asset.equipment_nbv AS 'Equipment NBV'
-      ,contract.contract_created_by AS 'Created By'
-      ,dt3.[bk_aggregated_dim_date] AS 'Termination Date'     
-      ,COALESCE(dt2.bk_aggregated_dim_date,contract.[lease_start_date]) AS 'Created Date'
-      ,contract.is_migrated AS 'Is Migrated'                                
-FROM vw_lease_asset_current AS lease 
-      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
-      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
-      LEFT JOIN aggregated_odessa_dim_date AS dt on dt.[sk_aggregated_dim_date] = contract.lease_maturity_date
-      LEFT JOIN aggregated_odessa_dim_date AS dt2 on dt2.[sk_aggregated_dim_date] = contract.[sk_created_date]  
-      LEFT JOIN aggregated_odessa_dim_date AS dt3 on dt3.[sk_aggregated_dim_date] = lease.sk_aggregated_dim_date_termination_date --AND lease.sk_aggregated_dim_date_termination_date > 0
---WHERE contract.is_migrated = 'No'
-GO
-;
-
-DROP VIEW if EXISTS [dbo].[rpt_open_lease_file];
-GO
-;
-
-CREATE VIEW [dbo].[rpt_open_lease_file]
-AS
-SELECT 
-      contract.company_name AS 'Account Name'
-      ,contract.aag_contract_number AS 'AAG Contract Number'
-      ,contract.[sequence_number] AS 'LS Contract: Lending Account ID'
-      ,asset.city AS 'Depot Address'
-      ,customer.[account_manager] AS 'SalesPerson'
-      ,asset.[rv_maturity_date] AS 'RV Maturity Date'
-      ,'xxx' AS 'Renewal Action'
-      ,'xxx' AS 'Last New Vehicle Survey Sent'
-      ,'xxx' AS 'Opt Out Of new Vehicle Survey'
-      ,asset.alias AS 'Registration Number'
-      ,asset.[road_fund_licence] AS 'Road Fund Licence'
-      ,ISNULL(asset.[serial_number],'-') AS 'Serial Number' 
-      ,asset.[description] AS 'Equipment Description' 
-      ,asset.product_name AS 'Vehicle Category'
-      ,asset.[manufacturer_name] AS 'MAKE'
-      ,asset.[make_name] AS 'Model Range'
-      ,asset.[model_year] AS 'YEAR'       
-      ,asset.[gvw] AS 'GVW' 
-      ,asset.[body_description] AS 'Body Type'
-      ,lease.rent_amount AS 'Rent'
-      ,lease.asset_budget_value AS 'Asset Budget Value'    
-      ,lease.total_charge_to_customer AS 'Charge To Customer'   
-      ,contract.payment_frequency AS 'Rental Term Unit' 
-      ,asset.[asset_contract_type] AS 'Vehicle Type' 
-      ,contract.product_name AS 'Product Name'
-      ,dt2.bk_aggregated_dim_date AS 'Contract Date'
-      ,contract.customer_term_in_months AS 'Current Term'
-      ,dt.[bk_aggregated_dim_date] AS 'Maturity Date'     
-      ,contract.[payment_method] AS 'Payment Method' 
-      ,contract.report_status AS 'Contract: Status' 
-      ,contract.[branch_name] AS 'Current Location'  
-      ,contract.cost_center AS 'Dimension 3' 
-      ,ISNULL(contract.sales_rep,'-') AS 'Dimension 4' 
-      ,asset.asset_status
-      ,asset.asset_type
-
-FROM vw_lease_asset_current AS lease 
-      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
-      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
-      LEFT JOIN vw_customer AS customer ON customer.customer_id = contract.customer_id     
-      LEFT JOIN aggregated_odessa_dim_date AS dt on dt.[sk_aggregated_dim_date] = contract.lease_maturity_date
-      LEFT JOIN aggregated_odessa_dim_date AS dt2 on dt2.[sk_aggregated_dim_date] = contract.lease_commencement_date  
-WHERE asset.asset_status = 'Leased'
-AND contract.status = 'Commenced'
-GO
-;
-
-
-DROP VIEW if EXISTS [dbo].[rpt_qa_queue_ops];
-GO
-;
-
-CREATE VIEW dbo.[rpt_qa_queue_ops]
-AS
-SELECT 
-      application.opportunity_number 'Application ID'
-      ,application.company_name 'Account'
-      ,application.expected_commencement_date AS 'Expected Start Date'
-      ,application.transaction_type AS 'Product Name'
-      ,ISNULL(application.equipment_count,0) AS 'Number of Pieces of Equipment'
-      ,ISNULL(application.approved_amount_amount,0) AS 'Financed Amount'
-      ,application.cost_centre AS 'Cost Centre'
-      ,application.application_owner
-      ,application.opportunity_owner
-      ,application.report_status AS 'Application Report Status'
-      ,application.application_status AS 'Application Stage'       
-      ,application.loc_status AS 'Credit Application Status'  
-
-FROM vw_credit_application AS application
-LEFT JOIN vw_lease_contracts AS lease ON lease.opportunity_number = application.opportunity_number 
-WHERE (LOWER(application.application_status) IN ('submittedtocredit') AND LOWER(application.loc_status) IN ('approved','pending'))
-OR
-LOWER(lease.status) IN ('pending','installingassets')
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_r2c_daily];
-GO
-
-CREATE VIEW [dbo].[rpt_r2c_daily]
-AS 
-SELECT DISTINCT
-    features.[equipment_id],
-    asset.[aag_fleet_number],
-    features.[vehicle_reg_num],
-    CASE WHEN features.[send_to_r_two_c] = 1 THEN 'Success' ELSE 'Error' END AS send_to_rtwoc,
-    features.[r_two_c_create_time] AS rtwoc_create_time, 
-    ISNULL(features.[r_two_c_last_update_status],'-') AS rtwoc_last_update_status,
-    ISNULL(features.[r_two_c_failure_reason],'-') AS rtwoc_failure_reason,
-    ISNULL(features.[r_two_c_create_status],'-') AS rtwoc_create_status
-FROM vw_asset AS asset
-JOIN vw_asset_features AS features ON asset.asset_id = features.asset_id
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[rpt_rv_receivables_from_live_contracts];
-GO
-
-
-
-CREATE OR ALTER       VIEW [dbo].[rpt_rv_receivables_from_live_contracts] AS 
-
-
-WITH asset AS (
-SELECT DISTINCT
-
-a.bk_aggregated_dim_asset_id,
-a.equipment_nbv AS 'Equipment: NBV',
-a.alias as 'Asset Alias',
-a.depreciation_value AS 'Equipment: Depreciation Value',
-a.cost_amount AS 'Equipment: Fair Value Adjustment',		--
-a.registration_number AS 'Vehicle Registration Number',
-a.is_migrated AS 'Equipment: IsMigrated',
-a.gvw AS 'Equipment: GVW',
-a.body_type AS 'Equipment: Body Type',
-a.residual_value_amount AS 'Equipment: Residual Value',
-a.contract_mileage AS 'Contract Mileage',
-a.present_mileage_date AS 'Equipment: Present Mileage Date',
-a.retail_valuation_date AS 'Equipment: Retail Valuation Date',
-a.retail_value_amount AS 'Equipment: Retail Value',
-a.fair_value_adjustment_date AS 'Equipment: Fair Value Adjustment Date',
-a.asset_sub_type AS 'Asset Sub Type',
-a.model_year AS 'Year',
-a.asset_status AS 'Asset Status', 
-a.rv_maturity_date AS 'RV Maturity Date',									--
-a.book_value_amount AS 'Equipment: Book Value',
-a.begin_book_value_amount AS 'Equipment: Equipment NBV',				--
-a.asset_contract_type AS 'Equipment: Vehicle Type',
-a.product_name AS 'Equipment: Vehicle Category',
-a.manufacturer_name 'Equipment: MAKE',
-a.make_name AS 'Equipment: Model Range',
-a.description AS 'Equipment: Equipment Description',
-a.last_known_mileage AS 'Equipment: Last Known Mileage',
-a.mot_expiry_date AS 'Equipment: Mot Expiry Date'
-
-
-FROM vw_asset AS a
-
-WHERE a.asset_status IN ('Leased', 'Inventory')
-
-
-), lease_asset as (
-SELECT 
-con.bk_aggregated_dim_contract_id,
-con.sequence_number,
-con.status,
-cu.party_name,
-cu.bk_aggregated_dim_customer_id,
-a.bk_aggregated_dim_asset_id,
-reg.registration_number,
-vd.contract_mileage,
-b.branch_name,
-
-ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
-fla.sk_aggregated_dim_date_termination_date,
-fla.nbv_amount,
-fla.customer_cost_amount,
-fla.rent_amount AS Rent
-
-FROM aggregated_odessa_dim_contract AS con
-JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset --and dla.is_approved = 1
-JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
-LEFT JOIN aggregated_odessa_dim_vehicle_detail AS vd ON a.bk_aggregated_dim_asset_id = vd.bk_aggregated_dim_vehicle_detail_id
-JOIN aggregated_odessa_dim_lease_finance AS lf ON fla.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1
-JOIN aggregated_odessa_dim_customer AS cu ON fla.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer
-LEFT JOIN aggregated_odessa_dim_branch AS b ON fla.sk_aggregated_dim_branch = b.sk_aggregated_dim_branch
-LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
-        WHERE con.current_flag = 1 AND con.status != 'Inactive'
-), latest_lease_asset AS (
-
-SELECT 
-
-la.bk_aggregated_dim_contract_id AS contract_id,
-la.bk_aggregated_dim_customer_id AS customer_id,
-la.bk_aggregated_dim_asset_id AS asset_id, 
-td.bk_aggregated_dim_date AS terminated_date,
-ROW_NUMBER() OVER(PARTITION BY la.bk_aggregated_dim_asset_id ORDER BY td.bk_aggregated_dim_date DESC) AS latest_contract,
-la.nbv_amount,
-la.customer_cost_amount,
-la.Rent,
-la.branch_name
-
-FROM lease_asset AS la
-LEFT JOIN aggregated_odessa_dim_date as td ON la.sk_aggregated_dim_date_termination_date = td.sk_aggregated_dim_date 
-WHERE la.rn = 1
-AND td.bk_aggregated_dim_date = '9999-01-01'
-
-), contracts AS (
-SELECT DISTINCT
-
-
-a.id,
-a.aag_contract_number AS 'AAG Contract Number',
-a.booking_status AS status,
-a.sequence_number AS 'Contract Sequence',
-a.commencement_date AS 'Contract Date',
-a.maturity_date AS 'Maturity Date',
-a.customer_name AS 'Account',
-a.product AS 'Product Name',
-a.cost_center AS 'Cost Center',
-a.payment_frequency AS 'Rental Term Unit',
-a.term AS 'Current Term',
-a.payment_method,
-bdm.full_name AS 'Primary Sales Rep',
-a.lease_contract_type AS 'Product Sub Type'
-FROM (
-SELECT 
-c.bk_aggregated_dim_contract_id AS id,
-c.alias AS aag_contract_number,
-c.sequence_number,
-c.status AS booking_status,
-cd.bk_aggregated_dim_date AS commencement_date,
-md.bk_aggregated_dim_date AS maturity_date,
-cu.party_name AS customer_name,
-cu.external_reference_id AS account_number,
-cu.organization_id,
-p.transaction_type AS product,
-cc.description AS cost_center,
-lob.name as line_of_business,
-lf.payment_frequency,
-lf.customer_term_in_months AS term,
-lf.lease_contract_type,
-CASE WHEN lf.is_advance = 1 THEN 'ADVANCE'
-ELSE 'ARREARS'
-END AS payment_method,
-c.previous_schedule_number as schedule_number,
-c.created_time as created_date,
-ROW_NUMBER() OVER ( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY flfd.sk_aggregated_dim_contract DESC, flfd.sk_aggregated_dim_date_record DESC, flfd.sk_aggregated_dim_time_record DESC) AS rn
-
-FROM aggregated_odessa_dim_contract AS c
-JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.sk_aggregated_dim_contract = flfd.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1  and lf.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_date AS md ON flfd.sk_aggregated_dim_date_maturity_date = md.sk_aggregated_dim_date
-LEFT JOIN aggregated_odessa_dim_date AS cd ON flfd.sk_aggregated_dim_date_commencement_date = cd.sk_aggregated_dim_date
-JOIN aggregated_odessa_dim_customer AS cu ON flfd.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer AND cu.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS p ON p.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND p.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.sk_aggregated_dim_cost_center = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.sk_aggregated_dim_line_of_business
- = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
-WHERE c.current_flag = 1 AND booking_status = 'Commenced'
-
-
-) AS a 
- LEFT JOIN (
- SELECT a.contract_id, a.full_name FROM (
- SELECT DISTINCT contract_id, u.full_name, 
- ROW_NUMBER() OVER( PARTITION BY contract_id ORDER BY ep.is_primary DESC) AS rn
- FROM aggregated_odessa_dim_employees_assigned_to_contract AS ec
-JOIN aggregated_odessa_dim_employees_assigned_to_party AS ep ON ec.employee_assigned_to_party_id = ep.bk_aggregated_dim_employees_assigned_to_party_id AND ep.current_flag = 1 AND ep.is_active = 1
-JOIN aggregated_odessa_dim_role_function AS rf ON ep.role_function_id = rf.bk_aggregated_dim_role_function_id 
-JOIN aggregated_odessa_dim_user AS u ON ep.employee_id = u.bk_aggregated_dim_user_id
- WHERE ec.current_flag = 1 AND ec.is_active = 1 AND rf.name = 'Sales Rep'
- ) AS a WHERE a.rn = 1
- ) AS bdm ON bdm.contract_id = a.id
-
-WHERE a.rn = 1
-)
-
-
-SELECT 
-
-asset.*,
-latest_lease_asset.terminated_date,
-latest_lease_asset.customer_cost_amount,
-latest_lease_asset.Rent,
-latest_lease_asset.branch_name AS Branch,
-contracts.*,
-
-ISNULL(charges.charges,0) AS 'Asset Budget Value',
-ISNULL(charges.charges,0) + ISNULL(latest_lease_asset.Rent,0) AS total_charge_to_customer
-
-
-
-FROM asset
- JOIN latest_lease_asset ON asset.bk_aggregated_dim_asset_id = latest_lease_asset.asset_id AND latest_contract = 1
- JOIN contracts ON latest_lease_asset.contract_id = contracts.id
-LEFT JOIN vw_asset_additional_charges AS charges ON charges.contract_id = contracts.id AND charges.asset_id = asset.bk_aggregated_dim_asset_id      
-
-
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_ts_asset_nbv];
-GO
-
-
-CREATE OR ALTER     VIEW [dbo].[rpt_ts_asset_nbv]
-AS
-SELECT DISTINCT
-      asset.registration_number AS 'Registration Number'
-      ,asset.asset_id
-     ,asset.[alias]
-     ,asset.[equipment_id] AS 'Equipment Id'
-     ,ISNULL(asset.collateral_id,'-') AS 'Collateral: Collateral ID'      
-     ,ISNULL(asset.[production_number],'-') AS 'Production Number'
-     ,asset.[asset_registration_effective_date]  AS 'Date of Registration'   
-     ,asset.acquisition_date AS 'Purchased Date'
-     ,asset.[asset_funding_status] AS 'Dealer Funding Status'
-     ,asset.[manufacturer_name] AS 'MAKE'
-     ,asset.[make_name] AS 'Model Range'
-     ,asset.[description] AS 'Equipment Description'        
-     ,asset.[in_service_date] AS 'Collateral: Created Date'
-     ,asset.[cab_model] AS 'Cab Model'
-     ,asset.[gvw] AS 'GVW'
-     ,asset.[body_type] AS 'Body Type'
-     ,asset.[asset_contract_type] AS 'Vehicle Type'
-     ,asset.[asset_contract_type] AS 'Asset Contract Type'     
-     ,asset.asset_status AS 'Status'          
-     ,ISNULL(asset.[serial_number],'-') AS 'Serial Number'  
-     ,ISNULL(asset.[serial_number],'-') AS [Chassis Number] 
-     ,asset.legal_entity_number AS 'Company' 
-     ,asset.[purchase_price] AS 'Purchased Price'
-     ,ISNULL(asset.[book_value_amount],0) AS 'Book Value'  
-     ,ISNULL(asset.[equipment_nbv],0) AS 'Equipment NBV'   
-     ,ISNULL(asset.[residual_value_amount],0) AS 'Residual Value'  
-     ,asset.salvage_amount AS 'Salvage Value'   
-     ,asset.[rv_maturity_date] AS 'RV Maturity Date' 
-     ,asset.[generate_book_depreciation] AS 'Generate Book Depreciation'
-     ,ISNULL(asset.depreciation_value,0) AS 'Depreciation Value'
-     ,asset.depreciation_start_date AS 'Depreciation Start Date' 
-     ,asset.economic_life_in_months AS 'Equipment Life in Months'  
-     ,asset.remaining_life_in_months AS 'Remaining Equipment Life in Months'
-     ,asset.[asset_sub_type] AS 'Asset Sub Type' 
-     ,asset.[product_name] AS 'Vehicle Category'          
-FROM vw_asset asset
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_all_asset];
-GO
-
-
-
-CREATE OR ALTER   VIEW [dbo].[rpt_all_asset]
-AS
-SELECT 
-	asset.registration_number as 'Registration Number' 
-      ,asset.alias
-      ,ISNULL(asset.collateral_id,'-') AS 'Collateral: ID'
-      ,asset.[equipment_id] AS 'Equipment Id'      
-      ,'-' AS 'Collateral Category'
-      ,asset.asset_registration_effective_date  AS 'Date of Registration' 
-      ,asset.[model_year] AS 'YEAR'
-      ,asset.last_known_mileage AS 'Last Known Mileage' 
-      ,asset.[present_mileage_date] AS 'Present Mileage Date'   
-      ,asset.product_name AS 'Vehicle Category'
-      ,asset.[manufacturer_name] AS 'MAKE'
-      ,asset.[make_name] AS 'Model Range'
-      ,asset.[description] AS 'Equipment Description'
-      ,asset.[gvw] AS 'GVW'
-      ,asset.body_type AS 'Body Type' 
-      ,asset.vehicle_service_status AS 'Vehicle Service Status'  
-      ,asset.city AS 'Current Location'      
-      ,asset.[in_application] AS 'In Application'
-      ,asset.asset_contract_type AS 'Vehicle Type'
-      ,asset.asset_status AS 'Status'  
-      ,asset.asset_type AS 'Asset Type'          
-      ,asset.[allocated_status] AS 'Allocated Status'
-      ,asset.[reserved_by] AS 'Reserved By'
-      ,asset.[reserved_for] AS 'Reserved For' 
-      ,asset.[reserve_date] AS 'Reserve Date'    
-      ,asset.legal_entity_number AS 'Company'
-      ,asset.asset_status AS 'Asset Status'
-      ,ISNULL(asset.[residual_value_amount],0) AS 'Residual Value'
-      ,asset.[rv_maturity_date] AS 'RV Maturity Date' 
-      ,asset.[asset_sub_type] AS 'Asset Sub Type'
-      ,ISNULL(asset.[retail_value_amount],0) AS 'Retail Value'
-      ,asset.[retail_valuation_date] AS 'Retail Valuation Date'
-      ,ISNULL(asset.[asset_value_amount],0) AS 'Purchased Price'
-      ,ISNULL(asset.book_value_amount,0) AS 'Book Value'
-      ,ISNULL(asset.[equipment_nbv],0) AS 'Equipment NBV'  
-      ,0  AS 'Fair Value Adjustment'
-      ,asset.[fair_value_adjustment_date] AS 'Fair Value Adjustment Date'
-      ,asset.[cost_amount] AS 'Depreciation Basis Amount'
-      ,asset.[depreciation_start_date] AS 'Depreciation Start Date'
-      ,ISNULL(asset.[overall_asset_life_in_months],0) AS 'Equipment Life in Months'
-      ,asset.[is_migrated] AS 'IsMigrated'
-      ,ISNULL(asset.[depreciation_value],0) AS 'Depreciation Value'
-      ,ISNULL(asset.[rental_availability_status],'-') AS 'Rental Availability Status'
-      ,ISNULL(asset.[route_into_rental_fleet_id],'-') AS 'Route into Rental Fleet'  
-      ,ISNULL(asset.[tail_lift_type],'-') AS 'Tail Lift Type'            
-      ,ISNULL(asset.[emission_code],'-') AS 'Emissions' 
-      ,asset.[r_and_m_expiry_date] AS 'R and M Expiry Date' 
-      ,asset.r_two_c_color AS 'R Two Color'    
-      ,asset.r_and_m_Package AS 'R and M Package'                
-      ,asset.serial_number                      
-
-FROM vw_asset AS asset
-WHERE asset.asset_status <> 'Sold'
-
-
-;
-GO
-
-
-
-
-
-DROP VIEW if EXISTS [dbo].[rpt_ts_equipment_accruals_on_contract];
-GO
-
-CREATE VIEW [dbo].[rpt_ts_equipment_accruals_on_contract]
-AS 
-SELECT *
-FROM
-(
-SELECT 
-        asset.alias AS 'Registration Number'
-        ,contracts.[sequence_number] AS 'LS Contract: Lending Account ID'
-        ,contracts.product_name AS [Product Name] 
-        ,contracts.[sequence_number] AS 'Application Number'
-        ,contracts.[aag_contract_number] AS 'AAG Contact Number' 
-        ,contracts.cost_center
-        ,contracts.[sales_rep]     
-        ,contracts.branch_name       
-        ,contracts.payment_frequency AS 'Rental Term Unit'                 
-        ,asset.equipment_id AS 'Equipment Collateral ID' 
-        ,contracts.company_name AS 'Company' 
-        ,contracts.[payment_method] AS 'Payment Method' 
-        ,contracts.status AS 'Status'
-        ,contracts.report_status AS 'Status1' 
-        ,asset.asset_contract_type 
-        ,asset.asset_status 
-        ,asset.term AS customer_term_in_months 
-        ,COALESCE(contracts.lease_start_date, commDate.bk_aggregated_dim_date) AS 'Created Date'     
-        ,commDate.bk_aggregated_dim_date AS 'Commencement Date' 
-        ,dt1.bk_aggregated_dim_date AS 'Maturity Date' 
-
-        ,contracts.[base_rate] AS 'COF'
-        ,contracts.[spread] AS 'Margin'
-        ,contracts.[total_yield] AS 'Interest Rate'          
-
-        ,ISNULL(lease.[fmv_amount],0) AS 'Equipment: Book Value'        
-        ,ISNULL(lease.[nbv_amount],0) AS 'Equipment NBV'
-        ,ISNULL(lease.booked_residual_amount,0) AS 'Equipment: Residual Value' 
-        ,ISNULL(lease.rent_amount,0) AS 'Rent' 
-
-        ,ISNULL(lease.rv_recap_amount_amount,0) AS 'Equipment: Depreciation Value'
-        ,ISNULL(charges.charge_description,'-') AS charge_description
-        ,ISNULL(charges.charges,0) AS charges
-
-FROM vw_asset asset
-JOIN vw_lease_asset_current AS lease ON lease.asset_id = asset.asset_id
-JOIN vw_lease_contracts AS contracts ON contracts.contract_id = lease.contract_id
-LEFT JOIN aggregated_odessa_dim_date AS commDate on commDate.[sk_aggregated_dim_date] = contracts.[lease_commencement_date]
-LEFT JOIN aggregated_odessa_dim_date AS dt1 on dt1.[sk_aggregated_dim_date] = contracts.lease_maturity_date
-LEFT JOIN vw_additional_charges_detail AS charges ON charges.asset_id = lease.asset_id AND charges.contract_id = lease.contract_id
-WHERE LOWER(asset.asset_contract_type) <> 'stock'
-AND LOWER(asset.asset_status) IN ('inventory','leased')
-) AS a
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_application_progress];
-GO
-
-
-CREATE VIEW [dbo].[rpt_application_progress]
-AS
-SELECT 
-      application.opportunity_number 'Application Number'
-      ,application.credit_profile_number AS loc_number
-      ,application.credit_approved_structure_id
-      ,ISNULL(application.[notice_period],'-') AS 'Notice Period'
-      ,application.company_name 'Account'
-      ,application.expected_commencement_date AS 'Expected Start Date'
-      ,application.transaction_type AS 'Product Name'
-      ,ISNULL(application.equipment_count,0) AS 'Number of Pieces of Equipment'     
-      ,ISNULL(application.approved_amount_amount,0) AS 'Financed Amount'
-      ,ISNULL(application.amount_amount,0) AS 'Payment Amount'      
-      ,application.legal_entity_number
-      ,application.status AS Status      
-      ,application.application_status AS Stage
-      ,application.branch_name AS 'Branch'
-      ,application.line_of_business AS 'Line of Business'
-
-      ,application.customer_term AS Term
-      ,application.payment_frequency    
-
-      ,application.loc_created_by AS 'Created By'
-      ,application.assigned_user  AS 'Application Owner'
-      ,application.primary_sales_rep AS 'Sales Rep'  
-
-      ,application.created_time AS 'Created Date'
-      ,application.status_date AS 'Status - Last Change Date'
-      ,application.updated_time AS 'Application: Last Modified Date'
-      ,application.updated_by AS 'Application: Last Modified By'
-      ,application.application_id AS 'Application ID'
-      ,application.rent_amount 
-
-FROM vw_credit_application AS application
-WHERE LOWER(application.status) IN ('approved','amendment')
-AND application.[is_pre_approval] = 0
-AND application.is_all_assets_taken_down = 0
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_r2c_paid_recharges];
-GO
-
-CREATE VIEW [dbo].[rpt_r2c_paid_recharges]
-AS
-SELECT  
-	sundry.product_name AS 'Product Name'
-	,sundry.[company_name] AS 'Account'
-	,sundry.sequence_number AS 'Lending Account ID' 
-	,sundry.[invoice_number] AS 'Invoice Number'
-	,sundry.[invoice_id] AS 'Invoice ID'
-
-	,sundry.[bk_aggregated_dim_sundry_id] AS 'Charge Id'
-	,sundry.[r2_c_invoice_number] AS 'R2c Invoice Number'
-	,sundry.customer_po_number AS 'PO Number'
-
-	,sundry.sundry_created_date AS 'Invoice: Created Date'
-	,sundry.invoice_due_date AS 'Invoice: Due Date'
-	,sundry.amount_amount AS 'Fee Amount'
-    ,sundry.amount_amount + sundry.projected_vat_amount_amount AS 'Total Due Amount'
-	,sundry.total_balance_amount AS 'Total Balance Amount'
-	,sundry.receivable_id
-	,sundry.projected_vat_amount_amount
-	,sundry.balance_amount
-	,sundry.sundry_type
-	,sundry.receivable_type
-	,sundry.receivable_code 
-	,sundry.charge_name 
-
-FROM vw_sundry AS sundry 
-WHERE sundry.sundry_type = 'ReceivableOnly'
-AND sundry.receivable_type = 'SundrySeparate'
-AND LOWER(sundry.charge_name) LIKE '%recharge%'
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_tts_msf_report];
-GO
-
-CREATE VIEW [dbo].[rpt_tts_msf_report] AS
-
-SELECT
-
-a.[bk_aggregated_dim_asset_id],
-s.[transaction_date] AS 'Sales Date',
-s.[attention_to] AS 'Broker Name',
-c.[party_name] AS 'Buyer Name',
-s.[transaction_number] AS 'Sales Quote Name',
-s.[status] AS 'Status',
-a.[aag_fleet_number] AS 'AAG Fleet Number',
-reg.[registration_number] AS 'Registration Number',
-a.[product_name] AS 'Vehicle Category',
-'tba' AS 'CRM Opp No',
-b.[branch_name] AS 'Depot Sold',
-u.[full_name] AS 'Salesperson',
-rc.[name] AS 'Route to Market',
-CASE WHEN s.[finance_company_funded] = 1 THEN 'Financed' ELSE 'Not Financed' END AS 'Financed',
-d.[fair_market_value_amount],
-s.[tax_amount_amount],
-d.[net_value_amount],	
-CASE WHEN d.[fair_market_value_amount] >= d.[net_value_amount] THEN (d.[fair_market_value_amount] - d.[net_value_amount]) ELSE 0 END AS 'Profit',
-CASE WHEN d.[fair_market_value_amount]  < d.[net_value_amount] THEN (d.[fair_market_value_amount] - d.[net_value_amount]) ELSE 0 END AS 'Loss'
-
-FROM
-aggregated_odessa_dim_asset_sale AS s
-JOIN aggregated_odessa_dim_asset_sale_detail AS d ON d.[asset_sale_id] = s.[bk_aggregated_dim_asset_sale_id] AND d.[current_flag] = 1 AND d.is_active = 1
- JOIN aggregated_odessa_dim_asset a ON a.[bk_aggregated_dim_asset_id] = d.[asset_id] AND a.[current_flag] = 1
-LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
-LEFT JOIN aggregated_odessa_dim_customer AS c ON c.[bk_aggregated_dim_customer_id] = s.[buyer_id] AND c.[current_flag] = 1       
-LEFT JOIN aggregated_odessa_dim_branch AS b ON b.[bk_aggregated_dim_branch_id] = s.[branch_id] AND b.[current_flag] = 1
-LEFT JOIN aggregated_odessa_dim_employees_assigned_to_asset_sale AS e ON e.[asset_sale_id] = s.[bk_aggregated_dim_asset_sale_id] AND e.[current_flag] = 1 AND e.is_active = 1  AND e.is_primary = 1
-LEFT JOIN aggregated_odessa_dim_role_function AS r ON r.[bk_aggregated_dim_role_function_id] = e.[role_function_id] AND r.[current_flag] = 1
-LEFT JOIN aggregated_odessa_dim_user AS u ON u.[bk_aggregated_dim_user_id] = e.[employee_id] AND u.[current_flag] = 1 
-LEFT JOIN aggregated_odessa_dim_receivable_code AS rc ON rc.[bk_aggregated_dim_receivable_code_id] = s.[asset_sale_receivable_code_id] AND rc.[current_flag] = 1
-JOIN aggregated_odessa_fact_asset_status AS fstatus ON fstatus.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset 
-LEFT JOIN aggregated_odessa_dim_asset_status AS dstatus ON dstatus.[sk_aggregated_dim_asset_status] = fstatus.[sk_aggregated_dim_asset_status]
-
-WHERE s.[current_flag] = 1 
-AND s.[status] = 'Completed'
-AND c.[party_name] <> 'Asset Alliance Leasing Ltd'
-AND dstatus.[asset_status] = 'Sold'
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_tts_oc_report];
-GO
-
-CREATE VIEW [dbo].[rpt_tts_oc_report] AS
-
-SELECT
-
-s.[transaction_date] AS 'Sale Date',
-s.[attention_to] AS 'Broker Name',
-c.[party_name] AS 'Buyer: Account Name',
-s.[transaction_number] AS 'Sale Quote Name',
-s.[status] AS 'Status',
-a.[aag_fleet_number] AS 'AAG Fleet Name',
-rd.[registration_number] AS 'Registration Number',
-a.[product_name] AS 'Vehicle Category', 
-s.[comment] AS 'CRM Opp No',
-b.[branch_name] AS 'Depot Sold Name',
-u.[full_name] AS 'Salesperson Name',
-rc.[name] AS 'Route to Market',
-CASE WHEN s.[finance_company_funded] = 1 THEN 'Financed' ELSE 'Not Financed' END AS 'Financed',
-d.[fair_market_value_amount] AS 'Equipment Sale Amount',
-d.[net_value_amount] AS 'Equipment NBV',	
-CASE WHEN d.[fair_market_value_amount] >= d.[net_value_amount] THEN (d.[fair_market_value_amount] - d.[net_value_amount]) ELSE 0 END AS 'Profit',
-CASE WHEN d.[fair_market_value_amount]  < d.[net_value_amount] THEN (d.[fair_market_value_amount] - d.[net_value_amount]) ELSE 0 END AS 'Loss'
-
-FROM
-
-[aggregated_odessa_dim_asset_sale] AS s
-LEFT JOIN [aggregated_odessa_dim_asset_sale_detail] AS d ON d.[asset_sale_id] = s.[bk_aggregated_dim_asset_sale_id] AND d.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_asset] a ON a.[bk_aggregated_dim_asset_id] = d.[asset_id] AND a.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_asset_registration_detail] rd ON rd.[asset_id] = a.[bk_aggregated_dim_asset_id] AND rd.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_customer] AS c ON c.[bk_aggregated_dim_customer_id] = s.[buyer_id] AND c.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_branch] AS b ON b.[bk_aggregated_dim_branch_id] = s.[branch_id] AND b.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_employees_assigned_to_asset_sale] AS e ON e.[asset_sale_id] = s.[bk_aggregated_dim_asset_sale_id] AND e.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_role_function] AS r ON r.[bk_aggregated_dim_role_function_id] = e.[role_function_id] AND e.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_user] AS u ON u.[bk_aggregated_dim_user_id] = e.[employee_id] anD e.[current_flag] = 1
-LEFT JOIN [aggregated_odessa_dim_receivable_code] AS rc ON rc.[bk_aggregated_dim_receivable_code_id] = s.[asset_sale_receivable_code_id] AND rc.[current_flag] = 1
-
-WHERE
-
-s.[current_flag] = 1 AND
-c.[party_name] <> 'Asset Alliance Leasing Ltd' AND
-(s.[status] = 'Pending' OR
-s.[status] = 'Submitted')
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_ts_asset_nbv_funding_migration];
-GO
-
-CREATE VIEW [dbo].[rpt_ts_asset_nbv_funding_migration]
-AS
-SELECT 
-      asset.registration_number AS 'Registration Number'
-     ,ISNULL(asset.[collateral_id],'-') AS 'Collateral: Collateral ID'  
-     ,asset.[equipment_id] AS 'Equipment Id'
-     ,asset.acquisition_date AS 'Purchased Date'
-     ,ISNULL(asset.[asset_funding_status],'-') AS 'Dealer Funding Status'
-     ,asset.[description] AS 'Equipment Description' 
-     ,asset.[expected_chassis_delivery_date] AS 'Expected Chassis Delivery Date'
-     ,contract.company_name AS 'Reserved For' 
-     ,asset.[asset_contract_type] AS 'Vehicle Type' 
-     ,asset.asset_status AS 'Status' 
-     ,asset.purchase_price AS 'Purchased Price' 
-     ,asset.book_value_amount AS 'Book Value'
-     ,asset.equipment_nbv AS 'Equipment NBV'   
-     ,asset.residual_value_amount AS 'Residual Value'   
-     ,asset.generate_book_depreciation AS 'Generate Book Depreciation'
-     ,asset.depreciation_start_date AS 'Depreciation Start Date'
-     ,asset.[remaining_life_in_months] AS 'Equipment Life in Months' 
-     ,ISNULL(asset.[depreciation_value],0) AS 'Depreciation Value'                           
-
-FROM vw_lease_asset_current AS lease 
-      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
-      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
-      LEFT JOIN aggregated_odessa_dim_date AS dt on dt.[sk_aggregated_dim_date] = contract.lease_maturity_date
-WHERE asset.asset_status = 'Leased'   
-      AND asset.asset_contract_type NOT IN ('Stock','BackedOffAsset') 
-      AND asset.asset_status <> 'Sold'  
-      AND asset.[is_migrated] = 0      
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_bounced_direct_debit];
-GO
-
-CREATE VIEW [dbo].[rpt_bounced_direct_debit]
-AS
-SELECT 
-      receipts.number AS 'Transaction ID'
-      ,receipts.received_date AS 'Transaction Date'
-      ,lease.sequence_number AS 'Lending Account ID'
-      ,lease.[company_name] AS 'Account'
-      ,lease.report_status AS 'Contract: Status'
-      ,receipts.[legal_entity] AS 'Created By'
-      ,lease.[deal_type] AS 'Product_name'
-      ,'DD' AS 'Payment Mode'
-      ,receipts.post_date AS 'Clearing Date'
-      ,receipts.received_date AS 'Receipt Date'
-      ,receipts.balance_amount  AS 'Excess'    
-      ,receipts.receipt_amount_amount AS 'Transaction Amount'
-      ,CASE WHEN receipts.status = 'Reversed' THEN 1 ELSE 0 END AS 'Reversed'
-      ,receipts.updated_by AS 'Created Alias'
-     -- ,receipts.status  AS 'Reversed'
-
-FROM vw_receipts AS receipts
-JOIN vw_lease_contracts AS lease ON lease.contract_id = receipts.contract_id
-WHERE receipts.status = 'Reversed'
-AND receipts.[receipt_type_name] = 'DD'
-;
-GO
-
-
-
-DROP VIEW if EXISTS [dbo].[pbi_contract_management_contracts_created];
-GO
- 
-CREATE OR ALTER         VIEW [dbo].[pbi_contract_management_contracts_created] AS 
-
-WITH commenced AS (
-    SELECT
-    c.[bk_aggregated_dim_contract_id],
-    c.sequence_number,
-    CASE WHEN c.start_date = '1900-01-01 00:00:00.000000' THEN COALESCE(c.created_time, c.dp_process_datetime)
-    ELSE c.start_date END AS _date,
-
-    c.[deal_product_type_id],
-    c.[cost_center_id],
-    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.[dp_process_datetime] ASC) AS rn 
- FROM aggregated_odessa_dim_contract AS c 
- WHERE COALESCE(status, '') IN ('Commenced', 'FullyPaidOff')
-
- ),
-novated as (
-    SELECT
-    c.[bk_aggregated_dim_contract_id],
-    c.sequence_number,
-    CASE WHEN c.start_date = '1900-01-01 00:00:00.000000' THEN c.[dp_process_datetime]
-    ELSE c.start_date END AS _date,
-
-    c.[deal_product_type_id],
-    c.[cost_center_id],
-    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.[dp_process_datetime] ASC) AS rn 
- FROM aggregated_odessa_dim_contract AS c 
- WHERE status = 'Commenced' AND report_status = 'Assumed'
- ),
- commenced_and_novated AS (
-SELECT
-commenced.*,
-'commenced' AS type FROM commenced
-UNION ALL
-SELECT 
-novated.*,
-'novated' AS type FROM novated
-
- )
-
-,lf AS (
-SELECT DISTINCT
-c.bk_aggregated_dim_contract_id AS contract_id,
-
-lf.is_tax_deferral_applicable,
-flfd.[calculated_tax_deferral_amount_amount],
-cu.party_name,
-c.status,
-lob.description AS line_of_business,
-ROW_NUMBER() OVER ( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY d.[bk_aggregated_dim_date] DESC, flfd.sk_aggregated_dim_time_record DESC) AS rn
-
-FROM aggregated_odessa_dim_lease_finance AS lf 
-JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON lf.sk_aggregated_dim_lease_finance = flfd.sk_aggregated_dim_lease_finance
-JOIN aggregated_odessa_dim_contract AS c ON flfd.sk_aggregated_dim_contract = c.sk_aggregated_dim_contract AND c.current_flag = 1
-JOIN aggregated_odessa_dim_customer AS cu ON flfd.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer ANd cu.current_flag = 1
-JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.[sk_aggregated_dim_line_of_business] = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
-JOIN aggregated_odessa_dim_legal_entity AS le ON flfd.sk_aggregated_dim_legal_entity = le.sk_aggregated_dim_legal_entity AND le.current_flag = 1
-JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.sk_aggregated_dim_cost_center = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
-JOIN aggregated_odessa_dim_branch AS b ON  flfd.sk_aggregated_dim_branch = b.sk_aggregated_dim_branch and b.current_flag = 1
-JOIN aggregated_odessa_dim_date AS d ON flfd.sk_aggregated_dim_date_record = d.[sk_aggregated_dim_date]
-
-WHERE lf.current_flag = 1 AND is_current = 1
-
-), asset AS (
-SELECT 
-asset.bk_aggregated_dim_contract_id AS c_id,
-COUNT(asset.bk_aggregated_dim_asset_id) AS qty_assets,
-SUM(asset.nbv_amount) AS nbv_amount,
-SUM(asset.[true_down_payment_amount]) AS down_payment
-FROM (
-SELECT 
-con.bk_aggregated_dim_contract_id,
-fla.nbv_amount,
-fla.[true_down_payment_amount],
-a.bk_aggregated_dim_asset_id,
-ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
-fla.sk_aggregated_dim_date_termination_date
-FROM aggregated_odessa_dim_contract AS con
-JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset and dla.is_approved = 1
-JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
-JOIN aggregated_odessa_dim_lease_finance AS lf ON fla.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1
-JOIN aggregated_odessa_dim_customer AS cu ON fla.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer
-
-WHERE con.current_flag = 1
-) AS asset
-
-WHERE asset.rn = 1
-GROUP BY asset.bk_aggregated_dim_contract_id
-)
-
-SELECT 
-c.bk_aggregated_dim_contract_id,
-c.sequence_number,
-c._date AS contract_commenced_date ,
-c.type,
-lf.*,
-asset.*,
-cc.description AS cost_center,
-dpt.transaction_type AS product,
-
-CASE
-WHEN c.type = 'novated' THEN 'Novated'
-    WHEN cc.description = 'Lease Sales' THEN 
-        CASE
-            WHEN dpt.transaction_type = 'Contract Hire' THEN 'Contract Hire Origination'
-            WHEN dpt.transaction_type = 'Hire Purchase' THEN 'Hire Purchase Origination'
-            WHEN dpt.transaction_type = 'Operating Lease' THEN 'Operating Lease Origination'
-            WHEN dpt.transaction_type = 'Finance Lease' THEN 'Finance Lease Origination'
-            WHEN dpt.transaction_type = 'Rental' THEN 'Rental - Origination'
-        END
-        
-     WHEN cc.description = 'Extension -Lease' THEN
-        CASE
-            WHEN dpt.transaction_type = 'Contract Hire' THEN 'Contract Hire Extension'
-            WHEN dpt.transaction_type = 'Operating Lease' THEN 'Operating Lease Extension'
-            WHEN dpt.transaction_type = 'Hire Purchase' THEN 'Hire Purchase Extension'
-        END
-    WHEN cc.description = 'Lease (Used Asset)' THEN
-        CASE 
-            WHEN dpt.transaction_type = 'Contract Hire' THEN 'Contract Hire Lease - Used Asset'
-            WHEN dpt.transaction_type = 'Hire Purchase' THEN 'Hire Purchase (Used Asset)'
-            WHEN dpt.transaction_type = 'Operating Lease' THEN 'Operating Lease (Used Asset)'
-            WHEN dpt.transaction_type = 'Finance Lease' THEN 'Finance Lease (Used Asset)'
-            WHEN dpt.transaction_type = 'Rental' THEN 'Rental (Used Asset)'
-        END
-    WHEN cc.description = 'Rental (New Asset)' AND dpt.transaction_type = 'Rental' THEN 'Rental - Origination'
-    WHEN cc.description = 'Rental' AND dpt.transaction_type = 'Rental' THEN 'Rental - Churn'
-    WHEN cc.description = 'Extension - Rental Std' AND dpt.transaction_type = 'Rental' THEN 'Rental - Extension (Existing Customer)'
-    WHEN cc.description = 'Lease (Re-Profile)' THEN 'Lease (Re-Profile)'
-    WHEN cc.description = 'Vendor Finance' THEN 'Vendor Finance'
-    WHEN cc.description = 'Traffic Managment' THEN 'Traffic Management'
-    WHEN cc.description = 'Fleet Management' THEN 'Fleet Management'
-    
-        END AS calculated_product,
-CASE WHEN dpt.transaction_type = 'Hire Purchase' THEN ISNULL(nbv_amount, 0) - ISNULL(calculated_tax_deferral_amount_amount, 0) - ISNULL(down_payment, 0)
-ELSE nbv_amount
-END AS origination_amount
-
-FROM commenced_and_novated 
-AS c 
-LEFT JOIN lf ON lf.contract_id = c.bk_aggregated_dim_contract_id AND lf.rn = 1
-LEFT JOIN asset ON asset.c_id = c.bk_aggregated_dim_contract_id
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS dpt ON c.[deal_product_type_id] =  dpt.[bk_aggregated_dim_deal_product_type_id]
-LEFT JOIN aggregated_odessa_dim_cost_center AS cc ON c.cost_center_id = cc.[bk_aggregated_dim_cost_center_id]
-WHERE c.rn = 1
-AND ISNULL(status, ' ') != 'Inactive' 
-
-
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[pbi_contract_management_live_locs];
-GO
-
-
-CREATE OR ALTER       VIEW [dbo].[pbi_contract_management_live_locs] AS 
-WITH loc AS (
-SELECT 
-cp.[bk_aggregated_dim_credit_profile_id],
-cu.company_name,
-cp.number AS credit_number,
-o.number AS opp_number,
-CONCAT(o.number, '-', cas.number) AS opp_structure,
-cc.description AS cost_center,
-cp.status,
-cp.report_status,
-cas.number,
-cas.expected_commencement_date,
-cpasa.asset_id,
-asset.registration_number,
-asset.equipment_nbv,
-dt.product_type,
-dpt.transaction_type,
-u.full_name,
-cas.[bk_aggregated_dim_credit_approved_structure_id],
-ROW_NUMBER() OVER( PARTITION BY cpasa.asset_id, cp.number ORDER BY cas.number DESC) AS child_app
-FROM aggregated_odessa_dim_credit_profile as cp
-JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = cp.[opportunity_id] AND o.current_flag = 1
-JOIN aggregated_odessa_dim_credit_approved_structure AS cas ON cp.[bk_aggregated_dim_credit_profile_id] = cas.credit_profile_id AND cas.current_flag = 1 AND cas.is_active = 1
- JOIN aggregated_odessa_dim_credit_profile_approved_structure_asset AS cpasa ON cas.[bk_aggregated_dim_credit_approved_structure_id] = cpasa.[credit_approved_structure_id] AND cpasa.current_flag = 1 AND cpasa.is_active = 1
-JOIN aggregated_odessa_dim_customer AS cu ON o.customer_id = cu.[bk_aggregated_dim_customer_id] AND cu.current_flag = 1
-JOIN aggregated_odessa_dim_deal_type AS dt ON cas.[deal_type_id] = dt.[bk_aggregated_dim_deal_type_id] AND dt.current_flag = 1
-JOIN aggregated_odessa_dim_deal_product_type AS dpt ON cas.[deal_product_type_id] = dpt.[bk_aggregated_dim_deal_product_type_id] AND dpt.current_flag = 1
-JOIN aggregated_odessa_dim_cost_center AS cc ON cp.[cost_center_id] = cc.[bk_aggregated_dim_cost_center_id] AND cc.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_user AS u ON cp.[assigned_to_user_id] = u.[bk_aggregated_dim_user_id] AND u.current_flag = 1
-LEFT JOIN vw_asset AS asset ON cpasa.asset_id = asset.asset_id
-
-WHERE cp.current_flag = 1
-AND cp.status NOT IN ('Inactivate', 'Declined', 'OpportunityWithdrawn', 'Cancelled'
---, 'Pending'
-)
-),
-contracts AS (
-SELECT 
-sequence_number,
-status AS booking_status,
-bk_aggregated_dim_contract_id,
-credit_approved_structure_id,
-ROW_NUMBER() OVER (PARTITION BY bk_aggregated_dim_contract_id ORDER BY end_date DESC) AS rn
-
-FROM aggregated_odessa_dim_contract 
-WHERE report_status != 'Assumed' 
-),
-loc_filtered AS (
-SELECT
-loc.*,
-contracts.sequence_number,
-contracts.booking_status,
-contracts.bk_aggregated_dim_contract_id
-FROM loc 
-
-LEFT JOIN contracts ON loc.[bk_aggregated_dim_credit_approved_structure_id]= contracts.[credit_approved_structure_id] AND rn = 1 AND booking_status != 'Inactive'
-
-WHERE loc.child_app = 1
-AND (booking_status IS NULL OR booking_status IN ('Pending', 'InstallingAssets'))
-),
-loc_assigned_to AS (
-SELECT cp.[bk_aggregated_dim_credit_profile_id],
-u.full_name
-FROM aggregated_odessa_dim_credit_profile AS cp
-LEFT JOIN aggregated_odessa_dim_transaction_instance AS ti ON cp.[bk_aggregated_dim_credit_profile_id] = ti.entity_id AND ti.entity_name = 'CreditProfile' AND ti.status = 'Active' AND ti.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_work_item AS wi ON ti.[bk_aggregated_dim_transaction_instance_id] = wi.transaction_instance_id AND wi.status = 'Assigned' AND wi.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_user AS u ON wi.[owner_user_id] = u.[bk_aggregated_dim_user_id] and u.current_flag = 1
-WHERE cp.current_flag = 1 
-), 
-lf_assigned_to AS (
-SELECT c.[bk_aggregated_dim_contract_id],
-lf.bk_aggregated_dim_lease_finance_id, 
-u.full_name
-FROM aggregated_odessa_dim_contract AS c
-JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.[sk_aggregated_dim_contract] = flfd.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.[sk_aggregated_dim_lease_finance] = lf.sk_aggregated_dim_lease_finance AND lf.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_transaction_instance AS ti ON lf.[bk_aggregated_dim_lease_finance_id] = ti.entity_id AND ti.entity_name = 'LeaseFinance' AND ti.status = 'Active' AND ti.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_work_item AS wi ON ti.[bk_aggregated_dim_transaction_instance_id] = wi.transaction_instance_id AND wi.status = 'Assigned' AND wi.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_user AS u ON wi.[owner_user_id] = u.[bk_aggregated_dim_user_id] and u.current_flag = 1
-WHERE c.current_flag = 1
-), 
-lf AS (
-SELECT 
-c.[bk_aggregated_dim_contract_id], 
-lf.approval_status
-FROM aggregated_odessa_dim_contract AS c
-JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.[sk_aggregated_dim_contract] = flfd.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.[sk_aggregated_dim_lease_finance] = lf.sk_aggregated_dim_lease_finance AND lf.current_flag = 1
-
-WHERE c.current_flag = 1
-)
-
-SELECT DISTINCT
-l.*,
-loc_assigned_to.full_name AS loc_assigned_to,
-lfa.full_name AS lf_assigned_to,
-
-lf.approval_status,
-CASE WHEN l.booking_status IS NULL THEN
-        CASE WHEN l.status IN ('Amendment', 'Approved') THEN 'Contract Management'
-        ELSE 'Credit' END
-    WHEN l.booking_status = 'Pending' THEN 'Contract Management'
-    WHEN l.booking_status = 'InstallingAssets' AND lf.approval_status = 'Pending' THEN 'Contract Management'
-    ELSE 'Finance'
-    END AS department
-
-FROM loc_filtered
- AS l 
-
-LEFT JOIN loc_assigned_to ON l.[bk_aggregated_dim_credit_profile_id] = loc_assigned_to.[bk_aggregated_dim_credit_profile_id]
-LEFT JOIN lf_assigned_to AS lfa ON l.bk_aggregated_dim_contract_id = lfa.bk_aggregated_dim_contract_id
-LEFT JOIN lf ON lf.bk_aggregated_dim_contract_id = l.bk_aggregated_dim_contract_id
-
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[pbi_contract_management_rentals_time_in_cm];
-GO
-
-CREATE VIEW [dbo].[pbi_contract_management_rentals_time_in_cm] AS (
-SELECT 
-approved_locs_filtered.credit_number,
-approved_locs_filtered.opp_number,
-approved_locs_filtered.sequence_number,
-approved_locs_filtered.cost_center,
-approved_locs_filtered.company_name,
-approved_locs_filtered.date_loc_approved,
-contracts_created.contract_commenced_date,
-contracts_created.transaction_type,
-DATEDIFF(DAY, approved_locs_filtered.date_loc_approved, contracts_created.contract_commenced_date) AS days_in_rental
- FROM (
-SELECT 
-bk_aggregated_dim_credit_profile_id,
-credit_number,
-opp_number,
-contract.sequence_number,
-contract.bk_aggregated_dim_contract_id,
-cc.description AS cost_center,
-customer.company_name, 
-approved_locs.dp_process_date AS date_loc_approved,
-cas.[bk_aggregated_dim_credit_approved_structure_id]
-FROM (
-SELECT 
-cp.bk_aggregated_dim_credit_profile_id,
-cp.number AS credit_number,
-cp.[cost_center_id],
-cp.customer_id,
-cp.status,
-cp.report_status,
-cp.dp_process_date,
-ROW_NUMBER() OVER( PARTITION BY cp.bk_aggregated_dim_credit_profile_id ORDER BY cp.dp_process_datetime ASC) AS rn,
-o.number AS opp_number
-
-FROM aggregated_odessa_dim_credit_profile as cp
-JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = cp.[opportunity_id]
-WHERE cp.status = 'Approved' 
-) as approved_locs 
-
- JOIN aggregated_odessa_dim_credit_approved_structure AS cas ON approved_locs.[bk_aggregated_dim_credit_profile_id] = cas.credit_profile_id AND cas.current_flag = 1
- JOIN aggregated_odessa_dim_contract AS contract ON cas.[bk_aggregated_dim_credit_approved_structure_id]= contract.[credit_approved_structure_id] AND contract.current_flag = 1
- JOIN aggregated_odessa_dim_cost_center AS cc ON approved_locs.[cost_center_id] = cc.[bk_aggregated_dim_cost_center_id] AND cc.current_flag = 1
-  JOIN aggregated_odessa_dim_customer AS customer ON approved_locs.customer_id = customer.bk_aggregated_dim_customer_id AND customer.current_flag = 1
-WHERE rn = 1
-) AS approved_locs_filtered 
-
-LEFT JOIN (
-
-SELECT * FROM (
-SELECT
-    c.bk_aggregated_dim_contract_id,
-    c.sequence_number,
-    c.dp_process_date AS contract_commenced_date,
-    p.transaction_type,
-    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.dp_process_datetime ASC) AS rn 
- FROM aggregated_odessa_dim_contract AS c
- JOIN aggregated_odessa_dim_deal_product_type AS p ON c.deal_product_type_id = p.[bk_aggregated_dim_deal_product_type_id]
- WHERE status = 'Commenced' 
-)    AS contracts WHERE contracts.rn = 1
-) AS contracts_created ON approved_locs_filtered.bk_aggregated_dim_contract_id = contracts_created.bk_aggregated_dim_contract_id
-
-
-
-WHERE transaction_type LIKE '%Rental%'
-)
-
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[pbi_contract_management_contracts_not_activated];
-GO
-CREATE VIEW [dbo].[pbi_contract_management_contracts_not_activated] AS (
-SELECT 
-c.sequence_number,
-c.bk_aggregated_dim_contract_id,
-c.alias, 
-cu.company_name, 
-cc.description AS cost_center,
-b.branch_name,
-p.transaction_type AS product_name,
-d.[bk_aggregated_dim_date] AS start_date,
-lf.[customer_term_in_months],
-asset.qty_assets,
-asset.customer_cost_amount,
-contract_created.created_date,
-lf.approval_status
-FROM aggregated_odessa_dim_contract AS c 
-JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.[sk_aggregated_dim_contract] = flfd.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.[sk_aggregated_dim_lease_finance] = lf.sk_aggregated_dim_lease_finance AND lf.current_flag = 1 AND lf.is_current = 1
-JOIN aggregated_odessa_dim_customer AS cu ON flfd.[sk_aggregated_dim_customer] = cu.sk_aggregated_dim_customer AND cu.current_flag = 1
-JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.[sk_aggregated_dim_line_of_business] = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
-JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.[sk_aggregated_dim_cost_center] = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
-JOIN aggregated_odessa_dim_branch AS b ON flfd.[sk_aggregated_dim_branch] = b.sk_aggregated_dim_branch AND b.current_flag = 1
-JOIN aggregated_odessa_dim_deal_product_type AS p ON c.[deal_product_type_id] = p.[bk_aggregated_dim_deal_product_type_id] AND p.current_flag = 1
-JOIN aggregated_odessa_dim_date AS d ON flfd.[sk_aggregated_dim_date_commencement_date] = d.[sk_aggregated_dim_date]
-
-
-LEFT JOIN (
-SELECT
-c.bk_aggregated_dim_contract_id,
-COUNT(a.bk_aggregated_dim_asset_id) AS qty_assets,
-SUM(customer_cost_amount) as customer_cost_amount
-
-FROM aggregated_odessa_dim_contract as c
-JOIN aggregated_odessa_fact_lease_asset AS fla ON c.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset AND a.current_flag = 1
---JOIN aggregated_odessa_dim_customer AS customer ON fla.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer 
-JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset AND dla.current_flag = 1 --AND dla.is_eligible_for_billing = 1
-WHERE c.current_flag = 1
-GROUP BY c.bk_aggregated_dim_contract_id
-) AS asset ON asset.bk_aggregated_dim_contract_id = c.bk_aggregated_dim_contract_id
-
-LEFT JOIN (   SELECT
-    c.[bk_aggregated_dim_contract_id],
-    c.dp_process_date AS created_date,
-    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.[dp_process_datetime] ASC) AS first_record 
- FROM aggregated_odessa_dim_contract AS c ) AS contract_created ON c.bk_aggregated_dim_contract_id = contract_created.bk_aggregated_dim_contract_id
- AND contract_created.first_record = 1
-
-WHERE c.current_flag = 1 AND c.status = 'InstallingAssets'
-AND approval_status != 'Pending'
-)
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_assets_terminated_month];
-GO
-
-CREATE VIEW dbo.rpt_assets_terminated_month
-AS
-SELECT 
-      contract.company_name AS 'Account Name'
-      ,contract.aag_contract_number AS ' AAG Contract Number'
-      ,contract.sequence_number AS 'LS Contract: Lending Account ID' 
-      ,asset.registration_number AS 'Registration Number'
-      ,ISNULL(asset.serial_number,'-') AS 'Serial Number'     
-      ,asset.description AS 'Equipment Description'
-      ,asset.product_name AS 'Vehicle Category'
-      ,asset.manufacturer_name AS 'MAKE'
-      ,asset.make_name AS 'Model Range'
-      ,asset.model_year AS 'YEAR'  
-      ,asset.gvw AS 'GVW'
-      ,lease.rent_amount AS 'Rent'
-      ,lease.asset_budget_value  AS 'Asset Budget Value'
-      ,lease.total_charge_to_customer AS 'Charge To Customer'   
-      ,contract.payment_frequency AS 'Rental Term Unit'
-      ,asset.asset_contract_type AS 'Vehicle Type'
-      ,contract.product_name AS 'Product Name'
-      ,contract.branch_name AS 'Branch' 
-      ,commDate.bk_aggregated_dim_date AS 'Contract Date'
-      ,contract.customer_term_in_months AS 'Current Term' 
-      ,termDate.bk_aggregated_dim_date AS 'Termination Date' 
-      ,matDate.bk_aggregated_dim_date AS 'RV Maturity Date' 
-      ,contract.payment_method AS 'Payment Method'
-      ,contract.booking_status AS 'Contract: Status' 
-      ,asset.location_city AS 'Current Location'  
-      ,contract.cost_center AS 'Cost Centre'
-      ,contract.sales_rep AS 'Sales Rep'                           
-FROM
-vw_lease_asset_all AS lease 
-JOIN vw_asset AS asset ON lease.bk_aggregated_dim_asset_id = asset.bk_aggregated_dim_asset_id
-LEFT JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
-LEFT JOIN aggregated_odessa_dim_date AS matDate ON matDate.sk_aggregated_dim_date = contract.lease_maturity_date
-LEFT JOIN aggregated_odessa_dim_date AS commDate ON commDate.sk_aggregated_dim_date = contract.lease_commencement_date  
-JOIN aggregated_odessa_dim_date AS termDate ON termDate.sk_aggregated_dim_date = lease.sk_aggregated_dim_date_termination_date AND termDate.sk_aggregated_dim_date > 0
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_fleetspendreporting1_with_history];
-GO
-
-
-
-CREATE VIEW [dbo].[pbi_fleetspendreporting1_with_history] AS (
-
-SELECT
-sundries.*,
-assets.registration_number,
-assets.status,
-assets.make,
-assets.model,
-assets.gvw,
-assets.body_builder,
-assets.serial_number,
-assets.model_year,
-assets.type AS asset_type,
-assets.comments,
-assets.vehicle_category,
-assets.asset_sub_type,
-assets.alias
-FROM (SELECT
-budgets.id,
-budgets.asset_id,
-budgets.amount,
-budgets.invoice_date,
-budgets.fee_name,
-budgets.ff_processing_message,
-budgets.ff_reference_name,
-NULL AS created_date,
-NULL AS invoice_number,
-NULL AS description,
-customer_name AS account_name,
-'budgets' AS type,
-budgets.source_system
-FROM flat_budgets_inc_history AS budgets
-
-UNION 
-
-SELECT
-recharges.id,
-recharges.asset_id,
-recharges.amount,
-recharges.invoice_date,
-recharges.fee_name,
-recharges.ff_processing_message,
-recharges.ff_reference_name,
-recharges.created_date,
-recharges.invoice_number,
-recharges.description,
-customer_name AS account_name,
-'recharges' AS type,
-recharges.source_system
-FROM flat_recharges_inc_history AS recharges
-
-UNION 
-
-SELECT
-expenses.id,
-expenses.asset_id,
-expenses.amount,
-expenses.invoice_date,
-expenses.fee_name,
-expenses.ff_processing_message,
-expenses.ff_reference_name,
-NULL AS created_date,
-expenses.invoice_number,
-NULL AS description,
-expenses.account_name,
-'expenses' AS type,
-expenses.source_system
-FROM flat_expense_fees_inc_history AS expenses
-
-) AS sundries
-
-LEFT JOIN flat_assets_inc_history AS assets ON sundries.asset_id = assets.id
-
-WHERE fee_name NOT IN (
-'Arrears Letter',
-'Asset Sales Cost Charge',
-'Asset Sales Cost Recharge',
-'Backed off Other Charge', 
-'Balloon Payment (FL)', 
-'Balloon Payment (HP)', 
-'Billing Expense (FL)',
-'Billing Expense (HP)', 
-'Brokerage Income',
-'Brokerage Income - Credit',
-'Brokerage Income - Credit NO VAT', 
-'Brokerage Income NO VAT',
-'Collection and Delivery Rental Charge',
-'Collection and Delivery Rental Recharge',
-'Contract Hire Income - Credit V2', 
-'Contract Hire Income - V2',
-'Deposit - HP',
-'Document Fee',
-'Document Fee (No VAT)',
-'Documentation Fee',
-'Documentation Fee (Expense)',
-'Funder Deposit (FL)', 
-'Funder Deposit (HP)',
-'Insufficient Funds to meet a Direct Debit',
-'Hire Purchase Income - Credit',
-'Late Payment Interest',
-'Operating Lease  Income - Credit',
-'Option to Purchase',
-'Overdue Payment', 
-'Refurb Cost Charge',
-'Refurb Cost Recharge',
-'Rent Receivable',
-'Rent Receivable - Credit',
-'Rental Income', 
-'Rental Income - Credit',
-'Rental_Lease_Mid-Period_Payoff',
-'Repossession Charges', 
-'Utilities',
-'Waiver'
-)
-)
-
-;
-GO
-
-
-
-DROP VIEW if EXISTS [dbo].[pbi_pcn];
-GO
-CREATE VIEW [dbo].[pbi_pcn] AS (SELECT
-recharges.id,
-recharges.asset_id,
-recharges.amount,
-recharges.invoice_date,
-recharges.fee_name,
-recharges.ff_processing_message,
-recharges.ff_reference_name,
-recharges.invoice_number,
-'recharges' AS type,
-recharges.source_system
-FROM [flat_recharges_inc_history] AS recharges
-WHERE fee_name IN ('Penalty Charge Notice Cost Recharge', 'Penalty Charge Admin Fee Recharge')
-
-UNION 
-
-SELECT
-expenses.id,
-expenses.asset_id,
-expenses.amount,
-expenses.invoice_date,
-expenses.fee_name,
-expenses.ff_processing_message,
-expenses.ff_reference_name,
-expenses.invoice_number,
-'expenses' AS type,
-expenses.source_system
-FROM [flat_expense_fees_inc_history] AS expenses WHERE fee_name = 'Penalty Charge Notice Cost Charge')
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[rpt_arbuthnot_mi_contract];
-GO
-
-CREATE OR ALTER VIEW [dbo].[rpt_arbuthnot_mi_contract] AS
-With contracts AS (
-SELECT DISTINCT
-a.contract_id,
-a.booking_status,
-a.sequence_number,
-a.contract_date,
-a.maturity_date,
-a.customer_name,
-a.party_number AS customer_number,
-
-a.sic_description,
-a.product AS product_name,
-a.line_of_business AS Sector,
-a.bk_aggregated_dim_lease_finance_id,
-a.net_investment_amount,
-a.total_yield
-
-FROM (
-SELECT 
-c.bk_aggregated_dim_contract_id AS contract_id,
-c.alias AS aag_contract_number,
-c.sequence_number,
-c.status AS booking_status,
-cd.bk_aggregated_dim_date AS contract_date,
-md.bk_aggregated_dim_date AS maturity_date,
-cu.party_name AS customer_name,
-cu.party_number,
-class_code.code + ' - ' + class_code.description AS sic_description,
-p.transaction_type AS product,
-cc.description AS cost_center,
-lob.name as line_of_business,
-lf.bk_aggregated_dim_lease_finance_id,
-flfd.net_investment_amount,
-CAST(ROUND(flfd.total_yield * 100, 2) AS float) AS total_yield,
-ROW_NUMBER() OVER ( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY flfd.sk_aggregated_dim_contract DESC, flfd.sk_aggregated_dim_date_record DESC, flfd.sk_aggregated_dim_time_record DESC) AS rn
-
-FROM aggregated_odessa_dim_contract AS c
-JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.sk_aggregated_dim_contract = flfd.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1  and lf.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_date AS md ON flfd.sk_aggregated_dim_date_maturity_date = md.sk_aggregated_dim_date
-LEFT JOIN aggregated_odessa_dim_date AS cd ON flfd.sk_aggregated_dim_date_commencement_date = cd.sk_aggregated_dim_date
-JOIN aggregated_odessa_dim_customer AS cu ON flfd.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer AND cu.current_flag = 1
-left JOIN aggregated_odessa_dim_classification_code AS class_code ON cu.sic_code_id = class_code.bk_aggregated_dim_classification_code_id AND class_code.current_flag = 1
-
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS p ON p.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND p.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.sk_aggregated_dim_cost_center = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.sk_aggregated_dim_line_of_business
- = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
-WHERE c.current_flag = 1
-
-
-) AS a WHERE rn = 1
-), rni AS (
-SELECT 
-c.bk_aggregated_dim_contract_id,
-rni.rni_amount_amount, 
-rni.total_financed_amount,
-rni.income_date,
-ROW_NUMBER() OVER(PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY rni.income_date DESC) AS rn
- FROM 
-aggregated_odessa_dim_remaining_net_investment AS rni
-LEFT JOIN aggregated_odessa_dim_contract AS c ON rni.contract_id = c.[bk_aggregated_dim_contract_id] AND c.current_flag = 1
-WHERE rni.current_flag = 1 AND rni.is_active = 1
-), end_balance AS (
-SELECT
-PaymentSchedule.lease_finance_detail_id,
-PaymentSchedule.end_balance_amount,
-ROW_NUMBER() OVER(PARTITION BY lease_finance_detail_id ORDER BY due_date DESC, end_balance_amount DESC) AS rn
-FROM aggregated_odessa_dim_lease_payment_schedule AS PaymentSchedule
-WHERE PaymentSchedule.current_flag = 1 AND PaymentSchedule.payment_type = 'FixedTerm'
-AND YEAR(PaymentSchedule.due_date) = YEAR(GETDATE())
-AND MONTH(PaymentSchedule.due_date) = MONTH(GETDATE())
-), next_payment AS (
-SELECT
-PaymentSchedule.lease_finance_detail_id,
-MIN(PaymentSchedule.due_date) AS next_due_date
-FROM aggregated_odessa_dim_lease_payment_schedule AS PaymentSchedule
-WHERE PaymentSchedule.current_flag = 1 AND PaymentSchedule.payment_type IN ('FixedTerm', 'OTP')
-AND PaymentSchedule.due_date > GETDATE()
-GROUP BY PaymentSchedule.lease_finance_detail_id
-)
-
-SELECT DISTINCT
-c.*,
-rni.rni_amount_amount AS remaing_net_investment, 
-rni.total_financed_amount as financed_amount,
-rni.income_date,
-np.next_due_date
-FROM contracts AS c
-LEFT JOIN rni ON c.contract_id = rni.bk_aggregated_dim_contract_id AND rni.rn = 1
-LEFT JOIN next_payment AS np ON c.bk_aggregated_dim_lease_finance_id = np.lease_finance_detail_id
-Where COALESCE(booking_status, '') = 'Commenced'
-
-
-GO
-;
-
-DROP VIEW if EXISTS [dbo].[rpt_application_lease_contract];
-GO
-
-CREATE VIEW dbo.rpt_application_lease_contract
-AS
-SELECT 
-    application.application_id  AS 'Application_ID'
-    ,application.application_created_date AS 'Application Created Date'
-    ,contract.company_name AS 'Account Name'
-    ,contract.sequence_number AS 'Lending Account ID'
-    ,contract.created_time AS 'Contract Created Date'
-    ,contract.updated_time AS 'Contract Modified Date'
-    ,contract.status AS 'Status'    
-    ,commDate.bk_aggregated_dim_date AS 'Commencement Date'
-FROM vw_lease_contracts AS contract
-JOIN vw_credit_application AS application ON application.opportunity_number = contract.opportunity_number
-LEFT JOIN aggregated_odessa_dim_date AS commDate ON commDate.sk_aggregated_dim_date = contract.lease_commencement_date
-LEFT JOIN aggregated_odessa_dim_date AS createdDate ON createdDate.sk_aggregated_dim_date = contract.sk_created_date
-GO
-;
-
-
-
-DROP VIEW if EXISTS [dbo].[pbi_fleetspendreporting2_with_history];
-GO
-CREATE OR ALTER       VIEW [dbo].[pbi_fleetspendreporting2_with_history] AS 
-WITH novated as (
-    SELECT
-    c.[bk_aggregated_dim_contract_id],
-    c.sequence_number,
-    CASE WHEN c.start_date = '1900-01-01 00:00:00.000000' THEN c.[dp_process_datetime]
-    ELSE c.start_date END AS novated_date,
-
-    c.[deal_product_type_id],
-    c.[cost_center_id],
-    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.[dp_process_datetime] ASC) AS rn 
- FROM aggregated_odessa_dim_contract AS c 
- WHERE status = 'Commenced' AND 
- report_status = 'Assumed'
- )
-
-SELECT DISTINCT
-c.sequence_number,
-c.id as contract_id,
-c.customer_name,
-c.aag_contract_number AS 'Contract Number',
-c.status AS contract_status,
-c.product,
-c.commencement_date AS 'Commencement Date',
-c.maturity_date AS 'Maturity Date',
-c.term,
-c.payment_frequency,
-cep.terminated_on,
-cep.contract_mileage AS 'Contract Mileage',
-cep.status AS cep_status,
-a.*,
-asset.[aag_fleet_number],
-asset.[description] AS 'Description',
-asset.initial_mileage AS 'Initial Mileage',
-asset.[service_intervals_trailer] AS 'Trailer Service Interval',
-asset.[service_intervals_vehicle] AS 'Vehicle Service Interval',
-
-asset.[category_name],
-
-asset.[make_name],
-
-asset.road_fund_licence AS 'RFL',
-asset.[spare_vehicle_provision_for_mot_after_twenty_four_hours],
-asset.[spare_vehicle_provision_for_service_after_twenty_four_hours] AS 'Spare Vehicle after 24 Hours',
-asset.book_value_amount,
-asset.last_known_mileage,
-asset.[twenty_four_hours_breakdown_cover] AS '24 Hour Breakdown',
-asset.[online_o_licence] AS 'O Licence Check',
-asset.[outof_hours_serviceand_maintenance] AS 'Out of Hours Servicing',
-asset.[dand_c_schedule_services] AS 'D&C Scheduled Services',
-asset.[replacement_vehiclefor_breakdown] AS 'Replacement Vehicle for Servicing',
-asset.[full_service_and_maintenance_chassis] AS 'Chassis Maintenance',
-asset.[fridge_service_maintenance] AS 'Fridge Maintenance',
-asset.[service_intervals_fridgebox] AS 'Fridge Service Interval',
-asset.[tail_lift_service_maintenance] AS 'TL Maintenance',
-asset.[service_intervals_tail_lift] AS 'TL Service Interval',
-asset.[crane_service_maintenance] AS 'Crane Maintenance',
-asset.[pto_service_maintenance] AS 'PTO Maintenance',
-asset.[tyres_fair_wear_tear] AS 'Tyres Fair Wear & Tear',
-asset.[windscreen_section] AS 'Windscreen',
-asset.[livery] AS 'Livery',
-asset.[gps_tracking] AS 'GPS Tracking',
-asset.[full_service_and_maintenance_trailer] AS 'Trailer Maintenance',
-asset.mot_preperationand_testing AS 'MOT',
-asset.[excess_distance_charge_rate] AS 'Excess Rate',
-CASE WHEN AssetsOnApp.bk_aggregated_dim_asset_id IS NOT NULL THEN 1 ELSE 0 END AS in_application,
-n.novated_date
-
-
-
-FROM flat_contracts_inc_history AS c
- JOIN flat_contract_equipment_inc_history AS cep ON c.id = cep.contract_id
- JOIN flat_assets_inc_history AS a ON cep.asset_id = a.id
-LEFT JOIN aggregated_odessa_dim_asset AS asset ON a.id = CAST(asset.bk_aggregated_dim_asset_id AS VARCHAR) AND asset.current_flag = 1
-LEFT JOIN vw_in_application AS AssetsOnApp ON asset.bk_aggregated_dim_asset_id = AssetsOnApp.[bk_aggregated_dim_asset_id]
-LEFT JOIN novated AS n ON c.id = CAST(n.bk_aggregated_dim_contract_id AS VARCHAR) AND n.rn = 1
-
-WHERE c.status NOT IN (
-'Inactive', 'Pending', 'InstallingAssets')
-
- ;
- GO
-
-
-
-DROP VIEW if EXISTS [dbo].[pbi_maintenance_provision];
-GO
-CREATE VIEW [dbo].[pbi_maintenance_provision] AS 
-
-SELECT
-s.created_time, 
-CASE WHEN sundries.category = 'Sundry' THEN CAST(s.created_time AS DATE)
-ELSE sundries.invoice_date 
-END AS report_date,
-
-sundries.* FROM (
-SELECT
-budgets.id,
-budgets.asset_id,
-budgets.amount,
-budgets.invoice_date,
-budgets.fee_name,
-budgets.ff_processing_message,
-budgets.ff_reference_name,
-NULL AS created_date,
-NULL AS invoice_number,
-NULL AS description,
-customer_name AS account_name,
-'budgets' AS type,
-budgets.source_system,
-budgets.category
-FROM flat_budgets_inc_history AS budgets
-
-UNION 
-
-SELECT
-recharges.id,
-recharges.asset_id,
-recharges.amount,
-recharges.invoice_date,
-recharges.fee_name,
-recharges.ff_processing_message,
-recharges.ff_reference_name,
-recharges.created_date,
-recharges.invoice_number,
-recharges.description,
-customer_name AS account_name,
-'recharges' AS type,
-recharges.source_system,
-recharges.category
-FROM flat_recharges_inc_history AS recharges
-
-UNION 
-
-SELECT
-expenses.id,
-expenses.asset_id,
-expenses.amount,
-expenses.invoice_date,
-expenses.fee_name,
-expenses.ff_processing_message,
-expenses.ff_reference_name,
-NULL AS created_date,
-expenses.invoice_number,
-NULL AS description,
-expenses.account_name,
-'expenses' AS type,
-expenses.source_system,
-expenses.category
-FROM flat_expense_fees_inc_history AS expenses
-) AS sundries
-LEFT JOIN aggregated_odessa_dim_sundry AS s ON sundries.id = CONVERT(VARCHAR, s.[bk_aggregated_dim_sundry_id]) AND s.current_flag = 1 AND s.is_active = 1
-WHERE (sundries.fee_name IS NULL OR TRIM(sundries.fee_name) NOT IN (
-'Arrears Letter',
-'Asset Sales Cost Charge',
-'Asset Sales Cost Recharge',
-'Backed off Other Charge', 
-'Balloon Payment (FL)', 
-'Balloon Payment (HP)', 
-'Billing Expense (FL)',
-'Billing Expense (HP)', 
-'Brokerage Income',
-'Brokerage Income - Credit NO VAT', 
-'Brokerage Income NO VAT',
-'Collection & Delivery (Not Budgeted) Charge',
-'Collection & Delivery (Not Budgeted) Recharge',
-'Collection and Delivery Rental Charge',
-'Collection and Delivery Rental Recharge',
-'Contract Hire Income - Credit V2', 
-'Contract Hire Income - V2',
-'Deposit - HP',
-'Document Fee',
-'Document Fee (No VAT)',
-'Documentation Fee',
-'Documentation Fee (Expense)',
-'End of Life Charge',
-'End of life Recharge ',
-'Excess Mileage Cost Charge',
-'Excess Mileage Cost Recharge',
-'Funder Deposit (FL)', 
-'Funder Deposit (HP)',
-'Insufficient Funds to meet a Direct Debit',
-'Late Payment Interest',
-'Maintenance Cost Budget - Overhead',
-'Option to Purchase',
-'Overdue Payment', 
-'Penalty Charge Admin Fee Charge',
-'Penalty Charge Admin Fee Recharge',
-'Penalty Charge Notice Cost Charge',
-'Penalty Charge Notice Cost Recharge',
-'Refurb Cost Charge',
-'Refurb Cost Recharge',
-'Rent Receivable',
-'Rent Receivable - Credit',
-'Rental Income', 
-'Rental Income - Credit',
-'Rental_Lease_Mid-Period_Payoff',
-'Repossession Charges', 
-'Utilities',
-'VOR Recharge',
-'Waiver'
-))
-AND (description IS NULL OR LOWER(description) NOT LIKE '%eol%')
-AND asset_id IS NOT NULL
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_maintenance_provision_assets];
-GO
-
-CREATE VIEW [dbo].[pbi_maintenance_provision_assets] AS 
-SELECT a.*,
-odessa_assets.id AS latest_asset_id,
-odessa_assets.registration_number AS latest_registration_number,
-odessa_assets.status AS latest_asset_status,
-assets_sold_in_odessa.sold_date
-
- FROM (
-SELECT 
-a.id,
-a.parent_asset_id,
-a.alias,
-a.registration_number,
-a.status,
-a.source_system,
-a.equipment_id,
-a.vehicle_category,
-a.asset_sub_type,
-CASE WHEN COUNT(*) OVER (PARTITION BY a.equipment_id) = 1 THEN
-        CASE 
-            WHEN a.source_system = 'Odessa' THEN 'keep'
-            ELSE 'remove'
-        END
-     
-        WHEN COUNT(*) OVER (PARTITION BY a.equipment_id) > 1 THEN 'keep'
-        
-END AS keep_or_remove,
-anc.equipment_id AS parent_equipment_id,
-CASE WHEN anc.equipment_id IS NULL THEN a.equipment_id 
-ELSE anc.equipment_id
-END AS combined_equipment_id
-
-
-FROM flat_assets_inc_history AS a
-LEFT JOIN flat_assets_inc_history as anc ON a.parent_asset_id = anc.id
-) AS a
-
-LEFT JOIN 
-(
-SELECT * FROM flat_assets_inc_history
-WHERE source_system = 'Odessa') as odessa_assets ON a.combined_equipment_id = odessa_assets.equipment_id
-
-LEFT JOIN (
-
-select 
-a.[bk_aggregated_dim_asset_id],
-MIN(d.bk_aggregated_dim_date) AS sold_date
-
-
-FROM aggregated_odessa_dim_asset AS a
-JOIN aggregated_odessa_fact_asset_status AS fstatus ON fstatus.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset 
-LEFT JOIN aggregated_odessa_dim_asset_status AS dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status 
-LEFT JOIN aggregated_odessa_dim_date AS d ON fstatus.sk_aggregated_dim_date_record = d.sk_aggregated_dim_date
-WHERE dstatus.asset_status = 'Sold'
-
-GROUP BY a.[bk_aggregated_dim_asset_id]
-)
-AS assets_sold_in_odessa ON odessa_assets.id = assets_sold_in_odessa.bk_aggregated_dim_asset_id
-WHERE keep_or_remove = 'keep' 
-
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_customer_retention_and_growth];
-GO
-CREATE VIEW [dbo].[pbi_customer_retention_and_growth] AS 
-
-
-WITH contracts AS (
-SELECT DISTINCT  
-CASE
-WHEN c.line_of_business = 'Bus and Coach' THEN 'Bus & Coach'
-WHEN c.line_of_business = 'Contract Hire Leasing and Rental' THEN 'Contract Hire Lease Rental'
-ELSE c.line_of_business
-END AS line_of_business,
-CASE
-WHEN c.product LIKE 'Contract Hire%' THEN 'Contract Hire'
-WHEN c.product LIKE 'Finance Lease%' THEN 'Finance Lease'
-WHEN c.product LIKE 'Hire Purchase%' THEN 'Hire Purchase'
-WHEN c.product LIKE 'Operating Lease%' THEN 'Operating Lease'
-WHEN c.product LIKE 'Rental%' THEN 'Rental'
-ELSE c.product
-END AS product,
-CASE WHEN c.source_system = 'CloudLending' AND cep.terminated_on IS NULL THEN '2025-01-31'
-ELSE cep.terminated_on
-END AS termination_date,
-c.bdm,
-c.customer_name,
-c.account_number,
-c.organization_id,
-c.commencement_date,
---cep.terminated_on,
---cep.asset_id,
-a.equipment_id
-FROM flat_contracts_inc_history as c
-JOIN flat_contract_equipment_inc_history AS cep ON c.id = cep.contract_id
-JOIN flat_assets_inc_history AS a ON cep.asset_id = a.id
-WHERE a.vehicle_category != 'Ancillary'
-AND c.status NOT IN ('Inactive', 'Pending', 'PARTIAL APPLICATION')
-
-),
-agg_contracts AS (
-SELECT DISTINCT
-CASE WHEN cu.party_name IS NULL THEN contracts.customer_name ELSE cu.party_name END AS consolidated_customer_name,
-line_of_business,
-bdm,
-product,
-commencement_date,
-CASE WHEN termination_date IS NULL THEN '9999-01-01' ELSE termination_date END AS termination_date,
---asset_id,
-equipment_id
-FROM contracts
-LEFT JOIN aggregated_odessa_dim_customer AS cu ON (contracts.account_number = cu.[external_reference_id] OR contracts.organization_id = cu.organization_id) AND cu.current_flag = 1
-)
-
-SELECT DISTINCT
-consolidated_customer_name AS customer_name,
-line_of_business,
-bdm,
-product,
-MIN(commencement_date) AS commencement_date,
-MAX(termination_date) AS termination_date,
-COUNT(DISTINCT equipment_id) AS assets
- FROM agg_contracts
-GROUP BY
-consolidated_customer_name,
-line_of_business,
-bdm,
-product
-
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[rpt_aged_debtors_by_due_date];
-GO
-
-CREATE VIEW [dbo].[rpt_aged_debtors_by_due_date] AS (SELECT 
-customer.party_name AS company_name,
-AccountManager.account_manager,
-SalesRep.primary_sales_rep,
-c.sequence_number,
-pt.transaction_type AS product_name,
-c.status,
-agg_aged_debt.customer_id,
-agg_aged_debt.contract_id,
-SUM(agg_aged_debt.[current]) AS 'Current',
-SUM(agg_aged_debt.[1-30 Days]) AS '1-30 Days',
-SUM(agg_aged_debt.[31-60 Days]) AS '31-60 Days',
-SUM(agg_aged_debt.[61-90 Days]) AS '61-90 Days',
-SUM(agg_aged_debt.[91-120 Days]) AS '91-120 Days',
-SUM(agg_aged_debt.[120+ Days]) AS '120+ Days',
-SUM(agg_aged_debt.total) AS 'balance' 
-
-FROM (
-
-SELECT 
-aged_debt.customer_id,
-aged_debt.contract_id,
-
-CASE WHEN age_bracket = 'Current' THEN SUM(balance_with_tax) END AS 'current',
-CASE WHEN age_bracket = '1-30 Days' THEN SUM(balance_with_tax) END AS '1-30 Days',
-CASE WHEN age_bracket = '31-60 Days' THEN SUM(balance_with_tax) END AS '31-60 Days',
-CASE WHEN age_bracket = '61-90 Days' THEN SUM(balance_with_tax) END AS '61-90 Days',
-CASE WHEN age_bracket = '91-120 Days' THEN SUM(balance_with_tax) END AS '91-120 Days',
-CASE WHEN age_bracket = '120+ Days' THEN SUM(balance_with_tax) END AS '120+ Days',
-CASE WHEN age_bracket != 'Current' THEN SUM(balance_with_tax) END AS 'total'
-
-FROM (
-
-SELECT 
-invoices.customer_id,
-invoices.contract_id,
-_date,
-CASE WHEN _date >= CAST(GETDATE() as date) THEN 'Current'
- WHEN _date >= DATEADD(DAY, -30, CAST(GETDATE() as date)) THEN '1-30 Days'
-  WHEN _date >= DATEADD(DAY, -60, CAST(GETDATE() as date)) THEN '31-60 Days'
-    WHEN _date >= DATEADD(DAY, -90, CAST(GETDATE() as date)) THEN '61-90 Days'
-        WHEN _date >= DATEADD(DAY, -120, CAST(GETDATE() as date)) THEN '91-120 Days'
-        ELSE '120+ Days'
- END as age_bracket,
-invoices.balance_with_tax 
-FROM
-(
-SELECT 
-
-customer.[bk_aggregated_dim_customer_id] AS customer_id,
-contract.[bk_aggregated_dim_contract_id] AS contract_id,
-d.bk_aggregated_dim_date as _date,
-DATEDIFF(DAY, d.bk_aggregated_dim_date, GETDATE()) AS date_diff,
-COALESCE(frid.balance_amount, 0) + COALESCE(frid.tax_balance_amount, 0) AS balance_with_tax
-
-FROM aggregated_odessa_fact_receivable_invoice_detail AS frid
-JOIN aggregated_odessa_dim_receivable_invoice_detail AS drid ON frid.[sk_aggregated_dim_receivable_invoice_detail] = drid.sk_aggregated_dim_receivable_invoice_detail AND drid.current_flag = 1
-JOIN aggregated_odessa_dim_customer AS customer ON frid.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer AND customer.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_type AS rt ON frid.[sk_aggregated_dim_receivable_type] = rt.[sk_aggregated_dim_receivable_type] AND rt.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_category AS rc ON frid.[sk_aggregated_dim_receivable_category] = rc.sk_aggregated_dim_receivable_category AND rc.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_invoice AS dri ON frid.[sk_aggregated_dim_receivable_invoice] = dri.sk_aggregated_dim_receivable_invoice AND dri.current_flag = 1 AND dri.is_active = 1 AND dri.is_dummy = 0
-JOIN aggregated_odessa_dim_receivable AS r ON frid.[sk_aggregated_dim_receivable] = r.sk_aggregated_dim_receivable AND r.current_flag = 1
-JOIN aggregated_odessa_dim_receivable_detail AS rd ON frid.[sk_aggregated_dim_receivable_detail] = rd.sk_aggregated_dim_receivable_detail AND rd.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_contract AS contract ON drid.entity_id = contract.[bk_aggregated_dim_contract_id] AND contract.current_flag = 1 AND drid.entity_type = 'CT'
-LEFT JOIN aggregated_odessa_dim_date AS d ON frid.[sk_aggregated_dim_due_date] = d.[sk_aggregated_dim_date]
--- JOIN aggregated_odessa_dim_receivable_gl_journal AS gl on r.[bk_aggregated_dim_receivable_id] = gl.receivable_id AND gl.current_flag = 1
-
-WHERE COALESCE(frid.balance_amount, 0) + COALESCE(frid.tax_balance_amount, 0) != 0
-AND d.bk_aggregated_dim_date <= CAST(GETDATE() as date) 
-
-) AS invoices
-) AS aged_debt
-
-
-
-GROUP BY
-customer_id,
-contract_id,
-age_bracket
-
-) AS agg_aged_debt
-
-LEFT JOIN  aggregated_odessa_dim_customer AS customer ON agg_aged_debt.[customer_id] = customer.bk_aggregated_dim_customer_id AND customer.current_flag = 1 
-LEFT JOIN aggregated_odessa_dim_contract AS c ON agg_aged_debt.contract_id = c.bk_aggregated_dim_contract_id AND c.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS pt ON pt.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND pt.current_flag = 1
-
-LEFT JOIN (
-    SELECT DISTINCT
-    EmployeeAssigned.employee_id,
-    EmployeeAssigned.party_id,
-    DimUser.full_name AS account_manager
-
-    FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
-    JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Account Manager' AND RoleFunction.is_active = 1
-    JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1 
-
-    WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1 AND EmployeeAssigned.is_active = 1
-    ) AS AccountManager ON customer.[bk_aggregated_dim_customer_id] = AccountManager.party_id
-
-        LEFT JOIN (
-        SELECT DISTINCT
-        EmployeeAssigned.employee_id,
-        EmployeeAssigned.party_id,
-        DimUser.full_name AS primary_sales_rep
-
-        FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
-        JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Sales Rep' AND RoleFunction.is_active = 1
-        JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1 
-
-        WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1 AND EmployeeAssigned.is_active = 1
-        ) AS SalesRep ON customer.[bk_aggregated_dim_customer_id] = SalesRep.party_id
-
-GROUP BY
-customer_id,
-contract_id,
-customer.party_name,
-AccountManager.account_manager,
-SalesRep.primary_sales_rep,
-c.sequence_number,
-pt.transaction_type,
-c.status)
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[pbi_procurement_report];
-GO
-
-CREATE OR ALTER                 VIEW [dbo].[pbi_procurement_report] AS 
-
-WITH invoice_assets AS (
-SELECT DISTINCT
-a.bk_aggregated_dim_asset_id,
-v.company_name,
-fpia.acquisition_cost_amount,
-ROW_NUMBER() OVER (PARTITION BY bk_aggregated_dim_asset_id ORDER BY fpia.acquisition_cost_amount desc) AS supplying_dealer_order
-from aggregated_odessa_dim_asset AS a 
-JOIN aggregated_odessa_fact_payable_invoice_asset AS fpia ON a.[sk_aggregated_dim_asset] = fpia.sk_aggregated_dim_asset
-JOIN aggregated_odessa_dim_payable_invoice AS dpi ON fpia.[sk_aggregated_dim_payable_invoice] = dpi.sk_aggregated_dim_payable_invoice AND dpi.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_vendor AS v ON dpi.vendor_id = v.bk_aggregated_dim_vendor_id
-WHERE a.current_flag = 1
-), asset AS (
-SELECT 
-asset.asset_id,
-asset.asset_category,
-asset.procurement_program,
-asset.product_name as 'Vehicle category',
-asset.project_number AS 'Project Number',
-asset.[serial_number] AS 'Chassis Number',
-asset.[alias],
-asset.[registration_number] AS 'Registration Number',
-asset.asset_funding_status AS 'Asset Funding Status',
-asset.adjusted_book_value AS 'Book Value',
-asset.acquisition_date AS 'Purchased Date',
-asset.asset_registration_effective_date AS 'Registration Date',
-CASE WHEN asset.[actual_delivery_date_to_customer] IS NULL THEN asset.[original_delivery_date_to_customer] ELSE asset.[actual_delivery_date_to_customer] END AS 'Origination Date',
-asset.[original_delivery_date_to_customer] AS 'Original Delivery Date to Customer',
-asset.[actual_delivery_date_to_customer] AS 'Actual Delivery Date to Customer',
-asset.available_to_aag_from AS 'Available to AAG From',
-asset.body_builder AS 'Body Builder', 			
-asset.tail_lift_type AS 'Tail Lift',
-asset.allocated_status AS 'Allocated Status', 			
-asset.delivery_status AS 'Delivery Status',
-asset.description AS 'Equipment Description',									
-asset.cost_amount AS 'Net Value',						
-asset.equipment_nbv AS 'Equipment NBV',					
-asset.asset_value_amount AS 'Purchased Price',
-asset.expected_delivery_date_to_customer AS 'Expected Delivery Date to Customer'
-
-			       
-FROM
-vw_asset AS asset
-
-WHERE asset.asset_status = 'AwaitingDelivery'
-AND asset.current_flag = 1
-AND procurement_program = 1
-AND asset.project_number IS NOT NULL
-), credit_profile AS (
-SELECT 
-cp.[bk_aggregated_dim_credit_profile_id],
-cu.party_name,
-cp.number AS credit_number,
-o.number AS opp_number,
-cp.status,
-cas.number,
-cas.expected_commencement_date,
-cpasa.asset_id,
-cp.created_time,
-contract.status AS contract_status,
-ROW_NUMBER() OVER( PARTITION BY cpasa.asset_id, cp.number ORDER BY cas.number DESC) AS child_app
-FROM aggregated_odessa_dim_credit_profile as cp
-JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = cp.[opportunity_id] AND o.current_flag = 1
-JOIN aggregated_odessa_dim_credit_approved_structure AS cas ON cp.[bk_aggregated_dim_credit_profile_id] = cas.credit_profile_id AND cas.current_flag = 1 AND cas.is_active = 1
-JOIN aggregated_odessa_dim_credit_profile_approved_structure_asset AS cpasa ON cas.[bk_aggregated_dim_credit_approved_structure_id] = cpasa.[credit_approved_structure_id] AND cpasa.current_flag = 1 AND cpasa.is_active = 1
-JOIN aggregated_odessa_dim_customer AS cu ON o.customer_id = cu.[bk_aggregated_dim_customer_id] AND cu.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_contract AS contract ON cas.[bk_aggregated_dim_credit_approved_structure_id]= contract.[credit_approved_structure_id] AND contract.current_flag = 1 AND contract.status != 'Inactive'
-
-WHERE cp.current_flag = 1
-AND cp.status NOT IN ('Inactivate', 'Declined', 'OpportunityWithdrawn', 'Cancelled')
-),
-first_loc AS (
-
-SELECT
-asset_id,
-bk_aggregated_dim_credit_profile_id,
-party_name,
-credit_number,
-opp_number,
-status,
-expected_commencement_date,
-created_time,
-contract_status,
-ROW_NUMBER() OVER( PARTITION BY asset_id ORDER BY created_time ASC) AS rn
-
-FROM credit_profile 
-)
-
-
-SELECT 
-c.party_name AS Customer,
-invoice_assets.company_name AS supplying_dealer,
-CASE WHEN COALESCE([Allocated Status], '') NOT IN ('VOF Signed', 'Yes', 'TTS Allocation') AND [Available to AAG From] <= GETDATE() THEN 'Physical Assets'
- WHEN ([Allocated Status] IS NOT NULL) AND ([Allocated Status] NOT IN ('Firm - No VOF', 'Soft', 'No')) THEN 'Orders' 
- ELSE 'Incoming Stock' END AS Type,
-
-a.*,
-ad.asset_description,
-floc.opp_number,
-floc.party_name,
-floc.expected_commencement_date
-
-FROM asset AS a
- LEFT JOIN aggregated_odessa_dim_asset AS asset ON a.asset_id = asset.bk_aggregated_dim_asset_id and asset.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_customer AS c ON asset.customer_id = c.bk_aggregated_dim_customer_id AND c.current_flag = 1
-LEFT JOIN invoice_assets ON a.asset_id = invoice_assets.bk_aggregated_dim_asset_id AND invoice_assets.supplying_dealer_order = 1
-LEFT JOIN first_loc AS floc on a.asset_id = floc.asset_id AND floc.rn = 1 
-LEFT JOIN vw_asset_description AS ad ON a.asset_id = ad.asset_id
-
-;
-GO
-
-
-DROP VIEW if EXISTS [dbo].[rpt_available_assets];
-GO
-
-CREATE OR ALTER     VIEW [rpt_available_assets] AS
-
-SELECT 
-	asset.[registration_number] AS 'Registration Number',
-	asset.[alias],
-
-    asset.aag_fleet_number AS 'AAG Fleet Number',
-    ISNULL(asset.[serial_number],'-') AS 'Chassis Number',
-	asset.asset_id AS 'Asset ID', 			
-	asset.equipment_id AS 'Equipment Id',
-	asset.delivery_status AS 'Delivery Status',
-    asset.project_number AS 'Project Number',
-    CONVERT(VARCHAR , asset.acquisition_date , 103) AS 'Purchased Date',
-	CONVERT(VARCHAR , asset.original_chassis_delivery_date , 103) AS 'Original Chassis Delivery Date',
-	CONVERT(VARCHAR , asset.original_delivery_date_to_customer , 103) AS 'Original Delivery Date to Customer',
-	CONVERT(VARCHAR , asset.expected_chassis_delivery_date , 103) AS 'Expected Chassis Delivery Date',         	
-	CONVERT(VARCHAR , asset.expected_delivery_date_to_customer ,103) AS 'Expected Delivery Date to Customer',		
-	CONVERT(VARCHAR , asset.actual_chassis_delivery_date , 103) AS 'Actual Chassis Delivery Date',			
-	CONVERT(VARCHAR , asset.actual_delivery_date_to_customer , 103) AS 'Actual Delivery Date to Customer',	
-    asset.model_year AS 'YEAR',
-	asset.product_name AS 'Vehicle Category',
-	asset.manufacturer_name AS 'MAKE',
-	asset.make_name AS 'Model Range',
-	asset.model_name AS 'MODEL',
-    asset.cab AS 'CAB', 							
-	asset.cab_model AS 'Cab Model', 
-	asset.description AS 'Equipment Description',				
-	asset.gearbox AS 'Gearbox',			
-	asset.[emission_code] AS 'Emissions',					
-	CAST (asset.gvw AS INT) AS 'GVW',
-	asset.body_type AS 'Body Type', 				
-	asset.body_builder AS 'Body Builder', 			
-	asset.axle_config AS 'Axle Config', 					
-	asset.bhp AS 'BHP',
-	asset.city AS 'Current Location', 				
-	asset.asset_contract_type AS 'Vehicle Type',
-	asset.asset_status AS 'Status',
-	asset.in_application AS 'In Application',
-	asset.allocated_status AS 'Allocated Status', 		
-	asset.reserved_by AS 'Reserved By', 					
-	asset.reserved_for AS 'Reserved For', 					
-	CONVERT(VARCHAR , asset.reserve_date , 103) AS 'Reserve Date', 			
-	asset.legal_entity_number AS 'Company',
-	asset.residual_amount AS 'Residual Value',	
-	CONVERT(VARCHAR , asset.rv_maturity_date , 103) AS 'RV Maturity Date',				
-	asset.asset_sub_type AS 'Asset Sub Type',					
-	asset.cost_amount AS 'Book Value',						
-	asset.equipment_nbv AS 'Equipment NBV',					
-	asset.overall_asset_life_in_months AS 'Equipment Life in Months',		
-	asset.asset_value_amount AS 'Purchased Price',					
-	CONVERT(VARCHAR , asset.[available_to_aag_from] , 103) AS 'Available to AAG From'
-        
-FROM
-vw_asset AS asset
-
-WHERE asset.asset_status IN ('Inventory', 'AwaitingDelivery')
-AND asset.asset_type <> 'Ancillary'
-AND asset.asset_contract_type <> 'Backed Off Asset'
-AND asset.[current_flag] = 1
-
-;
-GO
-
-
-
-DROP VIEW if EXISTS [dbo].[pbi_aged_debtors];
-GO
-
-CREATE OR ALTER   VIEW [dbo].[pbi_aged_debtors] AS 
+-- ==========================================================
+-- All Views - Auto-formatted and dependency-ordered
+-- ==========================================================
+
+-- ----------------------------------------------------------
+-- View: pbi_aged_debtors
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_aged_debtors AS
 
 WITH receipts as (
 SELECT 
@@ -7481,146 +153,239 @@ LEFT JOIN sales_rep AS sr ON customer.bk_aggregated_dim_customer_id  = sr.party_
 ;
 GO
 
-DROP VIEW if EXISTS [dbo].[pbi_orders_over_time];
-GO
-
-CREATE OR ALTER VIEW [dbo].[pbi_orders_over_time]
-AS
-WITH assets AS (
-SELECT DISTINCT
-asset.bk_aggregated_dim_asset_id AS asset_id, 
-asset.product_name,
-asset.asset_funding_status,
-
-allocatedStatus.value AS allocated_status,
-addDetails.available_to_aag_from,
-CASE WHEN asset.start_date = CAST('1900-01-01 00:00:00.000000' AS datetime2) THEN COALESCE(asset.created_time, asset.updated_time)
-ELSE asset.start_date END AS funding_status_date,
-CASE WHEN addDetails.start_date = CAST('1900-01-01 00:00:00.000000' AS datetime2) THEN COALESCE(addDetails.created_time, addDetails.updated_time)
-ELSE addDetails.start_date END AS allocated_date,
-
-GREATEST(CASE WHEN asset.start_date = CAST('1900-01-01 00:00:00.000000' AS datetime2) THEN COALESCE(asset.created_time, asset.updated_time)
-ELSE asset.start_date END, CASE WHEN addDetails.start_date = CAST('1900-01-01 00:00:00.000000' AS datetime2) THEN COALESCE(addDetails.created_time, addDetails.updated_time)
-ELSE addDetails.start_date END) AS earliest_status_change,
-LEAST(asset.end_date, addDetails.end_date) AS asset_status_end_date
-
-
-FROM aggregated_odessa_dim_asset asset
-JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
-JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details --AND addDetails.current_flag = 1
-JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status 
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS allocatedStatus ON allocatedStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[allocated_status_id] AND allocatedStatus.current_flag = 1 
-JOIN vw_asset AS current_asset ON asset.bk_aggregated_dim_asset_id = current_asset.bk_aggregated_dim_asset_id AND current_asset.current_flag = 1
-WHERE dstatus.asset_status = 'AwaitingDelivery'
-AND current_asset.procurement_program = 1
-AND current_asset.project_number IS NOT NULL
-
-), assets_with_status_change as (
+-- ----------------------------------------------------------
+-- View: pbi_cash_collection_totals_by_age_bracket
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_cash_collection_totals_by_age_bracket AS
 SELECT 
-*,
-LAG(allocated_status) over (PARTITION BY asset_id ORDER BY earliest_status_change) AS prev_allocated_status,
-LAG(asset_funding_status) over (PARTITION BY asset_id ORDER BY earliest_status_change) AS prev_funding_status,
-LAST_VALUE(asset_status_end_date) OVER (PARTITION BY asset_id ORDER BY earliest_status_change RANGE BETWEEN CURRENT ROW
-                AND UNBOUNDED FOLLOWING) AS last_asset_status_end_date,
-LAST_VALUE(available_to_aag_from) OVER (PARTITION BY asset_id ORDER BY earliest_status_change RANGE BETWEEN CURRENT ROW
-                AND UNBOUNDED FOLLOWING) AS last_available_to_aag_from_date
+a.company_name,
+a.ct_due_date,
+a.credit_term,
+a.number,
+a.sequence_number,
+a.[Credit Controller],
+
+CASE WHEN DATEDIFF(DAY, a.ct_due_date, GETDATE()) BETWEEN 1 AND 30 THEN a.balance_amount + a.tax_balance_amount ELSE 0 END AS '1-30 Days',
+CASE WHEN DATEDIFF(DAY, a.ct_due_date, GETDATE()) BETWEEN 31 AND 60 THEN a.balance_amount + a.tax_balance_amount ELSE 0 END AS '31-60 Days',
+CASE WHEN DATEDIFF(DAY, a.ct_due_date, GETDATE()) BETWEEN 61 AND 90 THEN a.balance_amount + a.tax_balance_amount ELSE 0 END AS '61-90 Days',
+CASE WHEN DATEDIFF(DAY, a.ct_due_date, GETDATE()) >90 THEN a.balance_amount + a.tax_balance_amount ELSE 0 END AS '91+ Days',
+a.effective_balance_amount,
+a.effective_tax_balance_amount,
+a.[balance_amount],
+a.[tax_balance_amount]
 
 
-FROM assets
-), assets_to_join_date AS (
-select 
-asset_id, 
-product_name, 
-asset_funding_status, 
-allocated_status,
-available_to_aag_from,
-last_available_to_aag_from_date,
-earliest_status_change as status_start_date,
-LEAST(coalesce(lead(earliest_status_change) over (partition by asset_id order by earliest_status_change), '9999-12-31 00:00:00.000000'), last_asset_status_end_date)  as status_end_date
-
-from assets_with_status_change
-
-where 
-(prev_allocated_status is null and prev_funding_status is null)
-OR
-( (allocated_status <> prev_allocated_status)
-    OR (allocated_status is null and  prev_allocated_status is not null)
-    OR (allocated_status is not null and  prev_allocated_status is null))
-OR
-( (asset_funding_status <> prev_funding_status)
-    OR (asset_funding_status is null and  prev_funding_status is not null)
-    OR (asset_funding_status is not null and  prev_funding_status is null))
-
-)
+ FROM (
 
 SELECT 
+customer.company_name,
+customer.credit_term,
+drid.sequence_number,
 
-d.year_num,
-d.week_of_year,
-d.month_name,
-d.month_num,
-d.[bk_aggregated_dim_date],
-CASE WHEN COALESCE(allocated_status, '') NOT IN ('VOF Signed', 'Yes', 'TTS Allocation') AND last_available_to_aag_from_date <= d.[bk_aggregated_dim_date] THEN 'Physical Assets'
- WHEN (allocated_status IS NOT NULL) AND (allocated_status NOT IN ('Firm - No VOF', 'Soft', 'No')) THEN 'Orders' 
- ELSE 'Incoming Stock' END AS type,
-a.*
-FROM assets_to_join_date AS a
-JOIN aggregated_odessa_dim_date AS d ON (d.[bk_aggregated_dim_date] BETWEEN a.status_start_date AND a.status_end_date) AND d.[bk_aggregated_dim_date] <= GETDATE() 
-AND d.day_name = 'Friday'
+payment_method.is_advance,
+d.bk_aggregated_dim_date as due_date,
+
+CASE
+    WHEN drid.entity_type = 'CT' THEN 
+        CASE
+        WHEN payment_method.is_advance = 0 THEN DATEADD(day, customer.credit_term, d.bk_aggregated_dim_date)
+        ELSE d.bk_aggregated_dim_date
+    END
+    ELSE
+        CASE
+        WHEN drid.entity_type = 'CU' THEN DATEADD(day, customer.credit_term, d.bk_aggregated_dim_date)
+
+        END
+    END AS 'ct_due_date',
+
+CASE
+    WHEN customer.company_name LIKE 'DHL%' THEN 'Chantelle Lowe'
+    WHEN LEFT(customer.company_name, 1) LIKE '[A-E]' THEN 'Rebecca Victor'
+     WHEN LEFT(customer.company_name, 1) LIKE '[F-O]' THEN 'Chantelle Lowe'
+     ELSE 'Simon Hodge'
+    END AS 'Credit Controller',
+
+dri.number,
+frid.[balance_amount],
+frid.[tax_balance_amount],
+frid.effective_balance_amount,
+frid.effective_tax_balance_amount,
+contract.[bk_aggregated_dim_contract_id]
+--frid.*
+FROM aggregated_odessa_fact_receivable_invoice_detail AS frid
+JOIN aggregated_odessa_dim_receivable_invoice_detail AS drid ON frid.[sk_aggregated_dim_receivable_invoice_detail] = drid.sk_aggregated_dim_receivable_invoice_detail AND drid.current_flag = 1
+JOIN aggregated_odessa_dim_customer AS customer ON frid.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer AND customer.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_type AS rt ON frid.[sk_aggregated_dim_receivable_type] = rt.[sk_aggregated_dim_receivable_type] AND rt.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_category AS rc ON frid.[sk_aggregated_dim_receivable_category] = rc.sk_aggregated_dim_receivable_category AND rc.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_invoice AS dri ON frid.[sk_aggregated_dim_receivable_invoice] = dri.sk_aggregated_dim_receivable_invoice AND dri.current_flag = 1
+JOIN aggregated_odessa_dim_receivable AS r ON frid.[sk_aggregated_dim_receivable] = r.sk_aggregated_dim_receivable AND r.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_detail AS rd ON frid.[sk_aggregated_dim_receivable_detail] = rd.sk_aggregated_dim_receivable_detail AND rd.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_contract AS contract ON drid.entity_id = contract.[bk_aggregated_dim_contract_id] AND contract.current_flag = 1 AND drid.entity_type = 'CT'
+LEFT JOIN aggregated_odessa_dim_date AS d ON frid.[sk_aggregated_dim_due_date] = d.[sk_aggregated_dim_date]
+
+LEFT JOIN (SELECT * FROM(
+SELECT 
+c.[bk_aggregated_dim_contract_id],
+c.sequence_number,
+dlf.is_advance,
+ROW_NUMBER() OVER( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY flfd.[sk_aggregated_dim_date_record] DESC, flfd.[sk_aggregated_dim_time_record] DESC ) AS rn
+
+FROM [aggregated_odessa_fact_lease_finance_detail] AS flfd
+JOIN aggregated_odessa_dim_contract AS c ON flfd.[sk_aggregated_dim_contract] = c.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_finance  AS dlf ON flfd.[sk_aggregated_dim_lease_finance] = dlf.sk_aggregated_dim_lease_finance --AND dlf.current_flag = 1
+) AS a WHERE a.rn=1) AS payment_method ON contract.[bk_aggregated_dim_contract_id] = payment_method.bk_aggregated_dim_contract_id
+WHERE (frid.balance_amount > 0 OR frid.[tax_balance_amount] > 0) 
+) AS a WHERE GETDATE() > a.ct_due_date 
+
 ;
 GO
 
-
-DROP VIEW if EXISTS [dbo].[pbi_procurement_asset_origination];
-GO
-CREATE OR ALTER       VIEW [dbo].[pbi_procurement_asset_origination] AS
-WITH asset AS (
+-- ----------------------------------------------------------
+-- View: pbi_cl_application_documents_mata
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_cl_application_documents_mata AS
 SELECT DISTINCT
-a.bk_aggregated_dim_asset_id,
-a.alias,
-a.description,
-reg.registration_number,
-a.manufacturer_name AS make,
-a.model_name AS model,
-cast(detail.gvw/1000 as decimal(16,2)) AS gvw,
-bodybuilder.name AS body_builder,
-tailLiftType.[value] AS tail_lift_type,
-serialNumber.serial_number,
-a.model_year,
-a.asset_contract_type AS type,
-detail.comments,
-a.product_name AS vehicle_category,
-assetSubType.value AS asset_sub_type,
-a.equipment_id
-FROM aggregated_odessa_dim_asset AS a
-LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
-LEFT JOIN (select *, row_number() over (partition by asset_id order by created_time desc) SN from aggregated_odessa_dim_asset_serial_numbers where current_flag = 1) AS serialNumber 
-        ON serialNumber.asset_id = a.bk_aggregated_dim_asset_id AND serialNumber.current_flag = 1 AND SN=1
-JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset 
-JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status
-JOIN aggregated_odessa_dim_vehicle_detail detail ON detail.sk_aggregated_dim_vehicle_detail = fstatus.sk_aggregated_dim_vehicle_detail AND detail.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_body_builder_config AS bodybuilder ON detail.body_builder_config_id = bodybuilder.bk_aggregated_dim_body_builder_config_id AND bodybuilder.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS assetSubType ON assetSubType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.asset_sub_type_id AND assetSubType.current_flag = 1 
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS tailLiftType ON  tailLiftType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[tail_lift_type_id] AND tailLiftType.current_flag = 1
+apd.*,
+c.sequence_number,
+c.id AS contract_id,
+c.customer_name,
+c.aag_contract_number AS 'Contract Number',
+c.status AS contract_status,
+c.product,
+c.commencement_date AS 'Commencement Date',
+c.maturity_date AS 'Maturity Date',
+c.term,
+c.payment_frequency,
+cep.terminated_on,
+cep.contract_mileage AS 'Contract Mileage',
+cep.status AS cep_status,
+a.registration_number
 
-join aggregated_odessa_dim_legal_entity le on fstatus.sk_aggregated_dim_legal_entity = le.sk_aggregated_dim_legal_entity and le.current_flag = 1
-join aggregated_odessa_dim_asset_type atype on fstatus.sk_aggregated_dim_asset_type = atype.sk_aggregated_dim_asset_type and atype.current_flag = 1
-join aggregated_odessa_dim_currency cur on fstatus.sk_aggregated_dim_currency = cur.sk_aggregated_dim_currency and cur.current_flag = 1
-WHERE a.current_flag = 1
-AND addDetails.procurement_program = 1
-AND addDetails.project_number IS NOT NULL
-), lease_asset as (
-select
-asset.bk_aggregated_dim_contract_id AS contract_id,
-asset.bk_aggregated_dim_asset_id AS asset_id,
-asset.status
+FROM flat_cl_application_document_index apd
+LEFT JOIN flat_contracts_inc_history AS c ON apd.application_name = c.application_name
+JOIN flat_contract_equipment_inc_history AS cep ON c.id = cep.contract_id
+JOIN flat_assets_inc_history AS a ON cep.asset_id = a.id  ;
+
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_cl_lease_documents_mata
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_cl_lease_documents_mata AS
+SELECT DISTINCT
+    ld.contentversionid,
+    ld.lease_name schedule_number,
+    ld.lease_id,
+    ld.title,
+    ld.parent_id,
+    ld.mime_type,
+    ld.extension,
+    ld.size_bytes,
+    ld.onelake_url,
+    ld.relative_path,
+    ld.sp_path,
+    ld.checksum,
+    ld.extracted_at,
+    c.sequence_number,
+    c.id AS contract_id,
+    c.customer_name,
+    c.aag_contract_number AS 'Contract Number',
+    c.status AS contract_status,
+    c.product,
+    c.commencement_date AS 'Commencement Date',
+    c.maturity_date AS 'Maturity Date',
+    c.term,
+    c.payment_frequency,
+    cep.terminated_on,
+    cep.contract_mileage AS 'Contract Mileage',
+    cep.status AS cep_status,
+    a.registration_number
+FROM
+    flat_cl_lease_document_index ld
+    LEFT JOIN flat_contracts_inc_history AS c ON ld.lease_name = c.schedule_number
+    JOIN flat_contract_equipment_inc_history AS cep ON c.id = cep.contract_id
+    JOIN flat_assets_inc_history AS a ON cep.asset_id = a.id
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_contract_management_contracts_created
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_contract_management_contracts_created AS
+
+WITH commenced AS (
+    SELECT
+    c.[bk_aggregated_dim_contract_id],
+    c.sequence_number,
+    CASE WHEN c.start_date = '1900-01-01 00:00:00.000000' THEN COALESCE(c.created_time, c.dp_process_datetime)
+    ELSE c.start_date END AS _date,
+
+    c.[deal_product_type_id],
+    c.[cost_center_id],
+    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.[dp_process_datetime] ASC) AS rn 
+ FROM aggregated_odessa_dim_contract AS c 
+ WHERE COALESCE(status, '') IN ('Commenced', 'FullyPaidOff')
+
+ ),
+novated as (
+    SELECT
+    c.[bk_aggregated_dim_contract_id],
+    c.sequence_number,
+    CASE WHEN c.start_date = '1900-01-01 00:00:00.000000' THEN c.[dp_process_datetime]
+    ELSE c.start_date END AS _date,
+
+    c.[deal_product_type_id],
+    c.[cost_center_id],
+    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.[dp_process_datetime] ASC) AS rn 
+ FROM aggregated_odessa_dim_contract AS c 
+ WHERE status = 'Commenced' AND report_status = 'Assumed'
+ ),
+ commenced_and_novated AS (
+SELECT
+commenced.*,
+'commenced' AS type FROM commenced
+UNION ALL
+SELECT 
+novated.*,
+'novated' AS type FROM novated
+
+ )
+
+,lf AS (
+SELECT DISTINCT
+c.bk_aggregated_dim_contract_id AS contract_id,
+
+lf.is_tax_deferral_applicable,
+flfd.[calculated_tax_deferral_amount_amount],
+cu.party_name,
+c.status,
+lob.description AS line_of_business,
+ROW_NUMBER() OVER ( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY d.[bk_aggregated_dim_date] DESC, flfd.sk_aggregated_dim_time_record DESC) AS rn
+
+FROM aggregated_odessa_dim_lease_finance AS lf 
+JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON lf.sk_aggregated_dim_lease_finance = flfd.sk_aggregated_dim_lease_finance
+JOIN aggregated_odessa_dim_contract AS c ON flfd.sk_aggregated_dim_contract = c.sk_aggregated_dim_contract AND c.current_flag = 1
+JOIN aggregated_odessa_dim_customer AS cu ON flfd.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer ANd cu.current_flag = 1
+JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.[sk_aggregated_dim_line_of_business] = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
+JOIN aggregated_odessa_dim_legal_entity AS le ON flfd.sk_aggregated_dim_legal_entity = le.sk_aggregated_dim_legal_entity AND le.current_flag = 1
+JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.sk_aggregated_dim_cost_center = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
+JOIN aggregated_odessa_dim_branch AS b ON  flfd.sk_aggregated_dim_branch = b.sk_aggregated_dim_branch and b.current_flag = 1
+JOIN aggregated_odessa_dim_date AS d ON flfd.sk_aggregated_dim_date_record = d.[sk_aggregated_dim_date]
+
+WHERE lf.current_flag = 1 AND is_current = 1
+
+), asset AS (
+SELECT 
+asset.bk_aggregated_dim_contract_id AS c_id,
+COUNT(asset.bk_aggregated_dim_asset_id) AS qty_assets,
+SUM(asset.nbv_amount) AS nbv_amount,
+SUM(asset.[true_down_payment_amount]) AS down_payment
 FROM (
 SELECT 
 con.bk_aggregated_dim_contract_id,
-con.sequence_number,
-con.status,
+fla.nbv_amount,
+fla.[true_down_payment_amount],
 a.bk_aggregated_dim_asset_id,
 ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
 fla.sk_aggregated_dim_date_termination_date
@@ -7628,305 +393,281 @@ FROM aggregated_odessa_dim_contract AS con
 JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
 JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset and dla.is_approved = 1
 JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
-LEFT JOIN aggregated_odessa_dim_vehicle_detail AS vd ON a.bk_aggregated_dim_asset_id = vd.bk_aggregated_dim_vehicle_detail_id
 JOIN aggregated_odessa_dim_lease_finance AS lf ON fla.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1
 JOIN aggregated_odessa_dim_customer AS cu ON fla.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer
-LEFT JOIN aggregated_odessa_dim_branch AS b ON fla.[sk_aggregated_dim_branch] = b.sk_aggregated_dim_branch
-LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
-        WHERE con.current_flag = 1
-    ) AS asset
-LEFT JOIN aggregated_odessa_dim_date as td ON asset.sk_aggregated_dim_date_termination_date = td.sk_aggregated_dim_date 
+
+WHERE con.current_flag = 1
+) AS asset
+
 WHERE asset.rn = 1
-), contracts AS (
-SELECT DISTINCT
-a.id,
-a.status,
-a.sequence_number,
-a.commencement_date
-FROM (
-SELECT 
-c.bk_aggregated_dim_contract_id AS id,
-c.alias AS aag_contract_number,
-c.sequence_number,
-c.status,
-cd.bk_aggregated_dim_date AS commencement_date,
-md.bk_aggregated_dim_date AS maturity_date,
-c.created_time as created_date,
-ROW_NUMBER() OVER ( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY flfd.sk_aggregated_dim_contract DESC, flfd.sk_aggregated_dim_date_record DESC, flfd.sk_aggregated_dim_time_record DESC) AS rn
-
-FROM aggregated_odessa_dim_contract AS c
-JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.sk_aggregated_dim_contract = flfd.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1  and lf.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_date AS md ON flfd.sk_aggregated_dim_date_maturity_date = md.sk_aggregated_dim_date
-LEFT JOIN aggregated_odessa_dim_date AS cd ON flfd.sk_aggregated_dim_date_commencement_date = cd.sk_aggregated_dim_date
-JOIN aggregated_odessa_dim_customer AS cu ON flfd.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer AND cu.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS p ON p.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND p.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.sk_aggregated_dim_cost_center = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.sk_aggregated_dim_line_of_business
- = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
-WHERE c.current_flag = 1
-) AS a 
-
-WHERE a.rn = 1 AND COALESCE(a.status, '') != 'Inactive'
- ), first_contract AS (
-
-SELECT 
-
-asset.*,
-contracts.sequence_number,
-contracts.commencement_date,
-lease_asset.status,
-ROW_NUMBER() OVER( PARTITION BY bk_aggregated_dim_asset_id ORDER BY commencement_date) AS first_contract
-
-
-FROM asset
-JOIN lease_asset ON asset.bk_aggregated_dim_asset_id = lease_asset.asset_id 
-JOIN contracts ON lease_asset.contract_id = contracts.id --AND contracts.rn = 1
-) 
-
-SELECT
-
-bk_aggregated_dim_asset_id,
-sequence_number,
-commencement_date,
-alias,
-registration_number,
-tail_lift_type,
-make,
-model,
-gvw,
-description,
-body_builder,
-serial_number,
-model_year,
-type,
-vehicle_category,
-asset_sub_type,
-equipment_id,
-ad.asset_description
- FROM first_contract AS fc
- LEFT JOIN vw_asset_description AS ad ON fc.bk_aggregated_dim_asset_id = ad.asset_id
-WHERE fc.first_contract = 1 AND bk_aggregated_dim_asset_id IN (SELECT DISTINCT asset_id FROM pbi_orders_over_time)
-  
-
-;
-GO
-
-DROP VIEW if EXISTS [dbo].[pbi_rental_utilisation];
-GO
-
-CREATE OR ALTER               VIEW [dbo].[pbi_rental_utilisation] AS 
-WITH asset AS (
-SELECT DISTINCT
-a.bk_aggregated_dim_asset_id,
-a.alias,
-a.registration_number,
-a.asset_status AS status,
-a.manufacturer_name AS manufacturer,
-a.model_name AS model,
-a.make_name AS make,
-a.description,
-a.gvw,
-a.body_type,
-a.oal,
-a.[dhl_compliant],
-a.[dvsr_star_rating],
-a.serial_number,
-a.model_year,
-a.asset_contract_type AS type,
---detail.comments,
-a.product_name AS vehicle_category,
-a.asset_sub_type,
-a.equipment_id,
-a.route_into_rental_fleet,
-a.depreciation_value,
-a.rental_availability_status,
---a.equipment_nbv,
-a.asset_category AS portfolio,
-a.location_city,
-a.last_known_mileage,
-a.[rv_maturity_date]
-FROM vw_asset AS a
-
-WHERE a.asset_status IN ('Leased', 'Inventory')
-AND a.asset_contract_type = 'Rental'
-
-), lease_asset as (
-SELECT 
-con.bk_aggregated_dim_contract_id,
-con.sequence_number,
-con.status,
-cu.party_name,
-cu.bk_aggregated_dim_customer_id,
-a.bk_aggregated_dim_asset_id,
-reg.registration_number,
-vd.contract_mileage,
-b.branch_name,
-
-ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
-fla.sk_aggregated_dim_date_termination_date,
-fla.nbv_amount,
-fla.customer_cost_amount,
-fla.rent_amount
-
-FROM aggregated_odessa_dim_contract AS con
-JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset --and dla.is_approved = 1
-JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
-LEFT JOIN aggregated_odessa_dim_vehicle_detail AS vd ON a.bk_aggregated_dim_asset_id = vd.bk_aggregated_dim_vehicle_detail_id
-JOIN aggregated_odessa_dim_lease_finance AS lf ON fla.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1
-JOIN aggregated_odessa_dim_customer AS cu ON fla.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer
-LEFT JOIN aggregated_odessa_dim_branch AS b ON fla.[sk_aggregated_dim_branch] = b.sk_aggregated_dim_branch
-LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
-        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
-        WHERE con.current_flag = 1 AND con.status != 'Inactive'
-), latest_lease_asset AS (
-
-SELECT 
-
-la.bk_aggregated_dim_contract_id AS contract_id,
-la.bk_aggregated_dim_customer_id AS customer_id,
-la.bk_aggregated_dim_asset_id AS asset_id, 
-td.bk_aggregated_dim_date AS terminated_on,
-ROW_NUMBER() OVER(PARTITION BY la.bk_aggregated_dim_asset_id ORDER BY td.bk_aggregated_dim_date DESC) AS latest_contract,
-la.nbv_amount,
-la.customer_cost_amount,
-la.rent_amount,
-la.branch_name
-
-FROM lease_asset AS la
-LEFT JOIN aggregated_odessa_dim_date as td ON la.sk_aggregated_dim_date_termination_date = td.sk_aggregated_dim_date 
-WHERE la.rn = 1
-), contracts AS (
-SELECT DISTINCT
-a.id,
---a.aag_contract_number,
-a.booking_status,
-a.sequence_number,
-a.commencement_date,
-a.maturity_date,
-a.customer_name,
-a.account_number,
-a.organization_id,
-a.product,
-a.cost_center,
-a.payment_frequency,
-a.term,
-a.payment_method,
-bdm.full_name AS bdm, 
-a.line_of_business,
-a.schedule_number,
-a.created_date
-FROM (
-SELECT 
-c.bk_aggregated_dim_contract_id AS id,
-c.alias AS aag_contract_number,
-c.sequence_number,
-c.status AS booking_status,
-cd.bk_aggregated_dim_date AS commencement_date,
-md.bk_aggregated_dim_date AS maturity_date,
-cu.party_name AS customer_name,
-cu.external_reference_id AS account_number,
-cu.organization_id,
-p.transaction_type AS product,
-cc.description AS cost_center,
-lob.name as line_of_business,
-lf.payment_frequency,
-lf.customer_term_in_months AS term,
-CASE WHEN lf.is_advance = 1 THEN 'ADVANCE'
-ELSE 'ARREARS'
-END AS payment_method,
-c.previous_schedule_number as schedule_number,
-c.created_time as created_date,
-ROW_NUMBER() OVER ( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY flfd.sk_aggregated_dim_contract DESC, flfd.sk_aggregated_dim_date_record DESC, flfd.sk_aggregated_dim_time_record DESC) AS rn
-
-FROM aggregated_odessa_dim_contract AS c
-JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.sk_aggregated_dim_contract = flfd.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1  and lf.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_date AS md ON flfd.sk_aggregated_dim_date_maturity_date = md.sk_aggregated_dim_date
-LEFT JOIN aggregated_odessa_dim_date AS cd ON flfd.sk_aggregated_dim_date_commencement_date = cd.sk_aggregated_dim_date
-JOIN aggregated_odessa_dim_customer AS cu ON flfd.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer AND cu.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_deal_product_type AS p ON p.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND p.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.sk_aggregated_dim_cost_center = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
-LEFT JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.sk_aggregated_dim_line_of_business
- = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
-WHERE c.current_flag = 1
-
-
-) AS a 
- LEFT JOIN (
- SELECT a.contract_id, a.full_name FROM (
- SELECT DISTINCT contract_id, u.full_name, 
- ROW_NUMBER() OVER( PARTITION BY contract_id ORDER BY ep.is_primary DESC) AS rn
- FROM aggregated_odessa_dim_employees_assigned_to_contract AS ec
-JOIN aggregated_odessa_dim_employees_assigned_to_party AS ep ON ec.employee_assigned_to_party_id = ep.bk_aggregated_dim_employees_assigned_to_party_id AND ep.current_flag = 1 AND ep.is_active = 1
-JOIN aggregated_odessa_dim_role_function AS rf ON ep.role_function_id = rf.bk_aggregated_dim_role_function_id 
-JOIN aggregated_odessa_dim_user AS u ON ep.employee_id = u.bk_aggregated_dim_user_id
- WHERE ec.current_flag = 1 AND ec.is_active = 1 AND rf.name = 'Sales Rep'
- ) AS a WHERE a.rn = 1
- ) AS bdm ON bdm.contract_id = a.id
-
-WHERE a.rn = 1
-),
-current_avh AS (
-SELECT
-	*,
-	ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY income_date DESC, bk_aggregated_dim_asset_value_history_id DESC) AS CurrentRowNo
-
-FROM aggregated_odessa_dim_asset_value_history
-WHERE
-	is_lessor_owned = 1
-	AND is_schedule = 1
-	AND is_accounted = 1
-	AND income_date <= GETDATE()
-	
+GROUP BY asset.bk_aggregated_dim_contract_id
 )
 
-
 SELECT 
-CASE WHEN asset.status = 'Leased' THEN
-        CASE WHEN (ISNULL(charges.charges,0) + ISNULL(latest_lease_asset.rent_amount,0)) = 0.01 THEN 'Yes (FoC)'
-        ELSE 'Yes'
-        END
-WHEN asset.status = 'Inventory' THEN
-        CASE WHEN app.bk_aggregated_dim_asset_id IS NOT NULL THEN 'In Application'
-        ELSE 'No'
-        END
-        END AS 'Utilised',
+c.bk_aggregated_dim_contract_id,
+c.sequence_number,
+c._date AS contract_commenced_date ,
+c.type,
+lf.*,
 asset.*,
-latest_lease_asset.terminated_on,
---latest_lease_asset.nbv_amount,
-latest_lease_asset.customer_cost_amount,
-latest_lease_asset.rent_amount,
-latest_lease_asset.branch_name,
-contracts.*,
-app.combined_opp_number AS opp_number,
-app.stage AS application_stage,
-app.combined_created_by AS created_by,
-app.combined_product_name AS application_product_name,
-app.loc_status,
-app.app_status AS application_status,
-app.combined_company_name AS application_company_name,
-ISNULL(charges.charges,0) AS asset_budget_value,
-ISNULL(charges.charges,0) + ISNULL(latest_lease_asset.rent_amount,0) AS total_charge_to_customer,
-ebv.end_book_value_amount AS equipment_nbv
+cc.description AS cost_center,
+dpt.transaction_type AS product,
 
+CASE
+WHEN c.type = 'novated' THEN 'Novated'
+    WHEN cc.description = 'Lease Sales' THEN 
+        CASE
+            WHEN dpt.transaction_type = 'Contract Hire' THEN 'Contract Hire Origination'
+            WHEN dpt.transaction_type = 'Hire Purchase' THEN 'Hire Purchase Origination'
+            WHEN dpt.transaction_type = 'Operating Lease' THEN 'Operating Lease Origination'
+            WHEN dpt.transaction_type = 'Finance Lease' THEN 'Finance Lease Origination'
+            WHEN dpt.transaction_type = 'Rental' THEN 'Rental - Origination'
+        END
+        
+     WHEN cc.description = 'Extension -Lease' THEN
+        CASE
+            WHEN dpt.transaction_type = 'Contract Hire' THEN 'Contract Hire Extension'
+            WHEN dpt.transaction_type = 'Operating Lease' THEN 'Operating Lease Extension'
+            WHEN dpt.transaction_type = 'Hire Purchase' THEN 'Hire Purchase Extension'
+        END
+    WHEN cc.description = 'Lease (Used Asset)' THEN
+        CASE 
+            WHEN dpt.transaction_type = 'Contract Hire' THEN 'Contract Hire Lease - Used Asset'
+            WHEN dpt.transaction_type = 'Hire Purchase' THEN 'Hire Purchase (Used Asset)'
+            WHEN dpt.transaction_type = 'Operating Lease' THEN 'Operating Lease (Used Asset)'
+            WHEN dpt.transaction_type = 'Finance Lease' THEN 'Finance Lease (Used Asset)'
+            WHEN dpt.transaction_type = 'Rental' THEN 'Rental (Used Asset)'
+        END
+    WHEN cc.description = 'Rental (New Asset)' AND dpt.transaction_type = 'Rental' THEN 'Rental - Origination'
+    WHEN cc.description = 'Rental' AND dpt.transaction_type = 'Rental' THEN 'Rental - Churn'
+    WHEN cc.description = 'Extension - Rental Std' AND dpt.transaction_type = 'Rental' THEN 'Rental - Extension (Existing Customer)'
+    WHEN cc.description = 'Lease (Re-Profile)' THEN 'Lease (Re-Profile)'
+    WHEN cc.description = 'Vendor Finance' THEN 'Vendor Finance'
+    WHEN cc.description = 'Traffic Managment' THEN 'Traffic Management'
+    WHEN cc.description = 'Fleet Management' THEN 'Fleet Management'
+    
+        END AS calculated_product,
+CASE WHEN dpt.transaction_type = 'Hire Purchase' THEN ISNULL(nbv_amount, 0) - ISNULL(calculated_tax_deferral_amount_amount, 0) - ISNULL(down_payment, 0)
+ELSE nbv_amount
+END AS origination_amount
 
-FROM asset
-LEFT JOIN latest_lease_asset ON asset.bk_aggregated_dim_asset_id = latest_lease_asset.asset_id AND latest_contract = 1
-LEFT JOIN contracts ON latest_lease_asset.contract_id = contracts.id
-LEFT JOIN vw_in_application AS app ON asset.bk_aggregated_dim_asset_id = app.bk_aggregated_dim_asset_id 
-LEFT JOIN vw_asset_additional_charges AS charges ON charges.contract_id = contracts.id AND charges.asset_id = asset.bk_aggregated_dim_asset_id      
-LEFT JOIN current_avh AS ebv ON asset.bk_aggregated_dim_asset_id = ebv.asset_id AND ebv.CurrentRowNo = 1
+FROM commenced_and_novated 
+AS c 
+LEFT JOIN lf ON lf.contract_id = c.bk_aggregated_dim_contract_id AND lf.rn = 1
+LEFT JOIN asset ON asset.c_id = c.bk_aggregated_dim_contract_id
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS dpt ON c.[deal_product_type_id] =  dpt.[bk_aggregated_dim_deal_product_type_id]
+LEFT JOIN aggregated_odessa_dim_cost_center AS cc ON c.cost_center_id = cc.[bk_aggregated_dim_cost_center_id]
+WHERE c.rn = 1
+AND ISNULL(status, ' ') != 'Inactive' 
 
 ;
 GO
 
-DROP VIEW if EXISTS [dbo].[pbi_fleet_overheads_by_asset];
+-- ----------------------------------------------------------
+-- View: pbi_contract_management_contracts_not_activated
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_contract_management_contracts_not_activated AS (
+SELECT 
+c.sequence_number,
+c.bk_aggregated_dim_contract_id,
+c.alias, 
+cu.company_name, 
+cc.description AS cost_center,
+b.branch_name,
+p.transaction_type AS product_name,
+d.[bk_aggregated_dim_date] AS start_date,
+lf.[customer_term_in_months],
+asset.qty_assets,
+asset.customer_cost_amount,
+contract_created.created_date,
+lf.approval_status
+FROM aggregated_odessa_dim_contract AS c 
+JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.[sk_aggregated_dim_contract] = flfd.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.[sk_aggregated_dim_lease_finance] = lf.sk_aggregated_dim_lease_finance AND lf.current_flag = 1 AND lf.is_current = 1
+JOIN aggregated_odessa_dim_customer AS cu ON flfd.[sk_aggregated_dim_customer] = cu.sk_aggregated_dim_customer AND cu.current_flag = 1
+JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.[sk_aggregated_dim_line_of_business] = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
+JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.[sk_aggregated_dim_cost_center] = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
+JOIN aggregated_odessa_dim_branch AS b ON flfd.[sk_aggregated_dim_branch] = b.sk_aggregated_dim_branch AND b.current_flag = 1
+JOIN aggregated_odessa_dim_deal_product_type AS p ON c.[deal_product_type_id] = p.[bk_aggregated_dim_deal_product_type_id] AND p.current_flag = 1
+JOIN aggregated_odessa_dim_date AS d ON flfd.[sk_aggregated_dim_date_commencement_date] = d.[sk_aggregated_dim_date]
+
+
+LEFT JOIN (
+SELECT
+c.bk_aggregated_dim_contract_id,
+COUNT(a.bk_aggregated_dim_asset_id) AS qty_assets,
+SUM(customer_cost_amount) as customer_cost_amount
+
+FROM aggregated_odessa_dim_contract as c
+JOIN aggregated_odessa_fact_lease_asset AS fla ON c.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset AND a.current_flag = 1
+--JOIN aggregated_odessa_dim_customer AS customer ON fla.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer 
+JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset AND dla.current_flag = 1 --AND dla.is_eligible_for_billing = 1
+WHERE c.current_flag = 1
+GROUP BY c.bk_aggregated_dim_contract_id
+) AS asset ON asset.bk_aggregated_dim_contract_id = c.bk_aggregated_dim_contract_id
+
+LEFT JOIN (   SELECT
+    c.[bk_aggregated_dim_contract_id],
+    c.dp_process_date AS created_date,
+    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.[dp_process_datetime] ASC) AS first_record 
+ FROM aggregated_odessa_dim_contract AS c ) AS contract_created ON c.bk_aggregated_dim_contract_id = contract_created.bk_aggregated_dim_contract_id
+ AND contract_created.first_record = 1
+
+WHERE c.current_flag = 1 AND c.status = 'InstallingAssets'
+AND approval_status != 'Pending'
+)
+
+;
 GO
 
-CREATE OR ALTER VIEW [dbo].[pbi_fleet_overheads_by_asset] AS (SELECT
+-- ----------------------------------------------------------
+-- View: pbi_contract_management_rentals_time_in_cm
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_contract_management_rentals_time_in_cm AS (
+SELECT 
+approved_locs_filtered.credit_number,
+approved_locs_filtered.opp_number,
+approved_locs_filtered.sequence_number,
+approved_locs_filtered.cost_center,
+approved_locs_filtered.company_name,
+approved_locs_filtered.date_loc_approved,
+contracts_created.contract_commenced_date,
+contracts_created.transaction_type,
+DATEDIFF(DAY, approved_locs_filtered.date_loc_approved, contracts_created.contract_commenced_date) AS days_in_rental
+ FROM (
+SELECT 
+bk_aggregated_dim_credit_profile_id,
+credit_number,
+opp_number,
+contract.sequence_number,
+contract.bk_aggregated_dim_contract_id,
+cc.description AS cost_center,
+customer.company_name, 
+approved_locs.dp_process_date AS date_loc_approved,
+cas.[bk_aggregated_dim_credit_approved_structure_id]
+FROM (
+SELECT 
+cp.bk_aggregated_dim_credit_profile_id,
+cp.number AS credit_number,
+cp.[cost_center_id],
+cp.customer_id,
+cp.status,
+cp.report_status,
+cp.dp_process_date,
+ROW_NUMBER() OVER( PARTITION BY cp.bk_aggregated_dim_credit_profile_id ORDER BY cp.dp_process_datetime ASC) AS rn,
+o.number AS opp_number
+
+FROM aggregated_odessa_dim_credit_profile as cp
+JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = cp.[opportunity_id]
+WHERE cp.status = 'Approved' 
+) as approved_locs 
+
+ JOIN aggregated_odessa_dim_credit_approved_structure AS cas ON approved_locs.[bk_aggregated_dim_credit_profile_id] = cas.credit_profile_id AND cas.current_flag = 1
+ JOIN aggregated_odessa_dim_contract AS contract ON cas.[bk_aggregated_dim_credit_approved_structure_id]= contract.[credit_approved_structure_id] AND contract.current_flag = 1
+ JOIN aggregated_odessa_dim_cost_center AS cc ON approved_locs.[cost_center_id] = cc.[bk_aggregated_dim_cost_center_id] AND cc.current_flag = 1
+  JOIN aggregated_odessa_dim_customer AS customer ON approved_locs.customer_id = customer.bk_aggregated_dim_customer_id AND customer.current_flag = 1
+WHERE rn = 1
+) AS approved_locs_filtered 
+
+LEFT JOIN (
+
+SELECT * FROM (
+SELECT
+    c.bk_aggregated_dim_contract_id,
+    c.sequence_number,
+    c.dp_process_date AS contract_commenced_date,
+    p.transaction_type,
+    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.dp_process_datetime ASC) AS rn 
+ FROM aggregated_odessa_dim_contract AS c
+ JOIN aggregated_odessa_dim_deal_product_type AS p ON c.deal_product_type_id = p.[bk_aggregated_dim_deal_product_type_id]
+ WHERE status = 'Commenced' 
+)    AS contracts WHERE contracts.rn = 1
+) AS contracts_created ON approved_locs_filtered.bk_aggregated_dim_contract_id = contracts_created.bk_aggregated_dim_contract_id
+
+
+
+WHERE transaction_type LIKE '%Rental%'
+)
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_customer_retention_and_growth
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_customer_retention_and_growth AS
+
+
+WITH contracts AS (
+SELECT DISTINCT  
+CASE
+WHEN c.line_of_business = 'Bus and Coach' THEN 'Bus & Coach'
+WHEN c.line_of_business = 'Contract Hire Leasing and Rental' THEN 'Contract Hire Lease Rental'
+ELSE c.line_of_business
+END AS line_of_business,
+CASE
+WHEN c.product LIKE 'Contract Hire%' THEN 'Contract Hire'
+WHEN c.product LIKE 'Finance Lease%' THEN 'Finance Lease'
+WHEN c.product LIKE 'Hire Purchase%' THEN 'Hire Purchase'
+WHEN c.product LIKE 'Operating Lease%' THEN 'Operating Lease'
+WHEN c.product LIKE 'Rental%' THEN 'Rental'
+ELSE c.product
+END AS product,
+CASE WHEN c.source_system = 'CloudLending' AND cep.terminated_on IS NULL THEN '2025-01-31'
+ELSE cep.terminated_on
+END AS termination_date,
+c.bdm,
+c.customer_name,
+c.account_number,
+c.organization_id,
+c.commencement_date,
+--cep.terminated_on,
+--cep.asset_id,
+a.equipment_id
+FROM flat_contracts_inc_history as c
+JOIN flat_contract_equipment_inc_history AS cep ON c.id = cep.contract_id
+JOIN flat_assets_inc_history AS a ON cep.asset_id = a.id
+WHERE a.vehicle_category != 'Ancillary'
+AND c.status NOT IN ('Inactive', 'Pending', 'PARTIAL APPLICATION')
+
+),
+agg_contracts AS (
+SELECT DISTINCT
+CASE WHEN cu.party_name IS NULL THEN contracts.customer_name ELSE cu.party_name END AS consolidated_customer_name,
+line_of_business,
+bdm,
+product,
+commencement_date,
+CASE WHEN termination_date IS NULL THEN '9999-01-01' ELSE termination_date END AS termination_date,
+--asset_id,
+equipment_id
+FROM contracts
+LEFT JOIN aggregated_odessa_dim_customer AS cu ON (contracts.account_number = cu.[external_reference_id] OR contracts.organization_id = cu.organization_id) AND cu.current_flag = 1
+)
+
+SELECT DISTINCT
+consolidated_customer_name AS customer_name,
+line_of_business,
+bdm,
+product,
+MIN(commencement_date) AS commencement_date,
+MAX(termination_date) AS termination_date,
+COUNT(DISTINCT equipment_id) AS assets
+ FROM agg_contracts
+GROUP BY
+consolidated_customer_name,
+line_of_business,
+bdm,
+product
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_fleet_overheads_by_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_fleet_overheads_by_asset AS (SELECT
 assets.equipment_id,
 assets.id,
 assets.registration_number,
@@ -7942,12 +683,495 @@ sundries.source_system
 
 WHERE fee_name LIKE '%Overhead%'
 )
+
 ;
 GO
 
-DROP VIEW if EXISTS [dbo].[pbi_tyre_analysis_income_and_expenses];
+-- ----------------------------------------------------------
+-- View: pbi_fleetspendreporting1_with_history
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_fleetspendreporting1_with_history AS (
+
+SELECT
+sundries.*,
+assets.registration_number,
+assets.status,
+assets.make,
+assets.model,
+assets.gvw,
+assets.body_builder,
+assets.serial_number,
+assets.model_year,
+assets.type AS asset_type,
+assets.comments,
+assets.vehicle_category,
+assets.asset_sub_type,
+assets.alias
+FROM (SELECT
+budgets.id,
+budgets.asset_id,
+budgets.amount,
+budgets.invoice_date,
+budgets.fee_name,
+budgets.ff_processing_message,
+budgets.ff_reference_name,
+NULL AS created_date,
+NULL AS invoice_number,
+NULL AS description,
+customer_name AS account_name,
+'budgets' AS type,
+budgets.source_system
+FROM flat_budgets_inc_history AS budgets
+
+UNION 
+
+SELECT
+recharges.id,
+recharges.asset_id,
+recharges.amount,
+recharges.invoice_date,
+recharges.fee_name,
+recharges.ff_processing_message,
+recharges.ff_reference_name,
+recharges.created_date,
+recharges.invoice_number,
+recharges.description,
+customer_name AS account_name,
+'recharges' AS type,
+recharges.source_system
+FROM flat_recharges_inc_history AS recharges
+
+UNION 
+
+SELECT
+expenses.id,
+expenses.asset_id,
+expenses.amount,
+expenses.invoice_date,
+expenses.fee_name,
+expenses.ff_processing_message,
+expenses.ff_reference_name,
+NULL AS created_date,
+expenses.invoice_number,
+NULL AS description,
+expenses.account_name,
+'expenses' AS type,
+expenses.source_system
+FROM flat_expense_fees_inc_history AS expenses
+
+) AS sundries
+
+LEFT JOIN flat_assets_inc_history AS assets ON sundries.asset_id = assets.id
+
+WHERE fee_name NOT IN (
+'Arrears Letter',
+'Asset Sales Cost Charge',
+'Asset Sales Cost Recharge',
+'Backed off Other Charge', 
+'Balloon Payment (FL)', 
+'Balloon Payment (HP)', 
+'Billing Expense (FL)',
+'Billing Expense (HP)', 
+'Brokerage Income',
+'Brokerage Income - Credit',
+'Brokerage Income - Credit NO VAT', 
+'Brokerage Income NO VAT',
+'Collection and Delivery Rental Charge',
+'Collection and Delivery Rental Recharge',
+'Contract Hire Income - Credit V2', 
+'Contract Hire Income - V2',
+'Deposit - HP',
+'Document Fee',
+'Document Fee (No VAT)',
+'Documentation Fee',
+'Documentation Fee (Expense)',
+'Funder Deposit (FL)', 
+'Funder Deposit (HP)',
+'Insufficient Funds to meet a Direct Debit',
+'Hire Purchase Income - Credit',
+'Late Payment Interest',
+'Operating Lease  Income - Credit',
+'Option to Purchase',
+'Overdue Payment', 
+'Refurb Cost Charge',
+'Refurb Cost Recharge',
+'Rent Receivable',
+'Rent Receivable - Credit',
+'Rental Income', 
+'Rental Income - Credit',
+'Rental_Lease_Mid-Period_Payoff',
+'Repossession Charges', 
+'Utilities',
+'Waiver'
+)
+)
+
+;
 GO
-CREATE OR ALTER   VIEW [dbo].[pbi_tyre_analysis_income_and_expenses] AS 
+
+-- ----------------------------------------------------------
+-- View: pbi_maintenance_provision
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_maintenance_provision AS
+
+SELECT
+s.created_time, 
+CASE WHEN sundries.category = 'Sundry' THEN CAST(s.created_time AS DATE)
+ELSE sundries.invoice_date 
+END AS report_date,
+
+sundries.* FROM (
+SELECT
+budgets.id,
+budgets.asset_id,
+budgets.amount,
+budgets.invoice_date,
+budgets.fee_name,
+budgets.ff_processing_message,
+budgets.ff_reference_name,
+NULL AS created_date,
+NULL AS invoice_number,
+NULL AS description,
+customer_name AS account_name,
+'budgets' AS type,
+budgets.source_system,
+budgets.category
+FROM flat_budgets_inc_history AS budgets
+
+UNION 
+
+SELECT
+recharges.id,
+recharges.asset_id,
+recharges.amount,
+recharges.invoice_date,
+recharges.fee_name,
+recharges.ff_processing_message,
+recharges.ff_reference_name,
+recharges.created_date,
+recharges.invoice_number,
+recharges.description,
+customer_name AS account_name,
+'recharges' AS type,
+recharges.source_system,
+recharges.category
+FROM flat_recharges_inc_history AS recharges
+
+UNION 
+
+SELECT
+expenses.id,
+expenses.asset_id,
+expenses.amount,
+expenses.invoice_date,
+expenses.fee_name,
+expenses.ff_processing_message,
+expenses.ff_reference_name,
+NULL AS created_date,
+expenses.invoice_number,
+NULL AS description,
+expenses.account_name,
+'expenses' AS type,
+expenses.source_system,
+expenses.category
+FROM flat_expense_fees_inc_history AS expenses
+) AS sundries
+LEFT JOIN aggregated_odessa_dim_sundry AS s ON sundries.id = CONVERT(VARCHAR, s.[bk_aggregated_dim_sundry_id]) AND s.current_flag = 1 AND s.is_active = 1
+WHERE (sundries.fee_name IS NULL OR TRIM(sundries.fee_name) NOT IN (
+'Arrears Letter',
+'Asset Sales Cost Charge',
+'Asset Sales Cost Recharge',
+'Backed off Other Charge', 
+'Balloon Payment (FL)', 
+'Balloon Payment (HP)', 
+'Billing Expense (FL)',
+'Billing Expense (HP)', 
+'Brokerage Income',
+'Brokerage Income - Credit NO VAT', 
+'Brokerage Income NO VAT',
+'Collection & Delivery (Not Budgeted) Charge',
+'Collection & Delivery (Not Budgeted) Recharge',
+'Collection and Delivery Rental Charge',
+'Collection and Delivery Rental Recharge',
+'Contract Hire Income - Credit V2', 
+'Contract Hire Income - V2',
+'Deposit - HP',
+'Document Fee',
+'Document Fee (No VAT)',
+'Documentation Fee',
+'Documentation Fee (Expense)',
+'End of Life Charge',
+'End of life Recharge ',
+'Excess Mileage Cost Charge',
+'Excess Mileage Cost Recharge',
+'Funder Deposit (FL)', 
+'Funder Deposit (HP)',
+'Insufficient Funds to meet a Direct Debit',
+'Late Payment Interest',
+'Maintenance Cost Budget - Overhead',
+'Option to Purchase',
+'Overdue Payment', 
+'Penalty Charge Admin Fee Charge',
+'Penalty Charge Admin Fee Recharge',
+'Penalty Charge Notice Cost Charge',
+'Penalty Charge Notice Cost Recharge',
+'Refurb Cost Charge',
+'Refurb Cost Recharge',
+'Rent Receivable',
+'Rent Receivable - Credit',
+'Rental Income', 
+'Rental Income - Credit',
+'Rental_Lease_Mid-Period_Payoff',
+'Repossession Charges', 
+'Utilities',
+'VOR Recharge',
+'Waiver'
+))
+AND (description IS NULL OR LOWER(description) NOT LIKE '%eol%')
+AND asset_id IS NOT NULL
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_maintenance_provision_assets
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_maintenance_provision_assets AS
+SELECT a.*,
+odessa_assets.id AS latest_asset_id,
+odessa_assets.registration_number AS latest_registration_number,
+odessa_assets.status AS latest_asset_status,
+assets_sold_in_odessa.sold_date
+
+ FROM (
+SELECT 
+a.id,
+a.parent_asset_id,
+a.alias,
+a.registration_number,
+a.status,
+a.source_system,
+a.equipment_id,
+a.vehicle_category,
+a.asset_sub_type,
+CASE WHEN COUNT(*) OVER (PARTITION BY a.equipment_id) = 1 THEN
+        CASE 
+            WHEN a.source_system = 'Odessa' THEN 'keep'
+            ELSE 'remove'
+        END
+     
+        WHEN COUNT(*) OVER (PARTITION BY a.equipment_id) > 1 THEN 'keep'
+        
+END AS keep_or_remove,
+anc.equipment_id AS parent_equipment_id,
+CASE WHEN anc.equipment_id IS NULL THEN a.equipment_id 
+ELSE anc.equipment_id
+END AS combined_equipment_id
+
+
+FROM flat_assets_inc_history AS a
+LEFT JOIN flat_assets_inc_history as anc ON a.parent_asset_id = anc.id
+) AS a
+
+LEFT JOIN 
+(
+SELECT * FROM flat_assets_inc_history
+WHERE source_system = 'Odessa') as odessa_assets ON a.combined_equipment_id = odessa_assets.equipment_id
+
+LEFT JOIN (
+
+select 
+a.[bk_aggregated_dim_asset_id],
+MIN(d.bk_aggregated_dim_date) AS sold_date
+
+
+FROM aggregated_odessa_dim_asset AS a
+JOIN aggregated_odessa_fact_asset_status AS fstatus ON fstatus.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset 
+LEFT JOIN aggregated_odessa_dim_asset_status AS dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status 
+LEFT JOIN aggregated_odessa_dim_date AS d ON fstatus.sk_aggregated_dim_date_record = d.sk_aggregated_dim_date
+WHERE dstatus.asset_status = 'Sold'
+
+GROUP BY a.[bk_aggregated_dim_asset_id]
+)
+AS assets_sold_in_odessa ON odessa_assets.id = assets_sold_in_odessa.bk_aggregated_dim_asset_id
+WHERE keep_or_remove = 'keep' 
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_origination
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_origination AS
+WITH contracts AS (
+SELECT 
+*,
+ROW_NUMBER() OVER(PARTITION BY sequence_number ORDER BY created_date asc) as rn
+FROM flat_contracts_inc_history
+WHERE status NOT IN ('Inactive', 'Pending', 'InstallingAssets')
+AND coalesce(schedule_number, '')  NOT LIKE '8%' -- this excludes any rekeyed contracts
+AND coalesce(sequence_number, '') NOT LIKE '%novated%'
+), contract_ids AS (
+SELECT
+bk_aggregated_dim_contract_id,
+sk_aggregated_dim_contract,
+sequence_number
+FROM aggregated_odessa_dim_contract WHERE current_flag = 1 
+)
+, lease_asset AS (
+SELECT 
+con.bk_aggregated_dim_contract_id,
+con.sequence_number,
+con.status,
+a.bk_aggregated_dim_asset_id,
+ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
+fla.sk_aggregated_dim_date_termination_date,
+fla.nbv_amount
+
+FROM aggregated_odessa_dim_contract AS con
+JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset and dla.is_approved = 1
+JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
+WHERE con.current_flag = 1 AND con.status != 'Inactive'
+), total_nbv AS (
+SELECT bk_aggregated_dim_contract_id, SUM(nbv_amount) AS total_nbv 
+FROM lease_asset AS la 
+LEFT JOIN aggregated_odessa_dim_date as td ON la.sk_aggregated_dim_date_termination_date = td.sk_aggregated_dim_date 
+WHERE la.rn = 1
+GROUP BY bk_aggregated_dim_contract_id
+),commenced AS (
+    SELECT
+    c.[bk_aggregated_dim_contract_id],
+    c.sequence_number,
+    CASE WHEN c.start_date = '1900-01-01 00:00:00.000000' THEN COALESCE(c.created_time, c.dp_process_datetime)
+    ELSE c.start_date END AS _date,
+
+    c.[deal_product_type_id],
+    c.[cost_center_id],
+    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.[dp_process_datetime] ASC) AS rn 
+ FROM aggregated_odessa_dim_contract AS c 
+ WHERE COALESCE(status, '') IN ('Commenced', 'FullyPaidOff')
+ ), lease_assets AS (
+SELECT
+l.contract_id,
+COUNT(a.id ) AS number_of_assets
+FROM flat_contract_equipment_inc_history AS l
+JOIN flat_assets_inc_history AS a ON l.asset_id = a.id 
+WHERE coalesce(a.vehicle_category, '') != 'Ancillary'
+AND COALESCE(a.asset_sub_type, '') != 'Fleet Managed Asset'
+GROUP BY l.contract_id
+),
+key_bus_accounts AS (
+SELECT DISTINCT
+contract_id,
+'Bus and Coach - Key Accounts' AS key_account
+ FROM
+flat_contract_equipment_inc_history
+WHERE customer_id in
+('791',
+'525',
+'524',
+'699',
+'2635',
+'783',
+'527',
+'526',
+'2287',
+'528',
+'2284',
+'2458',
+'529',
+'532',
+'531',
+'534',
+'533',
+'530',
+'535',
+'2286'
+) 
+
+)
+
+SELECT 
+contracts.*,
+total_nbv.total_nbv,
+CASE 
+    WHEN source_system = 'CloudLending' THEN
+    CASE 
+    WHEN contracts.product LIKE '%Hire Purchase%' THEN COALESCE(financed_amount, 0) - COALESCE(cl_vat_on_asset, 0)
+    ELSE financed_amount
+    END
+    WHEN source_system = 'Odessa' THEN coalesce(total_nbv.total_nbv, 0) - coalesce(odessa_down_payment_amount, 0) - coalesce(odessa_tax_deferral_amount, 0)
+
+    END AS 'Origination Amount'    ,
+CASE 
+    WHEN source_system = 'CloudLending' THEN
+    CASE WHEN migrated_to_cl = 1 THEN CAST(created_date AS date)
+    ELSE CAST(origination_date AS date)
+    END
+    WHEN source_system = 'Odessa' THEN CAST(commenced._date AS date) 
+    END AS 'Origination Date for Reporting',
+CASE WHEN product LIKE '%Contract Hire%' THEN 'Contract Hire'
+    WHEN product LIKE '%Operating Lease%' THEN 'Operating Lease'
+    WHEN product LIKE '%Hire Purchase%' THEN 'Hire Purchase'
+    WHEN product LIKE '%Rental%' THEN 'Rental'
+    WHEN product LIKE '%Finance Lease%' THEN 'Finance Lease'
+    ELSE product
+    END AS product_name,
+    l.number_of_assets ,
+   -- k.product_detail,
+CASE WHEN k.key_account IS NOT NULL THEN k.key_account ELSE contracts.line_of_business END as line_of_business_with_key_accounts
+
+
+FROM contracts 
+LEFT JOIN total_nbv ON contracts.id = CAST(total_nbv.bk_aggregated_dim_contract_id AS varchar)
+LEFT JOIN commenced ON CAST(commenced.bk_aggregated_dim_contract_id AS varchar) = contracts.id AND commenced.rn = 1
+LEFT JOIN lease_assets AS l ON contracts.id = l.contract_id
+LEFT JOIN key_bus_accounts AS k on contracts.id = k.contract_id --AS varchar)
+WHERE contracts.rn = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_pcn
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_pcn AS (SELECT
+recharges.id,
+recharges.asset_id,
+recharges.amount,
+recharges.invoice_date,
+recharges.fee_name,
+recharges.ff_processing_message,
+recharges.ff_reference_name,
+recharges.invoice_number,
+'recharges' AS type,
+recharges.source_system
+FROM [flat_recharges_inc_history] AS recharges
+WHERE fee_name IN ('Penalty Charge Notice Cost Recharge', 'Penalty Charge Admin Fee Recharge')
+
+UNION 
+
+SELECT
+expenses.id,
+expenses.asset_id,
+expenses.amount,
+expenses.invoice_date,
+expenses.fee_name,
+expenses.ff_processing_message,
+expenses.ff_reference_name,
+expenses.invoice_number,
+'expenses' AS type,
+expenses.source_system
+FROM [flat_expense_fees_inc_history] AS expenses WHERE fee_name = 'Penalty Charge Notice Cost Charge')
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_tyre_analysis_income_and_expenses
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_tyre_analysis_income_and_expenses AS
 
 SELECT
 sundries.*,
@@ -8034,15 +1258,752 @@ LEFT JOIN flat_contracts_inc_history AS contracts ON sundries.contract_id = cont
 
 
 WHERE LOWER(sundries.fee_name) LIKE LOWER('%Tyre%')
+
 ;
 GO
 
+-- ----------------------------------------------------------
+-- View: rpt_aged_debtors
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_aged_debtors AS
+
+SELECT 
+customer.party_name AS company_name,
+AccountManager.account_manager,
+SalesRep.primary_sales_rep,
+c.sequence_number,
+pt.transaction_type AS product_name,
+c.status,
+agg_aged_debt.customer_id,
+agg_aged_debt.contract_id,
+SUM(agg_aged_debt.[current]) AS 'Current',
+SUM(agg_aged_debt.[1-30 Days]) AS '1-30 Days',
+SUM(agg_aged_debt.[31-60 Days]) AS '31-60 Days',
+SUM(agg_aged_debt.[61-90 Days]) AS '61-90 Days',
+SUM(agg_aged_debt.[91-120 Days]) AS '91-120 Days',
+SUM(agg_aged_debt.[120+ Days]) AS '120+ Days',
+SUM(agg_aged_debt.total) AS 'balance' 
+
+FROM (
+
+SELECT 
+aged_debt.customer_id,
+aged_debt.contract_id,
+
+CASE WHEN age_bracket = 'Current' THEN SUM(balance_with_tax) END AS 'current',
+CASE WHEN age_bracket = '1-30 Days' THEN SUM(balance_with_tax) END AS '1-30 Days',
+CASE WHEN age_bracket = '31-60 Days' THEN SUM(balance_with_tax) END AS '31-60 Days',
+CASE WHEN age_bracket = '61-90 Days' THEN SUM(balance_with_tax) END AS '61-90 Days',
+CASE WHEN age_bracket = '91-120 Days' THEN SUM(balance_with_tax) END AS '91-120 Days',
+CASE WHEN age_bracket = '120+ Days' THEN SUM(balance_with_tax) END AS '120+ Days',
+CASE WHEN age_bracket != 'Current' THEN SUM(balance_with_tax) END AS 'total'
+
+FROM (
+
+SELECT 
+invoices.customer_id,
+invoices.contract_id,
+_date,
+CASE WHEN _date >= CAST(GETDATE() as date) THEN 'Current'
+ WHEN _date >= DATEADD(DAY, -30, CAST(GETDATE() as date)) THEN '1-30 Days'
+  WHEN _date >= DATEADD(DAY, -60, CAST(GETDATE() as date)) THEN '31-60 Days'
+    WHEN _date >= DATEADD(DAY, -90, CAST(GETDATE() as date)) THEN '61-90 Days'
+        WHEN _date >= DATEADD(DAY, -120, CAST(GETDATE() as date)) THEN '91-120 Days'
+        ELSE '120+ Days'
+ END as age_bracket,
+invoices.balance_with_tax 
+FROM
+(
+SELECT 
+
+customer.[bk_aggregated_dim_customer_id] AS customer_id,
+contract.[bk_aggregated_dim_contract_id] AS contract_id,
+d.bk_aggregated_dim_date as _date,
+DATEDIFF(DAY, d.bk_aggregated_dim_date, GETDATE()) AS date_diff,
+COALESCE(frid.balance_amount, 0) + COALESCE(frid.tax_balance_amount, 0) AS balance_with_tax
+
+FROM aggregated_odessa_fact_receivable_invoice_detail AS frid
+JOIN aggregated_odessa_dim_receivable_invoice_detail AS drid ON frid.[sk_aggregated_dim_receivable_invoice_detail] = drid.sk_aggregated_dim_receivable_invoice_detail AND drid.current_flag = 1
+JOIN aggregated_odessa_dim_customer AS customer ON frid.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer AND customer.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_type AS rt ON frid.[sk_aggregated_dim_receivable_type] = rt.[sk_aggregated_dim_receivable_type] AND rt.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_category AS rc ON frid.[sk_aggregated_dim_receivable_category] = rc.sk_aggregated_dim_receivable_category AND rc.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_invoice AS dri ON frid.[sk_aggregated_dim_receivable_invoice] = dri.sk_aggregated_dim_receivable_invoice AND dri.current_flag = 1 AND dri.is_active = 1 AND dri.is_dummy = 0
+JOIN aggregated_odessa_dim_receivable AS r ON frid.[sk_aggregated_dim_receivable] = r.sk_aggregated_dim_receivable AND r.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_detail AS rd ON frid.[sk_aggregated_dim_receivable_detail] = rd.sk_aggregated_dim_receivable_detail AND rd.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_contract AS contract ON drid.entity_id = contract.[bk_aggregated_dim_contract_id] AND contract.current_flag = 1 AND drid.entity_type = 'CT'
+LEFT JOIN aggregated_odessa_dim_date AS d ON frid.[sk_aggregated_dim_due_date] = d.[sk_aggregated_dim_date]
+WHERE COALESCE(frid.balance_amount, 0) + COALESCE(frid.tax_balance_amount, 0) != 0
+
+) AS invoices
+) AS aged_debt
 
 
-DROP VIEW if EXISTS [dbo].[pbi_tyre_analysis_contracts];
+
+GROUP BY
+customer_id,
+contract_id,
+age_bracket
+
+) AS agg_aged_debt
+
+LEFT JOIN  aggregated_odessa_dim_customer AS customer ON agg_aged_debt.[customer_id] = customer.bk_aggregated_dim_customer_id AND customer.current_flag = 1 
+LEFT JOIN aggregated_odessa_dim_contract AS c ON agg_aged_debt.contract_id = c.bk_aggregated_dim_contract_id AND c.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS pt ON pt.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND pt.current_flag = 1
+
+LEFT JOIN (
+    SELECT DISTINCT
+    EmployeeAssigned.employee_id,
+    EmployeeAssigned.party_id,
+    DimUser.full_name AS account_manager
+
+    FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
+    JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Account Manager' AND RoleFunction.is_active = 1
+    JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1 
+
+    WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1 AND EmployeeAssigned.is_active = 1
+    ) AS AccountManager ON customer.[bk_aggregated_dim_customer_id] = AccountManager.party_id
+
+        LEFT JOIN (
+        SELECT DISTINCT
+        EmployeeAssigned.employee_id,
+        EmployeeAssigned.party_id,
+        DimUser.full_name AS primary_sales_rep
+
+        FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
+        JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Sales Rep' AND RoleFunction.is_active = 1
+        JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1 
+
+        WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1 AND EmployeeAssigned.is_active = 1
+        ) AS SalesRep ON customer.[bk_aggregated_dim_customer_id] = SalesRep.party_id
+
+GROUP BY
+customer_id,
+contract_id,
+customer.party_name,
+AccountManager.account_manager,
+SalesRep.primary_sales_rep,
+c.sequence_number,
+pt.transaction_type,
+c.status
+
+;
 GO
 
-CREATE OR ALTER   VIEW [dbo].[pbi_tyre_analysis_contracts] AS 
+-- ----------------------------------------------------------
+-- View: rpt_aged_debtors_by_due_date
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_aged_debtors_by_due_date AS (SELECT
+customer.party_name AS company_name,
+AccountManager.account_manager,
+SalesRep.primary_sales_rep,
+c.sequence_number,
+pt.transaction_type AS product_name,
+c.status,
+agg_aged_debt.customer_id,
+agg_aged_debt.contract_id,
+SUM(agg_aged_debt.[current]) AS 'Current',
+SUM(agg_aged_debt.[1-30 Days]) AS '1-30 Days',
+SUM(agg_aged_debt.[31-60 Days]) AS '31-60 Days',
+SUM(agg_aged_debt.[61-90 Days]) AS '61-90 Days',
+SUM(agg_aged_debt.[91-120 Days]) AS '91-120 Days',
+SUM(agg_aged_debt.[120+ Days]) AS '120+ Days',
+SUM(agg_aged_debt.total) AS 'balance' 
+
+FROM (
+
+SELECT 
+aged_debt.customer_id,
+aged_debt.contract_id,
+
+CASE WHEN age_bracket = 'Current' THEN SUM(balance_with_tax) END AS 'current',
+CASE WHEN age_bracket = '1-30 Days' THEN SUM(balance_with_tax) END AS '1-30 Days',
+CASE WHEN age_bracket = '31-60 Days' THEN SUM(balance_with_tax) END AS '31-60 Days',
+CASE WHEN age_bracket = '61-90 Days' THEN SUM(balance_with_tax) END AS '61-90 Days',
+CASE WHEN age_bracket = '91-120 Days' THEN SUM(balance_with_tax) END AS '91-120 Days',
+CASE WHEN age_bracket = '120+ Days' THEN SUM(balance_with_tax) END AS '120+ Days',
+CASE WHEN age_bracket != 'Current' THEN SUM(balance_with_tax) END AS 'total'
+
+FROM (
+
+SELECT 
+invoices.customer_id,
+invoices.contract_id,
+_date,
+CASE WHEN _date >= CAST(GETDATE() as date) THEN 'Current'
+ WHEN _date >= DATEADD(DAY, -30, CAST(GETDATE() as date)) THEN '1-30 Days'
+  WHEN _date >= DATEADD(DAY, -60, CAST(GETDATE() as date)) THEN '31-60 Days'
+    WHEN _date >= DATEADD(DAY, -90, CAST(GETDATE() as date)) THEN '61-90 Days'
+        WHEN _date >= DATEADD(DAY, -120, CAST(GETDATE() as date)) THEN '91-120 Days'
+        ELSE '120+ Days'
+ END as age_bracket,
+invoices.balance_with_tax 
+FROM
+(
+SELECT 
+
+customer.[bk_aggregated_dim_customer_id] AS customer_id,
+contract.[bk_aggregated_dim_contract_id] AS contract_id,
+d.bk_aggregated_dim_date as _date,
+DATEDIFF(DAY, d.bk_aggregated_dim_date, GETDATE()) AS date_diff,
+COALESCE(frid.balance_amount, 0) + COALESCE(frid.tax_balance_amount, 0) AS balance_with_tax
+
+FROM aggregated_odessa_fact_receivable_invoice_detail AS frid
+JOIN aggregated_odessa_dim_receivable_invoice_detail AS drid ON frid.[sk_aggregated_dim_receivable_invoice_detail] = drid.sk_aggregated_dim_receivable_invoice_detail AND drid.current_flag = 1
+JOIN aggregated_odessa_dim_customer AS customer ON frid.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer AND customer.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_type AS rt ON frid.[sk_aggregated_dim_receivable_type] = rt.[sk_aggregated_dim_receivable_type] AND rt.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_category AS rc ON frid.[sk_aggregated_dim_receivable_category] = rc.sk_aggregated_dim_receivable_category AND rc.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_invoice AS dri ON frid.[sk_aggregated_dim_receivable_invoice] = dri.sk_aggregated_dim_receivable_invoice AND dri.current_flag = 1 AND dri.is_active = 1 AND dri.is_dummy = 0
+JOIN aggregated_odessa_dim_receivable AS r ON frid.[sk_aggregated_dim_receivable] = r.sk_aggregated_dim_receivable AND r.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_detail AS rd ON frid.[sk_aggregated_dim_receivable_detail] = rd.sk_aggregated_dim_receivable_detail AND rd.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_contract AS contract ON drid.entity_id = contract.[bk_aggregated_dim_contract_id] AND contract.current_flag = 1 AND drid.entity_type = 'CT'
+LEFT JOIN aggregated_odessa_dim_date AS d ON frid.[sk_aggregated_dim_due_date] = d.[sk_aggregated_dim_date]
+-- JOIN aggregated_odessa_dim_receivable_gl_journal AS gl on r.[bk_aggregated_dim_receivable_id] = gl.receivable_id AND gl.current_flag = 1
+
+WHERE COALESCE(frid.balance_amount, 0) + COALESCE(frid.tax_balance_amount, 0) != 0
+AND d.bk_aggregated_dim_date <= CAST(GETDATE() as date) 
+
+) AS invoices
+) AS aged_debt
+
+
+
+GROUP BY
+customer_id,
+contract_id,
+age_bracket
+
+) AS agg_aged_debt
+
+LEFT JOIN  aggregated_odessa_dim_customer AS customer ON agg_aged_debt.[customer_id] = customer.bk_aggregated_dim_customer_id AND customer.current_flag = 1 
+LEFT JOIN aggregated_odessa_dim_contract AS c ON agg_aged_debt.contract_id = c.bk_aggregated_dim_contract_id AND c.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS pt ON pt.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND pt.current_flag = 1
+
+LEFT JOIN (
+    SELECT DISTINCT
+    EmployeeAssigned.employee_id,
+    EmployeeAssigned.party_id,
+    DimUser.full_name AS account_manager
+
+    FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
+    JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Account Manager' AND RoleFunction.is_active = 1
+    JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1 
+
+    WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1 AND EmployeeAssigned.is_active = 1
+    ) AS AccountManager ON customer.[bk_aggregated_dim_customer_id] = AccountManager.party_id
+
+        LEFT JOIN (
+        SELECT DISTINCT
+        EmployeeAssigned.employee_id,
+        EmployeeAssigned.party_id,
+        DimUser.full_name AS primary_sales_rep
+
+        FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
+        JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Sales Rep' AND RoleFunction.is_active = 1
+        JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1 
+
+        WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1 AND EmployeeAssigned.is_active = 1
+        ) AS SalesRep ON customer.[bk_aggregated_dim_customer_id] = SalesRep.party_id
+
+GROUP BY
+customer_id,
+contract_id,
+customer.party_name,
+AccountManager.account_manager,
+SalesRep.primary_sales_rep,
+c.sequence_number,
+pt.transaction_type,
+c.status)
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_annual_reviews_proposed_exposure_greater_than_0
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_annual_reviews_proposed_exposure_greater_than_0 AS (
+
+SELECT DISTINCT
+COALESCE(NULLIF(TRIM(company_name), ''), party_name) AS company_name,
+Customer.creation_date,
+Customer.external_reference_id,
+Customer.credit_score,
+AccountManager.account_manager,
+SalesRep.primary_sales_rep,
+CreditExposure.*,
+Customer.[annual_credit_review_date] AS last_review_date,
+Customer.[next_review_date],
+InsurancePolicy.expiration_date
+
+FROM aggregated_odessa_dim_customer AS Customer
+LEFT JOIN aggregated_odessa_dim_insurance_policy AS InsurancePolicy ON Customer.bk_aggregated_dim_customer_id = InsurancePolicy.customer_id AND InsurancePolicy.current_flag = 1 AND InsurancePolicy.is_active = 1
+
+LEFT JOIN (SELECT DISTINCT
+EmployeeAssigned.employee_id,
+EmployeeAssigned.party_id,
+DimUser.full_name AS account_manager
+
+FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
+JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Account Manager'
+JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
+
+WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1) AS AccountManager ON Customer.bk_aggregated_dim_customer_id = AccountManager.party_id
+
+LEFT JOIN (SELECT DISTINCT
+EmployeeAssigned.employee_id,
+EmployeeAssigned.party_id,
+DimUser.full_name AS primary_sales_rep
+
+FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
+JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Sales Rep'
+JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
+
+WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1) AS SalesRep ON Customer.bk_aggregated_dim_customer_id = SalesRep.party_id
+
+
+LEFT JOIN (SELECT DISTINCT
+CE.is_active,
+CE.exposure_date,
+CSE.customer_id,
+CE.[exposure_customer_id],
+CE.[total_proposed_customer_exposure_amount] AS proposed_exposure,
+CSE.primary_customer_amount AS AAG_current_exposure,
+CSE.direct_amount + CSE.indirect_amount + CSE.primary_customer_amount AS AAG_current_group_exposure,
+CE.[total_proposed_customer_exposure_amount] + CSE.primary_customer_amount AS AAG_proposed_exposure,
+CSE.direct_amount AS direct_amount,
+CSE.indirect_amount AS indirect_amount,
+CSE.primary_customer_amount AS primary_customer_amount,
+ROW_NUMBER() OVER(PARTITION BY CE.exposure_customer_id ORDER BY CE.exposure_date DESC) AS rn
+
+FROM aggregated_odessa_dim_customer_exposure AS CE
+JOIN aggregated_odessa_dim_credit_summary_exposure AS CSE On CE.exposure_customer_id = CSE.customer_id AND CSE.current_flag = 1 --AND CSE.is_active = 1
+Where  CE.exposure_customer_id = CSE.customer_id AND CE.is_active=1 AND CSE.exposure_type='EF' AND CE.current_flag = 1 ) AS CreditExposure ON Customer.bk_aggregated_dim_customer_id = CreditExposure.exposure_customer_id AND CreditExposure.rn = 1
+
+WHERE 
+Customer.current_flag = 1
+AND AAG_proposed_exposure > 0
+AND Customer.status = 'Active'
+)
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_arbuthnot_mi_contract
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_arbuthnot_mi_contract AS
+With contracts AS (
+SELECT DISTINCT
+a.contract_id,
+a.booking_status,
+a.sequence_number,
+a.contract_date,
+a.maturity_date,
+a.customer_name,
+a.party_number AS customer_number,
+
+a.sic_description,
+a.product AS product_name,
+a.line_of_business AS Sector,
+a.bk_aggregated_dim_lease_finance_id,
+a.net_investment_amount,
+a.total_yield
+
+FROM (
+SELECT 
+c.bk_aggregated_dim_contract_id AS contract_id,
+c.alias AS aag_contract_number,
+c.sequence_number,
+c.status AS booking_status,
+cd.bk_aggregated_dim_date AS contract_date,
+md.bk_aggregated_dim_date AS maturity_date,
+cu.party_name AS customer_name,
+cu.party_number,
+class_code.code + ' - ' + class_code.description AS sic_description,
+p.transaction_type AS product,
+cc.description AS cost_center,
+lob.name as line_of_business,
+lf.bk_aggregated_dim_lease_finance_id,
+flfd.net_investment_amount,
+CAST(ROUND(flfd.total_yield * 100, 2) AS float) AS total_yield,
+ROW_NUMBER() OVER ( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY flfd.sk_aggregated_dim_contract DESC, flfd.sk_aggregated_dim_date_record DESC, flfd.sk_aggregated_dim_time_record DESC) AS rn
+
+FROM aggregated_odessa_dim_contract AS c
+JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.sk_aggregated_dim_contract = flfd.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1  and lf.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_date AS md ON flfd.sk_aggregated_dim_date_maturity_date = md.sk_aggregated_dim_date
+LEFT JOIN aggregated_odessa_dim_date AS cd ON flfd.sk_aggregated_dim_date_commencement_date = cd.sk_aggregated_dim_date
+JOIN aggregated_odessa_dim_customer AS cu ON flfd.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer AND cu.current_flag = 1
+left JOIN aggregated_odessa_dim_classification_code AS class_code ON cu.sic_code_id = class_code.bk_aggregated_dim_classification_code_id AND class_code.current_flag = 1
+
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS p ON p.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND p.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.sk_aggregated_dim_cost_center = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.sk_aggregated_dim_line_of_business
+ = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
+WHERE c.current_flag = 1
+
+
+) AS a WHERE rn = 1
+), rni AS (
+SELECT 
+c.bk_aggregated_dim_contract_id,
+rni.rni_amount_amount, 
+rni.total_financed_amount,
+rni.income_date,
+ROW_NUMBER() OVER(PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY rni.income_date DESC) AS rn
+ FROM 
+aggregated_odessa_dim_remaining_net_investment AS rni
+LEFT JOIN aggregated_odessa_dim_contract AS c ON rni.contract_id = c.[bk_aggregated_dim_contract_id] AND c.current_flag = 1
+WHERE rni.current_flag = 1 AND rni.is_active = 1
+), end_balance AS (
+SELECT
+PaymentSchedule.lease_finance_detail_id,
+PaymentSchedule.end_balance_amount,
+ROW_NUMBER() OVER(PARTITION BY lease_finance_detail_id ORDER BY due_date DESC, end_balance_amount DESC) AS rn
+FROM aggregated_odessa_dim_lease_payment_schedule AS PaymentSchedule
+WHERE PaymentSchedule.current_flag = 1 AND PaymentSchedule.payment_type = 'FixedTerm'
+AND YEAR(PaymentSchedule.due_date) = YEAR(GETDATE())
+AND MONTH(PaymentSchedule.due_date) = MONTH(GETDATE())
+), next_payment AS (
+SELECT
+PaymentSchedule.lease_finance_detail_id,
+MIN(PaymentSchedule.due_date) AS next_due_date
+FROM aggregated_odessa_dim_lease_payment_schedule AS PaymentSchedule
+WHERE PaymentSchedule.current_flag = 1 AND PaymentSchedule.payment_type IN ('FixedTerm', 'OTP')
+AND PaymentSchedule.due_date > GETDATE()
+GROUP BY PaymentSchedule.lease_finance_detail_id
+)
+
+SELECT DISTINCT
+c.*,
+rni.rni_amount_amount AS remaing_net_investment, 
+rni.total_financed_amount as financed_amount,
+rni.income_date,
+np.next_due_date
+FROM contracts AS c
+LEFT JOIN rni ON c.contract_id = rni.bk_aggregated_dim_contract_id AND rni.rn = 1
+LEFT JOIN next_payment AS np ON c.bk_aggregated_dim_lease_finance_id = np.lease_finance_detail_id
+Where COALESCE(booking_status, '') = 'Commenced'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_ts_recharge_for_debt_reporting
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ts_recharge_for_debt_reporting AS
+with invoice_fact_order_p1 as (
+SELECT invoice.bk_aggregated_dim_receivable_invoice_id, 
+Receivables.bk_aggregated_dim_receivable_id,
+ROW_NUMBER() OVER(
+    PARTITION BY invoice.bk_aggregated_dim_receivable_invoice_id, Receivables.bk_aggregated_dim_receivable_id
+    ORDER BY invoice.sk_aggregated_dim_receivable_invoice DESC, Receivables.sk_aggregated_dim_receivable DESC
+) AS invoice_receivable_fact_order, 
+fact_table.*
+FROM aggregated_odessa_dim_receivable_invoice invoice
+LEFT JOIN aggregated_odessa_fact_receivable_invoice_detail fact_table ON fact_table.sk_aggregated_dim_receivable_invoice = invoice.sk_aggregated_dim_receivable_invoice
+LEFT JOIN aggregated_odessa_dim_receivable AS Receivables ON fact_table.[sk_aggregated_dim_receivable] = Receivables.sk_aggregated_dim_receivable
+WHERE fact_table.sk_aggregated_dim_receivable_invoice IS NOT NULL  and fact_table.sk_aggregated_dim_receivable IS NOT NULL
+), 
+invoice_receivable_fact_order as (
+select  *
+from invoice_fact_order_p1 
+where invoice_receivable_fact_order = 1)
+
+SELECT DISTINCT
+Sundry.bk_aggregated_dim_sundry_id AS Sundry_Id,
+--DimInvoice.[sk_aggregated_dim_receivable_invoice],
+DimInvoice.[bk_aggregated_dim_receivable_invoice_id],
+DimInvoice.number AS 'Invoice',
+DimInvoice.customer_name AS 'Customer Name',
+Contract.sequence_number AS 'Contract: Sequence Number',
+ReceivableCode.name AS 'Fee Definition Name',
+FactInvoiceDetail.balance_amount 'Invoice: Balance Amount',
+FactInvoiceDetail.receivable_amount_amount AS 'Invoice: Receivable Amount',
+FactInvoiceDetail.tax_amount_amount AS 'Invoice: Tax Amount',
+Asset.alias AS 'Asset Registration Number',
+Sundry.receivable_due_date AS 'Sundry: Receivable Due Date'
+ 
+FROM aggregated_odessa_dim_receivable_invoice AS DimInvoice
+JOIN invoice_receivable_fact_order AS FactInvoiceDetail ON DimInvoice.[bk_aggregated_dim_receivable_invoice_id] = FactInvoiceDetail.bk_aggregated_dim_receivable_invoice_id --AND DimInvoice.current_flag = 1
+JOIN aggregated_odessa_dim_receivable AS Receivables ON FactInvoiceDetail.[bk_aggregated_dim_receivable_id] = Receivables.bk_aggregated_dim_receivable_id and Receivables.current_flag = 1
+JOIN aggregated_odessa_dim_sundry AS Sundry ON Sundry.[receivable_id] = Receivables.bk_aggregated_dim_receivable_id AND Sundry.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON Sundry.receivable_code_id = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_contract AS Contract ON Sundry.contract_id = Contract.[bk_aggregated_dim_contract_id] AND Contract.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_sundry_detail AS SundryDetail ON Sundry.bk_aggregated_dim_sundry_id = SundryDetail.sundry_id AND SundryDetail.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_asset AS Asset ON SundryDetail.asset_id = Asset.[bk_aggregated_dim_asset_id] AND Asset.current_flag = 1
+ 
+WHERE FactInvoiceDetail.balance_amount > 0 AND DimInvoice.current_flag = 1 AND ReceivableCode.name LIKE '%Recharge%'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_tts_msf_report
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_tts_msf_report AS
+
+SELECT
+
+a.[bk_aggregated_dim_asset_id],
+s.[transaction_date] AS 'Sales Date',
+s.[attention_to] AS 'Broker Name',
+c.[party_name] AS 'Buyer Name',
+s.[transaction_number] AS 'Sales Quote Name',
+s.[status] AS 'Status',
+a.[aag_fleet_number] AS 'AAG Fleet Number',
+reg.[registration_number] AS 'Registration Number',
+a.[product_name] AS 'Vehicle Category',
+'tba' AS 'CRM Opp No',
+b.[branch_name] AS 'Depot Sold',
+u.[full_name] AS 'Salesperson',
+rc.[name] AS 'Route to Market',
+CASE WHEN s.[finance_company_funded] = 1 THEN 'Financed' ELSE 'Not Financed' END AS 'Financed',
+d.[fair_market_value_amount],
+s.[tax_amount_amount],
+d.[net_value_amount],	
+CASE WHEN d.[fair_market_value_amount] >= d.[net_value_amount] THEN (d.[fair_market_value_amount] - d.[net_value_amount]) ELSE 0 END AS 'Profit',
+CASE WHEN d.[fair_market_value_amount]  < d.[net_value_amount] THEN (d.[fair_market_value_amount] - d.[net_value_amount]) ELSE 0 END AS 'Loss'
+
+FROM
+aggregated_odessa_dim_asset_sale AS s
+JOIN aggregated_odessa_dim_asset_sale_detail AS d ON d.[asset_sale_id] = s.[bk_aggregated_dim_asset_sale_id] AND d.[current_flag] = 1 AND d.is_active = 1
+ JOIN aggregated_odessa_dim_asset a ON a.[bk_aggregated_dim_asset_id] = d.[asset_id] AND a.[current_flag] = 1
+LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
+LEFT JOIN aggregated_odessa_dim_customer AS c ON c.[bk_aggregated_dim_customer_id] = s.[buyer_id] AND c.[current_flag] = 1       
+LEFT JOIN aggregated_odessa_dim_branch AS b ON b.[bk_aggregated_dim_branch_id] = s.[branch_id] AND b.[current_flag] = 1
+LEFT JOIN aggregated_odessa_dim_employees_assigned_to_asset_sale AS e ON e.[asset_sale_id] = s.[bk_aggregated_dim_asset_sale_id] AND e.[current_flag] = 1 AND e.is_active = 1  AND e.is_primary = 1
+LEFT JOIN aggregated_odessa_dim_role_function AS r ON r.[bk_aggregated_dim_role_function_id] = e.[role_function_id] AND r.[current_flag] = 1
+LEFT JOIN aggregated_odessa_dim_user AS u ON u.[bk_aggregated_dim_user_id] = e.[employee_id] AND u.[current_flag] = 1 
+LEFT JOIN aggregated_odessa_dim_receivable_code AS rc ON rc.[bk_aggregated_dim_receivable_code_id] = s.[asset_sale_receivable_code_id] AND rc.[current_flag] = 1
+JOIN aggregated_odessa_fact_asset_status AS fstatus ON fstatus.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset 
+LEFT JOIN aggregated_odessa_dim_asset_status AS dstatus ON dstatus.[sk_aggregated_dim_asset_status] = fstatus.[sk_aggregated_dim_asset_status]
+
+WHERE s.[current_flag] = 1 
+AND s.[status] = 'Completed'
+AND c.[party_name] <> 'Asset Alliance Leasing Ltd'
+AND dstatus.[asset_status] = 'Sold'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_tts_oc_report
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_tts_oc_report AS
+
+SELECT
+
+s.[transaction_date] AS 'Sale Date',
+s.[attention_to] AS 'Broker Name',
+c.[party_name] AS 'Buyer: Account Name',
+s.[transaction_number] AS 'Sale Quote Name',
+s.[status] AS 'Status',
+a.[aag_fleet_number] AS 'AAG Fleet Name',
+rd.[registration_number] AS 'Registration Number',
+a.[product_name] AS 'Vehicle Category', 
+s.[comment] AS 'CRM Opp No',
+b.[branch_name] AS 'Depot Sold Name',
+u.[full_name] AS 'Salesperson Name',
+rc.[name] AS 'Route to Market',
+CASE WHEN s.[finance_company_funded] = 1 THEN 'Financed' ELSE 'Not Financed' END AS 'Financed',
+d.[fair_market_value_amount] AS 'Equipment Sale Amount',
+d.[net_value_amount] AS 'Equipment NBV',	
+CASE WHEN d.[fair_market_value_amount] >= d.[net_value_amount] THEN (d.[fair_market_value_amount] - d.[net_value_amount]) ELSE 0 END AS 'Profit',
+CASE WHEN d.[fair_market_value_amount]  < d.[net_value_amount] THEN (d.[fair_market_value_amount] - d.[net_value_amount]) ELSE 0 END AS 'Loss'
+
+FROM
+
+[aggregated_odessa_dim_asset_sale] AS s
+LEFT JOIN [aggregated_odessa_dim_asset_sale_detail] AS d ON d.[asset_sale_id] = s.[bk_aggregated_dim_asset_sale_id] AND d.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_asset] a ON a.[bk_aggregated_dim_asset_id] = d.[asset_id] AND a.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_asset_registration_detail] rd ON rd.[asset_id] = a.[bk_aggregated_dim_asset_id] AND rd.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_customer] AS c ON c.[bk_aggregated_dim_customer_id] = s.[buyer_id] AND c.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_branch] AS b ON b.[bk_aggregated_dim_branch_id] = s.[branch_id] AND b.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_employees_assigned_to_asset_sale] AS e ON e.[asset_sale_id] = s.[bk_aggregated_dim_asset_sale_id] AND e.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_role_function] AS r ON r.[bk_aggregated_dim_role_function_id] = e.[role_function_id] AND e.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_user] AS u ON u.[bk_aggregated_dim_user_id] = e.[employee_id] anD e.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_receivable_code] AS rc ON rc.[bk_aggregated_dim_receivable_code_id] = s.[asset_sale_receivable_code_id] AND rc.[current_flag] = 1
+
+WHERE
+
+s.[current_flag] = 1 AND
+c.[party_name] <> 'Asset Alliance Leasing Ltd' AND
+(s.[status] = 'Pending' OR
+s.[status] = 'Submitted')
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_tts_sales
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_tts_sales AS (
+
+SELECT
+
+detail.[net_value_amount] AS 'Equipment NBV',
+detail.[fair_market_value_amount] - detail.[net_value_amount] AS 'Profit',
+_user.[full_name] AS 'Salesperson',
+detail.[fair_market_value_amount] 'Sales Amount',
+customer.[party_name] AS 'Customer',
+sale.[transaction_date] AS 'Sales Date',
+code.[name] AS 'Route to Market',
+asset.[product_name] AS 'Vehicle Category',
+asset.[manufacturer_name] AS 'Manufacturer',
+address.[postal_code] AS 'Billing Post Code'
+--address.[            ] AS 'Billing Country'
+
+
+FROM
+
+[aggregated_odessa_dim_asset_sale] AS sale
+LEFT JOIN [aggregated_odessa_dim_asset_sale_detail] AS detail ON detail.[asset_sale_id] = sale.[bk_aggregated_dim_asset_sale_id] AND detail.[current_flag] = 1 
+LEFT JOIN [aggregated_odessa_dim_asset] asset ON asset.[bk_aggregated_dim_asset_id] = detail.[asset_id] AND asset.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_customer] AS customer ON customer.[bk_aggregated_dim_customer_id] = sale.[buyer_id] AND customer.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_employees_assigned_to_asset_sale] AS employee ON employee.[asset_sale_id] = sale.[bk_aggregated_dim_asset_sale_id] AND employee.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_role_function] AS role ON role.[bk_aggregated_dim_role_function_id] = employee.[role_function_id] AND role.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_user] AS _user ON _user.[bk_aggregated_dim_user_id] = employee.[employee_id] AND _user.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_receivable_code] AS code ON code.[bk_aggregated_dim_receivable_code_id] = sale.[asset_sale_receivable_code_id] AND code.[current_flag] = 1
+LEFT JOIN [aggregated_odessa_dim_party_address] AS address ON address.[bk_aggregated_dim_party_address_id] = customer.[bk_aggregated_dim_customer_id] AND address.[current_flag] = 1
+
+WHERE
+
+sale.[current_flag] = 1 AND
+sale.[status] = 'Completed' AND
+customer.[party_name] <> 'Asset Alliance Leasing Ltd'
+)
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_tts_unpaid_sales
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_tts_unpaid_sales AS
+
+SELECT 
+
+_user.full_name AS 'Salesperson',
+sale.transaction_date AS 'Sales Date',
+sale.attention_to AS 'Broker Name',
+customer.party_name AS 'Buyer Name',
+sale.transaction_number AS 'Sales Quote Name',
+sale.status AS 'Status',
+--Sale Quote Number,
+a.aag_fleet_number AS 'AAG Fleet Number',
+reg.registration_number AS 'Registration Number',
+a.product_name AS 'Vehicle Category',
+'tba' AS 'CRM Opp No',
+b.branch_name AS 'Depot Sold',
+rc.name AS 'Route to Market',
+detail.fair_market_value_amount AS 'Equipment Sale Amount',
+detail.fair_market_value_amount + detail.projected_vat_amount_amount AS 'Sales Amount (Inc VAT)', --Sale Amount (inc VAT)
+dri.sk_aggregated_dim_receivable_invoice,
+dri.number
+
+FROM
+
+aggregated_odessa_dim_asset_sale AS sale
+LEFT JOIN aggregated_odessa_dim_asset_sale_detail AS detail ON detail.asset_sale_id = sale.bk_aggregated_dim_asset_sale_id AND detail.current_flag = 1 AND detail.is_active = 1
+LEFT JOIN aggregated_odessa_dim_asset a ON a.bk_aggregated_dim_asset_id = detail.asset_id AND a.current_flag = 1
+LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1LEFT JOIN aggregated_odessa_dim_customer AS customer ON customer.bk_aggregated_dim_customer_id = sale.buyer_id AND customer.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_employees_assigned_to_asset_sale AS employee ON employee.asset_sale_id = sale.bk_aggregated_dim_asset_sale_id AND employee.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_role_function AS role ON role.bk_aggregated_dim_role_function_id = employee.role_function_id AND role.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_user AS _user ON _user.bk_aggregated_dim_user_id = employee.employee_id AND _user.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_receivable_code AS rc ON rc.bk_aggregated_dim_receivable_code_id = sale.asset_sale_receivable_code_id AND rc.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_branch AS b ON b.bk_aggregated_dim_branch_id = sale.branch_id AND b.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_receivable_invoice AS dri ON sale.first_receivable_invoice_id = dri.bk_aggregated_dim_receivable_invoice_id AND dri.current_flag = 1
+LEFT JOIN aggregated_odessa_fact_receivable_invoice AS frid ON frid.sk_aggregated_dim_receivable_invoice = dri.sk_aggregated_dim_receivable_invoice AND dri.current_flag = 1
+
+WHERE
+
+sale.current_flag = 1 AND
+sale.status = 'Completed' AND
+customer.party_name <> 'Asset Alliance Leasing Ltd' AND
+(frid.balance_amount + frid.tax_balance_amount) > 0
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_additional_charges_detail
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_additional_charges_detail
+AS
+SELECT 
+    a.sequence_number 
+    ,a.sundry_charge_amount AS charges 
+    ,a.vat_amount
+    ,a.contract_id
+    ,a.asset_id
+    ,a.charge_name AS charge_description
+FROM
+(
+SELECT 
+    C.sequence_number
+    ,C.bk_aggregated_dim_contract_id AS contract_id
+    ,RC.name AS charge_name
+    ,SRPD.asset_id
+    ,SUM(SRPD.amount_amount) AS sundry_charge_amount
+    ,SUM(SRPD.vat_amount_amount) AS vat_amount
+ 
+FROM aggregated_odessa_dim_sundry_recurring SR
+JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS SRPD ON SR.bk_aggregated_dim_sundry_recurring_id = SRPD.sundry_recurring_id AND SRPD.current_flag = 1
+JOIN aggregated_odessa_dim_contract C ON SR.contract_id = C.bk_aggregated_dim_contract_id AND C.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_receivable_code RC ON SR.receivable_code_id = RC.bk_aggregated_dim_receivable_code_id AND RC.current_flag = 1
+WHERE SRPD.current_flag = 1
+    AND SR.current_flag = 1
+    AND C.current_flag = 1
+    AND RC.current_flag = 1
+    AND SR.is_asset_based = 1
+GROUP BY C.sequence_number ,C.bk_aggregated_dim_contract_id, SRPD.asset_id, RC.name
+) AS a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_aggregated_odessa_fact_asset_status_latest
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_aggregated_odessa_fact_asset_status_latest AS
+with asset_fact_order as (
+SELECT asset.bk_aggregated_dim_asset_id, fstatus.*,
+ROW_NUMBER() OVER(PARTITION BY asset.bk_aggregated_dim_asset_id ORDER BY asset.sk_aggregated_dim_asset DESC) AS fact_asset_status_order
+FROM aggregated_odessa_dim_asset asset
+LEFT JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset
+WHERE fstatus.sk_aggregated_dim_asset IS NOT NULL 
+)
+select bk_aggregated_dim_asset_id,
+sk_aggregated_dim_asset,
+sk_aggregated_dim_legal_entity,
+sk_aggregated_dim_date_record,
+sk_aggregated_dim_time_record,
+sk_aggregated_dim_asset_status,
+sk_aggregated_dim_asset_type,
+sk_aggregated_dim_currency,
+sk_aggregated_dim_vehicle_detail,
+dealer_cost_amount,
+residual_amount,
+salvage_amount,
+base_price_of_equipment_amount,
+quantity,
+dp_process_datetime,
+dp_process_date,
+dp_record_insert_datetime,
+dp_process_name,
+dp_source_name 
+from asset_fact_order 
+where fact_asset_status_order = 1;
+
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_tyre_analysis_contracts
+-- Depends on: vw_aggregated_odessa_fact_asset_status_latest
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_tyre_analysis_contracts AS
 
 WITH contracts AS (
 SELECT
@@ -8142,14 +2103,346 @@ c.product_name,
 a.* FROM contracts AS c
 JOIN assets AS a on c.bk_aggregated_dim_contract_id = a.ContractBK 
 WHERE c.rn = 1 
+
 ;
 GO
 
+-- ----------------------------------------------------------
+-- View: rpt_contracts_with_maintenance_budgets
+-- Depends on: vw_aggregated_odessa_fact_asset_status_latest
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_contracts_with_maintenance_budgets AS
+with contract_fact_order_p1 as (
+SELECT contract.bk_aggregated_dim_contract_id, 
+asset.bk_aggregated_dim_asset_id,
+LeaseFinance.bk_aggregated_dim_lease_finance_id,
+ROW_NUMBER() OVER(
+    PARTITION BY contract.bk_aggregated_dim_contract_id, asset.bk_aggregated_dim_asset_id, LeaseFinance.bk_aggregated_dim_lease_finance_id 
+    ORDER BY contract.sk_aggregated_dim_contract DESC, LeaseFinance.[sk_aggregated_dim_lease_finance] DESC, asset.sk_aggregated_dim_asset DESC
+) AS fact_contract_order, 
+fact_table.*
+FROM aggregated_odessa_dim_contract contract
+LEFT JOIN aggregated_odessa_fact_lease_asset fact_table ON fact_table.sk_aggregated_dim_contract = contract.sk_aggregated_dim_contract
+left join aggregated_odessa_dim_asset asset ON fact_table.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset
+left JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON fact_table.[sk_aggregated_dim_lease_finance] = LeaseFinance.sk_aggregated_dim_lease_finance --AND LeaseFinance.is_current = 1
+WHERE fact_table.sk_aggregated_dim_contract IS NOT NULL  and fact_table.sk_aggregated_dim_asset IS NOT NULL and fact_table.[sk_aggregated_dim_lease_finance] is not null
+), 
+contract_fact_order as (
+select  *
+from contract_fact_order_p1 
+where fact_contract_order = 1),
+contract_lease_fact_order_p1 as (
+SELECT contract.bk_aggregated_dim_contract_id, 
+Customer.bk_aggregated_dim_customer_id,
+LeaseFinance.bk_aggregated_dim_lease_finance_id,
+fact_table.[sk_aggregated_dim_date_commencement_date],
+fact_table.[sk_aggregated_dim_date_maturity_date], total_yield, total_down_payment_amount,
+ROW_NUMBER() OVER(
+    PARTITION BY contract.bk_aggregated_dim_contract_id, LeaseFinance.bk_aggregated_dim_lease_finance_id, Customer.bk_aggregated_dim_customer_id 
+    ORDER BY contract.sk_aggregated_dim_contract DESC, LeaseFinance.[sk_aggregated_dim_lease_finance] DESC, Customer.[sk_aggregated_dim_customer] DESC
+) AS fact_contract_lease_order 
+FROM aggregated_odessa_dim_contract contract
+LEFT JOIN aggregated_odessa_fact_lease_finance_detail fact_table ON fact_table.sk_aggregated_dim_contract = contract.sk_aggregated_dim_contract
+left JOIN aggregated_odessa_dim_customer AS Customer ON fact_table.sk_aggregated_dim_customer = Customer.[sk_aggregated_dim_customer] 
+left JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON fact_table.[sk_aggregated_dim_lease_finance] = LeaseFinance.sk_aggregated_dim_lease_finance --AND LeaseFinance.is_current = 1
+WHERE fact_table.sk_aggregated_dim_contract IS NOT NULL  and fact_table.sk_aggregated_dim_customer IS NOT NULL and fact_table.[sk_aggregated_dim_lease_finance] is not null
+),
+contract_lease_fact_order as (
+select  *
+from contract_lease_fact_order_p1 
+where fact_contract_lease_order = 1)
 
-DROP VIEW if EXISTS [dbo].[pbi_fleetspendreporting2_service_scheduling];
+SELECT DISTINCT 
+Customer.company_name,
+Contract.alias,
+Contract.sequence_number,
+Contract.status,
+CASE WHEN LeaseFinance.is_advance = 1 THEN 'ADVANCE'
+ELSE 'ARREARS'
+END AS payment_method,
+ContractDate.[bk_aggregated_dim_date] AS commencement_date,
+ContractMaturityDate.bk_aggregated_dim_date AS maturity_date,
+LeaseFinance.customer_term_in_months,
+LeaseFinance.payment_frequency,
+productType.transaction_type,
+
+Asset.*,
+ac.name,
+ac.amount_amount
+
+FROM aggregated_odessa_dim_contract AS Contract
+JOIN contract_lease_fact_order FLFinanceDetail ON Contract.[bk_aggregated_dim_contract_id] = FLFinanceDetail.[bk_aggregated_dim_contract_id]
+JOIN aggregated_odessa_dim_customer AS Customer ON Customer.[bk_aggregated_dim_customer_id] = FLFinanceDetail.bk_aggregated_dim_customer_id  and  Customer.current_flag = 1
+JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FLFinanceDetail.[bk_aggregated_dim_lease_finance_id] = LeaseFinance.bk_aggregated_dim_lease_finance_id AND LeaseFinance.is_current = 1  and LeaseFinance.current_flag = 1
+left JOIN aggregated_odessa_dim_classification_code AS ClassificationCode ON Customer.sic_code_id = ClassificationCode.[bk_aggregated_dim_classification_code_id] AND ClassificationCode.current_flag = 1
+left JOIN aggregated_odessa_dim_business_type AS BusinessType ON Customer.[business_type_id] = BusinessType.[bk_aggregated_dim_business_type_id] AND BusinessType.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_date AS ContractDate ON FLFinanceDetail.[sk_aggregated_dim_date_commencement_date] = ContractDate.[sk_aggregated_dim_date]
+LEFT JOIN aggregated_odessa_dim_date AS ContractMaturityDate ON FLFinanceDetail.[sk_aggregated_dim_date_maturity_date] = ContractMaturityDate.[sk_aggregated_dim_date]
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.[bk_aggregated_dim_deal_product_type_id] = Contract.[deal_product_type_id] AND productType.current_flag = 1
+
+
+JOIN (
+SELECT DISTINCT
+Asset.bk_aggregated_dim_asset_id,
+td.[bk_aggregated_dim_date] AS terminated_date,
+Asset.alias AS registration_number,
+serialNumber.serial_number,
+DAssetStatus.asset_status,
+Asset.product_name,
+Asset.make_name,
+Asset.manufacturer_name,
+Asset.model_year,
+CAST(vehDetail.gvw AS INT) AS gvw,
+Contract.bk_aggregated_dim_contract_id AS ContractBK,
+
+FactLeaseAsset.sk_aggregated_dim_contract AS ContractSK,
+FactLeaseAsset.rent_amount,
+FactLeaseAsset.nbv_amount,
+FactLeaseAsset.sk_aggregated_dim_lease_finance,
+LeaseFinance.bk_aggregated_dim_lease_finance_id as leasefinanceBK
+
+
+FROM aggregated_odessa_dim_contract AS Contract
+JOIN contract_fact_order AS FactLeaseAsset ON Contract.[bk_aggregated_dim_contract_id] = FactLeaseAsset.bk_aggregated_dim_contract_id --AND LeaseFinance.sk_aggregated_dim_lease_finance = FactLeaseAsset.sk_aggregated_dim_lease_finance
+JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FactLeaseAsset.[bk_aggregated_dim_lease_finance_id] = LeaseFinance.bk_aggregated_dim_lease_finance_id AND LeaseFinance.is_current = 1 and LeaseFinance.current_flag = 1
+JOIN aggregated_odessa_dim_asset AS Asset ON FactLeaseAsset.[bk_aggregated_dim_asset_id] = Asset.bk_aggregated_dim_asset_id and Asset.current_flag = 1
+LEFT JOIN vw_aggregated_odessa_fact_asset_status_latest AS AssetStatus ON Asset.[bk_aggregated_dim_asset_id] = AssetStatus.bk_aggregated_dim_asset_id
+LEFT JOIN aggregated_odessa_dim_asset_status AS DAssetStatus ON AssetStatus.[sk_aggregated_dim_asset_status] = DAssetStatus.sk_aggregated_dim_asset_status
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.[bk_aggregated_dim_asset_vehicle_additional_details_id] = Asset.bk_aggregated_dim_asset_id AND addDetails.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_asset_serial_numbers AS serialNumber ON Asset.bk_aggregated_dim_asset_id = serialNumber.[asset_id] AND serialNumber.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_vehicle_detail AS vehDetail ON Asset.bk_aggregated_dim_asset_id = vehDetail.[bk_aggregated_dim_vehicle_detail_id]
+LEFT JOIN aggregated_odessa_dim_date AS td ON FactLeaseAsset.[sk_aggregated_dim_date_termination_date] = td.[sk_aggregated_dim_date]
+
+WHERE Contract.current_flag = 1
+AND Contract.status = 'Commenced'
+AND (DAssetStatus.asset_status IS NULL OR DAssetStatus.asset_status = 'Leased')
+
+) AS Asset ON Contract.[bk_aggregated_dim_contract_id] = Asset.ContractBK AND LeaseFinance.bk_aggregated_dim_lease_finance_id = Asset.leasefinanceBK
+
+
+LEFT JOIN (
+SELECT
+DLFAC.lease_finance_id,
+RC.name,
+AC.amount_amount,
+SPD.asset_id
+
+FROM aggregated_odessa_dim_lease_finance AS LeaseFinance 
+left JOIN aggregated_odessa_dim_lease_finance_additional_charge AS DLFAC on LeaseFinance.[bk_aggregated_dim_lease_finance_id] = DLFAC.lease_finance_id AND DLFAC.current_flag = 1
+left JOIN aggregated_odessa_dim_additional_charge as AC ON DLFAC.additional_charge_id = AC.[bk_aggregated_dim_additional_charge_id] AND AC.current_flag = 1 
+left JOIN aggregated_odessa_dim_receivable_code AS RC ON AC.[receivable_code_id] = RC.[bk_aggregated_dim_receivable_code_id] AND RC.current_flag = 1
+left JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS SPD ON SPD.[sundry_recurring_id] = DLFAC.recurring_sundry_id AND SPD.current_flag = 1
+WHERE LeaseFinance.current_flag = 1
+) AS ac ON Asset.bk_aggregated_dim_asset_id = ac.asset_id AND ac.lease_finance_id = LeaseFinance.bk_aggregated_dim_lease_finance_id
+
+WHERE Contract.current_flag = 1
+AND Contract.status = 'Commenced'
+
+;
 GO
 
-CREATE OR ALTER       VIEW [dbo].[pbi_fleetspendreporting2_service_scheduling] AS 
+-- ----------------------------------------------------------
+-- View: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_asset
+AS
+SELECT * FROM dbo.table_vw_asset;
+
+GO
+
+-- ----------------------------------------------------------
+-- View: Assets Awaiting Delivery
+-- Depends on: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW [Assets Awaiting Delivery] AS
+
+SELECT 
+	asset.[registration_number] AS 'Registration Number',
+	asset.[alias],
+	asset.asset_id AS 'Asset Id',
+    asset.aag_fleet_number AS 'AAG Fleet Number',
+    ISNULL(asset.[serial_number],'-') AS 'Chassis Number',
+	ISNULL(asset.collateral_id, '-') AS 'Collateral: ID', 			
+	asset.equipment_id AS 'Equipment Id',
+	asset.delivery_status AS 'Delivery Status',
+    asset.project_number AS 'Project Number',
+    CONVERT(VARCHAR , asset.acquisition_date , 103) AS 'Purchased Date',
+	CONVERT(VARCHAR , asset.original_chassis_delivery_date , 103) AS 'Original Chassis Delivery Date',
+	CONVERT(VARCHAR , asset.original_delivery_date_to_customer , 103) AS 'Original Delivery Date to Customer',
+	CONVERT(VARCHAR , asset.expected_chassis_delivery_date , 103) AS 'Expected Chassis Delivery Date',         	
+	CONVERT(VARCHAR , asset.expected_delivery_date_to_customer ,103) AS 'Expected Delivery Date to Customer',		
+	CONVERT(VARCHAR , asset.actual_chassis_delivery_date , 103) AS 'Actual Chassis Delivery Date',			
+	CONVERT(VARCHAR , asset.actual_delivery_date_to_customer , 103) AS 'Actual Delivery Date to Customer',	
+    asset.model_year AS 'YEAR',
+	asset.product_name AS 'Vehicle Category',
+	asset.manufacturer_name AS 'MAKE',
+	asset.make_name AS 'Model Range',
+	asset.model_name AS 'MODEL',
+    asset.cab AS 'CAB', 							
+	asset.cab_model AS 'Cab Model', 
+	asset.description AS 'Equipment Description',				
+	asset.gearbox AS 'Gearbox',			
+	asset.[emission_code] AS 'Emissions',					
+	CAST (asset.gvw AS INT) AS 'GVW',
+	asset.body_type AS 'Body Type', 				
+	asset.body_builder AS 'Body Builder', 			
+	asset.axle_config AS 'Axle Config', 					
+	asset.bhp AS 'BHP',
+	asset.city AS 'Current Location', 				
+	asset.asset_contract_type AS 'Vehicle Type',
+	asset.asset_status AS 'Status',
+	asset.in_application AS 'In Application',
+	asset.allocated_status AS 'Allocated Status', 		
+	asset.reserved_by AS 'Reserved By', 					
+	asset.reserved_for AS 'Reserved For', 					
+	CONVERT(VARCHAR , asset.reserve_date , 103) AS 'Reserve Date', 			
+	asset.legal_entity_number AS 'Company',
+	asset.residual_amount AS 'Residual Value',	
+	CONVERT(VARCHAR , asset.rv_maturity_date , 103) AS 'RV Maturity Date',				
+	asset.asset_sub_type AS 'Asset Sub Type',					
+	asset.cost_amount AS 'Book Value',						
+	asset.equipment_nbv AS 'Equipment NBV',					
+	asset.overall_asset_life_in_months AS 'Equipment Life in Months',		
+	asset.asset_value_amount AS 'Purchased Price',					
+	CONVERT(VARCHAR , asset.[available_to_aag_from] , 103) AS 'Available to AAG From'
+        
+FROM
+vw_asset AS asset
+
+WHERE asset.asset_status = 'AwaitingDelivery'
+AND asset.asset_type <> 'Ancillary'
+AND asset.asset_contract_type <> 'Backed Off Asset'
+AND asset.[current_flag] = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_contract_management_live_locs
+-- Depends on: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_contract_management_live_locs AS
+WITH loc AS (
+SELECT 
+cp.[bk_aggregated_dim_credit_profile_id],
+cu.company_name,
+cp.number AS credit_number,
+o.number AS opp_number,
+CONCAT(o.number, '-', cas.number) AS opp_structure,
+cc.description AS cost_center,
+cp.status,
+cp.report_status,
+cas.number,
+cas.expected_commencement_date,
+cpasa.asset_id,
+asset.registration_number,
+asset.equipment_nbv,
+dt.product_type,
+dpt.transaction_type,
+u.full_name,
+cas.[bk_aggregated_dim_credit_approved_structure_id],
+ROW_NUMBER() OVER( PARTITION BY cpasa.asset_id, cp.number ORDER BY cas.number DESC) AS child_app
+FROM aggregated_odessa_dim_credit_profile as cp
+JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = cp.[opportunity_id] AND o.current_flag = 1
+JOIN aggregated_odessa_dim_credit_approved_structure AS cas ON cp.[bk_aggregated_dim_credit_profile_id] = cas.credit_profile_id AND cas.current_flag = 1 AND cas.is_active = 1
+ JOIN aggregated_odessa_dim_credit_profile_approved_structure_asset AS cpasa ON cas.[bk_aggregated_dim_credit_approved_structure_id] = cpasa.[credit_approved_structure_id] AND cpasa.current_flag = 1 AND cpasa.is_active = 1
+JOIN aggregated_odessa_dim_customer AS cu ON o.customer_id = cu.[bk_aggregated_dim_customer_id] AND cu.current_flag = 1
+JOIN aggregated_odessa_dim_deal_type AS dt ON cas.[deal_type_id] = dt.[bk_aggregated_dim_deal_type_id] AND dt.current_flag = 1
+JOIN aggregated_odessa_dim_deal_product_type AS dpt ON cas.[deal_product_type_id] = dpt.[bk_aggregated_dim_deal_product_type_id] AND dpt.current_flag = 1
+JOIN aggregated_odessa_dim_cost_center AS cc ON cp.[cost_center_id] = cc.[bk_aggregated_dim_cost_center_id] AND cc.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_user AS u ON cp.[assigned_to_user_id] = u.[bk_aggregated_dim_user_id] AND u.current_flag = 1
+LEFT JOIN vw_asset AS asset ON cpasa.asset_id = asset.asset_id
+
+WHERE cp.current_flag = 1
+AND cp.status NOT IN ('Inactivate', 'Declined', 'OpportunityWithdrawn', 'Cancelled'
+--, 'Pending'
+)
+),
+contracts AS (
+SELECT 
+sequence_number,
+status AS booking_status,
+bk_aggregated_dim_contract_id,
+credit_approved_structure_id,
+ROW_NUMBER() OVER (PARTITION BY bk_aggregated_dim_contract_id ORDER BY end_date DESC) AS rn
+
+FROM aggregated_odessa_dim_contract 
+WHERE report_status != 'Assumed' 
+),
+loc_filtered AS (
+SELECT
+loc.*,
+contracts.sequence_number,
+contracts.booking_status,
+contracts.bk_aggregated_dim_contract_id
+FROM loc 
+
+LEFT JOIN contracts ON loc.[bk_aggregated_dim_credit_approved_structure_id]= contracts.[credit_approved_structure_id] AND rn = 1 AND booking_status != 'Inactive'
+
+WHERE loc.child_app = 1
+AND (booking_status IS NULL OR booking_status IN ('Pending', 'InstallingAssets'))
+),
+loc_assigned_to AS (
+SELECT cp.[bk_aggregated_dim_credit_profile_id],
+u.full_name
+FROM aggregated_odessa_dim_credit_profile AS cp
+LEFT JOIN aggregated_odessa_dim_transaction_instance AS ti ON cp.[bk_aggregated_dim_credit_profile_id] = ti.entity_id AND ti.entity_name = 'CreditProfile' AND ti.status = 'Active' AND ti.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_work_item AS wi ON ti.[bk_aggregated_dim_transaction_instance_id] = wi.transaction_instance_id AND wi.status = 'Assigned' AND wi.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_user AS u ON wi.[owner_user_id] = u.[bk_aggregated_dim_user_id] and u.current_flag = 1
+WHERE cp.current_flag = 1 
+), 
+lf_assigned_to AS (
+SELECT c.[bk_aggregated_dim_contract_id],
+lf.bk_aggregated_dim_lease_finance_id, 
+u.full_name
+FROM aggregated_odessa_dim_contract AS c
+JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.[sk_aggregated_dim_contract] = flfd.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.[sk_aggregated_dim_lease_finance] = lf.sk_aggregated_dim_lease_finance AND lf.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_transaction_instance AS ti ON lf.[bk_aggregated_dim_lease_finance_id] = ti.entity_id AND ti.entity_name = 'LeaseFinance' AND ti.status = 'Active' AND ti.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_work_item AS wi ON ti.[bk_aggregated_dim_transaction_instance_id] = wi.transaction_instance_id AND wi.status = 'Assigned' AND wi.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_user AS u ON wi.[owner_user_id] = u.[bk_aggregated_dim_user_id] and u.current_flag = 1
+WHERE c.current_flag = 1
+), 
+lf AS (
+SELECT 
+c.[bk_aggregated_dim_contract_id], 
+lf.approval_status
+FROM aggregated_odessa_dim_contract AS c
+JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.[sk_aggregated_dim_contract] = flfd.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.[sk_aggregated_dim_lease_finance] = lf.sk_aggregated_dim_lease_finance AND lf.current_flag = 1
+
+WHERE c.current_flag = 1
+)
+
+SELECT DISTINCT
+l.*,
+loc_assigned_to.full_name AS loc_assigned_to,
+lfa.full_name AS lf_assigned_to,
+
+lf.approval_status,
+CASE WHEN l.booking_status IS NULL THEN
+        CASE WHEN l.status IN ('Amendment', 'Approved') THEN 'Contract Management'
+        ELSE 'Credit' END
+    WHEN l.booking_status = 'Pending' THEN 'Contract Management'
+    WHEN l.booking_status = 'InstallingAssets' AND lf.approval_status = 'Pending' THEN 'Contract Management'
+    ELSE 'Finance'
+    END AS department
+
+FROM loc_filtered
+ AS l 
+
+LEFT JOIN loc_assigned_to ON l.[bk_aggregated_dim_credit_profile_id] = loc_assigned_to.[bk_aggregated_dim_credit_profile_id]
+LEFT JOIN lf_assigned_to AS lfa ON l.bk_aggregated_dim_contract_id = lfa.bk_aggregated_dim_contract_id
+LEFT JOIN lf ON lf.bk_aggregated_dim_contract_id = l.bk_aggregated_dim_contract_id
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_fleetspendreporting2_service_scheduling
+-- Depends on: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_fleetspendreporting2_service_scheduling AS
 WITH asset AS (
 SELECT DISTINCT
 a.bk_aggregated_dim_asset_id,
@@ -8315,149 +2608,534 @@ WHERE previous_schedule_number IS NULL
 ;
 GO
 
-DROP VIEW if EXISTS [dbo].[new_pbi_origination];
-GO
+-- ----------------------------------------------------------
+-- View: pbi_orders_over_time
+-- Depends on: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_orders_over_time
+AS
+WITH assets AS (
+SELECT DISTINCT
+asset.bk_aggregated_dim_asset_id AS asset_id, 
+asset.product_name,
+asset.asset_funding_status,
 
-DROP VIEW if EXISTS [dbo].[pbi_origination];
-GO
+allocatedStatus.value AS allocated_status,
+addDetails.available_to_aag_from,
+CASE WHEN asset.start_date = CAST('1900-01-01 00:00:00.000000' AS datetime2) THEN COALESCE(asset.created_time, asset.updated_time)
+ELSE asset.start_date END AS funding_status_date,
+CASE WHEN addDetails.start_date = CAST('1900-01-01 00:00:00.000000' AS datetime2) THEN COALESCE(addDetails.created_time, addDetails.updated_time)
+ELSE addDetails.start_date END AS allocated_date,
 
-CREATE OR ALTER                           VIEW [dbo].[pbi_origination] AS 
-WITH contracts AS (
+GREATEST(CASE WHEN asset.start_date = CAST('1900-01-01 00:00:00.000000' AS datetime2) THEN COALESCE(asset.created_time, asset.updated_time)
+ELSE asset.start_date END, CASE WHEN addDetails.start_date = CAST('1900-01-01 00:00:00.000000' AS datetime2) THEN COALESCE(addDetails.created_time, addDetails.updated_time)
+ELSE addDetails.start_date END) AS earliest_status_change,
+LEAST(asset.end_date, addDetails.end_date) AS asset_status_end_date
+
+
+FROM aggregated_odessa_dim_asset asset
+JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
+JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details --AND addDetails.current_flag = 1
+JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status 
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS allocatedStatus ON allocatedStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[allocated_status_id] AND allocatedStatus.current_flag = 1 
+JOIN vw_asset AS current_asset ON asset.bk_aggregated_dim_asset_id = current_asset.bk_aggregated_dim_asset_id AND current_asset.current_flag = 1
+WHERE dstatus.asset_status = 'AwaitingDelivery'
+AND current_asset.procurement_program = 1
+AND current_asset.project_number IS NOT NULL
+
+), assets_with_status_change as (
 SELECT 
 *,
-ROW_NUMBER() OVER(PARTITION BY sequence_number ORDER BY created_date asc) as rn
-FROM flat_contracts_inc_history
-WHERE status NOT IN ('Inactive', 'Pending', 'InstallingAssets')
-AND coalesce(schedule_number, '')  NOT LIKE '8%' -- this excludes any rekeyed contracts
-AND coalesce(sequence_number, '') NOT LIKE '%novated%'
-), contract_ids AS (
-SELECT
-bk_aggregated_dim_contract_id,
-sk_aggregated_dim_contract,
-sequence_number
-FROM aggregated_odessa_dim_contract WHERE current_flag = 1 
-)
-, lease_asset AS (
-SELECT 
-con.bk_aggregated_dim_contract_id,
-con.sequence_number,
-con.status,
-a.bk_aggregated_dim_asset_id,
-ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
-fla.sk_aggregated_dim_date_termination_date,
-fla.nbv_amount
+LAG(allocated_status) over (PARTITION BY asset_id ORDER BY earliest_status_change) AS prev_allocated_status,
+LAG(asset_funding_status) over (PARTITION BY asset_id ORDER BY earliest_status_change) AS prev_funding_status,
+LAST_VALUE(asset_status_end_date) OVER (PARTITION BY asset_id ORDER BY earliest_status_change RANGE BETWEEN CURRENT ROW
+                AND UNBOUNDED FOLLOWING) AS last_asset_status_end_date,
+LAST_VALUE(available_to_aag_from) OVER (PARTITION BY asset_id ORDER BY earliest_status_change RANGE BETWEEN CURRENT ROW
+                AND UNBOUNDED FOLLOWING) AS last_available_to_aag_from_date
 
-FROM aggregated_odessa_dim_contract AS con
-JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
-JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset and dla.is_approved = 1
-JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
-WHERE con.current_flag = 1 AND con.status != 'Inactive'
-), total_nbv AS (
-SELECT bk_aggregated_dim_contract_id, SUM(nbv_amount) AS total_nbv 
-FROM lease_asset AS la 
-LEFT JOIN aggregated_odessa_dim_date as td ON la.sk_aggregated_dim_date_termination_date = td.sk_aggregated_dim_date 
-WHERE la.rn = 1
-GROUP BY bk_aggregated_dim_contract_id
-),commenced AS (
-    SELECT
-    c.[bk_aggregated_dim_contract_id],
-    c.sequence_number,
-    CASE WHEN c.start_date = '1900-01-01 00:00:00.000000' THEN COALESCE(c.created_time, c.dp_process_datetime)
-    ELSE c.start_date END AS _date,
 
-    c.[deal_product_type_id],
-    c.[cost_center_id],
-    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.[dp_process_datetime] ASC) AS rn 
- FROM aggregated_odessa_dim_contract AS c 
- WHERE COALESCE(status, '') IN ('Commenced', 'FullyPaidOff')
- ), lease_assets AS (
-SELECT
-l.contract_id,
-COUNT(a.id ) AS number_of_assets
-FROM flat_contract_equipment_inc_history AS l
-JOIN flat_assets_inc_history AS a ON l.asset_id = a.id 
-WHERE coalesce(a.vehicle_category, '') != 'Ancillary'
-AND COALESCE(a.asset_sub_type, '') != 'Fleet Managed Asset'
-GROUP BY l.contract_id
-),
-key_bus_accounts AS (
-SELECT DISTINCT
-contract_id,
-'Bus and Coach - Key Accounts' AS key_account
- FROM
-flat_contract_equipment_inc_history
-WHERE customer_id in
-('791',
-'525',
-'524',
-'699',
-'2635',
-'783',
-'527',
-'526',
-'2287',
-'528',
-'2284',
-'2458',
-'529',
-'532',
-'531',
-'534',
-'533',
-'530',
-'535',
-'2286'
-) 
+FROM assets
+), assets_to_join_date AS (
+select 
+asset_id, 
+product_name, 
+asset_funding_status, 
+allocated_status,
+available_to_aag_from,
+last_available_to_aag_from_date,
+earliest_status_change as status_start_date,
+LEAST(coalesce(lead(earliest_status_change) over (partition by asset_id order by earliest_status_change), '9999-12-31 00:00:00.000000'), last_asset_status_end_date)  as status_end_date
+
+from assets_with_status_change
+
+where 
+(prev_allocated_status is null and prev_funding_status is null)
+OR
+( (allocated_status <> prev_allocated_status)
+    OR (allocated_status is null and  prev_allocated_status is not null)
+    OR (allocated_status is not null and  prev_allocated_status is null))
+OR
+( (asset_funding_status <> prev_funding_status)
+    OR (asset_funding_status is null and  prev_funding_status is not null)
+    OR (asset_funding_status is not null and  prev_funding_status is null))
 
 )
 
 SELECT 
-contracts.*,
-total_nbv.total_nbv,
-CASE 
-    WHEN source_system = 'CloudLending' THEN
-    CASE 
-    WHEN contracts.product LIKE '%Hire Purchase%' THEN COALESCE(financed_amount, 0) - COALESCE(cl_vat_on_asset, 0)
-    ELSE financed_amount
-    END
-    WHEN source_system = 'Odessa' THEN coalesce(total_nbv.total_nbv, 0) - coalesce(odessa_down_payment_amount, 0) - coalesce(odessa_tax_deferral_amount, 0)
 
-    END AS 'Origination Amount'    ,
-CASE 
-    WHEN source_system = 'CloudLending' THEN
-    CASE WHEN migrated_to_cl = 1 THEN CAST(created_date AS date)
-    ELSE CAST(origination_date AS date)
-    END
-    WHEN source_system = 'Odessa' THEN CAST(commenced._date AS date) 
-    END AS 'Origination Date for Reporting',
-CASE WHEN product LIKE '%Contract Hire%' THEN 'Contract Hire'
-    WHEN product LIKE '%Operating Lease%' THEN 'Operating Lease'
-    WHEN product LIKE '%Hire Purchase%' THEN 'Hire Purchase'
-    WHEN product LIKE '%Rental%' THEN 'Rental'
-    WHEN product LIKE '%Finance Lease%' THEN 'Finance Lease'
-    ELSE product
-    END AS product_name,
-    l.number_of_assets ,
-   -- k.product_detail,
-CASE WHEN k.key_account IS NOT NULL THEN k.key_account ELSE contracts.line_of_business END as line_of_business_with_key_accounts
-
-
-FROM contracts 
-LEFT JOIN total_nbv ON contracts.id = CAST(total_nbv.bk_aggregated_dim_contract_id AS varchar)
-LEFT JOIN commenced ON CAST(commenced.bk_aggregated_dim_contract_id AS varchar) = contracts.id AND commenced.rn = 1
-LEFT JOIN lease_assets AS l ON contracts.id = l.contract_id
-LEFT JOIN key_bus_accounts AS k on contracts.id = k.contract_id --AS varchar)
-WHERE contracts.rn = 1
+d.year_num,
+d.week_of_year,
+d.month_name,
+d.month_num,
+d.[bk_aggregated_dim_date],
+CASE WHEN COALESCE(allocated_status, '') NOT IN ('VOF Signed', 'Yes', 'TTS Allocation') AND last_available_to_aag_from_date <= d.[bk_aggregated_dim_date] THEN 'Physical Assets'
+ WHEN (allocated_status IS NOT NULL) AND (allocated_status NOT IN ('Firm - No VOF', 'Soft', 'No')) THEN 'Orders' 
+ ELSE 'Incoming Stock' END AS type,
+a.*
+FROM assets_to_join_date AS a
+JOIN aggregated_odessa_dim_date AS d ON (d.[bk_aggregated_dim_date] BETWEEN a.status_start_date AND a.status_end_date) AND d.[bk_aggregated_dim_date] <= GETDATE() 
+AND d.day_name = 'Friday'
 
 ;
 GO
 
+-- ----------------------------------------------------------
+-- View: pbi_procurement_asset_funding
+-- Depends on: pbi_orders_over_time, vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_procurement_asset_funding
+AS
 
-DROP VIEW if EXISTS [dbo].[rpt_equipment_accruals_on_contract];
+WITH assets AS (
+SELECT DISTINCT
+asset.bk_aggregated_dim_asset_id AS asset_id, 
+asset.asset_funding_status,
+asset.book_value_amount,
+asset.equipment_id,
+ROW_NUMBER() OVER( PARTITION BY asset.bk_aggregated_dim_asset_id ORDER BY asset.start_date ASC) AS earliest_asset_record
+
+
+FROM aggregated_odessa_dim_asset asset
+JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
+JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details --AND addDetails.current_flag = 1
+JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status 
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS allocatedStatus ON allocatedStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.allocated_status_id AND allocatedStatus.current_flag = 1 
+JOIN vw_asset AS current_asset ON asset.bk_aggregated_dim_asset_id = current_asset.bk_aggregated_dim_asset_id AND current_asset.current_flag = 1
+WHERE dstatus.asset_status = 'AwaitingDelivery'
+AND current_asset.procurement_program = 1
+AND current_asset.project_number IS NOT NULL
+
+), procurement_assets AS (
+SELECT 
+asset_id,
+asset_funding_status,
+ROW_NUMBER() OVER ( PARTITION BY asset_id ORDER BY bk_aggregated_dim_date ASC) AS earliest_funding_date
+FROM pbi_orders_over_time
+), migrated_assets AS (
+
+SELECT DISTINCT
+pa.asset_id,
+'2025-01-31' as funded_date,
+assets.book_value_amount AS cl_paid_amount
+FROM procurement_assets AS pa
+JOIN assets ON pa.asset_id = assets.asset_id AND assets.earliest_asset_record = 1
+WHERE pa.earliest_funding_date = 1 
+AND pa.asset_funding_status = 'FullyFunded'
+AND pa.asset_id IN (SELECT o.id
+FROM flat_assets_inc_history AS o
+JOIN flat_assets_inc_history AS cl ON o.equipment_id = cl.equipment_id AND cl.source_system = 'CloudLending'
+WHERE o.source_system = 'Odessa')
+), assets_odessa_funding AS (
+
+SELECT DISTINCT
+a.bk_aggregated_dim_asset_id,
+MAX(d.bk_aggregated_dim_date) AS max_invoice_date,
+SUM(ISNULL(fpia.acquisition_cost_amount, 0) + ISNULL(fpia.other_cost_amount, 0) - ISNULL(fpia.vat_amount_amount, 0)) AS total_funded_amount
+
+from aggregated_odessa_dim_asset AS a 
+JOIN aggregated_odessa_fact_payable_invoice_asset AS fpia ON a.sk_aggregated_dim_asset = fpia.sk_aggregated_dim_asset
+JOIN aggregated_odessa_dim_payable_invoice AS dpi ON fpia.sk_aggregated_dim_payable_invoice = dpi.sk_aggregated_dim_payable_invoice AND dpi.current_flag = 1
+left join aggregated_odessa_dim_date AS d ON fpia.sk_aggregated_dim_date_record = d.sk_aggregated_dim_date
+WHERE a.current_flag = 1 
+GROUP BY 
+a.bk_aggregated_dim_asset_id
+), asset_all_funding AS (
+SELECT
+a.asset_id,
+a.[adjusted_book_value],
+coalesce(aof.max_invoice_date, m.funded_date) AS max_invoice_date,
+coalesce(aof.total_funded_amount, 0) + coalesce(m.cl_paid_amount, 0) AS total_funded_including_migrated_invoice
+from vw_asset AS a
+LEFT JOIN assets_odessa_funding AS aof ON a.asset_id = aof.bk_aggregated_dim_asset_id
+LEFT JOIN migrated_assets AS m ON a.asset_id = m.asset_id
+)
+SELECT
+a.asset_id,
+aaf.adjusted_book_value,
+aaf.max_invoice_date,
+aaf.total_funded_including_migrated_invoice,
+CASE WHEN coalesce(aaf.total_funded_including_migrated_invoice, 0) = 0 THEN 'Not Funded'
+ WHEN coalesce(aaf.total_funded_including_migrated_invoice, 0) >= aaf.adjusted_book_value THEN 'Fully Funded'
+ ELSE 'Partially Funded' END AS calculated_funding_status
+FROM asset_all_funding AS aaf
+JOIN assets AS a ON aaf.asset_id = a.asset_id
+WHERE earliest_asset_record = 1
+
+;
 GO
 
- 
-CREATE OR ALTER     VIEW [dbo].[rpt_equipment_accruals_on_contract] AS 
+-- ----------------------------------------------------------
+-- View: pbi_procurement_asset_funding_over_time
+-- Depends on: pbi_orders_over_time, vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_procurement_asset_funding_over_time
+AS
+
+--shows asset funding over time
+
+--procurement assets
+WITH assets AS (
+SELECT DISTINCT
+asset.bk_aggregated_dim_asset_id AS asset_id, 
+asset.asset_funding_status,
+asset.book_value_amount,
+asset.equipment_id
+
+
+FROM aggregated_odessa_dim_asset asset
+JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
+JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details --AND addDetails.current_flag = 1
+JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status 
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS allocatedStatus ON allocatedStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.allocated_status_id AND allocatedStatus.current_flag = 1 
+JOIN vw_asset AS current_asset ON asset.bk_aggregated_dim_asset_id = current_asset.bk_aggregated_dim_asset_id AND current_asset.current_flag = 1
+WHERE dstatus.asset_status = 'AwaitingDelivery'
+AND current_asset.procurement_program = 1
+AND current_asset.project_number IS NOT NULL
+--payable invoices
+),  invoice_assets AS (
+SELECT DISTINCT
+a.bk_aggregated_dim_asset_id,
+d.bk_aggregated_dim_date AS invoice_date,
+d.week_of_year,
+t.bk_aggregated_dim_time AS invoice_time,
+SUM(ISNULL(fpia.acquisition_cost_amount, 0) + ISNULL(fpia.other_cost_amount, 0) - ISNULL(fpia.vat_amount_amount, 0)) AS funded_amount
+
+from aggregated_odessa_dim_asset AS a 
+JOIN aggregated_odessa_fact_payable_invoice_asset AS fpia ON a.sk_aggregated_dim_asset = fpia.sk_aggregated_dim_asset
+JOIN aggregated_odessa_dim_payable_invoice AS dpi ON fpia.sk_aggregated_dim_payable_invoice = dpi.sk_aggregated_dim_payable_invoice AND dpi.current_flag = 1
+left join aggregated_odessa_dim_date AS d ON fpia.sk_aggregated_dim_date_record = d.sk_aggregated_dim_date
+LEFT JOIN aggregated_odessa_dim_time AS t ON fpia.sk_aggregated_dim_time_record = t.sk_aggregated_dim_time
+WHERE a.current_flag = 1 
+GROUP BY 
+a.bk_aggregated_dim_asset_id,
+d.bk_aggregated_dim_date,
+d.week_of_year,
+t.bk_aggregated_dim_time
+
+--payable invoices cumulated
+) , cumulative_funding AS (
+SELECT 
+bk_aggregated_dim_asset_id,
+invoice_date,
+funded_amount,
+week_of_year,
+invoice_time,
+SUM(funded_amount) OVER (PARTITION BY bk_aggregated_dim_asset_id ORDER BY invoice_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_funded_amount,
+ROW_NUMBER() OVER( PARTITION BY bk_aggregated_dim_asset_id, week_of_year ORDER BY invoice_date DESC, invoice_time DESC ) AS rn
+
+FROM invoice_assets
+--weekly data for procurement assets
+), asset_dates AS (
+SELECT 
+asset_id,
+type,
+allocated_status,
+asset_funding_status,
+product_name,
+COALESCE(LAG(bk_aggregated_dim_date) OVER (PARTITION BY asset_id ORDER BY bk_aggregated_dim_date), '1900-01-01') AS _date1,
+bk_aggregated_dim_date AS _date2,
+ROW_NUMBER() OVER ( PARTITION BY asset_id ORDER BY bk_aggregated_dim_date ASC) AS earliest_funding_date,
+week_of_year
+FROM pbi_orders_over_time
+
+--procurement assets with weekly payable invoices cumulative
+), adjusted_book_value AS (
+SELECT 
+asset_id,
+net_value_amount AS adjusted_book_value,
+income_date, 
+DATEPART(week, income_date) as week_of_year,
+created_time,
+ROW_NUMBER() OVER( PARTITION BY asset_id, DATEPART(week, income_date)  ORDER BY income_date DESC, created_time DESC ) AS rn
+FROM aggregated_odessa_dim_asset_value_history
+
+WHERE source_module = 'AssetValueAdjustment'
+AND	is_lessor_owned = 1
+	AND is_schedule = 1
+	AND is_accounted = 1
+    AND gl_journal_id IS NOT NULL
+	AND income_date <= GETDATE()
+   AND current_flag = 1
+
+), assets_with_cumulative_funding AS (
+
+SELECT DISTINCT 
+ad.asset_id,
+ad.type,
+ad.allocated_status,
+ad.product_name,
+ad._date2,
+ad.week_of_year,
+ad.asset_funding_status,
+SUM(cf.cumulative_funded_amount) AS cumulative_funded_amount,
+abv.adjusted_book_value
+FROM asset_dates AS ad
+LEFT JOIN cumulative_funding AS cf ON ad.asset_id = cf.bk_aggregated_dim_asset_id AND (cf.invoice_date >= ad._date1 AND cf.invoice_date < ad._date2) AND cf.rn = 1
+LEFT JOIN adjusted_book_value AS abv ON ad.asset_id = abv.asset_id AND (abv.income_date >= ad._date1 AND abv.income_date < ad._date2) AND abv.rn = 1
+
+
+GROUP BY
+ad.asset_id,
+ad.type,
+ad.allocated_status,
+ad.product_name,
+ad._date2,
+ad.week_of_year,
+ad.asset_funding_status,
+abv.adjusted_book_value
+
+--fully funded assets were migrated without payable invoices so using the book value instead
+) , migrated_fully_funded AS (
+SELECT DISTINCT
+ad.asset_id,
+assets.book_value_amount
+FROM asset_dates AS ad
+JOIN assets ON ad.asset_id = assets.asset_id
+WHERE ad.earliest_funding_date = 1 
+AND ad.asset_funding_status = 'FullyFunded'
+AND ad.asset_id IN (SELECT o.id
+FROM flat_assets_inc_history AS o
+JOIN flat_assets_inc_history AS cl ON o.equipment_id = cl.equipment_id AND cl.source_system = 'CloudLending'
+WHERE o.source_system = 'Odessa')
+--consolidating with the migrated assets
+), asset_funding as (
+
+SELECT
+a.asset_id,
+a.type,
+a.allocated_status,
+a.product_name AS vehicle_category,
+a._date2,
+a.week_of_year,
+a.asset_funding_status,
+LAST_VALUE(a.cumulative_funded_amount) IGNORE NULLS OVER (PARTITION BY a.asset_id ORDER BY a._date2 ASC 
+RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+) AS cumulative_funded_amount , 
+LAST_VALUE(a.adjusted_book_value) IGNORE NULLS OVER (PARTITION BY a.asset_id ORDER BY a._date2 ASC 
+RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+) AS adjusted_book_value,
+m.book_value_amount AS cl_paid_amount
+
+From assets_with_cumulative_funding AS a
+LEFT JOIN migrated_fully_funded AS m ON a.asset_id = m.asset_id 
+
+) ,credit_profile AS (
+SELECT 
+cp.[bk_aggregated_dim_credit_profile_id],
+cu.party_name,
+cp.number AS credit_number,
+o.number AS opp_number,
+cp.status,
+cas.number,
+cas.expected_commencement_date,
+cpasa.asset_id,
+cp.created_time,
+contract.status AS contract_status,
+ROW_NUMBER() OVER( PARTITION BY cpasa.asset_id, cp.number ORDER BY cas.number DESC) AS child_app
+FROM aggregated_odessa_dim_credit_profile as cp
+JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = cp.[opportunity_id] AND o.current_flag = 1
+JOIN aggregated_odessa_dim_credit_approved_structure AS cas ON cp.[bk_aggregated_dim_credit_profile_id] = cas.credit_profile_id AND cas.current_flag = 1 AND cas.is_active = 1
+JOIN aggregated_odessa_dim_credit_profile_approved_structure_asset AS cpasa ON cas.[bk_aggregated_dim_credit_approved_structure_id] = cpasa.[credit_approved_structure_id] AND cpasa.current_flag = 1 AND cpasa.is_active = 1
+JOIN aggregated_odessa_dim_customer AS cu ON o.customer_id = cu.[bk_aggregated_dim_customer_id] AND cu.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_contract AS contract ON cas.[bk_aggregated_dim_credit_approved_structure_id]= contract.[credit_approved_structure_id] AND contract.current_flag = 1 AND contract.status != 'Inactive'
+
+WHERE cp.current_flag = 1
+AND cp.status NOT IN ('Inactivate', 'Declined', 'OpportunityWithdrawn', 'Cancelled')
+),
+first_loc AS (
+
+SELECT
+asset_id,
+bk_aggregated_dim_credit_profile_id,
+party_name,
+credit_number,
+opp_number,
+status,
+expected_commencement_date,
+created_time,
+contract_status,
+ROW_NUMBER() OVER( PARTITION BY asset_id ORDER BY created_time ASC) AS rn
+
+FROM credit_profile 
+)
+
+
+SELECT
+asset_funding.asset_id,
+type,
+allocated_status,
+vehicle_category,
+_date2,
+week_of_year,
+asset_funding_status,
+ISNULL(cumulative_funded_amount, 0) + ISNULL(cl_paid_amount, 0) AS cumulative_funded_amount,
+adjusted_book_value,
+floc.party_name,
+floc.created_time,
+floc.expected_commencement_date
+FROM asset_funding
+
+LEFT JOIN first_loc AS floc on asset_funding.asset_id = floc.asset_id AND floc.rn = 1 and CAST(floc.created_time AS date) <= _date2
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_all_asset
+-- Depends on: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_all_asset
+AS
+SELECT 
+	asset.registration_number as 'Registration Number' 
+      ,asset.alias
+      ,ISNULL(asset.collateral_id,'-') AS 'Collateral: ID'
+      ,asset.[equipment_id] AS 'Equipment Id'      
+      ,'-' AS 'Collateral Category'
+      ,asset.asset_registration_effective_date  AS 'Date of Registration' 
+      ,asset.[model_year] AS 'YEAR'
+      ,asset.last_known_mileage AS 'Last Known Mileage' 
+      ,asset.[present_mileage_date] AS 'Present Mileage Date'   
+      ,asset.product_name AS 'Vehicle Category'
+      ,asset.[manufacturer_name] AS 'MAKE'
+      ,asset.[make_name] AS 'Model Range'
+      ,asset.[description] AS 'Equipment Description'
+      ,asset.[gvw] AS 'GVW'
+      ,asset.body_type AS 'Body Type' 
+      ,asset.vehicle_service_status AS 'Vehicle Service Status'  
+      ,asset.city AS 'Current Location'      
+      ,asset.[in_application] AS 'In Application'
+      ,asset.asset_contract_type AS 'Vehicle Type'
+      ,asset.asset_status AS 'Status'  
+      ,asset.asset_type AS 'Asset Type'          
+      ,asset.[allocated_status] AS 'Allocated Status'
+      ,asset.[reserved_by] AS 'Reserved By'
+      ,asset.[reserved_for] AS 'Reserved For' 
+      ,asset.[reserve_date] AS 'Reserve Date'    
+      ,asset.legal_entity_number AS 'Company'
+      ,asset.asset_status AS 'Asset Status'
+      ,ISNULL(asset.[residual_value_amount],0) AS 'Residual Value'
+      ,asset.[rv_maturity_date] AS 'RV Maturity Date' 
+      ,asset.[asset_sub_type] AS 'Asset Sub Type'
+      ,ISNULL(asset.[retail_value_amount],0) AS 'Retail Value'
+      ,asset.[retail_valuation_date] AS 'Retail Valuation Date'
+      ,ISNULL(asset.[asset_value_amount],0) AS 'Purchased Price'
+      ,ISNULL(asset.book_value_amount,0) AS 'Book Value'
+      ,ISNULL(asset.[equipment_nbv],0) AS 'Equipment NBV'  
+      ,0  AS 'Fair Value Adjustment'
+      ,asset.[fair_value_adjustment_date] AS 'Fair Value Adjustment Date'
+      ,asset.[cost_amount] AS 'Depreciation Basis Amount'
+      ,asset.[depreciation_start_date] AS 'Depreciation Start Date'
+      ,ISNULL(asset.[overall_asset_life_in_months],0) AS 'Equipment Life in Months'
+      ,asset.[is_migrated] AS 'IsMigrated'
+      ,ISNULL(asset.[depreciation_value],0) AS 'Depreciation Value'
+      ,ISNULL(asset.[rental_availability_status],'-') AS 'Rental Availability Status'
+      ,ISNULL(asset.[route_into_rental_fleet_id],'-') AS 'Route into Rental Fleet'  
+      ,ISNULL(asset.[tail_lift_type],'-') AS 'Tail Lift Type'            
+      ,ISNULL(asset.[emission_code],'-') AS 'Emissions' 
+      ,asset.[r_and_m_expiry_date] AS 'R and M Expiry Date' 
+      ,asset.r_two_c_color AS 'R Two Color'    
+      ,asset.r_and_m_Package AS 'R and M Package'                
+      ,asset.serial_number                      
+
+FROM vw_asset AS asset
+WHERE asset.asset_status <> 'Sold'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_available_assets
+-- Depends on: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_available_assets AS
+
+SELECT 
+	asset.[registration_number] AS 'Registration Number',
+	asset.[alias],
+
+    asset.aag_fleet_number AS 'AAG Fleet Number',
+    ISNULL(asset.[serial_number],'-') AS 'Chassis Number',
+	asset.asset_id AS 'Asset ID', 			
+	asset.equipment_id AS 'Equipment Id',
+	asset.delivery_status AS 'Delivery Status',
+    asset.project_number AS 'Project Number',
+    CONVERT(VARCHAR , asset.acquisition_date , 103) AS 'Purchased Date',
+	CONVERT(VARCHAR , asset.original_chassis_delivery_date , 103) AS 'Original Chassis Delivery Date',
+	CONVERT(VARCHAR , asset.original_delivery_date_to_customer , 103) AS 'Original Delivery Date to Customer',
+	CONVERT(VARCHAR , asset.expected_chassis_delivery_date , 103) AS 'Expected Chassis Delivery Date',         	
+	CONVERT(VARCHAR , asset.expected_delivery_date_to_customer ,103) AS 'Expected Delivery Date to Customer',		
+	CONVERT(VARCHAR , asset.actual_chassis_delivery_date , 103) AS 'Actual Chassis Delivery Date',			
+	CONVERT(VARCHAR , asset.actual_delivery_date_to_customer , 103) AS 'Actual Delivery Date to Customer',	
+    asset.model_year AS 'YEAR',
+	asset.product_name AS 'Vehicle Category',
+	asset.manufacturer_name AS 'MAKE',
+	asset.make_name AS 'Model Range',
+	asset.model_name AS 'MODEL',
+    asset.cab AS 'CAB', 							
+	asset.cab_model AS 'Cab Model', 
+	asset.description AS 'Equipment Description',				
+	asset.gearbox AS 'Gearbox',			
+	asset.[emission_code] AS 'Emissions',					
+	CAST (asset.gvw AS INT) AS 'GVW',
+	asset.body_type AS 'Body Type', 				
+	asset.body_builder AS 'Body Builder', 			
+	asset.axle_config AS 'Axle Config', 					
+	asset.bhp AS 'BHP',
+	asset.city AS 'Current Location', 				
+	asset.asset_contract_type AS 'Vehicle Type',
+	asset.asset_status AS 'Status',
+	asset.in_application AS 'In Application',
+	asset.allocated_status AS 'Allocated Status', 		
+	asset.reserved_by AS 'Reserved By', 					
+	asset.reserved_for AS 'Reserved For', 					
+	CONVERT(VARCHAR , asset.reserve_date , 103) AS 'Reserve Date', 			
+	asset.legal_entity_number AS 'Company',
+	asset.residual_amount AS 'Residual Value',	
+	CONVERT(VARCHAR , asset.rv_maturity_date , 103) AS 'RV Maturity Date',				
+	asset.asset_sub_type AS 'Asset Sub Type',					
+	asset.cost_amount AS 'Book Value',						
+	asset.equipment_nbv AS 'Equipment NBV',					
+	asset.overall_asset_life_in_months AS 'Equipment Life in Months',		
+	asset.asset_value_amount AS 'Purchased Price',					
+	CONVERT(VARCHAR , asset.[available_to_aag_from] , 103) AS 'Available to AAG From'
+        
+FROM
+vw_asset AS asset
+
+WHERE asset.asset_status IN ('Inventory', 'AwaitingDelivery')
+AND asset.asset_type <> 'Ancillary'
+AND asset.asset_contract_type <> 'Backed Off Asset'
+AND asset.[current_flag] = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_equipment_accruals_on_contract
+-- Depends on: vw_additional_charges_detail, vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_equipment_accruals_on_contract AS
  WITH contracts AS (
 SELECT DISTINCT
 
@@ -8695,251 +3373,652 @@ JOIN lease_asset  AS la ON c.id = la.bk_aggregated_dim_contract_id AND la.rn = 1
 JOIN asset AS a ON la.bk_aggregated_dim_asset_id = a.bk_aggregated_dim_asset_id
 LEFT JOIN asset_level_charges AS alc ON c.id = alc.contract_id AND a.bk_aggregated_dim_asset_id = alc.asset_id
 LEFT JOIN total_charges AS t ON c.id = t.contract_id AND a.bk_aggregated_dim_asset_id = t.asset_id
+
 ;
 GO
 
+-- ----------------------------------------------------------
+-- View: rpt_r2c_stock_assets
+-- Depends on: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_r2c_stock_assets
+AS
+SELECT 
+      CAST(asset.[alias] AS VARCHAR(8)) AS 'Registration Number'
+      ,asset.aag_fleet_number AS 'AAG Fleet Number'
+      ,asset.[model_year] AS 'YEAR'     
+      ,ISNULL(asset.collateral_id,'-') AS 'Collateral: ID'
+      ,asset.[equipment_id] AS 'Equipment Id'
+      ,ISNULL(asset.asset_funding_status,'-') AS 'Dealer Funding Status'
+      ,asset.[product_name] AS 'Vehicle Category'
+      ,asset.city AS 'Current Location'
+      ,asset.[asset_contract_type] AS 'Vehicle Type'
+      ,asset.asset_status AS 'Status' 
+      ,asset.legal_entity_number AS 'Company'   
+      ,ISNULL(asset.asset_sub_type,'-') AS 'Asset Sub Type'  
+      ,ISNULL(asset.asset_value_amount,0) AS 'Purchased Price'  
+      ,ISNULL(asset.[book_value_amount],0) AS 'Book Value'
+      ,ISNULL(asset.begin_book_value_amount,0) AS 'Equipment NBV'  
+      ,ISNULL(asset.serial_number,'-') AS [Chassis Number]   
+      ,asset.[description] AS 'Equipment Description' 
+      ,asset.[manufacturer_name] AS 'Manufacturer'
+      ,asset.[make_name]  AS 'Make'
+      ,asset.model_name AS 'Model'                              
+FROM
+vw_asset AS asset
+      WHERE asset.[asset_contract_type] = 'Stock'
 
-DROP VIEW if EXISTS [dbo].[pbi_procurement_asset_funding];
+;
 GO
 
-CREATE OR ALTER                     VIEW [dbo].[pbi_procurement_asset_funding]
+-- ----------------------------------------------------------
+-- View: rpt_rv_rcv_assets_not_hire
+-- Depends on: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_rv_rcv_assets_not_hire
 AS
-
-WITH assets AS (
 SELECT DISTINCT
-asset.bk_aggregated_dim_asset_id AS asset_id, 
-asset.asset_funding_status,
-asset.book_value_amount,
-asset.equipment_id,
-ROW_NUMBER() OVER( PARTITION BY asset.bk_aggregated_dim_asset_id ORDER BY asset.start_date ASC) AS earliest_asset_record
 
+      asset.[asset_sub_type] AS 'Asset Sub Type'
+      ,asset.[rv_maturity_date] AS 'RV Maturity Date'---TBC    
+      ,asset.asset_status AS 'Status'    
+      ,asset.book_value_amount AS 'Book Value'---TBC
+      ,ISNULL(asset.[depreciation_value],0) AS 'Depreciation Value'
+      ,asset.equipment_nbv  AS 'Equipment NBV'    
+      ,0  AS 'Fair Value Adjustment'
+      ,asset.fair_value_adjustment_date AS 'Fair Value Adjustment Date'            
+      ,asset.[asset_contract_type] AS 'Vehicle Type'
+      ,asset.[product_name] AS 'Vehicle Category'
+      ,asset.registration_number AS 'Registration Number' 
+      ,asset.alias AS 'Asset Alias'
+      ,asset.[gvw] AS 'GVW'
+      ,asset.[manufacturer_name] AS 'MAKE'
+      ,asset.[make_name] AS 'Model Range'     
+      ,asset.body_description AS 'Body Type'
+      ,asset.[description] AS 'Equipment Description'
+      ,asset.residual_value_amount AS 'Residual Value'
+      ,asset.[retail_value_amount] AS 'Retail Value' 
+      ,asset.retail_valuation_date AS 'Retail Valuation Date'  
+      ,asset.[vehicle_service_status] AS 'Vehicle Service Status'            
+      ,asset.location_city AS 'Current Location'  
+      ,0 AS 'In Application'
+      ,asset.allocated_status AS 'Allocated Status'  
+      ,asset.reserved_by AS 'Reserved By'  
+      ,asset.reserved_for AS 'Reserved For'      
+      ,asset.reserve_date AS 'Reserve Date'               
 
-FROM aggregated_odessa_dim_asset asset
-JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
-JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details --AND addDetails.current_flag = 1
-JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status 
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS allocatedStatus ON allocatedStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.allocated_status_id AND allocatedStatus.current_flag = 1 
-JOIN vw_asset AS current_asset ON asset.bk_aggregated_dim_asset_id = current_asset.bk_aggregated_dim_asset_id AND current_asset.current_flag = 1
-WHERE dstatus.asset_status = 'AwaitingDelivery'
-AND current_asset.procurement_program = 1
-AND current_asset.project_number IS NOT NULL
+FROM
+vw_asset AS asset
+WHERE asset.asset_status IN ('Inventory','AwaitingDelivery')
 
-), procurement_assets AS (
-SELECT 
-asset_id,
-asset_funding_status,
-ROW_NUMBER() OVER ( PARTITION BY asset_id ORDER BY bk_aggregated_dim_date ASC) AS earliest_funding_date
-FROM pbi_orders_over_time
-), migrated_assets AS (
+;
+GO
 
+-- ----------------------------------------------------------
+-- View: rpt_ts_asset_funding_analysis
+-- Depends on: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ts_asset_funding_analysis
+AS
 SELECT DISTINCT
-pa.asset_id,
-'2025-01-31' as funded_date,
-assets.book_value_amount AS cl_paid_amount
-FROM procurement_assets AS pa
-JOIN assets ON pa.asset_id = assets.asset_id AND assets.earliest_asset_record = 1
-WHERE pa.earliest_funding_date = 1 
-AND pa.asset_funding_status = 'FullyFunded'
-AND pa.asset_id IN (SELECT o.id
-FROM flat_assets_inc_history AS o
-JOIN flat_assets_inc_history AS cl ON o.equipment_id = cl.equipment_id AND cl.source_system = 'CloudLending'
-WHERE o.source_system = 'Odessa')
-), assets_odessa_funding AS (
+      CAST(asset.[alias] AS VARCHAR(8)) AS 'Registration Number'
+     ,ISNULL(asset.[production_number],'-') AS 'Production Number'  
+     ,asset.[asset_contract_type] AS 'Vehicle Type' 
+     ,asset.[is_migrated] AS 'IsMigrated'  
+     ,asset.asset_status AS 'Status'    
+     ,ISNULL(asset.asset_funding_status,'-') AS 'Dealer Funding Status'
+     ,asset.[original_chassis_delivery_date] AS 'Original Chassis Delivery Date'
+     ,asset.[expected_chassis_delivery_date] AS 'Expected Chassis Delivery Date'
+     ,asset.[expected_delivery_date_to_customer] AS 'Expected Delivery Date to Customer'
+     ,asset.[actual_chassis_delivery_date] AS 'Actual Chassis Delivery Date'
+     ,ISNULL(asset.serial_number,'-') AS [Chassis Number]  
+     ,asset.[manufacturer_name] AS 'MAKE'    
+     ,asset.[make_name] AS 'Model Range' 
+     ,asset.model_name AS 'Model' 
+     ,asset.[body_type] AS 'Body Type' 
+     ,asset.[description] AS 'Equipment Description' 
+     ,asset.[asset_value_amount] AS 'Purchased Price' ----- tbc
+     ,ISNULL(asset.allocated_status,'-') AS 'Allocated Status'
+     ,ISNULL(asset.[reserved_by],'-') AS 'Reserved By'   
+     ,ISNULL(asset.[reserved_for],'-') AS 'Reserved For'   
+FROM vw_asset asset
+WHERE asset.current_flag = 1
+AND asset.asset_type <> 'Ancillary'
+AND asset.asset_status IN ('Inventory','AwaitingDelivery','OnHold') ---- Warehouse = Inventory ???
+AND asset.[asset_contract_type] IN ('Lease','Rental')
 
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_ts_asset_nbv
+-- Depends on: vw_asset
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ts_asset_nbv
+AS
 SELECT DISTINCT
-a.bk_aggregated_dim_asset_id,
-MAX(d.bk_aggregated_dim_date) AS max_invoice_date,
-SUM(ISNULL(fpia.acquisition_cost_amount, 0) + ISNULL(fpia.other_cost_amount, 0) - ISNULL(fpia.vat_amount_amount, 0)) AS total_funded_amount
+      asset.registration_number AS 'Registration Number'
+      ,asset.asset_id
+     ,asset.[alias]
+     ,asset.[equipment_id] AS 'Equipment Id'
+     ,ISNULL(asset.collateral_id,'-') AS 'Collateral: Collateral ID'      
+     ,ISNULL(asset.[production_number],'-') AS 'Production Number'
+     ,asset.[asset_registration_effective_date]  AS 'Date of Registration'   
+     ,asset.acquisition_date AS 'Purchased Date'
+     ,asset.[asset_funding_status] AS 'Dealer Funding Status'
+     ,asset.[manufacturer_name] AS 'MAKE'
+     ,asset.[make_name] AS 'Model Range'
+     ,asset.[description] AS 'Equipment Description'        
+     ,asset.[in_service_date] AS 'Collateral: Created Date'
+     ,asset.[cab_model] AS 'Cab Model'
+     ,asset.[gvw] AS 'GVW'
+     ,asset.[body_type] AS 'Body Type'
+     ,asset.[asset_contract_type] AS 'Vehicle Type'
+     ,asset.[asset_contract_type] AS 'Asset Contract Type'     
+     ,asset.asset_status AS 'Status'          
+     ,ISNULL(asset.[serial_number],'-') AS 'Serial Number'  
+     ,ISNULL(asset.[serial_number],'-') AS [Chassis Number] 
+     ,asset.legal_entity_number AS 'Company' 
+     ,asset.[purchase_price] AS 'Purchased Price'
+     ,ISNULL(asset.[book_value_amount],0) AS 'Book Value'  
+     ,ISNULL(asset.[equipment_nbv],0) AS 'Equipment NBV'   
+     ,ISNULL(asset.[residual_value_amount],0) AS 'Residual Value'  
+     ,asset.salvage_amount AS 'Salvage Value'   
+     ,asset.[rv_maturity_date] AS 'RV Maturity Date' 
+     ,asset.[generate_book_depreciation] AS 'Generate Book Depreciation'
+     ,ISNULL(asset.depreciation_value,0) AS 'Depreciation Value'
+     ,asset.depreciation_start_date AS 'Depreciation Start Date' 
+     ,asset.economic_life_in_months AS 'Equipment Life in Months'  
+     ,asset.remaining_life_in_months AS 'Remaining Equipment Life in Months'
+     ,asset.[asset_sub_type] AS 'Asset Sub Type' 
+     ,asset.[product_name] AS 'Vehicle Category'          
+FROM vw_asset asset
 
-from aggregated_odessa_dim_asset AS a 
-JOIN aggregated_odessa_fact_payable_invoice_asset AS fpia ON a.sk_aggregated_dim_asset = fpia.sk_aggregated_dim_asset
-JOIN aggregated_odessa_dim_payable_invoice AS dpi ON fpia.sk_aggregated_dim_payable_invoice = dpi.sk_aggregated_dim_payable_invoice AND dpi.current_flag = 1
-left join aggregated_odessa_dim_date AS d ON fpia.sk_aggregated_dim_date_record = d.sk_aggregated_dim_date
-WHERE a.current_flag = 1 
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_asset_additional_charges
+-- Depends on: vw_additional_charges_detail
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_asset_additional_charges
+AS
+SELECT      
+			SUM([charges]) AS charges,
+			SUM([vat_amount]) AS vat_amount,
+			[sequence_number],
+			[contract_id],
+			[asset_id]
+FROM vw_additional_charges_detail
 GROUP BY 
-a.bk_aggregated_dim_asset_id
-), asset_all_funding AS (
-SELECT
-a.asset_id,
-a.[adjusted_book_value],
-coalesce(aof.max_invoice_date, m.funded_date) AS max_invoice_date,
-coalesce(aof.total_funded_amount, 0) + coalesce(m.cl_paid_amount, 0) AS total_funded_including_migrated_invoice
-from vw_asset AS a
-LEFT JOIN assets_odessa_funding AS aof ON a.asset_id = aof.bk_aggregated_dim_asset_id
-LEFT JOIN migrated_assets AS m ON a.asset_id = m.asset_id
+			[contract_id],
+			[sequence_number],
+			[asset_id]
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_rv_receivables_from_live_contracts
+-- Depends on: vw_asset, vw_asset_additional_charges
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_rv_receivables_from_live_contracts AS
+
+
+WITH asset AS (
+SELECT DISTINCT
+
+a.bk_aggregated_dim_asset_id,
+a.equipment_nbv AS 'Equipment: NBV',
+a.alias as 'Asset Alias',
+a.depreciation_value AS 'Equipment: Depreciation Value',
+a.cost_amount AS 'Equipment: Fair Value Adjustment',		--
+a.registration_number AS 'Vehicle Registration Number',
+a.is_migrated AS 'Equipment: IsMigrated',
+a.gvw AS 'Equipment: GVW',
+a.body_type AS 'Equipment: Body Type',
+a.residual_value_amount AS 'Equipment: Residual Value',
+a.contract_mileage AS 'Contract Mileage',
+a.present_mileage_date AS 'Equipment: Present Mileage Date',
+a.retail_valuation_date AS 'Equipment: Retail Valuation Date',
+a.retail_value_amount AS 'Equipment: Retail Value',
+a.fair_value_adjustment_date AS 'Equipment: Fair Value Adjustment Date',
+a.asset_sub_type AS 'Asset Sub Type',
+a.model_year AS 'Year',
+a.asset_status AS 'Asset Status', 
+a.rv_maturity_date AS 'RV Maturity Date',									--
+a.book_value_amount AS 'Equipment: Book Value',
+a.begin_book_value_amount AS 'Equipment: Equipment NBV',				--
+a.asset_contract_type AS 'Equipment: Vehicle Type',
+a.product_name AS 'Equipment: Vehicle Category',
+a.manufacturer_name 'Equipment: MAKE',
+a.make_name AS 'Equipment: Model Range',
+a.description AS 'Equipment: Equipment Description',
+a.last_known_mileage AS 'Equipment: Last Known Mileage',
+a.mot_expiry_date AS 'Equipment: Mot Expiry Date'
+
+
+FROM vw_asset AS a
+
+WHERE a.asset_status IN ('Leased', 'Inventory')
+
+
+), lease_asset as (
+SELECT 
+con.bk_aggregated_dim_contract_id,
+con.sequence_number,
+con.status,
+cu.party_name,
+cu.bk_aggregated_dim_customer_id,
+a.bk_aggregated_dim_asset_id,
+reg.registration_number,
+vd.contract_mileage,
+b.branch_name,
+
+ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
+fla.sk_aggregated_dim_date_termination_date,
+fla.nbv_amount,
+fla.customer_cost_amount,
+fla.rent_amount AS Rent
+
+FROM aggregated_odessa_dim_contract AS con
+JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset --and dla.is_approved = 1
+JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
+LEFT JOIN aggregated_odessa_dim_vehicle_detail AS vd ON a.bk_aggregated_dim_asset_id = vd.bk_aggregated_dim_vehicle_detail_id
+JOIN aggregated_odessa_dim_lease_finance AS lf ON fla.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1
+JOIN aggregated_odessa_dim_customer AS cu ON fla.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer
+LEFT JOIN aggregated_odessa_dim_branch AS b ON fla.sk_aggregated_dim_branch = b.sk_aggregated_dim_branch
+LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
+        WHERE con.current_flag = 1 AND con.status != 'Inactive'
+), latest_lease_asset AS (
+
+SELECT 
+
+la.bk_aggregated_dim_contract_id AS contract_id,
+la.bk_aggregated_dim_customer_id AS customer_id,
+la.bk_aggregated_dim_asset_id AS asset_id, 
+td.bk_aggregated_dim_date AS terminated_date,
+ROW_NUMBER() OVER(PARTITION BY la.bk_aggregated_dim_asset_id ORDER BY td.bk_aggregated_dim_date DESC) AS latest_contract,
+la.nbv_amount,
+la.customer_cost_amount,
+la.Rent,
+la.branch_name
+
+FROM lease_asset AS la
+LEFT JOIN aggregated_odessa_dim_date as td ON la.sk_aggregated_dim_date_termination_date = td.sk_aggregated_dim_date 
+WHERE la.rn = 1
+AND td.bk_aggregated_dim_date = '9999-01-01'
+
+), contracts AS (
+SELECT DISTINCT
+
+
+a.id,
+a.aag_contract_number AS 'AAG Contract Number',
+a.booking_status AS status,
+a.sequence_number AS 'Contract Sequence',
+a.commencement_date AS 'Contract Date',
+a.maturity_date AS 'Maturity Date',
+a.customer_name AS 'Account',
+a.product AS 'Product Name',
+a.cost_center AS 'Cost Center',
+a.payment_frequency AS 'Rental Term Unit',
+a.term AS 'Current Term',
+a.payment_method,
+bdm.full_name AS 'Primary Sales Rep',
+a.lease_contract_type AS 'Product Sub Type'
+FROM (
+SELECT 
+c.bk_aggregated_dim_contract_id AS id,
+c.alias AS aag_contract_number,
+c.sequence_number,
+c.status AS booking_status,
+cd.bk_aggregated_dim_date AS commencement_date,
+md.bk_aggregated_dim_date AS maturity_date,
+cu.party_name AS customer_name,
+cu.external_reference_id AS account_number,
+cu.organization_id,
+p.transaction_type AS product,
+cc.description AS cost_center,
+lob.name as line_of_business,
+lf.payment_frequency,
+lf.customer_term_in_months AS term,
+lf.lease_contract_type,
+CASE WHEN lf.is_advance = 1 THEN 'ADVANCE'
+ELSE 'ARREARS'
+END AS payment_method,
+c.previous_schedule_number as schedule_number,
+c.created_time as created_date,
+ROW_NUMBER() OVER ( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY flfd.sk_aggregated_dim_contract DESC, flfd.sk_aggregated_dim_date_record DESC, flfd.sk_aggregated_dim_time_record DESC) AS rn
+
+FROM aggregated_odessa_dim_contract AS c
+JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.sk_aggregated_dim_contract = flfd.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1  and lf.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_date AS md ON flfd.sk_aggregated_dim_date_maturity_date = md.sk_aggregated_dim_date
+LEFT JOIN aggregated_odessa_dim_date AS cd ON flfd.sk_aggregated_dim_date_commencement_date = cd.sk_aggregated_dim_date
+JOIN aggregated_odessa_dim_customer AS cu ON flfd.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer AND cu.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS p ON p.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND p.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.sk_aggregated_dim_cost_center = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.sk_aggregated_dim_line_of_business
+ = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
+WHERE c.current_flag = 1 AND booking_status = 'Commenced'
+
+
+) AS a 
+ LEFT JOIN (
+ SELECT a.contract_id, a.full_name FROM (
+ SELECT DISTINCT contract_id, u.full_name, 
+ ROW_NUMBER() OVER( PARTITION BY contract_id ORDER BY ep.is_primary DESC) AS rn
+ FROM aggregated_odessa_dim_employees_assigned_to_contract AS ec
+JOIN aggregated_odessa_dim_employees_assigned_to_party AS ep ON ec.employee_assigned_to_party_id = ep.bk_aggregated_dim_employees_assigned_to_party_id AND ep.current_flag = 1 AND ep.is_active = 1
+JOIN aggregated_odessa_dim_role_function AS rf ON ep.role_function_id = rf.bk_aggregated_dim_role_function_id 
+JOIN aggregated_odessa_dim_user AS u ON ep.employee_id = u.bk_aggregated_dim_user_id
+ WHERE ec.current_flag = 1 AND ec.is_active = 1 AND rf.name = 'Sales Rep'
+ ) AS a WHERE a.rn = 1
+ ) AS bdm ON bdm.contract_id = a.id
+
+WHERE a.rn = 1
 )
-SELECT
-a.asset_id,
-aaf.adjusted_book_value,
-aaf.max_invoice_date,
-aaf.total_funded_including_migrated_invoice,
-CASE WHEN coalesce(aaf.total_funded_including_migrated_invoice, 0) = 0 THEN 'Not Funded'
- WHEN coalesce(aaf.total_funded_including_migrated_invoice, 0) >= aaf.adjusted_book_value THEN 'Fully Funded'
- ELSE 'Partially Funded' END AS calculated_funding_status
-FROM asset_all_funding AS aaf
-JOIN assets AS a ON aaf.asset_id = a.asset_id
-WHERE earliest_asset_record = 1
+
+
+SELECT 
+
+asset.*,
+latest_lease_asset.terminated_date,
+latest_lease_asset.customer_cost_amount,
+latest_lease_asset.Rent,
+latest_lease_asset.branch_name AS Branch,
+contracts.*,
+
+ISNULL(charges.charges,0) AS 'Asset Budget Value',
+ISNULL(charges.charges,0) + ISNULL(latest_lease_asset.Rent,0) AS total_charge_to_customer
+
+
+
+FROM asset
+ JOIN latest_lease_asset ON asset.bk_aggregated_dim_asset_id = latest_lease_asset.asset_id AND latest_contract = 1
+ JOIN contracts ON latest_lease_asset.contract_id = contracts.id
+LEFT JOIN vw_asset_additional_charges AS charges ON charges.contract_id = contracts.id AND charges.asset_id = asset.bk_aggregated_dim_asset_id      
+
 ;
 GO
 
-
-
-
-DROP VIEW if EXISTS [dbo].[pbi_procurement_asset_funding_over_time];
-GO
-
-CREATE OR ALTER                     VIEW [dbo].[pbi_procurement_asset_funding_over_time]
-AS
-
---shows asset funding over time
-
---procurement assets
-WITH assets AS (
-SELECT DISTINCT
-asset.bk_aggregated_dim_asset_id AS asset_id, 
-asset.asset_funding_status,
-asset.book_value_amount,
-asset.equipment_id
-
+-- ----------------------------------------------------------
+-- View: vw_asset_description
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_asset_description AS
+-- equipment description to use when grouping assets 
+WITH tidy_up AS (
+SELECT  DISTINCT
+asset.bk_aggregated_dim_asset_id as asset_id,
+asset.manufacturer_name,
+CASE WHEN COALESCE(asset.make_name, '') = 'Other' THEN '' ELSE asset.make_name END AS make_name_for_asset_description,
+CASE WHEN COALESCE(asset.model_name, '') = 'Other' THEN '' ELSE asset.model_name END AS model_name_for_asset_description,
+CASE WHEN axleconfig.value IS NULL THEN '' END AS axle_config_for_asset_description,
+bodytype.body_type_code AS body_type,
+CASE WHEN COALESCE(bodytype.body_type_code, '') LIKE '%Bus%' and asset.product_name LIKE '%Bus%' THEN '' ELSE asset.product_name END AS vehicle_category_for_asset_description,
+asset.product_name
 
 FROM aggregated_odessa_dim_asset asset
 JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
-JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details --AND addDetails.current_flag = 1
+JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
 JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status 
-LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS allocatedStatus ON allocatedStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.allocated_status_id AND allocatedStatus.current_flag = 1 
-JOIN vw_asset AS current_asset ON asset.bk_aggregated_dim_asset_id = current_asset.bk_aggregated_dim_asset_id AND current_asset.current_flag = 1
-WHERE dstatus.asset_status = 'AwaitingDelivery'
-AND current_asset.procurement_program = 1
-AND current_asset.project_number IS NOT NULL
---payable invoices
-),  invoice_assets AS (
-SELECT DISTINCT
-a.bk_aggregated_dim_asset_id,
-d.bk_aggregated_dim_date AS invoice_date,
-d.week_of_year,
-t.bk_aggregated_dim_time AS invoice_time,
-SUM(ISNULL(fpia.acquisition_cost_amount, 0) + ISNULL(fpia.other_cost_amount, 0) - ISNULL(fpia.vat_amount_amount, 0)) AS funded_amount
+JOIN aggregated_odessa_dim_asset_type type ON type.sk_aggregated_dim_asset_type = fstatus.sk_aggregated_dim_asset_type AND type.current_flag = 1
+JOIN aggregated_odessa_dim_vehicle_detail detail ON detail.[sk_aggregated_dim_vehicle_detail] = fstatus.sk_aggregated_dim_vehicle_detail AND detail.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS axleconfig ON  axleconfig.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[axle_config_id] AND axleconfig.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_body_type_config AS bodytype ON detail.body_type_config_id = bodytype.[bk_aggregated_dim_body_type_config_id] AND bodytype.current_flag = 1
 
-from aggregated_odessa_dim_asset AS a 
-JOIN aggregated_odessa_fact_payable_invoice_asset AS fpia ON a.sk_aggregated_dim_asset = fpia.sk_aggregated_dim_asset
-JOIN aggregated_odessa_dim_payable_invoice AS dpi ON fpia.sk_aggregated_dim_payable_invoice = dpi.sk_aggregated_dim_payable_invoice AND dpi.current_flag = 1
-left join aggregated_odessa_dim_date AS d ON fpia.sk_aggregated_dim_date_record = d.sk_aggregated_dim_date
-LEFT JOIN aggregated_odessa_dim_time AS t ON fpia.sk_aggregated_dim_time_record = t.sk_aggregated_dim_time
-WHERE a.current_flag = 1 
-GROUP BY 
-a.bk_aggregated_dim_asset_id,
-d.bk_aggregated_dim_date,
-d.week_of_year,
-t.bk_aggregated_dim_time
-
---payable invoices cumulated
-) , cumulative_funding AS (
+WHERE asset.current_flag = 1
+) , manufacturer_and_make AS (
 SELECT 
-bk_aggregated_dim_asset_id,
-invoice_date,
-funded_amount,
-week_of_year,
-invoice_time,
-SUM(funded_amount) OVER (PARTITION BY bk_aggregated_dim_asset_id ORDER BY invoice_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_funded_amount,
-ROW_NUMBER() OVER( PARTITION BY bk_aggregated_dim_asset_id, week_of_year ORDER BY invoice_date DESC, invoice_time DESC ) AS rn
-
-FROM invoice_assets
---weekly data for procurement assets
-), asset_dates AS (
+asset_id, 
+CASE WHEN make_name_for_asset_description IS NOT NULL 
+AND make_name_for_asset_description != ''
+AND manufacturer_name != make_name_for_asset_description
+ THEN CONCAT([manufacturer_name], ' ', [make_name_for_asset_description]) ELSE manufacturer_name END AS manufacturer_and_make,
+ manufacturer_name,
+model_name_for_asset_description,
+axle_config_for_asset_description,
+body_type,
+vehicle_category_for_asset_description
+FROM tidy_up
+), manufacturer_make_and_model AS (
 SELECT 
-asset_id,
-type,
-allocated_status,
-asset_funding_status,
-product_name,
-COALESCE(LAG(bk_aggregated_dim_date) OVER (PARTITION BY asset_id ORDER BY bk_aggregated_dim_date), '1900-01-01') AS _date1,
-bk_aggregated_dim_date AS _date2,
-ROW_NUMBER() OVER ( PARTITION BY asset_id ORDER BY bk_aggregated_dim_date ASC) AS earliest_funding_date,
-week_of_year
-FROM pbi_orders_over_time
-
---procurement assets with weekly payable invoices cumulative
-), adjusted_book_value AS (
+asset_id, 
+CASE WHEN model_name_for_asset_description IS NOT NULL 
+AND model_name_for_asset_description != '' 
+THEN  CONCAT(manufacturer_and_make, ' ', model_name_for_asset_description) ELSE manufacturer_and_make END AS manufacturer_make_and_model,
+axle_config_for_asset_description,
+body_type,
+vehicle_category_for_asset_description
+FROM manufacturer_and_make
+), manufacturer_make_model_and_axl AS (
+SELECT
+asset_id, 
+CASE WHEN axle_config_for_asset_description IS NOT NULL 
+AND axle_config_for_asset_description != ''
+THEN  CONCAT(manufacturer_make_and_model, ' ', axle_config_for_asset_description) ELSE manufacturer_make_and_model END AS manufacturer_make_model_and_axl,
+body_type,
+vehicle_category_for_asset_description
+FROM manufacturer_make_and_model
+), manufacturer_make_model_body_and_axl AS (
+SELECT 
+asset_id, 
+CASE WHEN body_type IS NOT NULL  
+AND body_type != '' 
+THEN CONCAT(manufacturer_make_model_and_axl, ' ', body_type) ELSE manufacturer_make_model_and_axl END AS manufacturer_make_model_body_and_axl,
+vehicle_category_for_asset_description
+FROM manufacturer_make_model_and_axl
+)
 SELECT 
 asset_id,
-net_value_amount AS adjusted_book_value,
-income_date, 
-DATEPART(week, income_date) as week_of_year,
-created_time,
-ROW_NUMBER() OVER( PARTITION BY asset_id, DATEPART(week, income_date)  ORDER BY income_date DESC, created_time DESC ) AS rn
-FROM aggregated_odessa_dim_asset_value_history
+CASE WHEN vehicle_category_for_asset_description IS NOT NULL  
+AND vehicle_category_for_asset_description != ''
+THEN CONCAT(manufacturer_make_model_body_and_axl, ' ', vehicle_category_for_asset_description) ELSE manufacturer_make_model_body_and_axl END AS asset_description
+FROM manufacturer_make_model_body_and_axl
 
-WHERE source_module = 'AssetValueAdjustment'
-AND	is_lessor_owned = 1
-	AND is_schedule = 1
-	AND is_accounted = 1
-    AND gl_journal_id IS NOT NULL
-	AND income_date <= GETDATE()
-   AND current_flag = 1
+;
+GO
 
-), assets_with_cumulative_funding AS (
-
-SELECT DISTINCT 
-ad.asset_id,
-ad.type,
-ad.allocated_status,
-ad.product_name,
-ad._date2,
-ad.week_of_year,
-ad.asset_funding_status,
-SUM(cf.cumulative_funded_amount) AS cumulative_funded_amount,
-abv.adjusted_book_value
-FROM asset_dates AS ad
-LEFT JOIN cumulative_funding AS cf ON ad.asset_id = cf.bk_aggregated_dim_asset_id AND (cf.invoice_date >= ad._date1 AND cf.invoice_date < ad._date2) AND cf.rn = 1
-LEFT JOIN adjusted_book_value AS abv ON ad.asset_id = abv.asset_id AND (abv.income_date >= ad._date1 AND abv.income_date < ad._date2) AND abv.rn = 1
-
-
-GROUP BY
-ad.asset_id,
-ad.type,
-ad.allocated_status,
-ad.product_name,
-ad._date2,
-ad.week_of_year,
-ad.asset_funding_status,
-abv.adjusted_book_value
-
---fully funded assets were migrated without payable invoices so using the book value instead
-) , migrated_fully_funded AS (
+-- ----------------------------------------------------------
+-- View: pbi_procurement_asset_origination
+-- Depends on: pbi_orders_over_time, vw_asset_description
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_procurement_asset_origination AS
+WITH asset AS (
 SELECT DISTINCT
-ad.asset_id,
-assets.book_value_amount
-FROM asset_dates AS ad
-JOIN assets ON ad.asset_id = assets.asset_id
-WHERE ad.earliest_funding_date = 1 
-AND ad.asset_funding_status = 'FullyFunded'
-AND ad.asset_id IN (SELECT o.id
-FROM flat_assets_inc_history AS o
-JOIN flat_assets_inc_history AS cl ON o.equipment_id = cl.equipment_id AND cl.source_system = 'CloudLending'
-WHERE o.source_system = 'Odessa')
---consolidating with the migrated assets
-), asset_funding as (
+a.bk_aggregated_dim_asset_id,
+a.alias,
+a.description,
+reg.registration_number,
+a.manufacturer_name AS make,
+a.model_name AS model,
+cast(detail.gvw/1000 as decimal(16,2)) AS gvw,
+bodybuilder.name AS body_builder,
+tailLiftType.[value] AS tail_lift_type,
+serialNumber.serial_number,
+a.model_year,
+a.asset_contract_type AS type,
+detail.comments,
+a.product_name AS vehicle_category,
+assetSubType.value AS asset_sub_type,
+a.equipment_id
+FROM aggregated_odessa_dim_asset AS a
+LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
+LEFT JOIN (select *, row_number() over (partition by asset_id order by created_time desc) SN from aggregated_odessa_dim_asset_serial_numbers where current_flag = 1) AS serialNumber 
+        ON serialNumber.asset_id = a.bk_aggregated_dim_asset_id AND serialNumber.current_flag = 1 AND SN=1
+JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset 
+JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details= fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status
+JOIN aggregated_odessa_dim_vehicle_detail detail ON detail.sk_aggregated_dim_vehicle_detail = fstatus.sk_aggregated_dim_vehicle_detail AND detail.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_body_builder_config AS bodybuilder ON detail.body_builder_config_id = bodybuilder.bk_aggregated_dim_body_builder_config_id AND bodybuilder.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS assetSubType ON assetSubType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.asset_sub_type_id AND assetSubType.current_flag = 1 
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS tailLiftType ON  tailLiftType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[tail_lift_type_id] AND tailLiftType.current_flag = 1
+
+join aggregated_odessa_dim_legal_entity le on fstatus.sk_aggregated_dim_legal_entity = le.sk_aggregated_dim_legal_entity and le.current_flag = 1
+join aggregated_odessa_dim_asset_type atype on fstatus.sk_aggregated_dim_asset_type = atype.sk_aggregated_dim_asset_type and atype.current_flag = 1
+join aggregated_odessa_dim_currency cur on fstatus.sk_aggregated_dim_currency = cur.sk_aggregated_dim_currency and cur.current_flag = 1
+WHERE a.current_flag = 1
+AND addDetails.procurement_program = 1
+AND addDetails.project_number IS NOT NULL
+), lease_asset as (
+select
+asset.bk_aggregated_dim_contract_id AS contract_id,
+asset.bk_aggregated_dim_asset_id AS asset_id,
+asset.status
+FROM (
+SELECT 
+con.bk_aggregated_dim_contract_id,
+con.sequence_number,
+con.status,
+a.bk_aggregated_dim_asset_id,
+ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
+fla.sk_aggregated_dim_date_termination_date
+FROM aggregated_odessa_dim_contract AS con
+JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset and dla.is_approved = 1
+JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
+LEFT JOIN aggregated_odessa_dim_vehicle_detail AS vd ON a.bk_aggregated_dim_asset_id = vd.bk_aggregated_dim_vehicle_detail_id
+JOIN aggregated_odessa_dim_lease_finance AS lf ON fla.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1
+JOIN aggregated_odessa_dim_customer AS cu ON fla.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer
+LEFT JOIN aggregated_odessa_dim_branch AS b ON fla.[sk_aggregated_dim_branch] = b.sk_aggregated_dim_branch
+LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
+        WHERE con.current_flag = 1
+    ) AS asset
+LEFT JOIN aggregated_odessa_dim_date as td ON asset.sk_aggregated_dim_date_termination_date = td.sk_aggregated_dim_date 
+WHERE asset.rn = 1
+), contracts AS (
+SELECT DISTINCT
+a.id,
+a.status,
+a.sequence_number,
+a.commencement_date
+FROM (
+SELECT 
+c.bk_aggregated_dim_contract_id AS id,
+c.alias AS aag_contract_number,
+c.sequence_number,
+c.status,
+cd.bk_aggregated_dim_date AS commencement_date,
+md.bk_aggregated_dim_date AS maturity_date,
+c.created_time as created_date,
+ROW_NUMBER() OVER ( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY flfd.sk_aggregated_dim_contract DESC, flfd.sk_aggregated_dim_date_record DESC, flfd.sk_aggregated_dim_time_record DESC) AS rn
+
+FROM aggregated_odessa_dim_contract AS c
+JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.sk_aggregated_dim_contract = flfd.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1  and lf.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_date AS md ON flfd.sk_aggregated_dim_date_maturity_date = md.sk_aggregated_dim_date
+LEFT JOIN aggregated_odessa_dim_date AS cd ON flfd.sk_aggregated_dim_date_commencement_date = cd.sk_aggregated_dim_date
+JOIN aggregated_odessa_dim_customer AS cu ON flfd.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer AND cu.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS p ON p.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND p.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.sk_aggregated_dim_cost_center = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.sk_aggregated_dim_line_of_business
+ = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
+WHERE c.current_flag = 1
+) AS a 
+
+WHERE a.rn = 1 AND COALESCE(a.status, '') != 'Inactive'
+ ), first_contract AS (
+
+SELECT 
+
+asset.*,
+contracts.sequence_number,
+contracts.commencement_date,
+lease_asset.status,
+ROW_NUMBER() OVER( PARTITION BY bk_aggregated_dim_asset_id ORDER BY commencement_date) AS first_contract
+
+
+FROM asset
+JOIN lease_asset ON asset.bk_aggregated_dim_asset_id = lease_asset.asset_id 
+JOIN contracts ON lease_asset.contract_id = contracts.id --AND contracts.rn = 1
+) 
 
 SELECT
-a.asset_id,
-a.type,
-a.allocated_status,
-a.product_name AS vehicle_category,
-a._date2,
-a.week_of_year,
-a.asset_funding_status,
-LAST_VALUE(a.cumulative_funded_amount) IGNORE NULLS OVER (PARTITION BY a.asset_id ORDER BY a._date2 ASC 
-RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-) AS cumulative_funded_amount , 
-LAST_VALUE(a.adjusted_book_value) IGNORE NULLS OVER (PARTITION BY a.asset_id ORDER BY a._date2 ASC 
-RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-) AS adjusted_book_value,
-m.book_value_amount AS cl_paid_amount
 
-From assets_with_cumulative_funding AS a
-LEFT JOIN migrated_fully_funded AS m ON a.asset_id = m.asset_id 
+bk_aggregated_dim_asset_id,
+sequence_number,
+commencement_date,
+alias,
+registration_number,
+tail_lift_type,
+make,
+model,
+gvw,
+description,
+body_builder,
+serial_number,
+model_year,
+type,
+vehicle_category,
+asset_sub_type,
+equipment_id,
+ad.asset_description
+ FROM first_contract AS fc
+ LEFT JOIN vw_asset_description AS ad ON fc.bk_aggregated_dim_asset_id = ad.asset_id
+WHERE fc.first_contract = 1 AND bk_aggregated_dim_asset_id IN (SELECT DISTINCT asset_id FROM pbi_orders_over_time)
 
-) ,credit_profile AS (
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_procurement_report
+-- Depends on: vw_asset, vw_asset_description
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_procurement_report AS
+
+WITH invoice_assets AS (
+SELECT DISTINCT
+a.bk_aggregated_dim_asset_id,
+v.company_name,
+fpia.acquisition_cost_amount,
+ROW_NUMBER() OVER (PARTITION BY bk_aggregated_dim_asset_id ORDER BY fpia.acquisition_cost_amount desc) AS supplying_dealer_order
+from aggregated_odessa_dim_asset AS a 
+JOIN aggregated_odessa_fact_payable_invoice_asset AS fpia ON a.[sk_aggregated_dim_asset] = fpia.sk_aggregated_dim_asset
+JOIN aggregated_odessa_dim_payable_invoice AS dpi ON fpia.[sk_aggregated_dim_payable_invoice] = dpi.sk_aggregated_dim_payable_invoice AND dpi.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_vendor AS v ON dpi.vendor_id = v.bk_aggregated_dim_vendor_id
+WHERE a.current_flag = 1
+), asset AS (
+SELECT 
+asset.asset_id,
+asset.asset_category,
+asset.procurement_program,
+asset.product_name as 'Vehicle category',
+asset.project_number AS 'Project Number',
+asset.[serial_number] AS 'Chassis Number',
+asset.[alias],
+asset.[registration_number] AS 'Registration Number',
+asset.asset_funding_status AS 'Asset Funding Status',
+asset.adjusted_book_value AS 'Book Value',
+asset.acquisition_date AS 'Purchased Date',
+asset.asset_registration_effective_date AS 'Registration Date',
+CASE WHEN asset.[actual_delivery_date_to_customer] IS NULL THEN asset.[original_delivery_date_to_customer] ELSE asset.[actual_delivery_date_to_customer] END AS 'Origination Date',
+asset.[original_delivery_date_to_customer] AS 'Original Delivery Date to Customer',
+asset.[actual_delivery_date_to_customer] AS 'Actual Delivery Date to Customer',
+asset.available_to_aag_from AS 'Available to AAG From',
+asset.body_builder AS 'Body Builder', 			
+asset.tail_lift_type AS 'Tail Lift',
+asset.allocated_status AS 'Allocated Status', 			
+asset.delivery_status AS 'Delivery Status',
+asset.description AS 'Equipment Description',									
+asset.cost_amount AS 'Net Value',						
+asset.equipment_nbv AS 'Equipment NBV',					
+asset.asset_value_amount AS 'Purchased Price',
+asset.expected_delivery_date_to_customer AS 'Expected Delivery Date to Customer'
+
+			       
+FROM
+vw_asset AS asset
+
+WHERE asset.asset_status = 'AwaitingDelivery'
+AND asset.current_flag = 1
+AND procurement_program = 1
+AND asset.project_number IS NOT NULL
+), credit_profile AS (
 SELECT 
 cp.[bk_aggregated_dim_credit_profile_id],
 cu.party_name,
@@ -8980,35 +4059,1076 @@ FROM credit_profile
 )
 
 
-SELECT
-asset_funding.asset_id,
-type,
-allocated_status,
-vehicle_category,
-_date2,
-week_of_year,
-asset_funding_status,
-ISNULL(cumulative_funded_amount, 0) + ISNULL(cl_paid_amount, 0) AS cumulative_funded_amount,
-adjusted_book_value,
+SELECT 
+c.party_name AS Customer,
+invoice_assets.company_name AS supplying_dealer,
+CASE WHEN COALESCE([Allocated Status], '') NOT IN ('VOF Signed', 'Yes', 'TTS Allocation') AND [Available to AAG From] <= GETDATE() THEN 'Physical Assets'
+ WHEN ([Allocated Status] IS NOT NULL) AND ([Allocated Status] NOT IN ('Firm - No VOF', 'Soft', 'No')) THEN 'Orders' 
+ ELSE 'Incoming Stock' END AS Type,
+
+a.*,
+ad.asset_description,
+floc.opp_number,
 floc.party_name,
-floc.created_time,
 floc.expected_commencement_date
-FROM asset_funding
 
-LEFT JOIN first_loc AS floc on asset_funding.asset_id = floc.asset_id AND floc.rn = 1 and CAST(floc.created_time AS date) <= _date2
-
+FROM asset AS a
+ LEFT JOIN aggregated_odessa_dim_asset AS asset ON a.asset_id = asset.bk_aggregated_dim_asset_id and asset.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_customer AS c ON asset.customer_id = c.bk_aggregated_dim_customer_id AND c.current_flag = 1
+LEFT JOIN invoice_assets ON a.asset_id = invoice_assets.bk_aggregated_dim_asset_id AND invoice_assets.supplying_dealer_order = 1
+LEFT JOIN first_loc AS floc on a.asset_id = floc.asset_id AND floc.rn = 1 
+LEFT JOIN vw_asset_description AS ad ON a.asset_id = ad.asset_id
 
 ;
 GO
 
-DROP VIEW IF EXISTS pbi_cl_application_documents_mata;
+-- ----------------------------------------------------------
+-- View: vw_asset_features
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_asset_features
+AS 
+SELECT * 
+FROM
+(
+    SELECT
+        features.asset_id,	
+        features.alias AS feature_reg_num,
+        features.[equipment_id],
+        reg.asset_registration_effective_date,
+		reg.registration_number as vehicle_reg_num,          
+        category.name AS feature_vehicle_category,
+        features.[send_to_r_two_c],
+        features.[r_two_c_create_time],
+        features.[r_two_c_last_update_status],
+        features.[r_two_c_failure_reason],
+        features.[r_two_c_create_status],
+        ROW_NUMBER() OVER(PARTITION BY features.equipment_id ORDER BY reg.asset_registration_effective_date DESC) AS cleanse_reg
+    FROM aggregated_odessa_dim_asset_features AS features 
+    LEFT JOIN aggregated_odessa_dim_asset_categories AS category ON features.asset_category_id = category.[bk_aggregated_dim_asset_categories_id] AND category.current_flag = 1
+    LEFT JOIN aggregated_odessa_dim_asset_registration_detail AS reg ON reg.asset_id = features.asset_id AND reg.current_flag = 1 
+    WHERE features.current_flag = 1
+) AS a
+WHERE a.cleanse_reg = 1
+
+;
 GO
 
-CREATE OR ALTER VIEW pbi_cl_application_documents_mata AS 
+-- ----------------------------------------------------------
+-- View: rpt_r2c_daily
+-- Depends on: vw_asset, vw_asset_features
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_r2c_daily
+AS 
 SELECT DISTINCT
-apd.*,
+    features.[equipment_id],
+    asset.[aag_fleet_number],
+    features.[vehicle_reg_num],
+    CASE WHEN features.[send_to_r_two_c] = 1 THEN 'Success' ELSE 'Error' END AS send_to_rtwoc,
+    features.[r_two_c_create_time] AS rtwoc_create_time, 
+    ISNULL(features.[r_two_c_last_update_status],'-') AS rtwoc_last_update_status,
+    ISNULL(features.[r_two_c_failure_reason],'-') AS rtwoc_failure_reason,
+    ISNULL(features.[r_two_c_create_status],'-') AS rtwoc_create_status
+FROM vw_asset AS asset
+JOIN vw_asset_features AS features ON asset.asset_id = features.asset_id
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_asset_value
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_asset_value AS
+
+WITH initial_avh AS (
+SELECT
+	*,
+	ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY income_date ASC, [bk_aggregated_dim_asset_value_history_id] ASC) AS InitialRowNo
+FROM aggregated_odessa_dim_asset_value_history
+WHERE
+	is_lessor_owned = 1
+	AND is_schedule = 1
+	AND is_accounted = 1
+	AND is_cleared = 1
+	AND income_date <= GETDATE()
+),
+current_avh AS (
+SELECT
+	*,
+	ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY income_date DESC, bk_aggregated_dim_asset_value_history_id DESC) AS CurrentRowNo
+
+FROM aggregated_odessa_dim_asset_value_history
+WHERE
+	is_lessor_owned = 1
+	AND is_schedule = 1
+	AND is_accounted = 1
+    AND gl_journal_id IS NOT NULL
+	AND income_date <= GETDATE()
+   AND current_flag = 1
+
+)
+
+SELECT
+bk_aggregated_dim_asset_id AS asset_id,
+bbv.begin_book_value_amount,
+bbv.cost_amount,
+ebv.end_book_value_amount
+FROM aggregated_odessa_dim_asset AS asset
+LEFT JOIN initial_avh AS bbv ON asset.bk_aggregated_dim_asset_id = bbv.asset_id AND bbv.InitialRowNo = 1
+LEFT JOIN current_avh AS ebv ON asset.bk_aggregated_dim_asset_id = ebv.asset_id AND ebv.CurrentRowNo = 1
+
+
+
+WHERE asset.current_flag = 1 
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_ts_arbuthnot_regulatory_report_v2
+-- Depends on: vw_aggregated_odessa_fact_asset_status_latest, vw_asset_value
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ts_arbuthnot_regulatory_report_v2 AS
+
+SELECT
+Contracts.*,
+Assets.registration_number,
+Assets.alias,
+Assets.bk_aggregated_dim_asset_id,
+Assets.rent_amount,
+Assets.nbv_amount,
+Assets.cost_amount AS net_value_amount,
+Assets.VAT_on_asset,
+AdditionalCharges.asset_budget_value,
+ISNULL(Assets.rent_amount, 0) + ISNULL(AdditionalCharges.asset_budget_value, 0) AS charge_to_customer,
+PS.end_balance_amount AS contract_ending_net_investment,
+NextPayment.next_due_date AS contract_next_due_date,
+BillsDue.days_past_due,
+CASE 
+WHEN BillsDue.days_past_due - Contracts.grace_delinquency_days <= 0 THEN 0
+ELSE BillsDue.days_past_due - Contracts.grace_delinquency_days 
+END AS days_past_due_for_arrears,
+BillsDue.bills_balance_due
+
+
+ FROM (
+SELECT
+ROW_NUMBER() OVER (PARTITION BY Contract.bk_aggregated_dim_contract_id ORDER BY FLFinanceDetail.sk_aggregated_dim_date_record DESC, FLFinanceDetail.sk_aggregated_dim_time_record DESC) AS rn,
+Contract.sk_aggregated_dim_contract,
+Contract.bk_aggregated_dim_contract_id,
+Contract.alias AS 'AAG Contract Number',
+Contract.sequence_number AS 'Contract Sequence',
+Contract.grace_delinquency_days,
+ContractDate.bk_aggregated_dim_date AS contract_commencement_date,
+ContractMaturityDate.bk_aggregated_dim_date AS contract_maturity_date,
+
+Customer.party_number AS 'Account Number',
+Customer.creation_date AS 'Account Created Date',
+NULL AS 'SME',
+
+Customer.company_name,
+BusinessType.name AS account_legal_entity,
+CONCAT(ClassificationCode.code, ' - ', ClassificationCode.description) AS SIC_description,
+
+LeaseFinance.bk_aggregated_dim_lease_finance_id,
+LeaseFinance.customer_term_in_months,
+LeaseFinance.payment_frequency,
+productType.transaction_type AS product_name,
+
+CAST(ROUND(FLFinanceDetail.total_yield * 100, 2) as DECIMAL(10,2)) AS yield, 
+FLFinanceDetail.total_down_payment_amount AS contract_deposit,
+NULL AS contract_balance
+
+
+FROM aggregated_odessa_dim_contract AS Contract
+JOIN aggregated_odessa_fact_lease_finance_detail AS FLFinanceDetail ON Contract.sk_aggregated_dim_contract = FLFinanceDetail.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FLFinanceDetail.sk_aggregated_dim_lease_finance = LeaseFinance.sk_aggregated_dim_lease_finance AND LeaseFinance.is_current = 1  and LeaseFinance.current_flag = 1
+JOIN aggregated_odessa_dim_customer AS Customer ON Customer.sk_aggregated_dim_customer = FLFinanceDetail.sk_aggregated_dim_customer  and  Customer.current_flag = 1
+left JOIN aggregated_odessa_dim_classification_code AS ClassificationCode ON Customer.sic_code_id = ClassificationCode.bk_aggregated_dim_classification_code_id AND ClassificationCode.current_flag = 1
+left JOIN aggregated_odessa_dim_business_type AS BusinessType ON Customer.business_type_id = BusinessType.bk_aggregated_dim_business_type_id AND BusinessType.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_date AS ContractDate ON FLFinanceDetail.sk_aggregated_dim_date_commencement_date = ContractDate.sk_aggregated_dim_date
+LEFT JOIN aggregated_odessa_dim_date AS ContractMaturityDate ON FLFinanceDetail.sk_aggregated_dim_date_maturity_date = ContractMaturityDate.sk_aggregated_dim_date
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = Contract.deal_product_type_id AND productType.current_flag = 1
+WHERE Contract.current_flag = 1 AND Contract.status = 'Commenced'
+) AS Contracts 
+
+JOIN (
+SELECT
+Asset.bk_aggregated_dim_asset_id,
+Asset.alias,
+Contract.bk_aggregated_dim_contract_id AS ContractBK,
+Contract.sequence_number,
+reg.registration_number,
+DAssetStatus.asset_status,
+FactLeaseAsset.sk_aggregated_dim_contract AS ContractSK,
+FactLeaseAsset.rent_amount,
+FactLeaseAsset.nbv_amount,
+AssetValue.cost_amount,
+FactLeaseAsset.sales_tax_amount_amount AS VAT_on_asset,
+FactLeaseAsset.sk_aggregated_dim_lease_finance,
+assetSubType.value AS asset_sub_type
+
+FROM aggregated_odessa_dim_contract AS Contract
+JOIN aggregated_odessa_fact_lease_asset AS FactLeaseAsset ON Contract.sk_aggregated_dim_contract = FactLeaseAsset.sk_aggregated_dim_contract AND FactLeaseAsset.sk_aggregated_dim_date_termination_date = -1
+JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FactLeaseAsset.sk_aggregated_dim_lease_finance = LeaseFinance.sk_aggregated_dim_lease_finance AND LeaseFinance.is_current = 1 and LeaseFinance.current_flag = 1
+JOIN aggregated_odessa_dim_lease_asset AS LeaseAsset ON LeaseAsset.sk_aggregated_dim_lease_asset = FactLeaseAsset.sk_aggregated_dim_lease_asset AND LeaseAsset.is_approved = 1
+JOIN aggregated_odessa_dim_asset AS Asset ON FactLeaseAsset.sk_aggregated_dim_asset = Asset.sk_aggregated_dim_asset and Asset.current_flag = 1
+JOIN aggregated_odessa_dim_customer AS Customer ON Customer.sk_aggregated_dim_customer = FactLeaseAsset.sk_aggregated_dim_customer  and  Customer.current_flag = 1
+ LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON reg.asset_id = Asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
+LEFT JOIN vw_aggregated_odessa_fact_asset_status_latest AS AssetStatus ON Asset.bk_aggregated_dim_asset_id = AssetStatus.bk_aggregated_dim_asset_id
+LEFT JOIN aggregated_odessa_dim_asset_status AS DAssetStatus ON AssetStatus.sk_aggregated_dim_asset_status = DAssetStatus.sk_aggregated_dim_asset_status
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.bk_aggregated_dim_asset_vehicle_additional_details_id = Asset.bk_aggregated_dim_asset_id AND addDetails.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS assetSubType ON  assetSubType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.asset_sub_type_id AND assetSubType.current_flag = 1 
+LEFT JOIN vw_asset_value AS AssetValue ON Asset.bk_aggregated_dim_asset_id = AssetValue.asset_id 
+
+WHERE Contract.current_flag = 1
+AND Contract.status = 'Commenced'
+AND (assetSubType.value IS NULL OR assetSubType.value NOT IN ('Company Car', 'Company Owned Asset' ,'Fleet Managed Asset' ,'No Liability Asset', 'Purchase for Resale'))
+AND (DAssetStatus.asset_status IS NULL OR DAssetStatus.asset_status = 'Leased')
+) AS Assets ON Contracts.bk_aggregated_dim_contract_id = Assets.ContractBK --AND LeaseFinance.bk_aggregated_dim_lease_finance_id = Asset.leasefinanceBK
+
+LEFT JOIN (
+SELECT 
+SUM(amount_amount) as asset_budget_value,
+contract_id,
+asset_id
+FROM(
+SELECT 
+srpd.amount_amount,
+con.bk_aggregated_dim_contract_id as contract_id,
+srpd.asset_id,
+rc.name
+
+ 
+FROM aggregated_odessa_dim_sundry_recurring AS sr
+JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS srpd ON sr.bk_aggregated_dim_sundry_recurring_id = srpd.sundry_recurring_id AND srpd.current_flag = 1
+ JOIN aggregated_odessa_dim_contract AS con ON sr.contract_id = con.bk_aggregated_dim_contract_id AND con.current_flag = 1
+ JOIN aggregated_odessa_dim_customer AS cu ON sr.customer_id = cu.bk_aggregated_dim_customer_id AND cu.current_flag = 1
+ JOIN aggregated_odessa_dim_receivable_code AS rc ON sr.receivable_code_id = rc.bk_aggregated_dim_receivable_code_id AND rc.current_flag = 1
+ JOIN aggregated_odessa_dim_asset AS a ON srpd.asset_id = a.bk_aggregated_dim_asset_id AND a.current_flag = 1
+  JOIN (
+SELECT DISTINCT
+sundry_recurring_id,
+due_date
+from  aggregated_odessa_dim_sundry_recurring_payment_schedule AS SundryRecurringSchedule
+WHERE SundryRecurringSchedule.current_flag = 1 AND SundryRecurringSchedule.is_active = 1
+AND YEAR(SundryRecurringSchedule.due_date) = YEAR(GETDATE())
+AND MONTH(SundryRecurringSchedule.due_date) = MONTH(GETDATE())
+) AS srs ON srs.sundry_recurring_id = sr.bk_aggregated_dim_sundry_recurring_id
+ 
+WHERE sr.current_flag = 1 AND sr.is_active = 1 
+) AS ac 
+--WHERE contract_id = 2015
+GROUP BY 
+contract_id,
+asset_id
+) AS AdditionalCharges ON AdditionalCharges.asset_id = Assets.bk_aggregated_dim_asset_id
+--AND Asset_AdditionalCharges.lease_finance_id = LeaseFinance.bk_aggregated_dim_lease_finance_id
+AND Contracts.bk_aggregated_dim_contract_id = AdditionalCharges.contract_id
+
+LEFT JOIN (SELECT
+PaymentSchedule.lease_finance_detail_id,
+PaymentSchedule.end_balance_amount,
+ROW_NUMBER() OVER(PARTITION BY lease_finance_detail_id ORDER BY due_date DESC, end_balance_amount DESC) AS rn
+FROM aggregated_odessa_dim_lease_payment_schedule AS PaymentSchedule
+WHERE PaymentSchedule.current_flag = 1 AND PaymentSchedule.payment_type = 'FixedTerm'
+AND YEAR(PaymentSchedule.due_date) = YEAR(GETDATE())
+AND MONTH(PaymentSchedule.due_date) = MONTH(GETDATE())
+) AS PS ON PS.lease_finance_detail_id = Contracts.bk_aggregated_dim_lease_finance_id AND PS.rn = 1
+
+LEFT JOIN (SELECT
+PaymentSchedule.lease_finance_detail_id,
+MIN(PaymentSchedule.due_date) AS next_due_date
+FROM aggregated_odessa_dim_lease_payment_schedule AS PaymentSchedule
+WHERE PaymentSchedule.current_flag = 1 AND PaymentSchedule.payment_type IN ('FixedTerm', 'OTP')
+AND PaymentSchedule.due_date > GETDATE()
+GROUP BY PaymentSchedule.lease_finance_detail_id
+)AS NextPayment ON NextPayment.lease_finance_detail_id = Contracts.bk_aggregated_dim_lease_finance_id
+
+LEFT JOIN (SELECT
+DimInvoiceDetail.entity_id,
+SUM(InvoiceDetail.invoice_amount_amount) AS bills_balance_due,
+SUM(InvoiceDetail.invoice_tax_amount_amount) AS bills_balance_due_tax,
+DATEDIFF(day, MIN(Receivable.due_date), GETDATE()) AS days_past_due
+FROM aggregated_odessa_dim_receivable_invoice_detail AS DimInvoiceDetail
+JOIN aggregated_odessa_fact_receivable_invoice_detail AS InvoiceDetail ON InvoiceDetail.sk_aggregated_dim_receivable_invoice_detail = DimInvoiceDetail.sk_aggregated_dim_receivable_invoice_detail
+JOIN aggregated_odessa_dim_receivable AS Receivable ON Receivable.sk_aggregated_dim_receivable = InvoiceDetail.sk_aggregated_dim_receivable --AND Receivable.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_category AS Category ON InvoiceDetail.sk_aggregated_dim_receivable_category = Category.sk_aggregated_dim_receivable_category --AND Category.current_flag = 1
+WHERE DimInvoiceDetail.entity_type = 'CT'
+AND COALESCE(InvoiceDetail.effective_balance_amount, InvoiceDetail.effective_tax_balance_amount) > 0 
+AND Receivable.due_date <= GETDATE()
+AND Category.name = 'Rental'
+GROUP BY DimInvoiceDetail.entity_id) AS BillsDue ON BillsDue.entity_id = Contracts.bk_aggregated_dim_contract_id
+
+WHERE Contracts.rn = 1 
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_arbuthnot_loan_agreement
+-- Depends on: rpt_ts_arbuthnot_regulatory_report_v2
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_arbuthnot_loan_agreement
+
+AS
+
+SELECT
+
+agreement.[Account Number]
+,agreement.[Contract Sequence] AS 'Contract Sequence' -- not available in Odessa
+,agreement.[company_name] AS 'Account Name'
+--,customer.[status] AS 'Status'
+,agreement.[Account Created Date] AS 'Created Date'
+,agreement.SME
+,agreement.[account_legal_entity] AS 'Legal Entity Type'
+,agreement.[SIC_description] AS 'SIC Description'
+,'LES-' + agreement.[Contract Sequence] AS 'Lending Account ID'
+,agreement.[product_name] AS 'Lease Product Name'
+,agreement.[yield] AS 'Yield (%)'
+,agreement.[contract_commencement_date] 'Contract Date'
+,agreement.[contract_maturity_date] AS 'Maturity Date'
+,agreement.[customer_term_in_months] AS 'Current Term'
+,agreement.[charge_to_customer] AS 'Charge To Customer'
+,agreement.[payment_frequency] AS 'Rental Term Unit'
+,agreement.[bills_balance_due] AS 'Bills Balance Due'
+,agreement.[contract_next_due_date] AS 'Next Due Date'
+,agreement.[contract_balance] AS 'Contract Balance' -- WAITING ON ODESSA
+,agreement.[nbv_amount] AS 'Equipment NBV'
+
+FROM
+
+rpt_ts_arbuthnot_regulatory_report_v2 AS agreement
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_book_depreciation
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_book_depreciation
+AS
+SELECT *
+FROM
+( 
+	SELECT      [bk_aggregated_dim_book_depreciation_id],
+				[sk_aggregated_dim_book_depreciation],
+				[cost_basis_amount],
+				[salvage_amount],
+				[scrap_amount],
+				[cost_center_id],
+				[book_depreciation_template_id],
+				[asset_id],
+				[contract_id],
+				[last_amort_run_date],
+				[reversal_post_date],
+				[remaining_life_in_months],
+				[per_day_depreciation_factor],
+				[begin_date],
+				[terminated_date],
+				[is_active],
+				current_flag,				
+				ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY ISNULL(terminated_date, end_date) DESC, begin_date DESC) AS current_asset_value,
+				ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY ISNULL(contract_id, -1) DESC, begin_date DESC, sk_aggregated_dim_book_depreciation DESC) AS current_contract_value,	
+				ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY begin_date ASC) AS initial_asset_value,
+				ROW_NUMBER() OVER(PARTITION BY asset_id, contract_id ORDER BY begin_date ASC) AS initial_contract_value							
+	FROM aggregated_odessa_dim_book_depreciation
+	WHERE current_flag = 1 
+	AND is_active = 1
+) AS a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_contract_assignments
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_contract_assignments
+AS 
+SELECT *
+FROM
+(
+    SELECT 
+        eContract.contract_id
+        ,Users.full_name AS employee_name
+        ,rFunction.name AS role_function
+        ,rFunction.[system_defined_name]
+        ,ROW_NUMBER() OVER(PARTITION BY eContract.contract_id ORDER BY eContract.is_primary DESC) AS primary_contact
+    FROM aggregated_odessa_dim_employees_assigned_to_contract AS eContract
+        JOIN aggregated_odessa_dim_employees_assigned_to_party AS eParty ON eContract.[employee_assigned_to_party_id] = eParty.[bk_aggregated_dim_employees_assigned_to_party_id]
+        JOIN aggregated_odessa_dim_role_function AS rFunction ON eParty.[role_function_id] = rFunction.[bk_aggregated_dim_role_function_id] 
+        JOIN aggregated_odessa_dim_user AS Users ON eParty.[employee_id] = Users.[bk_aggregated_dim_user_id]
+    WHERE eContract.current_flag = 1
+        AND eParty.current_flag = 1
+        AND rFunction.current_flag = 1
+        AND Users.current_flag = 1
+) AS a
+WHERE a.primary_contact = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_customer_assignments
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_customer_assignments
+AS 
+
+With customer AS (
+SELECT bk_aggregated_dim_customer_id, party_name FROM aggregated_odessa_dim_customer
+WHERE current_flag = 1 AND status = 'Active'
+), sales_rep as (
+SELECT DISTINCT
+EmployeeAssigned.employee_id,
+EmployeeAssigned.party_id AS customer_id,
+DimUser.full_name AS employee_name,
+RoleFunction.name AS role_function,
+RoleFunction.system_defined_name
+
+FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
+JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Sales Rep'
+JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
+
+WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1
+), account_manager AS (
+SELECT DISTINCT
+EmployeeAssigned.employee_id,
+EmployeeAssigned.party_id AS customer_id,
+DimUser.full_name AS employee_name,
+RoleFunction.name AS role_function,
+RoleFunction.system_defined_name
+
+FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
+JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Account Manager'
+JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
+
+WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1
+)
+
+SELECT 
+bk_aggregated_dim_customer_id AS customer_id,
+party_name,
+COALESCE(sr.employee_name, ac.employee_name) AS employee_name,
+COALESCE(sr.role_function, ac.role_function) AS role_function,
+COALESCE(sr.system_defined_name, ac.system_defined_name) AS system_defined_name
+FROM customer AS c
+LEFT JOIN sales_rep AS sr on c.bk_aggregated_dim_customer_id = sr.customer_id
+LEFT JOIN account_manager AS ac ON c.bk_aggregated_dim_customer_id = ac.customer_id
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_credit_application
+-- Depends on: vw_customer_assignments
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_credit_application
+AS 
+SELECT *
+FROM
+(
+SELECT 
+		cProfile.master_lease_agreement
+		,cProfile.line_type
+		,cProfile.aag_contract_type
+
+		,cProfile.pre_approval_loc_id
+		,cProfile.line_of_credit_id
+		,opportunity.bk_aggregated_dim_opportunity_id AS opportunity_id
+		,opportunity.customer_id
+		,cProfile.bk_aggregated_dim_credit_profile_id AS credit_profile_id
+		,opportunity.number AS application_id
+		,opportunity.number AS opportunity_number			
+		,cProfile.number AS credit_profile_number	
+
+		,opportunity.report_status 
+		,cProfile.status AS loc_status
+		,cProfile.status
+		,application.status AS application_status		
+		,cProfile.status_date
+
+		,cProfile.requested_amount_amount
+		,cProfile.approved_amount_amount
+		,cProfile.used_amount_amount
+
+		,opportunityUser.full_name AS application_owner
+		,customer.[company_name]
+		,customer.[sales_force_customer_name]
+        ,crStructure.bk_aggregated_dim_credit_approved_structure_id AS credit_approved_structure_id
+		,crStructure.expected_commencement_date
+		,crStructure.[deal_product_type_id]
+		,crStructure.customer_term
+		,crStructure.payment_frequency
+		,crStructure.amount_amount
+		,crStructure.number_of_inception_payments
+		,crStructure.estimated_balloon_amount_amount
+		,crStructure.[rent_amount]
+		,center.[description] AS cost_centre
+		,cProfile.created_time
+		,cProfile.updated_time
+		,cProfile.[master_lease_agreement] AS 'AAG Contract Number'    
+		,cProfile.[notice_period]   
+		,cProfile.[is_all_assets_taken_down]
+		,cProfile.[is_pre_approved]
+		,cProfile.[is_pre_approval]
+		,application.[submitted_to_credit_date]  
+		,application.created_time AS application_created_date
+
+		,productType.[transaction_type]
+
+		,opportunityUser.full_name AS opportunity_owner  
+		,assignedUser.full_name AS assigned_user
+		,applicationUser.full_name AS application_created_by 
+		,updateUser.full_name AS updated_by	
+		,salesRep.[employee_name] AS primary_sales_rep   
+		,creditUser.full_name AS loc_created_by 	
+
+		,lEntity.[legal_entity_number]
+		,lEntity.[name] AS legal_entity
+		,branch.[branch_name]
+		,lBusiness.[name] AS line_of_business
+		,ISNULL(asset.equipment_count,0) AS equipment_count				
+
+FROM aggregated_odessa_dim_opportunity AS opportunity 
+LEFT JOIN  aggregated_odessa_dim_credit_profile AS cProfile ON opportunity.bk_aggregated_dim_opportunity_id = cProfile.opportunity_id AND cProfile.current_flag = 1
+LEFT JOIN  aggregated_odessa_dim_customer AS customer ON customer.bk_aggregated_dim_customer_id = opportunity.customer_id AND customer.current_flag = 1
+LEFT JOIN  aggregated_odessa_dim_credit_approved_structure AS crStructure ON crStructure.credit_profile_id = cProfile.bk_aggregated_dim_credit_profile_id AND crStructure.current_flag = 1 AND crStructure.number = 1
+LEFT JOIN  aggregated_odessa_dim_cost_center AS center ON center.[bk_aggregated_dim_cost_center_id] = opportunity.[cost_center_id] AND center.current_flag = 1
+LEFT JOIN  aggregated_odessa_dim_user opportunityUser ON opportunity.created_by_id = opportunityUser.[bk_aggregated_dim_user_id] AND opportunityUser.current_flag = 1
+LEFT JOIN  aggregated_odessa_dim_user AS assignedUser ON cProfile.[assigned_to_user_id] = assignedUser.[bk_aggregated_dim_user_id] AND assignedUser.current_flag = 1  
+LEFT JOIN  aggregated_odessa_dim_user AS updateUser ON cProfile.[updated_by_id] = updateUser.[bk_aggregated_dim_user_id] AND updateUser.current_flag = 1 
+
+LEFT JOIN  aggregated_odessa_dim_deal_product_type AS productType ON productType.[bk_aggregated_dim_deal_product_type_id] = crStructure.[deal_product_type_id] AND productType.current_flag = 1
+LEFT JOIN  aggregated_odessa_dim_legal_entity AS lEntity ON lEntity.[bk_aggregated_dim_legal_entity_id] = opportunity.[legal_entity_id] AND lEntity.current_flag = 1
+LEFT JOIN  aggregated_odessa_dim_branch AS branch ON opportunity.branch_id = branch.[bk_aggregated_dim_branch_id] AND branch.current_flag = 1 
+LEFT JOIN  aggregated_odessa_dim_line_of_business AS lBusiness ON opportunity.[lineof_business_id] = lBusiness.[bk_aggregated_dim_line_of_business_id] AND lBusiness.current_flag = 1
+LEFT JOIN  
+		(
+			SELECT credit_application_id
+				   ,COUNT(asset_id) AS equipment_count
+			FROM aggregated_odessa_dim_credit_application_asset AS asset
+			WHERE asset.current_flag = 1        
+			GROUP BY credit_application_id
+		) AS asset
+		ON asset.[credit_application_id] = cProfile.[opportunity_id]
+LEFT JOIN aggregated_odessa_dim_credit_application AS application ON application.[bk_aggregated_dim_credit_application_id] = opportunity.bk_aggregated_dim_opportunity_id AND application.current_flag = 1
+LEFT JOIN  aggregated_odessa_dim_user AS applicationUser ON application.[created_by_id] = applicationUser.[bk_aggregated_dim_user_id] AND applicationUser.current_flag = 1
+LEFT JOIN  aggregated_odessa_dim_user AS creditUser ON cProfile.[created_by_id] = creditUser.[bk_aggregated_dim_user_id] AND creditUser.current_flag = 1
+LEFT JOIN vw_customer_assignments AS salesRep ON salesRep.customer_id = customer.bk_aggregated_dim_customer_id AND salesRep.system_defined_name = 'SalesRep'
+WHERE opportunity.current_flag = 1
+) AS a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_application_progress
+-- Depends on: vw_credit_application
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_application_progress
+AS
+SELECT 
+      application.opportunity_number 'Application Number'
+      ,application.credit_profile_number AS loc_number
+      ,application.credit_approved_structure_id
+      ,ISNULL(application.[notice_period],'-') AS 'Notice Period'
+      ,application.company_name 'Account'
+      ,application.expected_commencement_date AS 'Expected Start Date'
+      ,application.transaction_type AS 'Product Name'
+      ,ISNULL(application.equipment_count,0) AS 'Number of Pieces of Equipment'     
+      ,ISNULL(application.approved_amount_amount,0) AS 'Financed Amount'
+      ,ISNULL(application.amount_amount,0) AS 'Payment Amount'      
+      ,application.legal_entity_number
+      ,application.status AS Status      
+      ,application.application_status AS Stage
+      ,application.branch_name AS 'Branch'
+      ,application.line_of_business AS 'Line of Business'
+
+      ,application.customer_term AS Term
+      ,application.payment_frequency    
+
+      ,application.loc_created_by AS 'Created By'
+      ,application.assigned_user  AS 'Application Owner'
+      ,application.primary_sales_rep AS 'Sales Rep'  
+
+      ,application.created_time AS 'Created Date'
+      ,application.status_date AS 'Status - Last Change Date'
+      ,application.updated_time AS 'Application: Last Modified Date'
+      ,application.updated_by AS 'Application: Last Modified By'
+      ,application.application_id AS 'Application ID'
+      ,application.rent_amount 
+
+FROM vw_credit_application AS application
+WHERE LOWER(application.status) IN ('approved','amendment')
+AND application.[is_pre_approval] = 0
+AND application.is_all_assets_taken_down = 0
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_in_application
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_in_application AS
+
+WITH app_asset AS (
+SELECT 
+ca.bk_aggregated_dim_credit_application_id,
+cu.party_name,
+ca.status,
+o.number AS opp_number,
+o.report_status,
+cc.description AS cost_center,
+caa.asset_id,
+ca.created_by_id,
+applicationUser.full_name AS app_created_by 
+
+
+FROM aggregated_odessa_dim_credit_application AS ca 
+JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = ca.[bk_aggregated_dim_credit_application_id] AND o.current_flag = 1
+JOIN aggregated_odessa_dim_credit_application_asset AS caa ON ca.bk_aggregated_dim_credit_application_id = caa.[credit_application_id] AND caa.current_flag = 1
+JOIN aggregated_odessa_dim_customer AS cu ON o.customer_id = cu.[bk_aggregated_dim_customer_id] AND cu.current_flag = 1
+JOIN aggregated_odessa_dim_cost_center AS cc ON o.[cost_center_id] = cc.[bk_aggregated_dim_cost_center_id] AND cc.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_credit_profile AS cp ON ca.[bk_aggregated_dim_credit_application_id] = cp.opportunity_id AND cp.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_user AS applicationUser ON ca.[created_by_id] = applicationUser.[bk_aggregated_dim_user_id] AND applicationUser.current_flag = 1
+
+WHERE ca.current_flag = 1
+AND ca.status IN ('Pending', 'SubmittedToCredit')
+AND cp.bk_aggregated_dim_credit_profile_id IS NULL
+),
+app_asset_structure AS (
+SELECT 
+ca.bk_aggregated_dim_credit_application_id,
+o.customer_id,
+cu.party_name,
+ca.status,
+o.number AS opp_number,
+o.report_status,
+cas.number AS exhibit_number, 
+capr.expected_disbursement_date,
+casa.asset_id,
+cp.[bk_aggregated_dim_credit_profile_id],
+dt.product_type,
+tt.transaction_type
+
+FROM aggregated_odessa_dim_credit_application AS ca 
+JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = ca.[bk_aggregated_dim_credit_application_id] AND o.current_flag = 1
+JOIN aggregated_odessa_dim_credit_application_structure AS cas ON ca.bk_aggregated_dim_credit_application_id = cas.credit_application_id AND cas.current_flag = 1  AND cas.is_active = 1
+JOIN aggregated_odessa_dim_credit_application_structure_asset AS casa ON cas.[bk_aggregated_dim_credit_application_structure_id] = casa.[credit_application_structure_id] and casa.current_flag = 1 AND casa.is_active = 1
+JOIN aggregated_odessa_dim_credit_application_pricing_detail AS capr ON cas.[bk_aggregated_dim_credit_application_structure_id]  = capr.[bk_aggregated_dim_credit_application_pricing_detail_id] AND capr.current_flag = 1 AND capr.is_active = 1
+JOIN aggregated_odessa_dim_customer AS cu ON o.customer_id = cu.[bk_aggregated_dim_customer_id] AND cu.current_flag = 1
+JOIN aggregated_odessa_dim_deal_type AS dt ON cas.[deal_type_id] = dt.[bk_aggregated_dim_deal_type_id] AND dt.current_flag = 1
+JOIN aggregated_odessa_dim_deal_product_type AS tt ON cas.[transaction_type_id] = tt.[bk_aggregated_dim_deal_product_type_id] AND tt.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_credit_profile AS cp ON ca.[bk_aggregated_dim_credit_application_id] = cp.opportunity_id AND cp.current_flag = 1
+WHERE ca.current_flag = 1
+AND ca.status IN ('Pending', 'SubmittedToCredit')
+AND cp.bk_aggregated_dim_credit_profile_id IS NULL
+),
+credit_profile AS (
+SELECT 
+cp.[bk_aggregated_dim_credit_profile_id],
+cu.party_name,
+cp.number AS credit_number,
+o.number AS opp_number,
+cc.description AS cost_center,
+--cp.opportunity_id,
+cp.status,
+cp.report_status,
+--cp.master_lease_agreement,
+cas.number,
+cas.expected_commencement_date,
+cpasa.asset_id,
+contract.sequence_number,
+contract.status AS booking_status,
+dt.product_type,
+dpt.transaction_type,
+applicationUser.full_name AS opp_created_by,
+ROW_NUMBER() OVER( PARTITION BY cpasa.asset_id, cp.number ORDER BY cas.number DESC) AS child_app
+FROM aggregated_odessa_dim_credit_profile as cp
+JOIN aggregated_odessa_dim_opportunity AS o ON o.[bk_aggregated_dim_opportunity_id] = cp.[opportunity_id] AND o.current_flag = 1
+JOIN aggregated_odessa_dim_credit_approved_structure AS cas ON cp.[bk_aggregated_dim_credit_profile_id] = cas.credit_profile_id AND cas.current_flag = 1 AND cas.is_active = 1
+JOIN aggregated_odessa_dim_credit_profile_approved_structure_asset AS cpasa ON cas.[bk_aggregated_dim_credit_approved_structure_id] = cpasa.[credit_approved_structure_id] AND cpasa.current_flag = 1 AND cpasa.is_active = 1
+JOIN aggregated_odessa_dim_customer AS cu ON o.customer_id = cu.[bk_aggregated_dim_customer_id] AND cu.current_flag = 1
+JOIN aggregated_odessa_dim_deal_type AS dt ON cas.[deal_type_id] = dt.[bk_aggregated_dim_deal_type_id] AND dt.current_flag = 1
+JOIN aggregated_odessa_dim_deal_product_type AS dpt ON cas.[deal_product_type_id] = dpt.[bk_aggregated_dim_deal_product_type_id] AND dpt.current_flag = 1
+JOIN aggregated_odessa_dim_cost_center AS cc ON cp.[cost_center_id] = cc.[bk_aggregated_dim_cost_center_id] AND cc.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_contract AS contract ON cas.[bk_aggregated_dim_credit_approved_structure_id]= contract.[credit_approved_structure_id] AND contract.current_flag = 1 AND contract.status != 'Inactive'
+LEFT JOIN aggregated_odessa_dim_user AS applicationUser ON o.[created_by_id] = applicationUser.[bk_aggregated_dim_user_id] AND applicationUser.current_flag = 1
+
+WHERE cp.current_flag = 1
+AND cp.status NOT IN ('Inactivate', 'Declined', 'OpportunityWithdrawn', 'Cancelled')
+),
+in_app AS (
+SELECT asset.bk_aggregated_dim_asset_id, asset.alias, 
+--CASE WHEN (app_asset_structure.status IS NULL AND credit_profile.credit_number IS NULL AND app_asset.status IS NULL) THEN 0 ELSE 1 END AS in_application,
+CASE
+WHEN credit_profile.sequence_number IS NOT NULL AND credit_profile.booking_status = 'InstallingAssets'  THEN 'contract installing assets'
+WHEN credit_profile.sequence_number IS NOT NULL AND credit_profile.booking_status = 'Pending'  THEN 'contract pending'
+WHEN credit_profile.sequence_number IS NOT NULL AND credit_profile.booking_status <> 'Pending'THEN 'converted to contract'
+    WHEN credit_profile.sequence_number is null and credit_profile.credit_number IS NOT NULL THEN 'line of credit'
+        WHEN (credit_profile.credit_number IS NULL AND app_asset_structure.status IS NOT NULL) THEN 'app structure'
+        WHEN (credit_profile.credit_number IS NULL AND app_asset_structure.status IS NULL and app_asset.bk_aggregated_dim_credit_application_id IS NOT NULL) THEN 'app'
+    ELSE 'not in application'
+END AS stage,
+
+--APP ASSET
+app_asset.bk_aggregated_dim_credit_application_id,
+app_asset.party_name AS app_company_name,
+app_asset.opp_number AS app_opp_number,
+app_asset.cost_center AS app_cost_center,
+app_asset.app_created_by,
+app_asset.status AS app_status,
+
+
+--APP ASSET STRUCTURE
+app_asset_structure.party_name AS app_structure_company_name,
+app_asset_structure.opp_number AS app_structure_opp_number,
+app_asset_structure.exhibit_number, 
+app_asset_structure.expected_disbursement_date,
+app_asset_structure.product_type AS app_structure_product_type,
+app_asset_structure.transaction_type AS app_structure_transaction_type,
+
+
+--CREDIT PROFILE
+credit_profile.[bk_aggregated_dim_credit_profile_id],
+credit_profile.party_name AS loc_company_name,
+credit_profile.credit_number,
+credit_profile.opp_number AS loc_opp_number,
+credit_profile.cost_center AS loc_cost_center,
+credit_profile.status AS loc_status,
+credit_profile.number,
+credit_profile.child_app,
+credit_profile.expected_commencement_date,
+credit_profile.sequence_number,
+credit_profile.booking_status,
+credit_profile.product_type,
+credit_profile.transaction_type,
+credit_profile.opp_created_by,
+COALESCE(credit_profile.transaction_type, app_asset_structure.transaction_type) AS combined_product_name,
+COALESCE(credit_profile.party_name, app_asset.party_name) as combined_company_name,
+COALESCE(credit_profile.opp_number, app_asset_structure.opp_number, app_asset.opp_number) AS combined_opp_number,
+COALESCE(app_asset.app_created_by, credit_profile.opp_created_by) AS combined_created_by
+
+
+FROM aggregated_odessa_dim_asset as asset
+LEFT JOIN app_asset ON asset.bk_aggregated_dim_asset_id = app_asset.asset_id
+LEFT JOIN app_asset_structure ON asset.bk_aggregated_dim_asset_id = app_asset_structure.asset_id 
+LEFT JOIN credit_profile ON asset.bk_aggregated_dim_asset_id = credit_profile.asset_id AND credit_profile.child_app = 1 
+WHERE asset.current_flag = 1
+)
+SELECT * FROM in_app 
+WHERE stage NOT IN ('converted to contract', 'not in application')
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_fleetspendreporting2
+-- Depends on: vw_aggregated_odessa_fact_asset_status_latest, vw_in_application
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_fleetspendreporting2 AS
+
+with contract_fact_order_p1 as (
+SELECT contract.bk_aggregated_dim_contract_id, 
+asset.bk_aggregated_dim_asset_id,
+LeaseFinance.bk_aggregated_dim_lease_finance_id,
+ROW_NUMBER() OVER(
+    PARTITION BY contract.bk_aggregated_dim_contract_id, asset.bk_aggregated_dim_asset_id, LeaseFinance.bk_aggregated_dim_lease_finance_id 
+    ORDER BY contract.sk_aggregated_dim_contract DESC, LeaseFinance.[sk_aggregated_dim_lease_finance] DESC, asset.sk_aggregated_dim_asset DESC
+) AS fact_contract_order, 
+fact_table.*
+FROM aggregated_odessa_dim_contract contract
+LEFT JOIN aggregated_odessa_fact_lease_asset fact_table ON fact_table.sk_aggregated_dim_contract = contract.sk_aggregated_dim_contract
+left join aggregated_odessa_dim_asset asset ON fact_table.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset
+left JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON fact_table.[sk_aggregated_dim_lease_finance] = LeaseFinance.sk_aggregated_dim_lease_finance --AND LeaseFinance.is_current = 1
+WHERE fact_table.sk_aggregated_dim_contract IS NOT NULL  and fact_table.sk_aggregated_dim_asset IS NOT NULL and fact_table.[sk_aggregated_dim_lease_finance] is not null
+), 
+contract_fact_order as (
+select  *
+from contract_fact_order_p1 
+where fact_contract_order = 1),
+contract_lease_fact_order_p1 as (
+SELECT contract.bk_aggregated_dim_contract_id, 
+Customer.bk_aggregated_dim_customer_id,
+LeaseFinance.bk_aggregated_dim_lease_finance_id,
+fact_table.[sk_aggregated_dim_date_commencement_date],
+fact_table.[sk_aggregated_dim_date_maturity_date], total_yield, total_down_payment_amount,
+ROW_NUMBER() OVER(
+    PARTITION BY contract.bk_aggregated_dim_contract_id, LeaseFinance.bk_aggregated_dim_lease_finance_id, Customer.bk_aggregated_dim_customer_id 
+    ORDER BY contract.sk_aggregated_dim_contract DESC, LeaseFinance.[sk_aggregated_dim_lease_finance] DESC, Customer.[sk_aggregated_dim_customer] DESC
+) AS fact_contract_lease_order 
+FROM aggregated_odessa_dim_contract contract
+LEFT JOIN aggregated_odessa_fact_lease_finance_detail fact_table ON fact_table.sk_aggregated_dim_contract = contract.sk_aggregated_dim_contract
+left JOIN aggregated_odessa_dim_customer AS Customer ON fact_table.sk_aggregated_dim_customer = Customer.[sk_aggregated_dim_customer] 
+left JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON fact_table.[sk_aggregated_dim_lease_finance] = LeaseFinance.sk_aggregated_dim_lease_finance --AND LeaseFinance.is_current = 1
+WHERE fact_table.sk_aggregated_dim_contract IS NOT NULL  and fact_table.sk_aggregated_dim_customer IS NOT NULL and fact_table.[sk_aggregated_dim_lease_finance] is not null
+),
+contract_lease_fact_order as (
+select  *
+from contract_lease_fact_order_p1 
+where fact_contract_lease_order = 1)
+
+SELECT 
+reg.registration_number,
+asset.alias,
+asset.[bk_aggregated_dim_asset_id] AS asset_id,	
+asset.[aag_fleet_number],
+asset.[asset_contract_type],
+asset.[description],
+asset.initial_mileage,
+asset.[gross_vehicle_weight],
+asset.[model_year],
+asset.[service_intervals_trailer],
+asset.[service_intervals_vehicle],
+asset.[manufacturer_name],
+asset.[manufacturer_description],
+asset.[model_name],
+asset.[category_name],
+asset.[category_description],
+asset.[make_name],
+asset.[product_name],
+asset.road_fund_licence,
+asset.[spare_vehicle_provision_for_mot_after_twenty_four_hours],
+asset.[spare_vehicle_provision_for_service_after_twenty_four_hours],
+asset.book_value_amount,
+asset.last_known_mileage,
+asset.[twenty_four_hours_breakdown_cover],
+asset.[online_o_licence],
+asset.[outof_hours_serviceand_maintenance],
+asset.[dand_c_schedule_services],
+asset.[replacement_vehiclefor_breakdown],
+asset.[full_service_and_maintenance_chassis],
+asset.[fridge_service_maintenance],
+asset.[service_intervals_fridgebox],
+asset.[tail_lift_service_maintenance],
+asset.[service_intervals_tail_lift],
+asset.[crane_service_maintenance],
+asset.[pto_service_maintenance],
+asset.[tyres_fair_wear_tear],
+asset.[windscreen_section],
+asset.[livery],
+asset.[gps_tracking],
+asset.[full_service_and_maintenance_trailer],
+detail.gvw,
+detail.[contract_mileage],
+serialNumber.serial_number,
+        bodybuilder.name,
+        --asset.asset_category,
+
+        asset.mot_preperationand_testing,
+        dstatus.asset_status,
+        asset.[excess_distance_charge_rate],
+        addDetails.original_location,
+        detail.maintenance_inclusions,
+        assetSubType.value,
+addDetails.current_flag,
+addDetails.[r_and_m_expiry_date],
+bodytype.[body_type_code] AS [body_type],
+location.city, 
+
+contractDetails.*,
+
+CASE WHEN AssetsOnApp.bk_aggregated_dim_asset_id IS NOT NULL THEN 1 ELSE 0 END AS in_application
+
+
+FROM [aggregated_odessa_dim_asset] AS asset
+JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
+ JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details = fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
+ JOIN aggregated_odessa_dim_vehicle_detail detail ON detail.[sk_aggregated_dim_vehicle_detail] = fstatus.sk_aggregated_dim_vehicle_detail AND detail.current_flag = 1
+ left JOIN aggregated_odessa_dim_body_type_config AS bodytype ON detail.body_type_config_id = bodytype.[bk_aggregated_dim_body_type_config_id] AND bodytype.current_flag = 1 and bodytype.is_active = 1
+LEFT JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status
+
+  left JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1 AND is_active = 1) AS reg 
+        ON reg.asset_id = asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
+LEFT JOIN aggregated_odessa_dim_asset_location AS assetLocation ON assetLocation.asset_id = asset.bk_aggregated_dim_asset_id AND assetLocation.current_flag = 1 AND assetLocation.is_current = 1
+LEFT JOIN aggregated_odessa_dim_location AS location ON location.[bk_aggregated_dim_location_id] = assetLocation.location_id AND location.current_flag = 1
+LEFT JOIN (select *, row_number() over (partition by asset_id order by created_time desc) SN from aggregated_odessa_dim_asset_serial_numbers where current_flag = 1) AS serialNumber 
+        ON serialNumber.asset_id = asset.bk_aggregated_dim_asset_id AND serialNumber.current_flag = 1 AND SN=1
+
+LEFT JOIN aggregated_odessa_dim_body_builder_config AS bodybuilder ON detail.body_builder_config_id = bodybuilder.[bk_aggregated_dim_body_builder_config_id] AND bodybuilder.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS assetSubType ON  assetSubType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[asset_sub_type_id] AND assetSubType.current_flag = 1 
+
+LEFT JOIN (
+
+SELECT DISTINCT 
+Customer.company_name,
+Contract.alias AS contract_number,
+Contract.sequence_number,
+Contract.status,
+ContractDate.[bk_aggregated_dim_date] AS commencement_date,
+ContractMaturityDate.bk_aggregated_dim_date AS maturity_date,
+LeaseFinance.customer_term_in_months,
+LeaseFinance.payment_frequency,
+productType.transaction_type,
+ROW_NUMBER() OVER(PARTITION BY Asset.bk_aggregated_dim_asset_id ORDER BY ContractDate.[bk_aggregated_dim_date] DESC) AS current_lease,
+
+
+Asset.*
+
+FROM aggregated_odessa_dim_contract AS Contract
+JOIN contract_lease_fact_order FLFinanceDetail ON Contract.[bk_aggregated_dim_contract_id] = FLFinanceDetail.[bk_aggregated_dim_contract_id]
+JOIN aggregated_odessa_dim_customer AS Customer ON Customer.[bk_aggregated_dim_customer_id] = FLFinanceDetail.bk_aggregated_dim_customer_id  and  Customer.current_flag = 1
+JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FLFinanceDetail.[bk_aggregated_dim_lease_finance_id] = LeaseFinance.bk_aggregated_dim_lease_finance_id AND LeaseFinance.is_current = 1  and LeaseFinance.current_flag = 1
+left JOIN aggregated_odessa_dim_classification_code AS ClassificationCode ON Customer.sic_code_id = ClassificationCode.[bk_aggregated_dim_classification_code_id] AND ClassificationCode.current_flag = 1
+left JOIN aggregated_odessa_dim_business_type AS BusinessType ON Customer.[business_type_id] = BusinessType.[bk_aggregated_dim_business_type_id] AND BusinessType.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_date AS ContractDate ON FLFinanceDetail.[sk_aggregated_dim_date_commencement_date] = ContractDate.[sk_aggregated_dim_date]
+LEFT JOIN aggregated_odessa_dim_date AS ContractMaturityDate ON FLFinanceDetail.[sk_aggregated_dim_date_maturity_date] = ContractMaturityDate.[sk_aggregated_dim_date]
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.[bk_aggregated_dim_deal_product_type_id] = Contract.[deal_product_type_id] AND productType.current_flag = 1
+
+
+JOIN (
+SELECT DISTINCT
+Asset.bk_aggregated_dim_asset_id,
+td.[bk_aggregated_dim_date] AS terminated_date,
+--Asset.alias AS asset_alias,
+Contract.bk_aggregated_dim_contract_id AS ContractBK,
+
+FactLeaseAsset.sk_aggregated_dim_contract AS ContractSK,
+FactLeaseAsset.rent_amount,
+FactLeaseAsset.nbv_amount,
+FactLeaseAsset.sk_aggregated_dim_lease_finance,
+LeaseFinance.bk_aggregated_dim_lease_finance_id as leasefinanceBK
+
+
+FROM aggregated_odessa_dim_contract AS Contract
+JOIN contract_fact_order AS FactLeaseAsset ON Contract.[bk_aggregated_dim_contract_id] = FactLeaseAsset.bk_aggregated_dim_contract_id --AND LeaseFinance.sk_aggregated_dim_lease_finance = FactLeaseAsset.sk_aggregated_dim_lease_finance
+JOIN aggregated_odessa_dim_lease_finance AS LeaseFinance ON FactLeaseAsset.[bk_aggregated_dim_lease_finance_id] = LeaseFinance.bk_aggregated_dim_lease_finance_id AND LeaseFinance.is_current = 1 and LeaseFinance.current_flag = 1
+JOIN aggregated_odessa_dim_asset AS Asset ON FactLeaseAsset.[bk_aggregated_dim_asset_id] = Asset.bk_aggregated_dim_asset_id and Asset.current_flag = 1
+LEFT JOIN vw_aggregated_odessa_fact_asset_status_latest AS AssetStatus ON Asset.[bk_aggregated_dim_asset_id] = AssetStatus.bk_aggregated_dim_asset_id
+LEFT JOIN aggregated_odessa_dim_date AS td ON FactLeaseAsset.[sk_aggregated_dim_date_termination_date] = td.[sk_aggregated_dim_date]
+
+WHERE Contract.current_flag = 1
+
+
+) AS Asset ON Contract.[bk_aggregated_dim_contract_id] = Asset.ContractBK AND LeaseFinance.bk_aggregated_dim_lease_finance_id = Asset.leasefinanceBK
+
+WHERE Contract.current_flag = 1) AS contractDetails ON asset.bk_aggregated_dim_asset_id = contractDetails.bk_aggregated_dim_asset_id
+
+LEFT JOIN vw_in_application AS AssetsOnApp ON asset.bk_aggregated_dim_asset_id = AssetsOnApp.[bk_aggregated_dim_asset_id]
+
+WHERE asset.current_flag = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_fleetspendreporting2_in_application
+-- Depends on: vw_in_application
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_fleetspendreporting2_in_application AS (
+SELECT
+reg.registration_number,
+asset.aag_fleet_number,
+asset.[manufacturer_name],
+asset.[model_name],
+asset.[make_name],
+asset.[product_name],
+
+dstatus.asset_status,
+app.*
+
+ FROM aggregated_odessa_dim_asset as asset
+LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1 AND is_active = 1) AS reg 
+        ON reg.asset_id = asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
+LEFT JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
+LEFT JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status
+
+JOIN vw_in_application AS app ON asset.[bk_aggregated_dim_asset_id] = app.bk_aggregated_dim_asset_id 
+WHERE asset.current_flag = 1
+)
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_fleetspendreporting2_in_inventory
+-- Depends on: vw_in_application
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_fleetspendreporting2_in_inventory AS
+SELECT DISTINCT
+reg.registration_number,
+asset.alias AS asset_alias,
+asset.aag_fleet_number,
+asset.[manufacturer_name],
+asset.[model_name],
+asset.[make_name],
+asset.[product_name],
+dstatus.asset_status,
+contract.sequence_number AS sn,
+contract.contract_number,
+contract.status,
+contract.company_name AS last_customer,
+contract.termination_date,
+asset.[asset_contract_type],
+location.city,
+assetSubType.value,
+app.*
+
+ FROM aggregated_odessa_dim_asset as asset
+LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1 AND is_active = 1) AS reg 
+        ON reg.asset_id = asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1  
+LEFT JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
+LEFT JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status
+ JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details = fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS assetSubType ON  assetSubType.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[asset_sub_type_id] AND assetSubType.current_flag = 1 
+LEFT JOIN aggregated_odessa_dim_asset_location AS assetLocation ON assetLocation.asset_id = asset.bk_aggregated_dim_asset_id AND assetLocation.current_flag = 1 AND assetLocation.is_current = 1
+LEFT JOIN aggregated_odessa_dim_location AS location ON location.[bk_aggregated_dim_location_id] = assetLocation.location_id AND location.current_flag = 1
+
+ LEFT JOIN (SELECT DISTINCT
+contract.sequence_number,
+contract.[bk_aggregated_dim_contract_id],
+contract.alias as contract_number,
+contract.status,
+customer.company_name,
+productType.transaction_type AS deal_type,				 
+asset.[bk_aggregated_dim_asset_id],
+td.[bk_aggregated_dim_date] AS termination_date,
+ROW_NUMBER() OVER( PARTITION BY asset.[bk_aggregated_dim_asset_id] ORDER BY contract.[bk_aggregated_dim_contract_id] DESC) as rn
+
+
+FROM aggregated_odessa_dim_contract AS contract
+JOIN aggregated_odessa_fact_lease_asset AS flAsset ON contract.sk_aggregated_dim_contract = flAsset.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_asset AS lAsset ON flAsset.[sk_aggregated_dim_lease_asset] = lAsset.sk_aggregated_dim_lease_asset AND lAsset.current_flag = 1
+JOIN aggregated_odessa_dim_customer AS customer ON flAsset.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer AND customer.current_flag = 1
+JOIN aggregated_odessa_dim_asset AS asset ON flAsset.[sk_aggregated_dim_asset] = asset.sk_aggregated_dim_asset AND asset.current_flag = 1
+JOIN aggregated_odessa_dim_bill_to as bill ON flAsset.[sk_aggregated_dim_bill_to] = bill.sk_aggregated_dim_bill_to AND bill.current_flag = 1
+JOIN aggregated_odessa_dim_branch AS branch ON flAsset.[sk_aggregated_dim_branch] = branch.sk_aggregated_dim_branch AND branch.current_flag = 1
+JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND productType.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_date AS td ON flAsset.[sk_aggregated_dim_date_termination_date] = td.[sk_aggregated_dim_date]
+WHERE contract.current_flag = 1
+AND contract.status NOT IN ('Inactive', 'Pending', 'Installing Assets') 
+) AS contract ON contract.bk_aggregated_dim_asset_id = asset.[bk_aggregated_dim_asset_id] 
+AND contract.rn = 1
+
+LEFT JOIN vw_in_application AS app ON asset.[bk_aggregated_dim_asset_id] = app.bk_aggregated_dim_asset_id
+WHERE asset.current_flag = 1 AND dstatus.asset_status = 'Inventory'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_fleetspendreporting2_with_history
+-- Depends on: vw_in_application
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_fleetspendreporting2_with_history AS
+WITH novated as (
+    SELECT
+    c.[bk_aggregated_dim_contract_id],
+    c.sequence_number,
+    CASE WHEN c.start_date = '1900-01-01 00:00:00.000000' THEN c.[dp_process_datetime]
+    ELSE c.start_date END AS novated_date,
+
+    c.[deal_product_type_id],
+    c.[cost_center_id],
+    ROW_NUMBER () OVER  (PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY c.[dp_process_datetime] ASC) AS rn 
+ FROM aggregated_odessa_dim_contract AS c 
+ WHERE status = 'Commenced' AND 
+ report_status = 'Assumed'
+ )
+
+SELECT DISTINCT
 c.sequence_number,
-c.id AS contract_id,
+c.id as contract_id,
 c.customer_name,
 c.aag_contract_number AS 'Contract Number',
 c.status AS contract_status,
@@ -9020,50 +5140,3452 @@ c.payment_frequency,
 cep.terminated_on,
 cep.contract_mileage AS 'Contract Mileage',
 cep.status AS cep_status,
-a.registration_number
+a.*,
+asset.[aag_fleet_number],
+asset.[description] AS 'Description',
+asset.initial_mileage AS 'Initial Mileage',
+asset.[service_intervals_trailer] AS 'Trailer Service Interval',
+asset.[service_intervals_vehicle] AS 'Vehicle Service Interval',
 
-FROM flat_cl_application_document_index apd
-LEFT JOIN flat_contracts_inc_history AS c ON apd.application_name = c.application_name
-JOIN flat_contract_equipment_inc_history AS cep ON c.id = cep.contract_id
-JOIN flat_assets_inc_history AS a ON cep.asset_id = a.id  ;
-GO
+asset.[category_name],
 
-DROP VIEW IF EXISTS pbi_cl_lease_documents_mata;
-GO
+asset.[make_name],
 
-CREATE OR ALTER VIEW pbi_cl_lease_documents_mata AS 
-SELECT DISTINCT
-    ld.contentversionid,
-    ld.lease_name schedule_number,
-    ld.lease_id,
-    ld.title,
-    ld.parent_id,
-    ld.mime_type,
-    ld.extension,
-    ld.size_bytes,
-    ld.onelake_url,
-    ld.relative_path,
-    ld.sp_path,
-    ld.checksum,
-    ld.extracted_at,
-    c.sequence_number,
-    c.id AS contract_id,
-    c.customer_name,
-    c.aag_contract_number AS 'Contract Number',
-    c.status AS contract_status,
-    c.product,
-    c.commencement_date AS 'Commencement Date',
-    c.maturity_date AS 'Maturity Date',
-    c.term,
-    c.payment_frequency,
-    cep.terminated_on,
-    cep.contract_mileage AS 'Contract Mileage',
-    cep.status AS cep_status,
-    a.registration_number
-FROM
-    flat_cl_lease_document_index ld
-    LEFT JOIN flat_contracts_inc_history AS c ON ld.lease_name = c.schedule_number
-    JOIN flat_contract_equipment_inc_history AS cep ON c.id = cep.contract_id
-    JOIN flat_assets_inc_history AS a ON cep.asset_id = a.id
+asset.road_fund_licence AS 'RFL',
+asset.[spare_vehicle_provision_for_mot_after_twenty_four_hours],
+asset.[spare_vehicle_provision_for_service_after_twenty_four_hours] AS 'Spare Vehicle after 24 Hours',
+asset.book_value_amount,
+asset.last_known_mileage,
+asset.[twenty_four_hours_breakdown_cover] AS '24 Hour Breakdown',
+asset.[online_o_licence] AS 'O Licence Check',
+asset.[outof_hours_serviceand_maintenance] AS 'Out of Hours Servicing',
+asset.[dand_c_schedule_services] AS 'D&C Scheduled Services',
+asset.[replacement_vehiclefor_breakdown] AS 'Replacement Vehicle for Servicing',
+asset.[full_service_and_maintenance_chassis] AS 'Chassis Maintenance',
+asset.[fridge_service_maintenance] AS 'Fridge Maintenance',
+asset.[service_intervals_fridgebox] AS 'Fridge Service Interval',
+asset.[tail_lift_service_maintenance] AS 'TL Maintenance',
+asset.[service_intervals_tail_lift] AS 'TL Service Interval',
+asset.[crane_service_maintenance] AS 'Crane Maintenance',
+asset.[pto_service_maintenance] AS 'PTO Maintenance',
+asset.[tyres_fair_wear_tear] AS 'Tyres Fair Wear & Tear',
+asset.[windscreen_section] AS 'Windscreen',
+asset.[livery] AS 'Livery',
+asset.[gps_tracking] AS 'GPS Tracking',
+asset.[full_service_and_maintenance_trailer] AS 'Trailer Maintenance',
+asset.mot_preperationand_testing AS 'MOT',
+asset.[excess_distance_charge_rate] AS 'Excess Rate',
+CASE WHEN AssetsOnApp.bk_aggregated_dim_asset_id IS NOT NULL THEN 1 ELSE 0 END AS in_application,
+n.novated_date
+
+
+
+FROM flat_contracts_inc_history AS c
+ JOIN flat_contract_equipment_inc_history AS cep ON c.id = cep.contract_id
+ JOIN flat_assets_inc_history AS a ON cep.asset_id = a.id
+LEFT JOIN aggregated_odessa_dim_asset AS asset ON a.id = CAST(asset.bk_aggregated_dim_asset_id AS VARCHAR) AND asset.current_flag = 1
+LEFT JOIN vw_in_application AS AssetsOnApp ON asset.bk_aggregated_dim_asset_id = AssetsOnApp.[bk_aggregated_dim_asset_id]
+LEFT JOIN novated AS n ON c.id = CAST(n.bk_aggregated_dim_contract_id AS VARCHAR) AND n.rn = 1
+
+WHERE c.status NOT IN (
+'Inactive', 'Pending', 'InstallingAssets')
+
 ;
 GO
+
+-- ----------------------------------------------------------
+-- View: pbi_mot_tracker
+-- Depends on: vw_in_application
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_mot_tracker AS (
+
+SELECT DISTINCT
+reg.registration_number,
+asset.alias,
+asset.[mot_expiry_date],
+asset.[mot_preperationand_testing],
+asset.[asset_contract_type],
+asset.[manufacturer_name],
+asset.[model_name],
+asset.[make_name],
+asset.product_name AS Vehicle_Category,
+asset.[spare_vehicle_provision_for_mot_after_twenty_four_hours],
+addDetails.current_flag,
+addDetails.[r_and_m_expiry_date],
+addDetails.[mot_workshop],
+addDetails.[mot_prep_date],
+addDetails.[mot_booked_date],
+addDetails.[mot_time_slot],
+addDetails.[mot_failure_reason],
+addDetails.[mot_fleet_engineer_notified],
+addDetails.[mot_passed_date],
+addDetails.[mot_notes],
+addDetails.[mot_no_show_reason],
+addDetails.[mot_resubmission_passed_date], 
+addDetails.[mot_failed_date],
+
+
+MOTBookingStatus.[value] AS MOT_booking_status,
+
+bodytype.[body_type_code] AS [body_type],
+
+dstatus.asset_status,
+location.city,
+
+contract.*,
+AssetsOnApp.stage,
+CASE WHEN AssetsOnApp.stage = 'app' THEN AssetsOnApp.[app_company_name]
+WHEN AssetsOnApp.stage = 'app structure' THEN AssetsOnApp.[app_structure_company_name]
+WHEN AssetsOnApp.stage = 'line of credit' THEN AssetsOnApp.[loc_company_name] END AS company_in_application,
+CASE WHEN AssetsOnApp.stage = 'app structure' THEN AssetsOnApp.[app_structure_transaction_type]
+WHEN AssetsOnApp.stage = 'line of credit' THEN AssetsOnApp.[transaction_type] END AS transaction_type_in_application
+
+
+ FROM [aggregated_odessa_dim_asset] AS asset  
+ JOIN aggregated_odessa_fact_asset_status fstatus ON fstatus.sk_aggregated_dim_asset = asset.sk_aggregated_dim_asset 
+ JOIN aggregated_odessa_dim_asset_vehicle_additional_details AS addDetails ON addDetails.sk_aggregated_dim_asset_vehicle_additional_details = fstatus.sk_aggregated_dim_asset_vehicle_additional_details AND addDetails.current_flag = 1
+ LEFT JOIN aggregated_odessa_dim_asset_vehicle_add_details_configs AS MOTBookingStatus ON  MOTBookingStatus.bk_aggregated_dim_asset_vehicle_add_details_configs_id = addDetails.[mot_booking_status_id] AND MOTBookingStatus.current_flag = 1
+ JOIN aggregated_odessa_dim_vehicle_detail detail ON detail.[sk_aggregated_dim_vehicle_detail] = fstatus.sk_aggregated_dim_vehicle_detail AND detail.current_flag = 1
+ left JOIN aggregated_odessa_dim_body_type_config AS bodytype ON detail.body_type_config_id = bodytype.[bk_aggregated_dim_body_type_config_id] AND bodytype.current_flag = 1 and bodytype.is_active = 1
+LEFT JOIN aggregated_odessa_dim_asset_status dstatus ON dstatus.sk_aggregated_dim_asset_status = fstatus.sk_aggregated_dim_asset_status
+  left JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON reg.asset_id = asset.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1 AND reg.is_active = 1
+        LEFT JOIN aggregated_odessa_dim_asset_location AS assetLocation ON assetLocation.asset_id = asset.bk_aggregated_dim_asset_id AND assetLocation.current_flag = 1 AND assetLocation.is_current = 1 AND assetLocation.is_active = 1
+LEFT JOIN aggregated_odessa_dim_location AS location ON location.[bk_aggregated_dim_location_id] = assetLocation.location_id AND location.current_flag = 1 AND location.is_active = 1
+
+ LEFT JOIN (SELECT DISTINCT
+contract.sequence_number,
+customer.company_name,
+productType.transaction_type AS deal_type,				 
+asset.[bk_aggregated_dim_asset_id]
+FROM aggregated_odessa_dim_contract AS contract
+JOIN aggregated_odessa_fact_lease_asset AS flAsset ON contract.sk_aggregated_dim_contract = flAsset.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_asset AS lAsset ON flAsset.[sk_aggregated_dim_lease_asset] = lAsset.sk_aggregated_dim_lease_asset AND lAsset.current_flag = 1
+JOIN aggregated_odessa_dim_customer AS customer ON flAsset.[sk_aggregated_dim_customer] = customer.sk_aggregated_dim_customer AND customer.current_flag = 1
+JOIN aggregated_odessa_dim_asset AS asset ON flAsset.[sk_aggregated_dim_asset] = asset.sk_aggregated_dim_asset AND asset.current_flag = 1
+JOIN aggregated_odessa_dim_bill_to as bill ON flAsset.[sk_aggregated_dim_bill_to] = bill.sk_aggregated_dim_bill_to AND bill.current_flag = 1
+JOIN aggregated_odessa_dim_branch AS branch ON flAsset.[sk_aggregated_dim_branch] = branch.sk_aggregated_dim_branch AND branch.current_flag = 1
+JOIN aggregated_odessa_dim_lease_finance as finance ON flAsset.[sk_aggregated_dim_lease_finance] = finance.sk_aggregated_dim_lease_finance AND finance.is_current = 1
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND productType.current_flag = 1 AND productType.is_active = 1
+
+WHERE contract.current_flag = 1 AND contract.status = 'Commenced') AS contract ON contract.bk_aggregated_dim_asset_id = asset.[bk_aggregated_dim_asset_id] 
+
+LEFT JOIN vw_in_application AS AssetsOnApp ON asset.bk_aggregated_dim_asset_id = AssetsOnApp.[bk_aggregated_dim_asset_id]
+
+WHERE asset.current_flag = 1
+ 
+
+ )
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_rental_utilisation
+-- Depends on: vw_asset, vw_asset_additional_charges, vw_in_application
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_rental_utilisation AS
+WITH asset AS (
+SELECT DISTINCT
+a.bk_aggregated_dim_asset_id,
+a.alias,
+a.registration_number,
+a.asset_status AS status,
+a.manufacturer_name AS manufacturer,
+a.model_name AS model,
+a.make_name AS make,
+a.description,
+a.gvw,
+a.body_type,
+a.oal,
+a.[dhl_compliant],
+a.[dvsr_star_rating],
+a.serial_number,
+a.model_year,
+a.asset_contract_type AS type,
+--detail.comments,
+a.product_name AS vehicle_category,
+a.asset_sub_type,
+a.equipment_id,
+a.route_into_rental_fleet,
+a.depreciation_value,
+a.rental_availability_status,
+--a.equipment_nbv,
+a.asset_category AS portfolio,
+a.location_city,
+a.last_known_mileage,
+a.[rv_maturity_date]
+FROM vw_asset AS a
+
+WHERE a.asset_status IN ('Leased', 'Inventory')
+AND a.asset_contract_type = 'Rental'
+
+), lease_asset as (
+SELECT 
+con.bk_aggregated_dim_contract_id,
+con.sequence_number,
+con.status,
+cu.party_name,
+cu.bk_aggregated_dim_customer_id,
+a.bk_aggregated_dim_asset_id,
+reg.registration_number,
+vd.contract_mileage,
+b.branch_name,
+
+ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
+fla.sk_aggregated_dim_date_termination_date,
+fla.nbv_amount,
+fla.customer_cost_amount,
+fla.rent_amount
+
+FROM aggregated_odessa_dim_contract AS con
+JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset --and dla.is_approved = 1
+JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
+LEFT JOIN aggregated_odessa_dim_vehicle_detail AS vd ON a.bk_aggregated_dim_asset_id = vd.bk_aggregated_dim_vehicle_detail_id
+JOIN aggregated_odessa_dim_lease_finance AS lf ON fla.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1
+JOIN aggregated_odessa_dim_customer AS cu ON fla.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer
+LEFT JOIN aggregated_odessa_dim_branch AS b ON fla.[sk_aggregated_dim_branch] = b.sk_aggregated_dim_branch
+LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
+        WHERE con.current_flag = 1 AND con.status != 'Inactive'
+), latest_lease_asset AS (
+
+SELECT 
+
+la.bk_aggregated_dim_contract_id AS contract_id,
+la.bk_aggregated_dim_customer_id AS customer_id,
+la.bk_aggregated_dim_asset_id AS asset_id, 
+td.bk_aggregated_dim_date AS terminated_on,
+ROW_NUMBER() OVER(PARTITION BY la.bk_aggregated_dim_asset_id ORDER BY td.bk_aggregated_dim_date DESC) AS latest_contract,
+la.nbv_amount,
+la.customer_cost_amount,
+la.rent_amount,
+la.branch_name
+
+FROM lease_asset AS la
+LEFT JOIN aggregated_odessa_dim_date as td ON la.sk_aggregated_dim_date_termination_date = td.sk_aggregated_dim_date 
+WHERE la.rn = 1
+), contracts AS (
+SELECT DISTINCT
+a.id,
+--a.aag_contract_number,
+a.booking_status,
+a.sequence_number,
+a.commencement_date,
+a.maturity_date,
+a.customer_name,
+a.account_number,
+a.organization_id,
+a.product,
+a.cost_center,
+a.payment_frequency,
+a.term,
+a.payment_method,
+bdm.full_name AS bdm, 
+a.line_of_business,
+a.schedule_number,
+a.created_date
+FROM (
+SELECT 
+c.bk_aggregated_dim_contract_id AS id,
+c.alias AS aag_contract_number,
+c.sequence_number,
+c.status AS booking_status,
+cd.bk_aggregated_dim_date AS commencement_date,
+md.bk_aggregated_dim_date AS maturity_date,
+cu.party_name AS customer_name,
+cu.external_reference_id AS account_number,
+cu.organization_id,
+p.transaction_type AS product,
+cc.description AS cost_center,
+lob.name as line_of_business,
+lf.payment_frequency,
+lf.customer_term_in_months AS term,
+CASE WHEN lf.is_advance = 1 THEN 'ADVANCE'
+ELSE 'ARREARS'
+END AS payment_method,
+c.previous_schedule_number as schedule_number,
+c.created_time as created_date,
+ROW_NUMBER() OVER ( PARTITION BY c.bk_aggregated_dim_contract_id ORDER BY flfd.sk_aggregated_dim_contract DESC, flfd.sk_aggregated_dim_date_record DESC, flfd.sk_aggregated_dim_time_record DESC) AS rn
+
+FROM aggregated_odessa_dim_contract AS c
+JOIN aggregated_odessa_fact_lease_finance_detail AS flfd ON c.sk_aggregated_dim_contract = flfd.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_finance AS lf ON flfd.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1  and lf.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_date AS md ON flfd.sk_aggregated_dim_date_maturity_date = md.sk_aggregated_dim_date
+LEFT JOIN aggregated_odessa_dim_date AS cd ON flfd.sk_aggregated_dim_date_commencement_date = cd.sk_aggregated_dim_date
+JOIN aggregated_odessa_dim_customer AS cu ON flfd.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer AND cu.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS p ON p.bk_aggregated_dim_deal_product_type_id = c.deal_product_type_id AND p.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_cost_center AS cc ON flfd.sk_aggregated_dim_cost_center = cc.sk_aggregated_dim_cost_center AND cc.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_line_of_business AS lob ON flfd.sk_aggregated_dim_line_of_business
+ = lob.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
+WHERE c.current_flag = 1
+
+
+) AS a 
+ LEFT JOIN (
+ SELECT a.contract_id, a.full_name FROM (
+ SELECT DISTINCT contract_id, u.full_name, 
+ ROW_NUMBER() OVER( PARTITION BY contract_id ORDER BY ep.is_primary DESC) AS rn
+ FROM aggregated_odessa_dim_employees_assigned_to_contract AS ec
+JOIN aggregated_odessa_dim_employees_assigned_to_party AS ep ON ec.employee_assigned_to_party_id = ep.bk_aggregated_dim_employees_assigned_to_party_id AND ep.current_flag = 1 AND ep.is_active = 1
+JOIN aggregated_odessa_dim_role_function AS rf ON ep.role_function_id = rf.bk_aggregated_dim_role_function_id 
+JOIN aggregated_odessa_dim_user AS u ON ep.employee_id = u.bk_aggregated_dim_user_id
+ WHERE ec.current_flag = 1 AND ec.is_active = 1 AND rf.name = 'Sales Rep'
+ ) AS a WHERE a.rn = 1
+ ) AS bdm ON bdm.contract_id = a.id
+
+WHERE a.rn = 1
+),
+current_avh AS (
+SELECT
+	*,
+	ROW_NUMBER() OVER(PARTITION BY asset_id ORDER BY income_date DESC, bk_aggregated_dim_asset_value_history_id DESC) AS CurrentRowNo
+
+FROM aggregated_odessa_dim_asset_value_history
+WHERE
+	is_lessor_owned = 1
+	AND is_schedule = 1
+	AND is_accounted = 1
+	AND income_date <= GETDATE()
+	
+)
+
+
+SELECT 
+CASE WHEN asset.status = 'Leased' THEN
+        CASE WHEN (ISNULL(charges.charges,0) + ISNULL(latest_lease_asset.rent_amount,0)) = 0.01 THEN 'Yes (FoC)'
+        ELSE 'Yes'
+        END
+WHEN asset.status = 'Inventory' THEN
+        CASE WHEN app.bk_aggregated_dim_asset_id IS NOT NULL THEN 'In Application'
+        ELSE 'No'
+        END
+        END AS 'Utilised',
+asset.*,
+latest_lease_asset.terminated_on,
+--latest_lease_asset.nbv_amount,
+latest_lease_asset.customer_cost_amount,
+latest_lease_asset.rent_amount,
+latest_lease_asset.branch_name,
+contracts.*,
+app.combined_opp_number AS opp_number,
+app.stage AS application_stage,
+app.combined_created_by AS created_by,
+app.combined_product_name AS application_product_name,
+app.loc_status,
+app.app_status AS application_status,
+app.combined_company_name AS application_company_name,
+ISNULL(charges.charges,0) AS asset_budget_value,
+ISNULL(charges.charges,0) + ISNULL(latest_lease_asset.rent_amount,0) AS total_charge_to_customer,
+ebv.end_book_value_amount AS equipment_nbv
+
+
+FROM asset
+LEFT JOIN latest_lease_asset ON asset.bk_aggregated_dim_asset_id = latest_lease_asset.asset_id AND latest_contract = 1
+LEFT JOIN contracts ON latest_lease_asset.contract_id = contracts.id
+LEFT JOIN vw_in_application AS app ON asset.bk_aggregated_dim_asset_id = app.bk_aggregated_dim_asset_id 
+LEFT JOIN vw_asset_additional_charges AS charges ON charges.contract_id = contracts.id AND charges.asset_id = asset.bk_aggregated_dim_asset_id      
+LEFT JOIN current_avh AS ebv ON asset.bk_aggregated_dim_asset_id = ebv.asset_id AND ebv.CurrentRowNo = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_lease_additional_charges
+-- Depends on: vw_additional_charges_detail
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_lease_additional_charges
+AS
+SELECT      
+		SUM([charges]) AS charges,
+		SUM([vat_amount]) AS vat_amount,
+		[contract_id],
+		[sequence_number]		
+FROM vw_additional_charges_detail AS chgDetail
+GROUP BY 
+		[sequence_number],
+		[contract_id]
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_lease_asset_all
+-- Depends on: vw_asset_additional_charges
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_lease_asset_all
+AS
+SELECT DISTINCT
+asset.nbv_amount,
+asset.customer_cost_amount,
+asset.specific_cost_adjustment_amount,
+asset.rent_amount,
+asset.accumulated_depreciation_amount,
+asset.fmv_amount,
+asset.initial_customer_cost_amount,
+asset.initial_nbv_amount,
+asset.capitalized_additional_charge_amount,
+asset.sk_aggregated_dim_customer,
+asset.sk_aggregated_dim_date_value_as_of_date,
+asset.sk_aggregated_dim_date_termination_date,	
+asset.booked_residual_amount,
+asset.rv_recap_amount_amount,
+asset.bk_aggregated_dim_asset_id AS asset_id,
+asset.bk_aggregated_dim_asset_id,
+asset.is_eligible_for_billing,
+asset.is_approved,
+asset.bk_aggregated_dim_contract_id AS contract_id,
+asset.sequence_number,
+asset.status,
+asset.bk_aggregated_dim_customer_id AS customer_id,
+td.[bk_aggregated_dim_date] as termination_date,
+ISNULL(charges.charges,0) AS asset_budget_value,
+ISNULL(charges.charges,0) + ISNULL(asset.rent_amount,0) AS total_charge_to_customer
+FROM (
+SELECT 
+con.bk_aggregated_dim_contract_id,
+con.sequence_number,
+con.status,
+cu.bk_aggregated_dim_customer_id,
+a.bk_aggregated_dim_asset_id,
+ROW_NUMBER() OVER(PARTITION BY con.bk_aggregated_dim_contract_id, a.bk_aggregated_dim_asset_id ORDER BY fla.sk_aggregated_dim_date_record DESC, fla.sk_aggregated_dim_time_record DESC) AS rn,
+fla.sk_aggregated_dim_date_termination_date,
+fla.nbv_amount,
+fla.customer_cost_amount,
+fla.specific_cost_adjustment_amount,
+fla.rent_amount,
+fla.accumulated_depreciation_amount,
+fla.fmv_amount,
+fla.initial_customer_cost_amount,
+fla.initial_nbv_amount,
+fla.capitalized_additional_charge_amount,
+fla.sk_aggregated_dim_customer,
+fla.sk_aggregated_dim_date_value_as_of_date,
+fla.booked_residual_amount,
+fla.rv_recap_amount_amount,
+dla.is_eligible_for_billing,
+dla.is_approved
+
+FROM aggregated_odessa_dim_contract AS con
+JOIN aggregated_odessa_fact_lease_asset AS fla ON con.sk_aggregated_dim_contract = fla.sk_aggregated_dim_contract
+JOIN aggregated_odessa_dim_lease_asset AS dla ON fla.sk_aggregated_dim_lease_asset = dla.sk_aggregated_dim_lease_asset and dla.is_approved = 1
+JOIN aggregated_odessa_dim_asset AS a ON fla.sk_aggregated_dim_asset = a.sk_aggregated_dim_asset
+LEFT JOIN aggregated_odessa_dim_vehicle_detail AS vd ON a.bk_aggregated_dim_asset_id = vd.bk_aggregated_dim_vehicle_detail_id
+JOIN aggregated_odessa_dim_lease_finance AS lf ON fla.sk_aggregated_dim_lease_finance = lf.sk_aggregated_dim_lease_finance AND lf.is_current = 1
+JOIN aggregated_odessa_dim_customer AS cu ON fla.sk_aggregated_dim_customer = cu.sk_aggregated_dim_customer
+LEFT JOIN aggregated_odessa_dim_branch AS b ON fla.[sk_aggregated_dim_branch] = b.sk_aggregated_dim_branch
+LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON reg.asset_id = a.bk_aggregated_dim_asset_id AND reg.current_flag = 1 AND RegRN=1
+        WHERE con.current_flag = 1
+    ) AS asset
+LEFT JOIN aggregated_odessa_dim_date as td ON asset.sk_aggregated_dim_date_termination_date = td.sk_aggregated_dim_date 
+LEFT JOIN vw_asset_additional_charges AS charges ON charges.contract_id = asset.bk_aggregated_dim_contract_id AND charges.asset_id = asset.bk_aggregated_dim_asset_id       
+
+WHERE asset.rn = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_lease_asset_current
+-- Depends on: vw_lease_asset_all
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_lease_asset_current
+AS
+SELECT *
+FROM vw_lease_asset_all 
+WHERE termination_date = '9999-01-01'
+AND status <> 'Inactive' 
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_origination_asset
+-- Depends on: vw_asset, vw_lease_asset_current
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_origination_asset
+AS
+SELECT 
+
+    lease.contract_id
+    ,asset.alias AS 'Registration Number'
+    ,asset.[service_intervals_vehicle] AS 'Service Intervals Vehicle'
+    ,asset.[service_intervals_tail_lift] AS 'Service Intervals Tail Lift'
+    ,asset.[service_intervals_trailer] AS 'Service Intervals Trailer'
+    ,asset.[service_intervals_fridgebox] AS 'Service Intervals Fridge Box'  
+    ,asset.[road_fund_licence] AS 'Road Fund Licence'  
+    ,asset.[full_service_and_maintenance_chassis] AS 'Full Service Maintenance Chassis'
+    ,asset.[full_service_and_maintenance_trailer] AS 'Full Service Maintenance Trailer'
+    ,asset.[mot_preperationand_testing] AS 'MOT Prep & Testing'
+    ,asset.[tail_lift_service_maintenance] AS 'Tail Lift Service Maintenance'
+    ,asset.[fridge_service_maintenance] AS 'Fridge Service Maintenance'
+    ,asset.[twenty_four_hours_breakdown_cover] AS '24 hrs Breakdown Cover'
+    ,asset.[crane_service_maintenance] AS 'Crane Service Maintenance'
+    ,asset.[term] AS 'Term'
+
+FROM vw_lease_asset_current AS lease 
+LEFT JOIN vw_asset AS asset ON asset.asset_id = lease.asset_id
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_tts_stock
+-- Depends on: vw_asset, vw_lease_asset_current
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_tts_stock
+AS
+ (
+
+SELECT
+
+asset.[registration_number], 
+asset.equipment_nbv AS 'Stock NBV',
+asset.asset_status AS 'Status',
+asset.asset_contract_type AS 'Vehicle Type',
+asset.product_name AS 'Vehicle Category',
+asset.[model_year] AS 'Year of Manufacture',
+asset.[manufacturer_name] AS 'Manufacturer',
+asset.make_name AS 'Model Range',
+asset.model_name AS 'Model',
+asset.axle_config AS 'Axle Config',
+asset.cab AS 'Cab',
+asset.cab_model AS 'Cab Model',
+asset.aag_fleet_number AS 'AAG Fleet Number',
+CAST (asset.gvw AS INT) AS'GVW',
+asset.body_type AS 'Body Type',
+[reserve_date] AS 'Reserve Date',
+asset.reserved_for AS 'Reserved For',
+asset.reserved_by AS 'Reserved By', 	
+asset.[emission_code] AS 'Emissions',
+asset.[comments] AS 'Comments',
+asset.[rental_availability_status] AS 'Rental Availability Status',
+tdate.[bk_aggregated_dim_date] AS 'Termination Date',
+DATEDIFF( DAY, tdate.[bk_aggregated_dim_date] , GETDATE()) AS 'Days Standing'
+
+FROM [dbo].[vw_asset] AS asset
+LEFT JOIN vw_lease_asset_current AS lease on lease.bk_aggregated_dim_asset_id = asset.bk_aggregated_dim_asset_id
+LEFT JOIN aggregated_odessa_dim_date AS tdate ON tdate.[sk_aggregated_dim_date] = lease.[sk_aggregated_dim_date_termination_date]
+)
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_lease_finance_detail
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_lease_finance_detail
+AS
+SELECT    *
+FROM
+(
+	SELECT  
+					fDetail.booked_residual_amount,
+					fDetail.regular_payment_amount_amount,
+					fDetail.total_down_payment_amount,
+					fDetail.bank_yield_spread,
+					fDetail.total_yield,
+					fDetail.rent_amount,
+					fDetail.net_investment_amount,
+					IRdetail.base_rate,
+					IRdetail.spread,
+					IRdetail.interest_rate,	
+					fDetail.total_upfront_tax_amount_amount,
+					fDetail.true_down_payment_amount,
+					fDetail.vat_down_payment_amount,
+					fDetail.number_of_payments,
+					fDetail.maturity_payment_amount,
+					fDetail.down_payment_amount,
+					fDetail.florida_stamp_tax_amount,
+					fDetail.fmv_amount,
+					fDetail.inception_payment_amount,
+					fDetail.interim_rent_amount,
+					dFinance.tax_deferral_numberof_payments,
+					dFinance.tax_deferral_payment_number,
+					dFinance.is_over_term_lease,										
+					fDetail.cost_of_funds,
+					fDetail.deferred_tax_balance_amount,
+					fDetail.capitalized_sales_tax_down_payment_amount,
+					fDetail.calculated_tax_deferral_amount_amount,
+					fDetail.sk_aggregated_dim_date_maturity_date,
+					fDetail.sk_aggregated_dim_date_commencement_date,
+					fDetail.sk_aggregated_dim_line_of_business,
+					fDetail.sk_aggregated_dim_legal_entity,
+					fDetail.sk_aggregated_dim_customer,
+					fDetail.sk_aggregated_dim_cost_center,
+					fDetail.sk_aggregated_dim_date_post_date,
+					fDetail.sk_aggregated_dim_date_record,
+					fDetail.sk_aggregated_dim_time_record,
+					ROW_NUMBER() OVER(PARTITION BY contract.bk_aggregated_dim_contract_id ORDER BY fDetail.sk_aggregated_dim_contract DESC, fDetail.sk_aggregated_dim_customer DESC, leaseIR.sk_aggregated_dim_lease_interest_rate DESC, fDetail.sk_aggregated_dim_date_record DESC, fDetail.sk_aggregated_dim_time_record DESC) AS current_contract_detail,		
+					ROW_NUMBER() OVER(PARTITION BY fDetail.sk_aggregated_dim_lease_finance ORDER BY fDetail.sk_aggregated_dim_contract DESC, fDetail.sk_aggregated_dim_customer DESC, leaseIR.sk_aggregated_dim_lease_interest_rate DESC, fDetail.sk_aggregated_dim_date_record DESC, fDetail.sk_aggregated_dim_time_record DESC) AS current_lease_detail,
+					fDetail.sk_aggregated_dim_contract AS sk_current_fact_contract,
+                    contract.sk_aggregated_dim_contract AS sk_current_dim_contract,
+
+					fDetail.sk_aggregated_dim_customer AS sk_current_fact_customer,
+                    customerCurrent.sk_aggregated_dim_customer AS sk_current_dim_customer,
+					dFinance.sk_aggregated_dim_lease_finance AS sk_current_dim_lease_finance,
+
+                    fDetail.sk_aggregated_dim_contract,
+					fDetail.sk_aggregated_dim_branch,
+					fDetail.sk_aggregated_dim_lease_finance,
+                    contract.bk_aggregated_dim_contract_id AS contract_id ,
+                    contract.sequence_number,
+                    leaseIR.interest_rate_detail_id,
+                    IRdetail.bk_aggregated_dim_interest_rate_detail_id		                 
+
+	FROM aggregated_odessa_fact_lease_finance_detail AS fDetail
+    JOIN aggregated_odessa_dim_lease_finance AS dFinance ON dFinance.sk_aggregated_dim_lease_finance = fDetail.sk_aggregated_dim_lease_finance AND dFinance.is_current = 1 AND dFinance.current_flag = 1
+    LEFT JOIN aggregated_odessa_dim_lease_interest_rate AS leaseIR ON leaseIR.lease_finance_detail_id = dFinance.bk_aggregated_dim_lease_finance_id AND leaseIR.current_flag = 1
+	LEFT JOIN aggregated_odessa_dim_interest_rate_detail AS IRdetail ON IRdetail.bk_aggregated_dim_interest_rate_detail_id = leaseIR.interest_rate_detail_id AND IRdetail.is_active = 1 AND IRdetail.current_flag = 1 
+    JOIN aggregated_odessa_dim_contract AS contract ON contract.sk_aggregated_dim_contract = fDetail.sk_aggregated_dim_contract AND contract.current_flag = 1
+    JOIN aggregated_odessa_dim_customer AS customer ON customer.sk_aggregated_dim_customer = fDetail.sk_aggregated_dim_customer 
+    LEFT JOIN aggregated_odessa_dim_customer AS customerCurrent ON customerCurrent.bk_aggregated_dim_customer_id = customer.bk_aggregated_dim_customer_id AND customerCurrent.current_flag = 1    
+	JOIN aggregated_odessa_dim_branch AS branch ON branch.sk_aggregated_dim_branch = fDetail.sk_aggregated_dim_branch  AND branch.current_flag = 1	
+    JOIN aggregated_odessa_dim_line_of_business AS lob ON lob.sk_aggregated_dim_line_of_business = fDetail.sk_aggregated_dim_line_of_business AND lob.current_flag = 1
+    JOIN aggregated_odessa_dim_cost_center AS cc ON cc.sk_aggregated_dim_cost_center = fDetail.sk_aggregated_dim_cost_center AND cc.current_flag = 1 
+) AS a 
+WHERE a.current_contract_detail = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_rv_analysis
+-- Depends on: vw_asset_additional_charges, vw_book_depreciation, vw_contract_assignments, vw_lease_finance_detail
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_rv_analysis
+AS
+SELECT *
+FROM
+(
+	SELECT 
+				fAssetLeases.sk_aggregated_dim_asset,
+				fAssetLeases.sk_aggregated_dim_date_termination_date,
+				fAssetLeases.nbv_amount,
+				fAssetLeases.customer_cost_amount,
+				fAssetLeases.specific_cost_adjustment_amount,
+				fAssetLeases.rent_amount,
+				fAssetLeases.accumulated_depreciation_amount,
+				fAssetLeases.fmv_amount,
+				fAssetLeases.initial_customer_cost_amount,
+				fAssetLeases.initial_nbv_amount,
+				fAssetLeases.capitalized_additional_charge_amount,
+				ISNULL(charges.charges,0) AS asset_budget_value,
+				ISNULL(charges.charges,0) + ISNULL(fAssetLeases.rent_amount,0) AS total_charge_to_customer,
+	
+				customer.bk_aggregated_dim_customer_id AS customer_id,
+				customer.company_name,
+				customer.creation_date as customer_account_created_date,
+				customer.external_reference_id,
+				customer.external_reference_id AS account_number,				
+				fAssetLeases.sk_aggregated_dim_customer,
+
+				asset.bk_aggregated_dim_asset_id AS asset_id,		
+				asset.bk_aggregated_dim_asset_id,		
+				asset.current_flag AS 'current_asset',
+
+				db.branch_name,
+				contract.sk_aggregated_dim_contract,	
+				contract.bk_aggregated_dim_contract_id,										
+				contract.bk_aggregated_dim_contract_id AS contract_id,					
+				contract.sequence_number,
+				contract.external_reference_number,				
+				contract.contract_type,
+				contract.original_booking_date,
+				contract.final_acceptance_date,
+				contract.status,
+				contract.report_status,
+				contract.previous_schedule_number,
+				contract.vehicle_lease_type,
+				contract.current_flag,
+				contract.alias,
+				contract.alias AS aag_contract_number,
+				contract.grace_delinquency_days,				
+				lBusiness.description AS 'line_of_business',	
+
+				cCenter.description AS cost_centre,	
+
+				lFinance.booking_status,
+				lFinance.approval_status,
+				lFinance.is_current,
+				lFinance.customer_term_in_months,
+				lFinance.term_in_months,		
+				lFinance.remaining_lease_term_in_months,							
+				lFinance.payment_frequency,
+				lFinance.purchase_option,
+				lFinance.classification_contract_type,
+				lFinance.lease_contract_type,
+				lFinance.payment_frequency_days,
+				lFinance.is_advance,
+				lFinance.termination_notice_received,			
+				lFinance.is_supplemental_advance,
+				lFinance.lessor_notice_period,
+				lFinance.remaining_economic_life_in_months,
+				lFinance.total_economic_life_in_months,
+				lFinance.bk_aggregated_dim_lease_finance_id AS lease_finance_id,
+				lFinance.sk_aggregated_dim_lease_finance,
+
+				opportunity.number,
+				opportunity.number AS opportunity_number,
+				contractSalesRep.employee_name AS sales_rep,
+				contractManager.employee_name AS account_manager,
+				contractUser.full_name AS contract_created_by,
+
+				CASE WHEN lFinance.is_advance = 1 THEN 'Advance' ELSE NULL END AS 'payment_method', 
+				CASE WHEN lFinanceDetail.sk_aggregated_dim_date_maturity_date > 0 THEN lFinanceDetail.sk_aggregated_dim_date_maturity_date ELSE NULL END AS 'lease_maturity_date',
+				CASE WHEN lFinanceDetail.sk_aggregated_dim_date_commencement_date > 0 THEN lFinanceDetail.sk_aggregated_dim_date_commencement_date ELSE NULL END AS 'lease_commencement_date',				
+				CASE WHEN fAssetLeases.sk_aggregated_dim_date_value_as_of_date > 0 THEN  fAssetLeases.sk_aggregated_dim_date_value_as_of_date ELSE NULL END AS 'valuation_date',
+				CASE WHEN fAssetLeases.sk_aggregated_dim_date_termination_date > 0 THEN fAssetLeases.sk_aggregated_dim_date_termination_date ELSE NULL END AS 'termination_date',
+				ROW_NUMBER() OVER(PARTITION BY asset.bk_aggregated_dim_asset_id ORDER BY fAssetLeases.sk_aggregated_dim_lease_asset DESC, fAssetLeases.sk_aggregated_dim_date_record DESC, fAssetLeases.sk_aggregated_dim_time_record DESC) AS current_lease,
+
+  				(DENSE_RANK() OVER(PARTITION BY bk_aggregated_dim_contract_id ORDER BY bk_aggregated_dim_asset_id ASC) +
+				DENSE_RANK() OVER(PARTITION BY bk_aggregated_dim_contract_id ORDER BY bk_aggregated_dim_asset_id DESC) -1)
+				 AS equipment_count,	
+
+				 depreciation.per_day_depreciation_factor * 30 AS depreciation_value,	
+				 depreciation.begin_date AS depreciation_start_date,
+				 productType.transaction_type AS product_name,
+				 productType.transaction_type AS deal_type,				 
+				 legalE.legal_entity_number,
+				 classificationCode.code AS sic_code,
+				 classificationCode.description AS sic_desc,
+				 businessType.name AS business_type			 
+
+	FROM aggregated_odessa_fact_lease_asset AS fAssetLeases 
+	JOIN aggregated_odessa_dim_asset AS asset ON asset.sk_aggregated_dim_asset = fAssetLeases.sk_aggregated_dim_asset AND asset.current_flag = 1	
+	JOIN aggregated_odessa_dim_branch AS db on db.sk_aggregated_dim_branch = fAssetLeases.sk_aggregated_dim_branch 
+    JOIN aggregated_odessa_dim_legal_entity AS legalE on legalE.sk_aggregated_dim_legal_entity = fAssetLeases.sk_aggregated_dim_legal_entity 	
+    JOIN aggregated_odessa_dim_customer AS customer on fAssetLeases.sk_aggregated_dim_customer = customer.sk_aggregated_dim_customer --AND customer.current_flag = 1 --- lines dropped
+	JOIN aggregated_odessa_dim_contract AS contract on contract.sk_aggregated_dim_contract = fAssetLeases.sk_aggregated_dim_contract AND contract.current_flag = 1	
+	LEFT JOIN aggregated_odessa_dim_lease_finance AS lFinance on lFinance.sk_aggregated_dim_lease_finance = fAssetLeases.sk_aggregated_dim_lease_finance AND lFinance.current_flag = 1 AND lFinance.is_current = 1	
+	JOIN aggregated_odessa_dim_line_of_business AS lBusiness on lBusiness.sk_aggregated_dim_line_of_business = fAssetLeases.sk_aggregated_dim_line_of_business    
+	LEFT JOIN aggregated_odessa_dim_cost_center AS cCenter on cCenter.sk_aggregated_dim_cost_center = fAssetLeases.sk_aggregated_dim_cost_center
+	LEFT JOIN aggregated_odessa_dim_opportunity AS opportunity ON opportunity.number = contract.opportunity_number  AND opportunity.current_flag = 1	
+	LEFT JOIN aggregated_odessa_dim_user AS contractUser ON contractUser.bk_aggregated_dim_user_id = contract.created_by_id  AND contractUser.current_flag = 1
+	LEFT JOIN vw_contract_assignments AS contractSalesRep ON contractSalesRep.contract_id = contract.bk_aggregated_dim_contract_id AND contractSalesRep.system_defined_name = 'SalesRep'     
+	LEFT JOIN vw_contract_assignments AS contractManager ON contractManager.contract_id = contract.bk_aggregated_dim_contract_id AND contractManager.role_function = 'AccountManager'
+	LEFT JOIN vw_book_depreciation AS depreciation ON depreciation.asset_id = asset.bk_aggregated_dim_asset_id AND depreciation.current_contract_value = 1 
+	LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND productType.current_flag = 1
+	LEFT JOIN aggregated_odessa_dim_classification_code AS classificationCode ON customer.sic_code_id = classificationCode.bk_aggregated_dim_classification_code_id AND classificationCode.current_flag = 1
+    LEFT JOIN aggregated_odessa_dim_business_type AS businessType ON businessType.bk_aggregated_dim_business_type_id = customer.business_type_id AND businessType.current_flag = 1	
+	LEFT JOIN vw_lease_finance_detail AS lFinanceDetail on contract.sk_aggregated_dim_contract = lFinanceDetail.sk_current_dim_contract 	
+	LEFT JOIN vw_asset_additional_charges AS charges ON charges.contract_id = contract.bk_aggregated_dim_contract_id AND charges.asset_id = asset.bk_aggregated_dim_asset_id
+) 
+as a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_lease_contracts
+-- Depends on: vw_contract_assignments, vw_credit_application, vw_lease_asset_all, vw_lease_finance_detail
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_lease_contracts
+AS
+SELECT *
+FROM
+(
+SELECT          
+				contract.sk_aggregated_dim_contract,						
+				contract.bk_aggregated_dim_contract_id AS contract_id,					
+				contract.sequence_number,
+				contract.external_reference_number,				
+				contract.contract_type,
+				contract.status,
+				contract.report_status,
+				contract.previous_schedule_number,
+				contract.current_flag,
+				contract.alias AS aag_contract_number,
+				contract.grace_delinquency_days,	
+				contract.created_time,
+				contract.updated_time,	
+				contractOrigins.start_date AS lease_start_date,				
+				first_value(lFinanceDetail.sk_aggregated_dim_date_record) OVER (PARTITION BY contract.bk_aggregated_dim_contract_id ORDER BY lFinanceDetail.sk_aggregated_dim_date_record ASC , lFinanceDetail.sk_aggregated_dim_time_record ASC) AS sk_created_date,				
+				CASE WHEN opportunity.number IS NULL THEN 'Yes' ELSE 'No' END AS is_migrated,
+
+				customer.party_name AS company_name,
+				customer.bk_aggregated_dim_customer_id AS customer_id,			
+				customer.creation_date as customer_account_created_date,
+				customer.external_reference_id,
+				customer.external_reference_id AS account_number,					
+
+				opportunity.number,
+				opportunity.number AS opportunity_number,
+				contractSalesRep.employee_name AS sales_rep,
+				contractManager.employee_name AS account_manager,
+				contractUser.full_name AS contract_created_by,				
+
+				CASE WHEN dfinance.is_advance = 1 THEN 'Advance' ELSE 'ARREAS' END AS 'payment_method', 
+				lFinanceDetail.sk_aggregated_dim_date_maturity_date AS lease_maturity_date,										
+				lFinanceDetail.sk_aggregated_dim_date_commencement_date AS lease_commencement_date,
+
+				assetleases.nbv_amount,
+				assetleases.customer_cost_amount,
+				assetleases.rent_amount,
+				assetleases.accumulated_depreciation_amount,
+				assetleases.fmv_amount,
+				assetleases.initial_customer_cost_amount,
+				assetleases.total_nbv_amount,
+				assetleases.capitalized_additional_charge_amount,
+				assetleases.asset_budget_value,
+				assetleases.total_charge_to_customer,
+				assetleases.number_of_assets,
+
+				legalE.legal_entity_number,
+
+				productType.transaction_type AS product_name,
+				productType.transaction_type AS deal_type,
+
+				classificationCode.code AS sic_code,
+				classificationCode.description AS sic_desc,					
+
+				businessType.name AS business_type,	
+				cCenter.description AS cost_center,	
+                lBusiness.name AS line_of_business, 	
+                branch.branch_name,		
+
+				dfinance.booking_status,
+				dfinance.approval_status,
+				dfinance.is_current,
+				dfinance.customer_term_in_months,
+				dfinance.term_in_months,		
+				dfinance.remaining_lease_term_in_months,							
+				dfinance.payment_frequency,
+				dfinance.purchase_option,
+				dfinance.classification_contract_type,
+				dfinance.lease_contract_type,
+				dfinance.payment_frequency_days,
+				dfinance.bk_aggregated_dim_lease_finance_id AS lease_finance_id,
+				dfinance.sk_aggregated_dim_lease_finance,
+
+				lFinanceDetail.booked_residual_amount, 
+				lFinanceDetail.total_yield,
+				lFinanceDetail.regular_payment_amount_amount,
+				lFinanceDetail.total_down_payment_amount,
+				lFinanceDetail.interest_rate,
+				lFinanceDetail.rent_amount AS lease_rent_amount,
+				lFinanceDetail.net_investment_amount,
+				lFinanceDetail.base_rate,
+				lFinanceDetail.spread,
+				lFinanceDetail.bank_yield_spread,
+				lFinanceDetail.sk_aggregated_dim_date_post_date,
+                lFinanceDetail.sk_aggregated_dim_customer,
+				lFinanceDetail.capitalized_sales_tax_down_payment_amount AS tax_down_payment_amount,
+				lFinanceDetail.calculated_tax_deferral_amount_amount AS tax_deferral_amount,
+				lFinanceDetail.tax_deferral_numberof_payments,
+				lFinanceDetail.tax_deferral_payment_number,
+				lFinanceDetail.down_payment_amount,
+				lFinanceDetail.inception_payment_amount,
+				lFinanceDetail.is_over_term_lease,				
+				crStructure.estimated_balloon_amount_amount AS balloon_payment_amount,
+				ROW_NUMBER() OVER(PARTITION BY contract.bk_aggregated_dim_contract_id ORDER BY lFinanceDetail.sk_current_dim_contract DESC, lFinanceDetail.sk_current_dim_customer DESC, lFinanceDetail.sk_aggregated_dim_date_commencement_date DESC, lFinanceDetail.sk_aggregated_dim_lease_finance DESC, lFinanceDetail.sk_aggregated_dim_date_record DESC, lFinanceDetail.sk_aggregated_dim_time_record DESC) AS is_latest
+
+FROM aggregated_odessa_dim_contract AS contract 
+LEFT JOIN 
+(
+    SELECT  DISTINCT
+                    CASE WHEN first_value(contractOrigins.start_date) OVER (PARTITION BY contractOrigins.sequence_number ORDER BY contractOrigins.start_date) = '1900-01-01 00:00:00.000000' THEN contractOrigins.dp_process_date
+                        ELSE first_value(contractOrigins.start_date) OVER (PARTITION BY contractOrigins.sequence_number ORDER BY contractOrigins.start_date)
+                    END AS start_date
+                    ,contractOrigins.[bk_aggregated_dim_contract_id] AS contract_id
+    FROM aggregated_odessa_dim_contract AS contractOrigins 
+    WHERE contractOrigins.status = 'Commenced' --AND contractOrigins.report_status = 'Active'
+) AS contractOrigins ON contractOrigins.contract_id = contract.bk_aggregated_dim_contract_id
+LEFT JOIN 
+(
+SELECT 
+        lease.contract_id,						
+        SUM(nbv_amount) AS nbv_amount,
+        SUM(customer_cost_amount) AS customer_cost_amount,
+        SUM(rent_amount) AS rent_amount,
+        SUM(accumulated_depreciation_amount) AS accumulated_depreciation_amount,
+        SUM(fmv_amount) AS fmv_amount,
+        SUM(initial_customer_cost_amount) AS initial_customer_cost_amount,
+        SUM(nbv_amount) AS total_nbv_amount,
+        SUM(capitalized_additional_charge_amount) AS capitalized_additional_charge_amount,
+        SUM(asset_budget_value) AS asset_budget_value,
+        SUM(total_charge_to_customer) AS total_charge_to_customer,
+        COUNT(*) AS number_of_assets
+
+FROM vw_lease_asset_all AS lease
+WHERE lease.is_approved = 1
+GROUP BY
+				lease.contract_id
+
+) AS assetleases ON contract.bk_aggregated_dim_contract_id = assetleases.contract_id 
+JOIN vw_lease_finance_detail AS lFinanceDetail ON contract.sk_aggregated_dim_contract = lFinanceDetail.sk_current_dim_contract AND lFinanceDetail.current_contract_detail = 1
+LEFT JOIN aggregated_odessa_dim_customer AS customer ON lFinanceDetail.sk_current_dim_customer = customer.sk_aggregated_dim_customer 
+LEFT JOIN aggregated_odessa_dim_opportunity AS opportunity ON opportunity.number = contract.opportunity_number AND opportunity.current_flag = 1	
+LEFT JOIN aggregated_odessa_dim_user AS contractUser ON contractUser.bk_aggregated_dim_user_id = contract.created_by_id  AND contractUser.current_flag = 1
+LEFT JOIN vw_contract_assignments AS contractSalesRep ON contractSalesRep.contract_id = contract.bk_aggregated_dim_contract_id AND contractSalesRep.system_defined_name = 'SalesRep'     
+LEFT JOIN vw_contract_assignments AS contractManager ON contractManager.contract_id = contract.bk_aggregated_dim_contract_id AND contractManager.system_defined_name = 'AccountManager'
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND productType.current_flag = 1	
+LEFT JOIN aggregated_odessa_dim_cost_center AS cCenter on cCenter.bk_aggregated_dim_cost_center_id = contract.cost_center_id
+LEFT JOIN aggregated_odessa_dim_legal_entity AS legalE on legalE.sk_aggregated_dim_legal_entity = lFinanceDetail.sk_aggregated_dim_legal_entity 	
+LEFT JOIN aggregated_odessa_dim_line_of_business AS lBusiness ON lBusiness.sk_aggregated_dim_line_of_business = lFinanceDetail.sk_aggregated_dim_line_of_business 
+LEFT JOIN aggregated_odessa_dim_date AS commencement on commencement.sk_aggregated_dim_date = lFinanceDetail.sk_aggregated_dim_date_commencement_date
+LEFT JOIN aggregated_odessa_dim_business_type AS businessType ON businessType.bk_aggregated_dim_business_type_id = customer.business_type_id AND businessType.current_flag = 1	
+LEFT JOIN aggregated_odessa_dim_classification_code AS classificationCode ON customer.sic_code_id = classificationCode.bk_aggregated_dim_classification_code_id AND classificationCode.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_branch AS branch on branch.sk_aggregated_dim_branch = lFinanceDetail.sk_aggregated_dim_branch 
+LEFT JOIN aggregated_odessa_dim_lease_finance AS dfinance ON dfinance.sk_aggregated_dim_lease_finance = lFinanceDetail.sk_aggregated_dim_lease_finance 
+LEFT JOIN vw_credit_application AS crStructure ON crStructure.opportunity_number = contract.opportunity_number
+) AS a
+WHERE a.is_latest = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_bdm_credit_assets
+-- Depends on: vw_asset, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_bdm_credit_assets
+AS
+SELECT 
+    a.*
+    ,COALESCE(
+            CASE WHEN a.[Maturity Timeframe] <= 0 THEN 'Already Matured' ELSE NULL END,
+            CASE WHEN a.[Maturity Timeframe] <= 30 THEN '1 Month or Less' ELSE NULL END,
+            CASE WHEN a.[Maturity Timeframe] <= 60 THEN '1-2 Months' ELSE NULL END,
+            CASE WHEN a.[Maturity Timeframe] <= 90 THEN '2-3 Months' ELSE NULL END,
+            CASE WHEN a.[Maturity Timeframe] <= 180 THEN '3-6 Months' ELSE NULL END,
+            CASE WHEN a.[Maturity Timeframe] <= 365 THEN '6-12 Months' ELSE NULL END,
+            CASE WHEN a.[Maturity Timeframe] > 365 THEN 'More than 1 Year' ELSE NULL END                                       
+        ) AS 'Maturity Timeframe (Months)'  
+FROM
+(
+SELECT 
+
+    contracts.contract_id
+    ,contracts.customer_id
+    ,contracts.sequence_number AS 'Lease No'
+    ,contracts.aag_contract_number
+    ,asset.product_name AS 'Asset Category'
+    ,asset.alias AS 'Registration Number'
+    ,asset.description AS 'Equipment Description' 
+    ,asset.product_name AS 'Vehicle Category'
+    ,asset.manufacturer_name AS 'MAKE'
+    ,asset.make_name AS 'Model Range'
+    ,asset.model_year AS 'YEAR'       
+    ,asset.gvw AS 'GVW' 
+    ,asset.equipment_nbv AS NBV
+    ,asset.body_description AS 'Body Type'
+    ,contracts.product_name AS Product
+    ,lease.total_charge_to_customer AS Rate
+    ,contracts.payment_frequency AS 'Billing Period'
+    ,contracts.term_in_months AS 'Lease Term'
+    ,asset.term AS 'Term'
+    ,asset.emission_code AS Emission
+    ,maturity.bk_aggregated_dim_date AS 'Maturity Date'
+    ,DATEDIFF(DAY,GETDATE(),maturity.bk_aggregated_dim_date) AS 'Maturity Timeframe'  
+    ,commence.bk_aggregated_dim_date AS 'Commenced Date'
+    ,asset.service_intervals_vehicle AS 'Service Intervals Vehicle'
+    ,asset.rv_maturity_date AS 'RV Maturity Date'
+    ,contracts.status
+    ,contracts.sales_rep
+
+FROM vw_lease_asset_current AS lease 
+LEFT JOIN vw_asset AS asset ON asset.asset_id = lease.asset_id
+LEFT JOIN vw_lease_contracts AS contracts ON contracts.contract_id = lease.contract_id
+LEFT JOIN aggregated_odessa_dim_date AS maturity ON maturity.sk_aggregated_dim_date = contracts.lease_maturity_date 
+LEFT JOIN aggregated_odessa_dim_date AS commence ON commence.sk_aggregated_dim_date = contracts.lease_commencement_date 
+) AS a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_application_lease_contract
+-- Depends on: vw_credit_application, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_application_lease_contract
+AS
+SELECT 
+    application.application_id  AS 'Application_ID'
+    ,application.application_created_date AS 'Application Created Date'
+    ,contract.company_name AS 'Account Name'
+    ,contract.sequence_number AS 'Lending Account ID'
+    ,contract.created_time AS 'Contract Created Date'
+    ,contract.updated_time AS 'Contract Modified Date'
+    ,contract.status AS 'Status'    
+    ,commDate.bk_aggregated_dim_date AS 'Commencement Date'
+FROM vw_lease_contracts AS contract
+JOIN vw_credit_application AS application ON application.opportunity_number = contract.opportunity_number
+LEFT JOIN aggregated_odessa_dim_date AS commDate ON commDate.sk_aggregated_dim_date = contract.lease_commencement_date
+LEFT JOIN aggregated_odessa_dim_date AS createdDate ON createdDate.sk_aggregated_dim_date = contract.sk_created_date
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_assets_terminated_month
+-- Depends on: vw_asset, vw_lease_asset_all, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_assets_terminated_month
+AS
+SELECT 
+      contract.company_name AS 'Account Name'
+      ,contract.aag_contract_number AS ' AAG Contract Number'
+      ,contract.sequence_number AS 'LS Contract: Lending Account ID' 
+      ,asset.registration_number AS 'Registration Number'
+      ,ISNULL(asset.serial_number,'-') AS 'Serial Number'     
+      ,asset.description AS 'Equipment Description'
+      ,asset.product_name AS 'Vehicle Category'
+      ,asset.manufacturer_name AS 'MAKE'
+      ,asset.make_name AS 'Model Range'
+      ,asset.model_year AS 'YEAR'  
+      ,asset.gvw AS 'GVW'
+      ,lease.rent_amount AS 'Rent'
+      ,lease.asset_budget_value  AS 'Asset Budget Value'
+      ,lease.total_charge_to_customer AS 'Charge To Customer'   
+      ,contract.payment_frequency AS 'Rental Term Unit'
+      ,asset.asset_contract_type AS 'Vehicle Type'
+      ,contract.product_name AS 'Product Name'
+      ,contract.branch_name AS 'Branch' 
+      ,commDate.bk_aggregated_dim_date AS 'Contract Date'
+      ,contract.customer_term_in_months AS 'Current Term' 
+      ,termDate.bk_aggregated_dim_date AS 'Termination Date' 
+      ,matDate.bk_aggregated_dim_date AS 'RV Maturity Date' 
+      ,contract.payment_method AS 'Payment Method'
+      ,contract.booking_status AS 'Contract: Status' 
+      ,asset.location_city AS 'Current Location'  
+      ,contract.cost_center AS 'Cost Centre'
+      ,contract.sales_rep AS 'Sales Rep'                           
+FROM
+vw_lease_asset_all AS lease 
+JOIN vw_asset AS asset ON lease.bk_aggregated_dim_asset_id = asset.bk_aggregated_dim_asset_id
+LEFT JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
+LEFT JOIN aggregated_odessa_dim_date AS matDate ON matDate.sk_aggregated_dim_date = contract.lease_maturity_date
+LEFT JOIN aggregated_odessa_dim_date AS commDate ON commDate.sk_aggregated_dim_date = contract.lease_commencement_date  
+JOIN aggregated_odessa_dim_date AS termDate ON termDate.sk_aggregated_dim_date = lease.sk_aggregated_dim_date_termination_date AND termDate.sk_aggregated_dim_date > 0
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_contracts_created_month
+-- Depends on: vw_asset, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_contracts_created_month
+AS
+SELECT 
+      contract.company_name AS 'Account Name'
+      ,contract.[aag_contract_number] AS ' AAG Contract Number'
+      ,contract.[sequence_number] AS 'LS Contract: Lending Account ID' 
+      ,asset.registration_number AS 'Registration Number'
+      ,contract.cost_center
+      ,asset.[serial_number] AS 'Serial Number'     
+      ,asset.[description] AS 'Equipment Description' 
+      ,asset.product_name AS 'Vehicle Category' 
+      ,asset.[manufacturer_name] AS 'MAKE'
+      ,asset.[make_name] AS 'Model Range'
+      ,asset.[model_year] AS 'YEAR'            
+      ,asset.[gvw] AS 'GVW'  
+      ,lease.rent_amount AS 'Rent'
+      ,lease.asset_budget_value AS 'Asset Budget Value'  
+      ,lease.total_charge_to_customer AS 'Charge To Customer'  
+      ,contract.payment_frequency AS 'Rental Term Unit' 
+      ,asset.[asset_contract_type] AS 'Vehicle Type'     
+      ,contract.product_name AS [Product Name] 
+      ,dt2.bk_aggregated_dim_date AS 'Contract Date'
+      ,contract.customer_term_in_months AS 'Current Term'
+      ,dt.bk_aggregated_dim_date AS 'Maturity Date' 
+      ,contract.payment_method AS 'Payment Method'
+      ,contract.report_status AS 'Contract: Status' 
+      ,contract.branch_name AS 'Current Location' 
+      ,ISNULL(contract.sales_rep,'-') AS 'Dimesion 4'        
+      ,contract.status AS 'Status'
+      ,asset.equipment_nbv AS 'Equipment NBV'
+      ,contract.contract_created_by AS 'Created By'
+      ,dt3.[bk_aggregated_dim_date] AS 'Termination Date'     
+      ,COALESCE(dt2.bk_aggregated_dim_date,contract.[lease_start_date]) AS 'Created Date'
+      ,contract.is_migrated AS 'Is Migrated'                                
+FROM vw_lease_asset_current AS lease 
+      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
+      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
+      LEFT JOIN aggregated_odessa_dim_date AS dt on dt.[sk_aggregated_dim_date] = contract.lease_maturity_date
+      LEFT JOIN aggregated_odessa_dim_date AS dt2 on dt2.[sk_aggregated_dim_date] = contract.[sk_created_date]  
+      LEFT JOIN aggregated_odessa_dim_date AS dt3 on dt3.[sk_aggregated_dim_date] = lease.sk_aggregated_dim_date_termination_date --AND lease.sk_aggregated_dim_date_termination_date > 0
+--WHERE contract.is_migrated = 'No'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_contracts_terminated_live
+-- Depends on: vw_asset, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_contracts_terminated_live
+AS
+SELECT 
+
+asset.[alias] AS 'Registration Number',
+'LES-' + contract.[sequence_number] AS 'Lending Account ID',
+contract.[product_name] AS 'Product Name',
+contract.company_name AS 'Customer',
+contract.[payment_method] AS 'Payment Method',
+contract.[payment_frequency] AS 'Rental Term Unit',
+dt3.[bk_aggregated_dim_date] AS 'Termination Date',
+dt1.[bk_aggregated_dim_date] AS 'Maturity Date',
+'GBP' AS 'Rent Currency',
+lease.[rent_amount] AS 'Rent',
+'GBP' AS 'Charge To Customer Currency',
+lease.[total_charge_to_customer] AS 'Charge To Customer'
+
+FROM vw_lease_asset_current AS lease 
+      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
+      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
+      LEFT JOIN aggregated_odessa_dim_date AS dt1 on dt1.[sk_aggregated_dim_date] = contract.lease_maturity_date
+      LEFT JOIN aggregated_odessa_dim_date AS dt3 on dt3.[sk_aggregated_dim_date] = lease.[sk_aggregated_dim_date_termination_date]      
+WHERE lease.[sk_aggregated_dim_date_termination_date] > 0
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_evergreen_leased
+-- Depends on: vw_asset, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_evergreen_leased
+
+AS
+
+SELECT 
+
+contract.[company_name] AS Account
+,asset.[registration_number] AS [Vehicle Registration Number]
+,contract.[external_reference_number] AS [AA Contract Number]
+,asset.[is_migrated] AS [Is Migrated]
+,contract.[deal_type] AS [Product Name]
+,asset.[model_year] AS [Year]
+,contract.[lease_contract_type] AS [Product Sub Type]
+,asset.[asset_sub_type] AS [Asset Sub Type]
+,contract.[cost_center] AS [Dimension 3]
+,CONVERT(VARCHAR,commenceDate.[bk_aggregated_dim_date] , 103) AS [Contract Date]
+,CONVERT(VARCHAR,maturityDate.[bk_aggregated_dim_date] , 103) AS [Maturity Date]
+,CONVERT(VARCHAR, asset.[rv_maturity_date] , 103) AS [RV Maturity Date]
+,contract.[customer_term_in_months] AS [Current Term]
+,contract.[rent_amount] AS [Rent]
+,contract.[asset_budget_value] AS [Asset Budget Value]
+,contract.[customer_term_in_months] AS [Current Term 2]
+,contract.[payment_frequency] AS [Rental Term Unit]
+,contract.[booking_status] AS [Status]
+,asset.[book_value_amount] AS [Equipment Book Value]
+,asset.[depreciation_value] AS [Equipment Depreciation Value] 
+,asset.[begin_book_value_amount] AS [Equipment NBV]
+,asset.[cost_amount] AS [Equipment Fair Value Adjustment]
+,asset.[is_migrated] AS [Equipment Is Migrated]
+,asset.[asset_contract_type] AS [Equipment Vehicle Type]
+,asset.[product_name] AS [Equipment Vehicle Category]
+,asset.[registration_number] AS [Vehicle Registration Number 2]
+,asset.[gvw] AS [Equipment GVW]
+,asset.[manufacturer_name] AS [Equipment Manufacturer]
+,asset.[model_name] AS [Equipment Model Range]
+,asset.[body_type] AS [Body Type]
+,asset.[description] AS [Equipment Description]
+,asset.[residual_value_amount] AS [Equipment Residual Value]
+,asset.[retail_value_amount] AS [Equipment Retail Value]
+,CONVERT(VARCHAR, asset.[retail_valuation_date] , 103 ) AS [Equipment Retail Valuation Date]
+,contract.branch_name AS [Dimension 1]
+,asset.[contract_mileage] AS [Contract Mileage]
+,asset.[last_known_mileage] AS [Equipment Last Known Mileage]
+,CONVERT(VARCHAR, asset.[present_mileage_date] , 103 ) AS [Equipment Present Mileage Date]
+,CONVERT(VARCHAR, asset.[mot_expiry_date] , 103 ) AS [Equipment Mot Expiry Date]
+,asset.[is_returned]
+
+FROM vw_lease_asset_current AS lease 
+      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
+      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
+      LEFT JOIN aggregated_odessa_dim_date AS commenceDate on commenceDate.sk_aggregated_dim_date = contract.lease_commencement_date
+      LEFT JOIN aggregated_odessa_dim_date AS maturityDate on maturityDate.sk_aggregated_dim_date = contract.lease_maturity_date   
+      WHERE asset.[asset_contract_type] = 'Lease'  
+	  AND contract.is_over_term_lease = 1
+      --AND LOWER(contract.status) = 'commenced'   	
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_evergreen_rental
+-- Depends on: vw_asset, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_evergreen_rental
+
+AS
+
+SELECT 
+
+contract.[company_name] AS Account
+,asset.[registration_number] AS [Vehicle Registration Number]
+,contract.[external_reference_number] AS [AA Contract Number]
+,asset.[is_migrated] AS [Is Migrated]
+,contract.[deal_type] AS [Product Name]
+,asset.[model_year] AS [Year]
+,contract.[lease_contract_type] AS [Product Sub Type]
+,asset.[asset_sub_type] AS [Asset Sub Type]
+,contract.[cost_center] AS [Dimension 3]
+,CONVERT(VARCHAR,commenceDate.[bk_aggregated_dim_date] , 103) AS [Contract Date]
+,CONVERT(VARCHAR,maturityDate.[bk_aggregated_dim_date] , 103) AS [Maturity Date]
+,CONVERT(VARCHAR, asset.[rv_maturity_date] , 103) AS [RV Maturity Date]
+,contract.[customer_term_in_months] AS [Current Term]
+,contract.[rent_amount] AS [Rent]
+,contract.[asset_budget_value] AS [Asset Budget Value]
+,contract.[customer_term_in_months] AS [Current Term 2]
+,contract.[payment_frequency] AS [Rental Term Unit]
+,contract.[booking_status] AS [Status]
+,asset.[book_value_amount] AS [Equipment Book Value]
+,asset.[depreciation_value] AS [Equipment Depreciation Value] 
+,asset.[begin_book_value_amount] AS [Equipment NBV]
+,asset.[cost_amount] AS [Equipment Fair Value Adjustment]
+,asset.[is_migrated] AS [Equipment Is Migrated]
+,asset.[asset_contract_type] AS [Equipment Vehicle Type]
+,asset.[product_name] AS [Equipment Vehicle Category]
+,asset.[registration_number] AS [Vehicle Registration Number 2]
+,asset.[gvw] AS [Equipment GVW]
+,asset.[manufacturer_name] AS [Equipment Manufacturer]
+,asset.[model_name] AS [Equipment Model Range]
+,asset.[body_type] AS [Body Type]
+,asset.[description] AS [Equipment Description]
+,asset.[residual_value_amount] AS [Equipment Residual Value]
+,asset.[retail_value_amount] AS [Equipment Retail Value]
+,CONVERT(VARCHAR, asset.[retail_valuation_date] , 103 ) AS [Equipment Retail Valuation Date]
+,contract.branch_name AS [Dimension 1]
+,asset.[contract_mileage] AS [Contract Mileage]
+,asset.[last_known_mileage] AS [Equipment Last Known Mileage]
+,CONVERT(VARCHAR, asset.[present_mileage_date] , 103 ) AS [Equipment Present Mileage Date]
+,CONVERT(VARCHAR, asset.[mot_expiry_date] , 103 ) AS [Equipment Mot Expiry Date]
+,asset.[is_returned]
+
+FROM vw_lease_asset_current AS lease 
+      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
+      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
+      LEFT JOIN aggregated_odessa_dim_date AS commenceDate on commenceDate.sk_aggregated_dim_date = contract.lease_commencement_date
+      LEFT JOIN aggregated_odessa_dim_date AS maturityDate on maturityDate.sk_aggregated_dim_date = contract.lease_maturity_date   
+      WHERE asset.[asset_contract_type] = 'Rental'  
+	  AND contract.is_over_term_lease = 1		
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_individual_customers
+-- Depends on: vw_asset, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_individual_customers
+AS
+SELECT 
+      contract.company_name AS 'Account Name'
+      ,contract.aag_contract_number AS 'AAG Contract Number'      
+      ,contract.[sequence_number] AS 'LS Contract: Lending Account ID'
+      ,asset.registration_number AS 'Registration Number'
+      ,ISNULL(asset.[serial_number],'-') AS 'Serial Number' 
+      ,asset.[description] AS 'Equipment Description'     
+      ,asset.product_name AS 'Vehicle Category' 
+      ,asset.[manufacturer_name] AS 'MAKE'
+      ,asset.[make_name] AS 'Model Range'
+      ,asset.[model_year] AS 'YEAR'       
+      ,asset.[gvw] AS 'GVW'
+      ,lease.[rent_amount] AS 'Rent'
+      ,lease.[asset_budget_value] AS 'Asset Budget Value'
+      ,lease.[total_charge_to_customer] AS 'Charge To Customer' 
+      ,contract.payment_frequency AS 'Rental Term Unit'  
+      ,asset.[asset_contract_type] AS 'Vehicle Type'            
+      ,contract.product_name AS [Product Name]
+      ,commenceDate.bk_aggregated_dim_date AS 'Contract Date'
+      ,contract.customer_term_in_months AS 'Current Term'
+      ,maturityDate.bk_aggregated_dim_date AS 'Maturity Date' 
+      ,contract.payment_method AS 'Payment Method'
+      ,contract.booking_status AS 'Contract: Status' 
+      ,contract.branch_name AS 'Dimension 1' 
+      ,contract.cost_center AS 'Dimension 3'
+      ,contract.sales_rep AS 'Dimension 4' 
+      ,asset.equipment_nbv AS 'Equipment NBV'
+      ,asset.asset_status  AS 'Equipment Status' 
+
+FROM vw_lease_asset_current AS lease 
+      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
+      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
+      LEFT JOIN aggregated_odessa_dim_date AS commenceDate on commenceDate.sk_aggregated_dim_date = contract.lease_commencement_date
+      LEFT JOIN aggregated_odessa_dim_date AS maturityDate on maturityDate.sk_aggregated_dim_date = contract.lease_maturity_date   
+WHERE asset.asset_contract_type NOT IN ('Stock','BackedOffAsset')
+      AND LOWER(contract.status) = 'commenced'
+      AND asset.asset_status <> 'Sold'
+      AND asset.asset_status = 'Leased'         
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_open_lease_customers
+-- Depends on: vw_asset, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_open_lease_customers
+AS
+SELECT 
+      contracts.company_name AS 'Account Name'
+      ,contracts.aag_contract_number AS 'AAG Contract Number'      
+      ,contracts.sequence_number AS 'LS Contract: Lending Account ID'
+      ,asset.alias AS 'Registration Number'
+      ,ISNULL(asset.serial_number,'-') AS 'Serial Number' 
+      ,asset.description AS 'Equipment Description'
+      ,asset.service_intervals_vehicle AS 'Service Intervals-Vehicle'
+      ,asset.service_intervals_trailer AS 'Service Intervals-Trailer'      
+      ,asset.product_name AS 'Vehicle Category' 
+      ,asset.manufacturer_name AS 'MAKE'
+      ,asset.make_name AS 'Model Range'
+      ,asset.model_year AS 'YEAR'    
+      ,asset.gvw AS 'GVW'
+      ,lease.rent_amount AS 'Rent'
+      ,lease.asset_budget_value AS 'Asset Budget Value'
+      ,lease.total_charge_to_customer AS 'Charge To Customer'  
+      ,contracts.payment_frequency AS 'Rental Term Unit'
+      ,asset.asset_contract_type AS 'Vehicle Type'         
+      ,contracts.deal_type AS 'Product Name'
+      ,contracts.contract_type AS 'Contract Type'                 
+      ,commDate.bk_aggregated_dim_date AS 'Contract Date'
+      ,contracts.customer_term_in_months AS 'Current Term'
+      ,asset.term AS 'Asset Lease Term'
+      ,asset.rv_maturity_date AS 'RV Maturity Date'
+      ,matDate.bk_aggregated_dim_date AS 'Maturity Date'
+      ,contracts.payment_method AS 'Payment Method'
+      ,contracts.status AS 'Contract: Status'
+      ,asset.location_city AS 'Current Location'       
+      ,contracts.branch_name AS 'Branch'
+      ,contracts.cost_center AS 'Cost Center'
+      ,contracts.sales_rep AS 'Sales Person' 
+      ,asset.begin_book_value_amount AS 'Equipment NBV'
+      ,asset.asset_contract_type AS 'Asset Type'
+                           
+FROM
+vw_asset AS asset
+JOIN vw_lease_asset_current AS lease on lease.asset_id = asset.asset_id
+JOIN vw_lease_contracts AS contracts ON contracts.contract_id = lease.contract_id
+LEFT JOIN aggregated_odessa_dim_date AS matDate ON matDate.sk_aggregated_dim_date = contracts.lease_maturity_date
+LEFT JOIN aggregated_odessa_dim_date AS commDate ON commDate.sk_aggregated_dim_date = contracts.lease_commencement_date  
+WHERE asset.asset_status = 'Leased'
+AND LOWER(contracts.status) = 'commenced'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_qa_queue_ops
+-- Depends on: vw_credit_application, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_qa_queue_ops
+AS
+SELECT 
+      application.opportunity_number 'Application ID'
+      ,application.company_name 'Account'
+      ,application.expected_commencement_date AS 'Expected Start Date'
+      ,application.transaction_type AS 'Product Name'
+      ,ISNULL(application.equipment_count,0) AS 'Number of Pieces of Equipment'
+      ,ISNULL(application.approved_amount_amount,0) AS 'Financed Amount'
+      ,application.cost_centre AS 'Cost Centre'
+      ,application.application_owner
+      ,application.opportunity_owner
+      ,application.report_status AS 'Application Report Status'
+      ,application.application_status AS 'Application Stage'       
+      ,application.loc_status AS 'Credit Application Status'  
+
+FROM vw_credit_application AS application
+LEFT JOIN vw_lease_contracts AS lease ON lease.opportunity_number = application.opportunity_number 
+WHERE (LOWER(application.application_status) IN ('submittedtocredit') AND LOWER(application.loc_status) IN ('approved','pending'))
+OR
+LOWER(lease.status) IN ('pending','installingassets')
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_ts_asset_nbv_funding_migration
+-- Depends on: vw_asset, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ts_asset_nbv_funding_migration
+AS
+SELECT 
+      asset.registration_number AS 'Registration Number'
+     ,ISNULL(asset.[collateral_id],'-') AS 'Collateral: Collateral ID'  
+     ,asset.[equipment_id] AS 'Equipment Id'
+     ,asset.acquisition_date AS 'Purchased Date'
+     ,ISNULL(asset.[asset_funding_status],'-') AS 'Dealer Funding Status'
+     ,asset.[description] AS 'Equipment Description' 
+     ,asset.[expected_chassis_delivery_date] AS 'Expected Chassis Delivery Date'
+     ,contract.company_name AS 'Reserved For' 
+     ,asset.[asset_contract_type] AS 'Vehicle Type' 
+     ,asset.asset_status AS 'Status' 
+     ,asset.purchase_price AS 'Purchased Price' 
+     ,asset.book_value_amount AS 'Book Value'
+     ,asset.equipment_nbv AS 'Equipment NBV'   
+     ,asset.residual_value_amount AS 'Residual Value'   
+     ,asset.generate_book_depreciation AS 'Generate Book Depreciation'
+     ,asset.depreciation_start_date AS 'Depreciation Start Date'
+     ,asset.[remaining_life_in_months] AS 'Equipment Life in Months' 
+     ,ISNULL(asset.[depreciation_value],0) AS 'Depreciation Value'                           
+
+FROM vw_lease_asset_current AS lease 
+      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
+      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
+      LEFT JOIN aggregated_odessa_dim_date AS dt on dt.[sk_aggregated_dim_date] = contract.lease_maturity_date
+WHERE asset.asset_status = 'Leased'   
+      AND asset.asset_contract_type NOT IN ('Stock','BackedOffAsset') 
+      AND asset.asset_status <> 'Sold'  
+      AND asset.[is_migrated] = 0      
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_ts_contracts_not_activated
+-- Depends on: vw_additional_charges_detail, vw_asset, vw_credit_application, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ts_contracts_not_activated
+AS
+SELECT 
+
+contract.company_name AS 'Account Name',
+contract.[aag_contract_number] AS 'AAG Contract Number',
+'LES-' + contract.[sequence_number] AS 'Lending Account ID',
+contract.[status] AS 'Status',
+asset.[Company] AS 'Branch: Company',
+contract.[opportunity_number] AS 'Contract: Application Number',
+asset.[alias] AS 'Registration Number',
+'-' AS 'Lease Receivable Amount',
+application.[requested_amount_amount] AS 'Financed Amount',
+contract.[customer_cost_amount] AS 'Invoiced Price(+)',
+contract.[booked_residual_amount] AS 'Residual Amount',
+contract.[rent_amount] AS 'Rent',
+contract.[rent_amount] AS 'Fee Amount',
+charges.[charge_description] AS 'Fee Definition',
+asset.[description] AS 'Equipment Description',
+contract.[payment_frequency] AS 'Rental Term Unit',
+contract.[product_name] AS 'Lease Product',
+dd1.[bk_aggregated_dim_date] AS 'Contract Date',
+--date2.[bk_aggregated_dim_date] AS 'Amortization Start Date',
+dd2.[bk_aggregated_dim_date] AS 'Maturity Date',
+--contract.[lease_commencement_date] AS 'Contract Date',
+asset.[depreciation_start_date] AS 'Amortization Start Date',
+--contract.[lease_maturity_date] AS 'Maturity Date',
+contract.[customer_term_in_months] AS 'Rental Term',
+contract.[payment_method] AS 'Payment Method',
+contract.[branch_name] AS 'Dimension 1',
+contract.[cost_center] AS 'Dimension 3',
+contract.[sales_rep] AS 'Dimension 4'
+FROM vw_lease_asset_current AS lease 
+      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
+      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
+      LEFT JOIN vw_credit_application AS application ON application.[opportunity_number] = contract.opportunity_number
+      LEFT JOIN aggregated_odessa_dim_date AS dd2 on dd2.[sk_aggregated_dim_date] = contract.lease_maturity_date
+      LEFT JOIN aggregated_odessa_dim_date AS dd1 on dd1.[sk_aggregated_dim_date] = contract.lease_commencement_date  
+      LEFT JOIN vw_additional_charges_detail AS charges ON charges.asset_id = lease.asset_id AND charges.contract_id = lease.contract_id  
+          
+WHERE asset.asset_status = 'Leased'
+AND LOWER(contract.[status]) IN ('installingassets','pending')
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_ts_equipment_accruals_on_contract
+-- Depends on: vw_additional_charges_detail, vw_asset, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ts_equipment_accruals_on_contract
+AS 
+SELECT *
+FROM
+(
+SELECT 
+        asset.alias AS 'Registration Number'
+        ,contracts.[sequence_number] AS 'LS Contract: Lending Account ID'
+        ,contracts.product_name AS [Product Name] 
+        ,contracts.[sequence_number] AS 'Application Number'
+        ,contracts.[aag_contract_number] AS 'AAG Contact Number' 
+        ,contracts.cost_center
+        ,contracts.[sales_rep]     
+        ,contracts.branch_name       
+        ,contracts.payment_frequency AS 'Rental Term Unit'                 
+        ,asset.equipment_id AS 'Equipment Collateral ID' 
+        ,contracts.company_name AS 'Company' 
+        ,contracts.[payment_method] AS 'Payment Method' 
+        ,contracts.status AS 'Status'
+        ,contracts.report_status AS 'Status1' 
+        ,asset.asset_contract_type 
+        ,asset.asset_status 
+        ,asset.term AS customer_term_in_months 
+        ,COALESCE(contracts.lease_start_date, commDate.bk_aggregated_dim_date) AS 'Created Date'     
+        ,commDate.bk_aggregated_dim_date AS 'Commencement Date' 
+        ,dt1.bk_aggregated_dim_date AS 'Maturity Date' 
+
+        ,contracts.[base_rate] AS 'COF'
+        ,contracts.[spread] AS 'Margin'
+        ,contracts.[total_yield] AS 'Interest Rate'          
+
+        ,ISNULL(lease.[fmv_amount],0) AS 'Equipment: Book Value'        
+        ,ISNULL(lease.[nbv_amount],0) AS 'Equipment NBV'
+        ,ISNULL(lease.booked_residual_amount,0) AS 'Equipment: Residual Value' 
+        ,ISNULL(lease.rent_amount,0) AS 'Rent' 
+
+        ,ISNULL(lease.rv_recap_amount_amount,0) AS 'Equipment: Depreciation Value'
+        ,ISNULL(charges.charge_description,'-') AS charge_description
+        ,ISNULL(charges.charges,0) AS charges
+
+FROM vw_asset asset
+JOIN vw_lease_asset_current AS lease ON lease.asset_id = asset.asset_id
+JOIN vw_lease_contracts AS contracts ON contracts.contract_id = lease.contract_id
+LEFT JOIN aggregated_odessa_dim_date AS commDate on commDate.[sk_aggregated_dim_date] = contracts.[lease_commencement_date]
+LEFT JOIN aggregated_odessa_dim_date AS dt1 on dt1.[sk_aggregated_dim_date] = contracts.lease_maturity_date
+LEFT JOIN vw_additional_charges_detail AS charges ON charges.asset_id = lease.asset_id AND charges.contract_id = lease.contract_id
+WHERE LOWER(asset.asset_contract_type) <> 'stock'
+AND LOWER(asset.asset_status) IN ('inventory','leased')
+) AS a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_asset_in_application
+-- Depends on: vw_asset, vw_credit_application, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_asset_in_application
+AS 
+SELECT
+    b.*
+    , ROW_NUMBER() OVER(PARTITION BY b.asset_id ORDER BY b.application_created_date DESC) AS latest_application	
+
+FROM
+(
+    SELECT a.*
+    ,COALESCE(
+                CASE WHEN a.lease_status IS NOT NULL THEN 'Pre-Contract' ELSE NULL END 
+                , CASE WHEN a.loc_status IS NOT NULL THEN 'Line of Credit' ELSE NULL END
+                , CASE WHEN a.application_status IS NOT NULL THEN 'Credit App' ELSE NULL END 
+                , 'Unknown'
+                   
+             ) AS application_stage  
+    FROM
+    (
+    SELECT DISTINCT
+        cAppAssets.application_id AS application_id,
+        cAppAssets.loc_status, ---- application_status
+        cAppAssets.application_status, ---- application_stage
+        cAppAssets.credit_profile_number,	
+        lease.status AS lease_status,        
+        cAppAssets.expected_commencement_date AS application_expected_commencement_date,	
+        cAppAssets.submitted_to_credit_date,
+        cAppAssets.application_created_date,	
+        asset.asset_status,
+        cAppAssets.transaction_type AS Lease_type,
+        cAppAssets.transaction_type AS product_name,	
+        cAppAssets.company_name,
+        cAppAssets.legal_entity,
+        cAppAssets.opportunity_number,
+        cAppAssets.application_created_by AS created_by,	
+
+        cAppAssets.asset_id,
+        cAppAssets.application_id AS application_asset_id,
+
+        asset.model_name,
+        asset.make_name,
+        asset.alias AS registration_number,
+        asset.manufacturer_name,
+        asset.aag_fleet_number,
+        asset.asset_sub_type
+    FROM
+    (
+        SELECT 
+            creditApps.application_id,
+            crAsset.asset_id,
+            creditApps.credit_profile_number,		
+            creditApps.loc_status, 
+            creditApps.application_status,
+            creditApps.expected_commencement_date,	
+            creditApps.application_created_date,	
+            creditApps.transaction_type,	
+            creditApps.company_name,
+            creditApps.legal_entity,
+            creditApps.opportunity_number,
+            creditApps.application_created_by,
+            creditApps.submitted_to_credit_date			
+        FROM vw_credit_application AS creditApps
+        JOIN aggregated_odessa_dim_credit_profile_asset AS crAsset ON crAsset.credit_profile_id = creditApps.credit_profile_id AND crAsset.current_flag = 1	
+        WHERE lOWER(creditApps.loc_status) IN ('pending','datagathering','creditanalysis','amendment','approved')   
+        UNION
+
+        SELECT 
+            creditApps.application_id,
+            appAsset.asset_id,
+            creditApps.credit_profile_number,
+            creditApps.loc_status, 
+            creditApps.application_status,
+            creditApps.expected_commencement_date,	
+            creditApps.application_created_date,	
+            creditApps.transaction_type,
+            creditApps.company_name,
+            creditApps.legal_entity,
+            creditApps.opportunity_number,
+            creditApps.application_created_by,
+            creditApps.submitted_to_credit_date
+        FROM vw_credit_application AS creditApps
+        JOIN aggregated_odessa_dim_credit_application_asset AS appAsset ON creditApps.opportunity_id = appAsset.credit_application_id
+        WHERE LOWER(creditApps.application_status) = 'pending'
+        AND appAsset.current_flag = 1
+    ) AS cAppAssets
+    LEFT JOIN vw_asset AS asset ON cAppAssets.asset_id = asset.bk_aggregated_dim_asset_id
+    LEFT JOIN vw_lease_contracts AS lease ON lease.opportunity_number = cAppAssets.opportunity_number 
+    ) AS a
+    
+    WHERE LOWER(a.application_status) = 'pending'
+    OR 
+    (LOWER(a.application_status) IN ('submittedtocredit') AND LOWER(a.loc_status) IN ('pending','datagathering','creditanalysis','amendment'))
+    OR
+    LOWER(a.loc_status) = ('approved') AND (LOWER(a.lease_status) IN ('installingassets','pending'))
+    OR
+    LOWER(a.loc_status) = ('approved') AND a.lease_status IS NULL
+    
+) AS b
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_warehouse_assets_inc_stock
+-- Depends on: vw_asset, vw_asset_in_application
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_warehouse_assets_inc_stock AS
+
+SELECT
+      asset.alias,
+      asset.[product_name] AS 'Vehicle Category'
+      ,asset.registration_number AS 'Registration Number'
+      ,CAST(asset.[gvw] AS INT) AS 'GVW'
+      ,asset.[manufacturer_name] AS 'MAKE'
+      ,asset.[make_name] AS 'Model Range'
+      ,asset.[body_type] AS 'Body Type'
+      ,asset.[description] AS 'Equipment Description'
+      ,asset.[asset_contract_type] AS 'Vehicle Type'      
+      ,asset.asset_status AS 'Status'     
+      ,asset.asset_sub_type AS 'Asset Sub Type'   
+  --    ,lease.accumulated_depreciation_amount AS 'Depreciation Basis Amount'
+      ,asset.depreciation_value AS 'Monthly Depreciation Amount'
+      ,equipment_nbv AS 'Equipment NBV'  
+      ,asset.[residual_value_amount] AS 'Residual Value'   
+      ,asset.[salvage_amount] AS 'Salvage Value' 
+      ,CASE WHEN applications.asset_id IS NULL THEN 'FALSE' ELSE 'TRUE' END AS 'In Application' 
+      ,asset.legal_entity_number AS 'Company'                       
+FROM
+      vw_asset AS asset
+      LEFT JOIN vw_asset_in_application AS applications ON applications.asset_id = asset.asset_id AND [latest_application] = 1
+WHERE asset.[asset_status] = 'Inventory'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_asset_rentals
+-- Depends on: vw_asset, vw_in_application, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_asset_rentals
+AS 
+SELECT a.*, COALESCE(a.f_o_c, a.leased, a.in_application, 'No') AS [Utilised]  
+FROM
+(
+SELECT 
+    asset.asset_id
+    ,contracts.company_name AS lease_company_name
+    ,contracts.branch_name 
+    ,contracts.[sequence_number]
+	,contracts.is_migrated
+    ,asset.[asset_status]
+    ,asset.alias AS [registration_number]
+    ,[serial_number]
+    ,asset.[description]
+    ,contracts.[cost_center] AS cost_centre
+    ,lease.total_charge_to_customer
+    ,asset.term
+    ,asset_contract_type
+    ,asset.[asset_sub_type]
+    ,contracts.product_name AS lease_product_name
+    ,asset.[make_name]
+    ,asset.[model_year]
+    ,asset.gvw
+    ,asset.[service_intervals_vehicle]
+    ,commDt.bk_aggregated_dim_date AS commenced_date
+    ,contracts.lease_start_date	
+    ,matDt.bk_aggregated_dim_date AS maturity_date
+    ,asset.[depreciation_value]
+    ,lease.rent_amount 
+    ,contracts.[customer_term_in_months] AS lease_term
+    ,asset.equipment_nbv   
+
+    ,asset.oal
+    ,asset.[rental_availability_status] 
+    ,asset.route_into_rental_fleet
+    ,asset.[body_type] 
+    ,asset.[manufacturer_name]
+    ,asset.city
+    ,asset.legal_entity_number
+    ,asset.[asset_category]
+    ,asset.category_name
+    ,asset.location_city 
+    ,asset.[collateral_id]
+    ,asset.model_name    
+
+    ,asset.cost_basis_amount
+    ,appAsset.combined_opp_number AS [application_id]
+    ,appAsset.stage AS application_stage
+    ,appAsset.combined_created_by AS created_by
+    ,appAsset.combined_product_name AS application_product_name
+    ,appAsset.loc_status
+    ,appAsset.app_status AS application_status
+    ,appAsset.combined_company_name AS application_company_name
+    ,CASE WHEN appAsset.bk_aggregated_dim_asset_id IS NOT NULL THEN 'In Application' ELSE NULL END AS in_application    
+    ,asset.body_description 
+    ,asset.[vehicle_service_status] 
+    ,asset.product_name AS vehicle_type
+    ,asset.in_service_date 
+    ,asset.[mot_passed_date]
+    ,asset.[allocated_status] 
+    ,asset.[reserved_by]
+    ,asset.[reserved_for] 
+    ,asset.[reserve_date]
+    ,asset.dvsr_star_rating
+    ,asset.dhl_compliant
+    ,contracts.status AS lease_status
+    ,CASE WHEN asset.asset_status = 'Leased' AND LOWER(contracts.status) = 'commenced' THEN 'Yes' ELSE NULL END AS leased
+    --,CASE WHEN asset.asset_status <> 'Leased' THEN 'Available' ELSE NULL END AS available
+    ,CASE WHEN asset.asset_status = 'Leased' AND LOWER(contracts.status) = 'commenced' AND contracts.product_name = 'Rental' AND lease.total_charge_to_customer = 0.01 THEN 'Yes (FoC)' ELSE NULL END AS f_o_c
+FROM vw_asset AS asset
+LEFT JOIN vw_lease_asset_current AS lease ON asset.asset_id = lease.asset_id AND lease.status IN ('Pending','Commenced','InstallingAssets')
+LEFT JOIN vw_lease_contracts AS contracts ON contracts.contract_id = lease.contract_id
+LEFT JOIN aggregated_odessa_dim_date AS commDt on commDt.[sk_aggregated_dim_date] = contracts.lease_commencement_date
+LEFT JOIN aggregated_odessa_dim_date AS matDt on matDt.[sk_aggregated_dim_date] = contracts.lease_maturity_date
+LEFT JOIN vw_in_application AS appAsset ON appAsset.bk_aggregated_dim_asset_id = asset.asset_id 
+WHERE asset.[asset_contract_type] = 'Rental'
+AND asset.asset_status IN ('Leased','Inventory','AwaitingDelivery')
+) as a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_rental_availability_report
+-- Depends on: vw_asset_rentals
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_rental_availability_report
+AS
+SELECT 
+      ISNULL(asset.collateral_id,'-') AS 'Collateral ID' ----TBC
+      ,asset.asset_id
+      ,asset.registration_number AS 'Registration Number'    
+      ,asset.[manufacturer_name] AS 'MAKE'
+      ,asset.[make_name] AS 'Model Range'
+      ,asset.model_name AS 'Model'
+      ,asset.[description] AS 'Equipment Description' ----TBC
+      ,asset.[location_city] AS 'Current Location'  
+      ,asset.[gvw] AS 'GVW'  
+      ,asset.body_description AS 'Body Type'
+      ,asset.[vehicle_service_status] AS 'Vehicle Service Status'
+      ,asset.in_service_date AS 'Next Service date'  ---TBC
+      ,DATEADD(YEAR,1,asset.[mot_passed_date]) AS 'Mot Expiry Date'
+      ,asset.[asset_contract_type] AS 'Vehicle Type' ---TBC 
+      ,asset.asset_status AS 'Status' 
+       ,CASE WHEN asset.in_application IS NOT NULL THEN 1 ELSE 0 END AS 'In Application'           
+      ,asset.[allocated_status] AS 'Allocated Status'
+      ,asset.[reserved_by] AS 'Reserved By' 
+      ,asset.[reserved_for] AS 'Reserved For' 
+      ,asset.[reserve_date] AS 'Reserve Date'---- TBC   
+      ,asset.rental_availability_status AS 'Rental Availability Status' 
+      ,asset.dvsr_star_rating AS 'DVSR Star Rating'   
+      ,asset.dhl_compliant AS 'DHL Compliant'
+      ,asset.legal_entity_number AS 'Company'  
+      ,asset.asset_category     
+FROM
+vw_asset_rentals AS asset
+WHERE asset.category_name = 'Commercial Vehicles'
+AND asset.Utilised IN ('In_application','Available')
+AND asset.asset_status IN ('Inventory','Leased')
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_lease_payments
+-- Depends on: vw_lease_finance_detail
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_lease_payments
+AS
+SELECT *
+FROM
+(
+SELECT 
+			payments.sk_aggregated_dim_lease_payment_schedule,
+		    payments.payment_number,
+			payments.begin_balance_amount,			
+			payments.lease_finance_detail_id,
+			payments.non_rental_tax_amount,
+			payments.original_stub_payment_amount_amount,
+			payments.pre_capitalization_payment_amount,
+			payments.deferred_capitalized_sales_tax_amount,
+			payments.non_rental_amount_amount,
+			payments.customer_id,
+			payments.vat_amount_amount,
+			payments.interest_accrued_amount,
+			payments.receivable_adjustment_amount_amount,
+			payments.actual_payment_amount,
+			payments.principal_amount,
+			payments.interest_amount,
+			payments.payment_structure,
+			payments.amount_amount,
+			payments.payment_type,
+			payments.end_balance_amount,
+			payments.due_date,
+			payments.start_date,
+			payments.end_date,
+			payments.disbursement_amount,
+			payments.bk_aggregated_dim_lease_payment_schedule_id AS income_stream_id,
+			finance.bk_aggregated_dim_lease_finance_id,
+			contractCurrent.status AS booking_status,
+			finance.approval_status,
+			finance.term_in_months,
+			finance.total_economic_life_in_months,
+			finance.total_economic_life_test_result,
+			finance.compounding_frequency,
+			finance.profit_loss_status,
+			finance.ninety_percent_test_result_passed,
+			finance.tax_deferral_start_payment_number,
+			finance.remaining_economic_life_in_months,
+			finance.investment_modified_after_payment,
+			finance.remaining_lease_term_in_months,
+			finance.payment_frequency_days,
+			finance.number_of_over_term_payments,
+			finance.maturity_date_basis,
+			finance.lease_contract_type,
+			finance.purchase_option,	
+			finance.payment_frequency,
+			finance.is_advance,
+			finance.due_day,
+			finance.aag_contract_type,
+			postDt.bk_aggregated_dim_date AS post_date,
+			maturityDt.bk_aggregated_dim_date AS maturity_date,	
+			commDt.bk_aggregated_dim_date AS commencement_date,					
+			contractCurrent.bk_aggregated_dim_contract_id AS contract_id,
+			contractCurrent.sequence_number,
+			contractCurrent.alias,
+			contractCurrent.status,
+			contractCurrent.report_status,			
+			customer.company_name,
+			productType.transaction_type AS deal_type,
+			productType.code AS deal_type_code,
+			ROW_NUMBER() OVER(PARTITION BY contractCurrent.bk_aggregated_dim_contract_id ORDER BY payments.sk_aggregated_dim_lease_payment_schedule ASC) AS schedule_number
+
+
+FROM vw_lease_finance_detail AS fDetail
+JOIN aggregated_odessa_dim_lease_finance AS finance ON finance.sk_aggregated_dim_lease_finance = fDetail.sk_aggregated_dim_lease_finance 
+JOIN aggregated_odessa_dim_lease_payment_schedule AS payments ON payments.lease_finance_detail_id = finance.bk_aggregated_dim_lease_finance_id
+JOIN aggregated_odessa_dim_date AS postDt ON postDt.sk_aggregated_dim_date = fDetail.sk_aggregated_dim_date_post_date
+JOIN aggregated_odessa_dim_date AS maturityDt ON maturityDt.sk_aggregated_dim_date = fDetail.sk_aggregated_dim_date_maturity_date
+JOIN aggregated_odessa_dim_contract AS contractCurrent ON contractCurrent.sk_aggregated_dim_contract = fDetail.sk_current_dim_contract
+JOIN aggregated_odessa_dim_date AS commDt ON commDt.sk_aggregated_dim_date = fDetail.sk_aggregated_dim_date_commencement_date	
+JOIN aggregated_odessa_dim_branch AS branch ON branch.sk_aggregated_dim_branch = fDetail.sk_aggregated_dim_branch 
+JOIN aggregated_odessa_dim_line_of_business AS lob ON lob.sk_aggregated_dim_line_of_business = fDetail.sk_aggregated_dim_line_of_business 
+JOIN aggregated_odessa_dim_legal_entity AS legalE ON legalE.sk_aggregated_dim_legal_entity = fDetail.sk_aggregated_dim_legal_entity 
+JOIN aggregated_odessa_dim_customer AS customer ON customer.sk_aggregated_dim_customer = fDetail.sk_current_dim_customer 
+JOIN aggregated_odessa_dim_cost_center AS center ON center.sk_aggregated_dim_cost_center = fDetail.sk_aggregated_dim_cost_center 
+JOIN aggregated_odessa_dim_deal_product_type AS productType ON productType.bk_aggregated_dim_deal_product_type_id = contractCurrent.deal_product_type_id
+WHERE payments.current_flag = 1 AND payments.is_active = 1 AND fDetail.current_contract_detail = 1
+) as a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_contract_origination
+-- Depends on: vw_lease_contracts, vw_lease_payments
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_contract_origination
+AS
+SELECT 
+    contract.sequence_number
+    ,contract.contract_id
+    ,contract.aag_contract_number
+    ,contract.opportunity_number
+    ,contract.company_name
+    ,contract.base_rate
+    ,contract.spread
+    ,contract.base_rate + contract.spread AS yield
+    ,contract.total_yield
+    ,contract.cost_center 
+    ,contract.sales_rep
+    ,contract.legal_entity_number
+    ,contract.product_name
+    ,contract.report_status
+    ,contract.accumulated_depreciation_amount
+    ,contract.external_reference_id AS account_number
+    ,commDt.bk_aggregated_dim_date AS commencement_date
+    ,matDT.bk_aggregated_dim_date AS maturity_date
+    ,postDT.bk_aggregated_dim_date AS contract_created_date
+    ,contract.term_in_months
+    ,contract.total_down_payment_amount
+    ,contract.total_nbv_amount
+    ,contract.status
+    ,contract.lease_start_date
+    ,contract.asset_budget_value AS budget
+    ,contract.customer_cost_amount 
+    ,contract.customer_cost_amount AS asset_cost_amount
+    ,contract.down_payment_amount
+    ,contract.tax_deferral_amount
+    ,contract.tax_deferral_payment_number
+    ,contract.balloon_payment_amount
+    ,contract.inception_payment_amount
+    ,contract.line_of_business
+    ,contract.number_of_assets
+    ,contract.payment_frequency
+    ,contract.is_migrated
+    ,contract.nbv_amount   
+    ,contract.branch_name 
+    ,payments.begin_balance_amount
+
+FROM vw_lease_contracts AS contract
+LEFT JOIN aggregated_odessa_dim_date AS commDt ON commDt.sk_aggregated_dim_date = contract.lease_commencement_date
+LEFT JOIN aggregated_odessa_dim_date AS matDT ON matDT.sk_aggregated_dim_date = contract.lease_maturity_date
+LEFT JOIN aggregated_odessa_dim_date AS postDT ON postDT.sk_aggregated_dim_date = contract.sk_aggregated_dim_date_post_date
+LEFT JOIN vw_lease_payments AS payments ON payments.contract_id = contract.contract_id AND payments.schedule_number = 1
+WHERE contract.sequence_number NOT LIKE '00%'
+AND LOWER(contract.status) = 'commenced'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_origination_old
+-- Depends on: vw_contract_origination
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_origination_old
+AS
+SELECT 
+    originations.sequence_number AS 'Lending Account ID'
+    ,originations.contract_id
+    ,originations.aag_contract_number AS 'AAG Contract Number'
+    ,originations.opportunity_number AS 'Application ID'
+    ,originations.company_name AS 'Customer'
+    ,originations.base_rate AS 'COF'
+    ,originations.spread AS 'Margin'
+    ,originations.base_rate + originations.spread AS Yield
+    ,originations.total_yield AS 'Interest Rate'
+    ,originations.cost_center AS 'Cost Centre'
+    ,originations.sales_rep AS 'Sales Person'
+    ,originations.legal_entity_number AS 'Legal Entity'
+    ,originations.product_name AS 'Product Name'
+    ,originations.report_status AS 'Lease Status'
+    ,originations.sequence_number AS 'External Reference#'
+    ,originations.commencement_date AS 'Commencement Date'
+    ,originations.maturity_date AS 'Maturity Date'
+    ,originations.contract_created_date AS 'Contract Created Date'
+    ,originations.term_in_months 'Lease Term (Months)'
+    ,originations.total_down_payment_amount AS Deposit
+    ,originations.accumulated_depreciation_amount AS 'Accumulated Depreciation'
+    ,originations.status AS 'Contract Status'
+    ,CAST(originations.lease_start_date AS DATE) AS 'Lease Commenced Date'
+    ,originations.customer_cost_amount AS 'Total Customer Cost'
+    ,originations.customer_cost_amount AS 'Customer Cost'
+    ,originations.down_payment_amount AS 'Down Payment'--
+    ,originations.tax_deferral_amount AS 'Tax Deferral Amount'--
+    ,originations.tax_deferral_payment_number AS 'Tax Deferral Payment (Months)'
+    ,originations.balloon_payment_amount AS 'Balloon Payment'
+    ,originations.nbv_amount AS 'NBV'   
+    ,CASE WHEN originations.product_name = 'Hire Purchase' THEN originations.total_nbv_amount - originations.total_down_payment_amount - originations.tax_deferral_amount ELSE originations.total_nbv_amount END AS 'Origination Amount'
+    ,originations.begin_balance_amount AS 'Begin Balance'
+    ,originations.line_of_business AS 'Line of Business'
+    ,originations.number_of_assets AS 'Number of Assets'
+    ,originations.payment_frequency AS 'Payment Frequency'
+    ,originations.is_migrated AS 'Migrated?'
+    ,originations.budget AS 'Budget'
+
+FROM vw_contract_origination AS originations
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_ts_contracts_origination
+-- Depends on: vw_contract_origination
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ts_contracts_origination
+AS
+SELECT 
+    originations.sequence_number AS 'Lending Account ID'
+    ,originations.aag_contract_number AS 'AAG Contract Number'
+    ,originations.opportunity_number AS 'Application ID'
+    ,originations.company_name AS 'Customer'
+    ,originations.[base_rate] AS 'COF'
+    ,originations.[spread] AS 'Margin'
+    ,originations.[base_rate] + originations.[spread] AS Yield
+    ,originations.[total_yield] AS 'Interest Rate'
+    ,originations.cost_center AS 'Cost Centre'
+    ,originations.[sales_rep] AS 'Sales Person'
+    ,originations.[legal_entity_number] AS 'Legal Entity'
+    ,originations.product_name AS 'Product Name'
+    ,originations.[report_status]
+    ,originations.sequence_number AS 'External Reference#'
+    ,originations.commencement_date AS 'Commencement Date'
+    ,originations.maturity_date AS 'Maturity Date'
+    ,originations.contract_created_date AS 'Contract Created Date'
+    ,originations.[term_in_months] AS 'Rental Term'
+    ,originations.[total_down_payment_amount] AS Deposit
+    ,originations.[accumulated_depreciation_amount] AS 'Accumulated Depreciation'
+    ,originations.status
+    ,originations.lease_start_date
+    ,originations.customer_cost_amount AS 'Total Customer Cost'
+    ,originations.customer_cost_amount AS 'Customer Cost'
+    ,originations.down_payment_amount AS 'Down Payment'--
+    ,originations.tax_deferral_amount AS 'Tax Deferral Amount'--
+    ,originations.tax_deferral_payment_number AS 'Tax Deferral Payment (Months)'
+    ,originations.balloon_payment_amount AS 'Balloon Payment'
+    ,originations.nbv_amount    
+    ,originations.account_number
+    ,originations.total_nbv_amount - originations.total_down_payment_amount - originations.tax_deferral_amount AS 'Origination Amount' 
+
+FROM vw_contract_origination AS originations
+WHERE originations.sequence_number NOT LIKE '00%'
+AND LOWER(originations.status) = 'commenced'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_lease_payment_vat_deferrals
+-- Depends on: vw_lease_payments
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_lease_payment_vat_deferrals
+AS
+SELECT 
+taxesDeferrals.[due_date] 
+,taxesDeferrals.[contract_id] 
+,deferred_capitalized_sales_tax_amount
+,ROW_NUMBER() OVER(PARTITION BY taxesDeferrals.contract_id ORDER BY taxesDeferrals.due_date DESC) AS latest_due_date 
+FROM vw_lease_payments AS taxesDeferrals
+JOIN
+(
+    SELECT 
+        MIN(due_date) AS due_date
+        ,[contract_id] 
+    FROM vw_lease_payments
+    GROUP BY contract_id
+) AS payments ON payments.contract_id = taxesDeferrals.contract_id
+WHERE deferred_capitalized_sales_tax_amount <> 0
+AND taxesDeferrals.due_date <> payments.due_date
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_ts_ls_income_streams
+-- Depends on: vw_lease_payment_vat_deferrals, vw_lease_payments
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ts_ls_income_streams
+AS
+SELECT *
+FROM
+(
+SELECT DISTINCT  
+    payments.[sequence_number] AS 'Lending Account ID'
+    ,payments.[company_name] AS 'Account Name'
+    ,payments.[report_status] AS 'Status'
+    ,payments.deal_type AS 'Product Name'
+    ,payments.income_stream_id AS 'Income Stream Id' 
+    ,payments.due_date AS 'Income Date' 
+	,payments.[amount_amount] AS 'Payment Amount' 
+    ,payments.begin_balance_amount AS 'Beginning Net Investment'
+    ,payments.[interest_amount] AS 'Income' 
+    ,payments.principal_amount AS 'Capital Recovery'
+    ,payments.end_balance_amount AS 'Ending Net Investment'
+    ,vatDates.due_date AS 'VAT Deferral Date'
+    ,vatDates.deferred_capitalized_sales_tax_amount AS 'Deferred VAT Amount'
+    ,payments.maturity_date AS 'Income Maturity Date'
+    ,payments.commencement_date  AS commencement_date
+    ,CASE WHEN payments.is_advance = 1 THEN 'ADVANCE' ELSE 'AREAS' END AS 'payment_method'   
+FROM [vw_lease_payments] AS payments
+LEFT JOIN vw_lease_payment_vat_deferrals AS vatDates ON vatDates.contract_id = payments.contract_id AND vatDates.due_date = payments.due_date
+WHERE LOWER(payments.[booking_status]) = 'commenced'
+AND payments.[deal_type_code] IN ('HP','FL')
+) as a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_lease_payments_current
+-- Depends on: vw_lease_payments
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_lease_payments_current
+AS
+SELECT 
+         payments.*
+        ,ROW_NUMBER() OVER(PARTITION BY payments.contract_id ORDER BY payments.sk_aggregated_dim_lease_payment_schedule DESC) AS latest_schedule
+        ,ROW_NUMBER() OVER(PARTITION BY payments.contract_id ORDER BY payments.sk_aggregated_dim_lease_payment_schedule ASC) AS initial_schedule	
+    FROM vw_lease_payments AS payments
+    WHERE due_date <= GETDATE()
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_receipts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_receipts
+AS
+
+SELECT      receipt.[bk_aggregated_dim_receipt_id],
+			receipt.[number],
+			receipt.[receipt_amount_amount],
+			receipt.[balance_amount],
+			receipt.[sk_aggregated_dim_receipt],
+			receipt.[receipt_source],
+			receipt.[approval_status],
+			receipt.reversal_as_of_date,
+
+			receipt.[branch_id],
+
+			receipt.[type_id],
+			receipt.[customer_id],
+			receipt.[contract_id],
+			receipt.[lineof_business_id],
+			receipt.[instrument_type_id],
+
+			lEntity.name AS legal_entity,
+			createdBy.full_name AS created_by,
+			updatedBy.full_name AS updated_by,
+			receipt.[created_time],
+			receipt.[check_number],
+			receipt.[security_deposit_liability_amount_amount],
+			receipt.[security_deposit_liability_contract_amount_amount],
+	
+			receipt.[post_date],
+			receipt.[received_date],
+			receipt.[status],
+			rType.[receipt_type_name],
+			bank.[automated_payment_method]
+			
+FROM aggregated_odessa_dim_receipt AS receipt
+LEFT JOIN aggregated_odessa_dim_user AS createdBy ON receipt.created_by_id = createdBy.bk_aggregated_dim_user_id AND createdBy.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_user AS updatedBy ON receipt.created_by_id = updatedBy.bk_aggregated_dim_user_id AND updatedBy.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_legal_entity AS lEntity ON lEntity.[bk_aggregated_dim_legal_entity_id] = receipt.legal_entity_id AND lEntity.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_receipt_type AS rType ON rType.[bk_aggregated_dim_receipt_type_id] = receipt.type_id AND rType.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_bank_account AS bank ON bank.[bk_aggregated_dim_bank_account_id] = receipt.[bank_account_id] AND bank.current_flag = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_cash_collections_receipts
+-- Depends on: vw_receipts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_cash_collections_receipts AS
+ (SELECT 
+receipt.created_by AS 'Cash Allocator',
+customer.company_name,
+receipt.[bk_aggregated_dim_receipt_id],
+receipt.[number],
+receipt.[receipt_amount_amount],
+receipt.[balance_amount],
+receipt.[receipt_source],
+receipt.[approval_status],
+receipt.[type_id],
+receipt.[customer_id],
+receipt.[check_number],
+receipt.[post_date],
+receipt.[received_date],
+receipt.[status],
+receipt.reversal_as_of_date,
+receipt.[receipt_type_name]
+
+FROM vw_receipts AS receipt 
+LEFT JOIN aggregated_odessa_dim_customer AS customer ON receipt.[customer_id] = customer.[bk_aggregated_dim_customer_id] AND customer.current_flag = 1
+WHERE receipt.created_by IN ('Barbara Woodall', 'Philip Armstrong', 'Nicola Giles'))
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_bounced_direct_debit
+-- Depends on: vw_lease_contracts, vw_receipts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_bounced_direct_debit
+AS
+SELECT 
+      receipts.number AS 'Transaction ID'
+      ,receipts.received_date AS 'Transaction Date'
+      ,lease.sequence_number AS 'Lending Account ID'
+      ,lease.[company_name] AS 'Account'
+      ,lease.report_status AS 'Contract: Status'
+      ,receipts.[legal_entity] AS 'Created By'
+      ,lease.[deal_type] AS 'Product_name'
+      ,'DD' AS 'Payment Mode'
+      ,receipts.post_date AS 'Clearing Date'
+      ,receipts.received_date AS 'Receipt Date'
+      ,receipts.balance_amount  AS 'Excess'    
+      ,receipts.receipt_amount_amount AS 'Transaction Amount'
+      ,CASE WHEN receipts.status = 'Reversed' THEN 1 ELSE 0 END AS 'Reversed'
+      ,receipts.updated_by AS 'Created Alias'
+     -- ,receipts.status  AS 'Reversed'
+
+FROM vw_receipts AS receipts
+JOIN vw_lease_contracts AS lease ON lease.contract_id = receipts.contract_id
+WHERE receipts.status = 'Reversed'
+AND receipts.[receipt_type_name] = 'DD'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_incoming_payments
+-- Depends on: vw_lease_contracts, vw_receipts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_incoming_payments
+AS
+SELECT 
+      receipts.number AS 'Transaction ID'
+      ,receipts.check_number
+      ,receipts.post_date AS 'Transaction Date'
+      ,lease.sequence_number AS 'Lending Account ID'   
+      ,lease.[company_name] AS 'Account'
+      ,lease.report_status AS 'Contract: Status'
+      ,receipts.created_by AS 'Created By'
+      ,receipts.[legal_entity] 
+      ,lease.[deal_type] AS 'Product_name'
+      ,receipts.receipt_type_name AS 'Payment Mode'
+      ,receipts.received_date AS 'Clearing Date'
+      ,receipts.post_date AS 'Receipt Date'
+      ,receipts.balance_amount  AS 'Excess'    
+      ,receipts.receipt_amount_amount AS 'Transaction Amount'
+      ,CASE WHEN receipts.status = 'Reversed' THEN 1 ELSE 0 END AS 'Reversed'
+      ,receipts.updated_by AS 'Created Alias'
+
+FROM vw_receipts AS receipts
+LEFT JOIN vw_lease_contracts AS lease ON lease.contract_id = receipts.contract_id
+WHERE receipts.status <> 'Reversed'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_receivable_invoice_detail
+-- Depends on: vw_lease_finance_detail
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_receivable_invoice_detail
+AS
+SELECT *
+FROM
+(
+SELECT      
+
+			fDetails.tax_balance_amount,
+			fDetails.effective_balance_amount,
+			fDetails.effective_tax_balance_amount,
+			fDetails.invoice_amount_amount,
+			fDetails.invoice_tax_amount_amount,
+			fDetails.balance_amount,
+			fDetails.receivable_amount_amount,
+			fDetails.tax_amount_amount,	
+			fDetails.sk_aggregated_dim_receivable,				
+
+			customer.company_name AS customer_name,
+			customer.external_reference_id AS customer_number,
+			dInvoice.bk_aggregated_dim_receivable_invoice_id,
+			dInvoiceCurrent.sk_aggregated_dim_receivable_invoice,	
+			dInvoiceCurrent.days_late_count,
+			fDetails.[sk_aggregated_dim_customer] AS customer_id,
+
+			dDetail.entity_type,
+			contract.sequence_number,				
+			
+			branch.branch_name as branch_name,
+
+			dDate.bk_aggregated_dim_date as due_date,
+			DATEDIFF(day, dDate.bk_aggregated_dim_date, GETDATE()) AS days_since_due,	
+
+			pType.transaction_type as product_name,
+			rType.name AS receivable_type,
+			invoiceDate.bk_aggregated_dim_date AS invoice_date,
+			dInvoice.number AS invoice_number,
+			receivable.bk_aggregated_dim_receivable_id AS receivable_id,
+			contract.bk_aggregated_dim_contract_id AS contract_id,
+			contract.status as contract_status,
+			ROW_NUMBER() OVER(PARTITION BY dInvoice.bk_aggregated_dim_receivable_invoice_id ORDER BY fDetails.sk_aggregated_dim_date_record DESC, fDetails.sk_aggregated_dim_time_record DESC) AS current_invoice          
+
+
+FROM aggregated_odessa_fact_receivable_invoice_detail AS fDetails
+JOIN aggregated_odessa_dim_receivable_invoice AS dInvoice ON dInvoice.sk_aggregated_dim_receivable_invoice = fDetails.sk_aggregated_dim_receivable_invoice
+JOIN aggregated_odessa_dim_receivable_invoice AS dInvoiceCurrent ON dInvoiceCurrent.bk_aggregated_dim_receivable_invoice_id = dInvoice.bk_aggregated_dim_receivable_invoice_id AND dInvoiceCurrent.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_invoice_detail AS dDetail ON dDetail.sk_aggregated_dim_receivable_invoice_detail = fDetails.sk_aggregated_dim_receivable_invoice_detail AND dDetail.current_flag = 1
+JOIN aggregated_odessa_dim_receivable AS receivable ON receivable.sk_aggregated_dim_receivable = fDetails.sk_aggregated_dim_receivable --AND receivable.current_flag = 1
+JOIN aggregated_odessa_dim_contract AS contract ON contract.bk_aggregated_dim_contract_id = dDetail.entity_id AND contract.current_flag = 1
+LEFT JOIN vw_lease_finance_detail AS lease ON lease.sk_current_dim_contract = contract.sk_aggregated_dim_contract 
+LEFT JOIN aggregated_odessa_dim_branch AS branch ON branch.sk_aggregated_dim_branch = lease.sk_aggregated_dim_branch AND branch.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_customer AS customer ON customer.sk_aggregated_dim_customer = lease.sk_current_dim_customer
+JOIN aggregated_odessa_dim_deal_product_type AS pType ON pType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND pType.current_flag = 1 
+JOIN aggregated_odessa_dim_date as dDate ON dDate.sk_aggregated_dim_date = fDetails.sk_aggregated_dim_due_date
+JOIN aggregated_odessa_dim_receivable_type AS rType ON rType.sk_aggregated_dim_receivable_type = fDetails.sk_aggregated_dim_receivable_type AND rType.current_flag = 1 
+JOIN aggregated_odessa_dim_date AS invoiceDate ON invoiceDate.sk_aggregated_dim_date = fDetails.sk_aggregated_dim_invoice_run_date
+) AS a 
+WHERE a.current_invoice = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_receivable_invoices
+-- Depends on: vw_receivable_invoice_detail
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_receivable_invoices
+AS
+SELECT      
+            SUM([tax_balance_amount]) AS tax_balance_amount,
+			SUM([effective_balance_amount]) AS effective_balance_amount,
+			SUM([effective_tax_balance_amount]) AS effective_tax_balance_amount,
+			SUM([invoice_amount_amount]) AS invoice_amount_amount,
+			SUM([invoice_tax_amount_amount]) AS invoice_tax_amount_amount,
+			SUM([balance_amount]) AS balance_amount,
+			SUM([receivable_amount_amount]) AS receivable_amount_amount,
+			SUM([tax_amount_amount]) AS tax_amount_amount,
+			MAX(days_late_count) AS days_late_count,
+			MAX(days_since_due) AS days_since_due,				
+			[customer_name],
+			[customer_number],
+			customer_id,
+			[bk_aggregated_dim_receivable_invoice_id],
+			[sequence_number],
+			[contract_id],
+			contract_status,
+			[branch_name],
+			[entity_type],
+			[due_date],
+			[product_name],
+			[receivable_type],
+			[invoice_date],
+			[invoice_number]
+
+FROM vw_receivable_invoice_detail 
+GROUP BY 
+			[customer_name],
+			[customer_number],
+			customer_id,
+			[bk_aggregated_dim_receivable_invoice_id],
+			[sequence_number],
+			[contract_id],
+			contract_status,
+			[branch_name],
+			[entity_type],
+			[due_date],
+			[product_name],
+			[receivable_type],
+			[invoice_date],
+			[invoice_number]
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_customer_cw_credit_rating
+-- Depends on: vw_receivable_invoices
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_customer_cw_credit_rating AS
+
+SELECT DISTINCT
+customer.creation_date
+,customer.external_reference_id AS 'Account Number'
+,customer.primary_role AS 'Account Record Type'
+,customer.party_name AS 'Account Name'
+,customer.status AS 'Account Status'
+,address.address_line1 AS 'Billing Street'
+,address.address_line2 AS 'Billing Address Line 2'
+,address.address_line2 AS 'Billing Address Line 3'
+,address.city AS 'Billing City'
+,address.postal_code AS 'Billing Zip/Postal Code'
+,contact.phone_number1 AS 'Phone'
+,customer.current_role AS 'Type'
+,customer.organization_id AS 'Company Reg Number'
+, 'tba' AS 'SalesPerson'
+,CreditExposure.AAG_current_exposure AS 'Current Exposure'
+,CreditExposure.AAG_proposed_exposure AS 'Proposed Exposure'
+,CASE WHEN customers_arrears.customer_id IS NOT NULL THEN 'TRUE' ELSE 'FALSE' END AS 'In Arrears'
+,insurer.name AS 'Insurance Provider'
+,CASE WHEN policy.is_self_insured =1 THEN 'TRUE' ELSE 'FALSE' END AS 'Self Insurance Checkbox'
+,policy.expiration_date AS 'Policy Expiry Date'
+,policy.type AS 'Policy Type'
+,policy.policy_number AS 'Policy number'
+,customer.default_automated_payment_method AS 'Master DD AALL'
+,customer.annual_credit_review_date AS 'Last KYC Date'
+,customer.next_review_date AS 'Next KYC Date'
+,customer.company_name AS 'Parent Account'
+,SalesRep.primary_sales_rep AS 'Primary Sales Rep'
+,AccountManager.account_manager as 'Account Manager'
+
+
+FROM aggregated_odessa_dim_customer AS customer
+LEFT JOIN aggregated_odessa_dim_insurance_policy AS policy ON  customer.bk_aggregated_dim_customer_id = policy.customer_id AND policy.current_flag = 1 AND policy.is_active = 1
+LEFT JOIN aggregated_odessa_dim_party_address AS address ON address.bk_aggregated_dim_party_address_id = customer.bk_aggregated_dim_customer_id AND address.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_party_contact AS contact ON contact.bk_aggregated_dim_party_contact_id = customer.bk_aggregated_dim_customer_id AND contact.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_insurance_company AS insurer ON insurer.bk_aggregated_dim_insurance_company_id = policy.insurance_company_id AND insurer.current_flag = 1 AND insurer.is_active = 1
+
+
+LEFT JOIN (
+SELECT DISTINCT
+customer_id
+FROM vw_receivable_invoices
+
+WHERE effective_balance_amount > 0 
+AND GETDATE() > due_date ) AS customers_arrears ON customer.sk_aggregated_dim_customer = customers_arrears.customer_id 
+
+LEFT JOIN (
+SELECT DISTINCT
+CE.exposure_date,
+CE.exposure_customer_id,
+CSE.primary_customer_amount AS AAG_current_exposure,
+CE.total_proposed_customer_exposure_amount + CSE.primary_customer_amount AS AAG_proposed_exposure,
+ROW_NUMBER() OVER ( PARTITION BY CE.exposure_customer_id ORDER BY CE.exposure_date DESC ) AS RN
+
+FROM aggregated_odessa_dim_customer_exposure AS CE
+JOIN aggregated_odessa_dim_credit_summary_exposure AS CSE On CE.exposure_customer_id = CSE.customer_id AND CSE.current_flag = 1 --AND CSE.is_active = 1
+Where  CE.exposure_customer_id = CSE.customer_id AND CE.is_active=1 AND CSE.exposure_type='EF' AND CE.current_flag = 1 ) AS CreditExposure ON customer.bk_aggregated_dim_customer_id = CreditExposure.exposure_customer_id AND CreditExposure.RN = 1
+
+LEFT JOIN (SELECT DISTINCT
+EmployeeAssigned.employee_id,
+EmployeeAssigned.party_id,
+DimUser.full_name AS primary_sales_rep
+
+FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
+JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Sales Rep'
+JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
+
+WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1) AS SalesRep ON customer.bk_aggregated_dim_customer_id = SalesRep.party_id
+
+LEFT JOIN (SELECT DISTINCT
+EmployeeAssigned.employee_id,
+EmployeeAssigned.party_id,
+DimUser.full_name AS account_manager
+
+FROM aggregated_odessa_dim_employees_assigned_to_party AS EmployeeAssigned
+JOIN aggregated_odessa_dim_role_function AS RoleFunction ON EmployeeAssigned.[role_function_id] = RoleFunction.[bk_aggregated_dim_role_function_id] AND RoleFunction.current_flag = 1 AND RoleFunction.name = 'Account Manager'
+JOIN aggregated_odessa_dim_user AS DimUser ON EmployeeAssigned.employee_id = DimUser.[bk_aggregated_dim_user_id] AND DimUser.current_flag = 1
+
+WHERE EmployeeAssigned.current_flag = 1 AND EmployeeAssigned.is_primary = 1  AND EmployeeAssigned.is_active = 1) AS AccountManager ON customer.bk_aggregated_dim_customer_id = AccountManager.party_id
+
+
+WHERE customer.primary_role = 'Customer'
+AND customer.current_flag = 1 
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_ts_invoices_outstanding
+-- Depends on: vw_receivable_invoices
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ts_invoices_outstanding
+AS
+SELECT *
+FROM
+(
+    SELECT 
+
+        invoices.sequence_number AS 'Lending Account ID'
+        ,invoices.customer_name AS 'Account Name'
+        ,invoices.branch_name AS 'Branch'
+        ,invoices.invoice_date AS 'Created Date' 
+        ,invoices.due_date AS 'Due Date' 
+        ,invoices.invoice_number AS 'Invoice No'
+        ,invoices.product_name AS 'Product Name'
+        ,invoices.invoice_amount_amount AS 'Bill Amount'
+        ,invoices.tax_amount_amount AS 'Tax Amount'
+        ,invoices.receivable_amount_amount 
+        ,invoices.balance_amount AS 'Balance Due'
+        ,invoices.invoice_amount_amount - invoices.balance_amount AS 'Rent Paid'
+        ,invoices.receivable_type AS invoice_type
+    FROM vw_receivable_invoices AS invoices
+    WHERE --invoices.receivable_type IN ('Sundry','OperatingLeaseRental') AND 
+    invoices.entity_type = 'CT'
+    AND invoices.effective_balance_amount > 0
+    AND invoices.due_date <= GETDATE()
+    --AND invoices.due_date IS NOT NULL
+) AS a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_lease_receivables
+-- Depends on: vw_receivable_invoices
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_lease_receivables
+AS
+SELECT a.*
+	   ,b.next_due_date
+	   ,CASE WHEN a.effective_balance_amount > 0 THEN days_late_count ELSE 0 END AS days_past_due   
+FROM
+(
+SELECT 
+		SUM(tax_balance_amount) AS tax_balance_amount,
+		SUM(effective_balance_amount) AS effective_balance_amount,
+		SUM(effective_tax_balance_amount) AS effective_tax_balance_amount,
+		SUM(invoice_amount_amount) AS invoice_amount_amount,
+		SUM(invoice_tax_amount_amount) AS invoice_tax_amount_amount,
+		SUM(balance_amount) AS balance_amount,
+		SUM(receivable_amount_amount) AS receivable_amount_amount,
+		SUM(tax_amount_amount) AS tax_amount_amount,
+		MAX(days_late_count) AS days_late_count,
+		MAX(days_since_due) AS days_since_due,	
+		[customer_name],
+		[customer_number],
+		[sequence_number],
+		[contract_id],
+		[customer_id],
+		[product_name]
+FROM vw_receivable_invoices AS receivables
+GROUP BY
+		[customer_name],
+		[customer_number],
+		[customer_id],
+		[sequence_number],
+		[contract_id],
+		[product_name]
+) AS a
+JOIN 
+(
+	SELECT contract_id, MIN(due_date) AS next_due_date
+	FROM vw_receivable_invoices
+	WHERE due_date >= GETDATE()
+	GROUP BY contract_id
+) AS b
+ON a.contract_id = b.contract_id
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_customer_receivables
+-- Depends on: vw_lease_receivables
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_customer_receivables
+AS
+SELECT 
+		SUM(tax_balance_amount) AS tax_balance_amount,
+		SUM(effective_balance_amount) AS effective_balance_amount,
+		SUM(effective_tax_balance_amount) AS effective_tax_balance_amount,
+		SUM(invoice_amount_amount) AS invoice_amount_amount,
+		SUM(invoice_tax_amount_amount) AS invoice_tax_amount_amount,
+		SUM(balance_amount) AS balance_amount,
+		SUM(receivable_amount_amount) AS receivable_amount_amount,
+		SUM(tax_amount_amount) AS tax_amount_amount,
+		SUM(days_late_count) AS days_late_count,
+		customer_id
+FROM vw_lease_receivables AS receivables
+GROUP BY
+		customer_id
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_customer
+-- Depends on: vw_customer_assignments, vw_customer_receivables, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_customer
+AS
+SELECT *
+FROM
+(
+SELECT 
+			ROW_NUMBER() OVER(PARTITION BY customer.bk_aggregated_dim_customer_id ORDER BY exposure.[exposure_date] DESC, policy.activation_date DESC) AS is_current_exposure,
+			customer.current_flag,
+			customer.external_reference_id,
+			customer.primary_role,
+			customer.vat_registration_number,
+			customer.sic_code_id,
+			customer.party_number,
+			classificationCode.code AS sic_code,
+			classificationCode.description AS sic_desc,				
+			customer.organization_id,
+			customer.party_name,
+			customer.incorporation_date,
+			customer.default_automated_payment_method,
+			customer.company_name,
+			customer.creation_date,
+			customer.current_role,
+			customer.status,
+			customer.credit_term,
+			customer.next_review_date,
+			customer.invoice_grace_days,
+			customer.invoice_lead_days,
+			customer.credit_review_frequency,
+			customer.credit_score,
+			customer.annual_credit_review_date,
+			customer.sk_aggregated_dim_customer,
+			customer.bk_aggregated_dim_customer_id AS customer_id,
+			customer.activation_date,
+			exposure.total_proposed_customer_exposure_amount,
+        	exposure.bk_aggregated_dim_customer_exposure_id AS exposure_id,			
+			cSummary.primary_customer_amount,
+			policy.[expiration_date] AS policy_expiration_date,
+			DATEDIFF(MONTH, GETDATE(), customer.next_review_date) AS months_to_annual_review,
+			policy.[type] AS policy_type,		
+            policy.[policy_number],
+			salesRep.employee_name AS account_manager,
+			invoices.effective_balance_amount,
+						
+			leases.nbv_amount,
+			leases.customer_cost_amount,
+			leases.rent_amount,
+			leases.accumulated_depreciation_amount,
+			leases.fmv_amount,
+			leases.initial_customer_cost_amount,
+			leases.total_nbv_amount,
+			leases.capitalized_additional_charge_amount,
+			leases.asset_budget_value,
+			leases.total_charge_to_customer,
+			leases.number_of_assets,
+			leases.yield 					
+
+FROM aggregated_odessa_dim_customer AS customer
+LEFT JOIN aggregated_odessa_dim_insurance_policy AS policy ON policy.customer_id = customer.bk_aggregated_dim_customer_id AND policy.current_flag = 1 AND is_active = 1
+LEFT JOIN aggregated_odessa_dim_customer_exposure AS exposure ON exposure.exposure_customer_id = customer.bk_aggregated_dim_customer_id AND exposure.current_flag = 1 AND exposure.is_active = 1
+JOIN aggregated_odessa_dim_credit_summary_exposure AS cSummary ON cSummary.customer_id = customer.bk_aggregated_dim_customer_id AND cSummary.current_flag = 1 AND cSummary.exposure_type = 'EF'
+LEFT JOIN aggregated_odessa_dim_classification_code AS classificationCode ON customer.sic_code_id = classificationCode.bk_aggregated_dim_classification_code_id AND classificationCode.current_flag = 1
+LEFT JOIN vw_customer_assignments AS salesRep ON salesRep.customer_id = customer.bk_aggregated_dim_customer_id AND salesRep.system_defined_name = 'SalesRep'
+LEFT JOIN vw_customer_receivables AS invoices ON invoices.customer_id = customer.bk_aggregated_dim_customer_id 
+LEFT JOIN 
+	(
+		SELECT 
+				lease.customer_id,						
+				SUM(nbv_amount) AS nbv_amount,
+				SUM(customer_cost_amount) AS customer_cost_amount,
+				SUM(rent_amount) AS rent_amount,
+				SUM(accumulated_depreciation_amount) AS accumulated_depreciation_amount,
+				SUM(fmv_amount) AS fmv_amount,
+				SUM(initial_customer_cost_amount) AS initial_customer_cost_amount,
+				SUM(nbv_amount) AS total_nbv_amount,
+				SUM(capitalized_additional_charge_amount) AS capitalized_additional_charge_amount,
+				SUM(asset_budget_value) AS asset_budget_value,
+				SUM(total_charge_to_customer) AS total_charge_to_customer,
+				SUM(number_of_assets) AS number_of_assets,
+				AVG(total_yield) AS yield
+
+		FROM vw_lease_contracts AS lease
+		GROUP BY lease.customer_id
+	) AS leases ON customer.bk_aggregated_dim_customer_id = leases.customer_id 
+WHERE customer.current_flag = 1
+) as a
+WHERE a.is_current_exposure = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_bdm_customer
+-- Depends on: vw_customer
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_bdm_customer
+AS
+SELECT
+        customer.party_name AS 'Account Name'
+        ,customer.customer_id
+        ,customer.policy_number
+        ,customer.next_review_date AS 'Next Review Date'
+        ,DATEDIFF(DAY, GETDATE(), customer.next_review_date)  AS 'Next Review (Days)'
+        ,DATEDIFF(MONTH, GETDATE(), customer.next_review_date)  AS 'Next Review (Months)'  
+        ,COALESCE(
+                    CASE WHEN months_to_annual_review < 0 THEN 'Overdue' ELSE NULL END,
+                    CASE WHEN months_to_annual_review = 1 THEN '1 Month' ELSE NULL END,
+                    CASE WHEN months_to_annual_review > 1 THEN 'More than 2 Months' ELSE NULL END
+                ) AS 'Annual Review Due'
+        ,customer.total_proposed_customer_exposure_amount AS 'Direct Proposed Exposure'
+        ,customer.primary_customer_amount AS 'Direct Exposure'
+        ,COALESCE(
+                    CASE WHEN policy_expiration_date IS NULL THEN 'None Held' ELSE NULL END,
+                    CASE WHEN policy_expiration_date < GETDATE() THEN 'Overdue' ELSE NULL END,
+                    CASE WHEN policy_expiration_date >= GETDATE() THEN 'Up to Date' ELSE NULL END
+                ) AS 'Insurance Policy Status'       
+        ,customer.policy_expiration_date AS 'Policy Expiry Date'
+        ,customer.policy_type AS 'Policy Type'
+        ,customer.account_manager AS 'Account Manager'
+        ,CASE WHEN customer.effective_balance_amount > 0 THEN 1 ELSE 0 END AS 'In Arreas'
+        ,customer.exposure_id
+ FROM vw_customer AS customer
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_arbuthnot_mi_report
+-- Depends on: vw_customer
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_arbuthnot_mi_report
+AS
+SELECT 
+			customer.party_number AS 'Account Number',
+			customer.sic_code + ' - ' + customer.sic_desc AS 'SIC Code',
+			customer.party_name AS 'Account Name',
+			customer.creation_date AS 'Account Created Date',
+			customer.next_review_date AS 'Next Review Date',
+			customer.credit_score AS 'Credit Score',
+			customer.annual_credit_review_date AS 'Last Review Date',
+			customer.primary_customer_amount AS 'Primary Customer Exposure',
+			customer.total_nbv_amount AS 'Equipment NBV'
+FROM vw_customer AS customer
+WHERE customer.exposure_id IS NOT NULL
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_open_lease_file
+-- Depends on: vw_asset, vw_customer, vw_lease_asset_current, vw_lease_contracts
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_open_lease_file
+AS
+SELECT 
+      contract.company_name AS 'Account Name'
+      ,contract.aag_contract_number AS 'AAG Contract Number'
+      ,contract.[sequence_number] AS 'LS Contract: Lending Account ID'
+      ,asset.city AS 'Depot Address'
+      ,customer.[account_manager] AS 'SalesPerson'
+      ,asset.[rv_maturity_date] AS 'RV Maturity Date'
+      ,'xxx' AS 'Renewal Action'
+      ,'xxx' AS 'Last New Vehicle Survey Sent'
+      ,'xxx' AS 'Opt Out Of new Vehicle Survey'
+      ,asset.alias AS 'Registration Number'
+      ,asset.[road_fund_licence] AS 'Road Fund Licence'
+      ,ISNULL(asset.[serial_number],'-') AS 'Serial Number' 
+      ,asset.[description] AS 'Equipment Description' 
+      ,asset.product_name AS 'Vehicle Category'
+      ,asset.[manufacturer_name] AS 'MAKE'
+      ,asset.[make_name] AS 'Model Range'
+      ,asset.[model_year] AS 'YEAR'       
+      ,asset.[gvw] AS 'GVW' 
+      ,asset.[body_description] AS 'Body Type'
+      ,lease.rent_amount AS 'Rent'
+      ,lease.asset_budget_value AS 'Asset Budget Value'    
+      ,lease.total_charge_to_customer AS 'Charge To Customer'   
+      ,contract.payment_frequency AS 'Rental Term Unit' 
+      ,asset.[asset_contract_type] AS 'Vehicle Type' 
+      ,contract.product_name AS 'Product Name'
+      ,dt2.bk_aggregated_dim_date AS 'Contract Date'
+      ,contract.customer_term_in_months AS 'Current Term'
+      ,dt.[bk_aggregated_dim_date] AS 'Maturity Date'     
+      ,contract.[payment_method] AS 'Payment Method' 
+      ,contract.report_status AS 'Contract: Status' 
+      ,contract.[branch_name] AS 'Current Location'  
+      ,contract.cost_center AS 'Dimension 3' 
+      ,ISNULL(contract.sales_rep,'-') AS 'Dimension 4' 
+      ,asset.asset_status
+      ,asset.asset_type
+
+FROM vw_lease_asset_current AS lease 
+      JOIN vw_asset AS asset ON lease.asset_id = asset.asset_id
+      JOIN vw_lease_contracts AS contract ON contract.contract_id = lease.contract_id
+      LEFT JOIN vw_customer AS customer ON customer.customer_id = contract.customer_id     
+      LEFT JOIN aggregated_odessa_dim_date AS dt on dt.[sk_aggregated_dim_date] = contract.lease_maturity_date
+      LEFT JOIN aggregated_odessa_dim_date AS dt2 on dt2.[sk_aggregated_dim_date] = contract.lease_commencement_date  
+WHERE asset.asset_status = 'Leased'
+AND contract.status = 'Commenced'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_receivables
+-- Depends on: vw_receivable_invoice_detail
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_receivables
+AS
+SELECT      
+            SUM([tax_balance_amount]) AS tax_balance_amount,
+			SUM([effective_balance_amount]) AS effective_balance_amount,
+			SUM([effective_tax_balance_amount]) AS effective_tax_balance_amount,
+			SUM([invoice_amount_amount]) AS invoice_amount_amount,
+			SUM([invoice_tax_amount_amount]) AS invoice_tax_amount_amount,
+			SUM([balance_amount]) AS balance_amount,
+			SUM([receivable_amount_amount]) AS receivable_amount_amount,
+			SUM([tax_amount_amount]) AS tax_amount_amount,
+			MAX(days_late_count) AS days_late_count,
+			MAX(days_since_due) AS days_since_due,				
+			[customer_name],
+			[customer_number],
+			customer_id,
+			[bk_aggregated_dim_receivable_invoice_id],
+			[receivable_id],			
+			[sequence_number],
+			[contract_id],
+			[branch_name],
+			[entity_type],
+			[due_date],
+			[product_name],
+			[receivable_type],
+			[invoice_date],
+			[invoice_number]
+
+FROM vw_receivable_invoice_detail 
+GROUP BY 
+			[customer_name],
+			[customer_number],
+			[customer_id],
+			[bk_aggregated_dim_receivable_invoice_id],
+			[receivable_id],
+			[sequence_number],
+			[contract_id],
+			[branch_name],
+			[entity_type],
+			[due_date],
+			[product_name],
+			[receivable_type],
+			[invoice_date],
+			[invoice_number]
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_sundry
+-- Depends on: vw_receivables
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_sundry
+AS
+SELECT * --COUNT(*)
+FROM
+(
+SELECT     
+			sundry.amount_amount,
+			sundry.bk_aggregated_dim_sundry_id,
+			sundry.entity_type,
+			sundry.payable_tax_detail_id,
+			sundry.r2_c_invoice_number,
+			sundry.projected_vat_amount_amount,
+			sundry.status,
+			sundry.cost_center_id,
+			sundry.branch_id,
+			sundry.lineof_business_id,
+			sundry.customer_id,
+			sundry.receivable_id,
+			sundry.currency_id,
+			sundry.receivable_code_id,
+			sundry.bill_to_id,
+			sundry.legal_entity_id,
+			sundry.contract_id,
+			sundry.sundry_type,
+			sundry.receivable_due_date,
+			sundry.invoice_comment,
+			sundry.[po_number],
+			sundry.[customer_po_number],
+			sundry.[created_time] AS sundry_created_date,
+
+			rCode.name receivable_code,
+		    rCode.name AS charge_name,
+			invoiceReceivable.invoice_number,
+			contract.sequence_number,
+			contract.alias AS aag_contract_number,
+			pType.transaction_type AS product_name2,
+			customer.company_name,
+			taxes.balance_amount AS tax_balance_amount2,
+			
+			invoiceReceivable.invoice_date,
+			invoiceReceivable.[due_date] AS invoice_due_date,
+			invoiceReceivable.[product_name],
+			invoiceReceivable.[bk_aggregated_dim_receivable_invoice_id] AS invoice_id,
+			invoiceReceivable.receivable_type,
+
+			invoiceReceivable.[receivable_amount_amount],
+			invoiceReceivable.[tax_balance_amount],
+			invoiceReceivable.[effective_tax_balance_amount],
+			invoiceReceivable.[effective_balance_amount],
+			invoiceReceivable.balance_amount,
+    		sundry.amount_amount + sundry.[projected_vat_amount_amount] AS total_due_amount,
+    		taxes.[balance_amount] + invoiceReceivable.balance_amount AS total_balance_amount						
+
+FROM aggregated_odessa_dim_sundry AS sundry
+LEFT JOIN aggregated_odessa_dim_receivable_code AS rCode ON rCode.bk_aggregated_dim_receivable_code_id = sundry.receivable_code_id AND rCode.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_contract AS contract ON contract.bk_aggregated_dim_contract_id = sundry.contract_id AND contract.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_deal_product_type AS pType ON pType.bk_aggregated_dim_deal_product_type_id = contract.deal_product_type_id AND pType.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_customer AS customer ON sundry.customer_id = customer.bk_aggregated_dim_customer_id AND customer.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_receivable AS receivables ON receivables.bk_aggregated_dim_receivable_id = sundry.receivable_id AND receivables.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_receivable_tax AS taxes ON taxes.receivable_id = receivables.bk_aggregated_dim_receivable_id AND taxes.current_flag = 1
+LEFT JOIN vw_receivables AS invoiceReceivable ON invoiceReceivable.receivable_id = receivables.bk_aggregated_dim_receivable_id
+) AS a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_r2c_paid_recharges
+-- Depends on: vw_sundry
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_r2c_paid_recharges
+AS
+SELECT  
+	sundry.product_name AS 'Product Name'
+	,sundry.[company_name] AS 'Account'
+	,sundry.sequence_number AS 'Lending Account ID' 
+	,sundry.[invoice_number] AS 'Invoice Number'
+	,sundry.[invoice_id] AS 'Invoice ID'
+
+	,sundry.[bk_aggregated_dim_sundry_id] AS 'Charge Id'
+	,sundry.[r2_c_invoice_number] AS 'R2c Invoice Number'
+	,sundry.customer_po_number AS 'PO Number'
+
+	,sundry.sundry_created_date AS 'Invoice: Created Date'
+	,sundry.invoice_due_date AS 'Invoice: Due Date'
+	,sundry.amount_amount AS 'Fee Amount'
+    ,sundry.amount_amount + sundry.projected_vat_amount_amount AS 'Total Due Amount'
+	,sundry.total_balance_amount AS 'Total Balance Amount'
+	,sundry.receivable_id
+	,sundry.projected_vat_amount_amount
+	,sundry.balance_amount
+	,sundry.sundry_type
+	,sundry.receivable_type
+	,sundry.receivable_code 
+	,sundry.charge_name 
+
+FROM vw_sundry AS sundry 
+WHERE sundry.sundry_type = 'ReceivableOnly'
+AND sundry.receivable_type = 'SundrySeparate'
+AND LOWER(sundry.charge_name) LIKE '%recharge%'
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_sundry_details
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_sundry_details
+AS
+
+SELECT DISTINCT 
+
+	sundry.[bk_aggregated_dim_sundry_id]
+	,sundry.[sundry_type]
+	,sundry.[amount_amount]
+	,sundry.[amount_currency]
+	,sundry.[receivable_due_date]
+	--,sundry.[start_date]
+	--,sundry.[end_date]
+	,sundry.[created_time]
+	,sundry.[sk_aggregated_dim_sundry]
+	,sundry.[r2_c_invoice_number]
+	,sundry.[projected_vat_amount_amount]
+	,sundry.[payable_amount_amount]
+	,sundry.[cost_center_id]
+	,sundry.[branch_id]
+	,sundry.[lineof_business_id]
+	,sundry.[bill_to_id]
+	,sundry.[payable_code_id]
+	,sundry.[contract_id]
+	,sundry.[customer_id]
+	,sundry.vendor_id
+	,sundry.[is_active]
+	,sundry.[payable_due_date]
+	,sundry.[invoice_comment]
+    ,sundry.amount_amount + sundry.[projected_vat_amount_amount] AS total_due_amount
+	,taxes.[balance_amount]
+	,ReceivableCode.name AS Recharge_Fee_Name
+	,PayableCode.name AS Expense_Fee_Name
+	,Customer.company_name
+	,SundryDetail.asset_id
+
+
+FROM aggregated_odessa_dim_sundry AS sundry
+LEFT JOIN aggregated_odessa_dim_receivable AS receivables ON receivables.[bk_aggregated_dim_receivable_id] = sundry.[receivable_id] AND receivables.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON sundry.[receivable_code_id] = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1 AND ReceivableCode.is_active = 1
+LEFT JOIN aggregated_odessa_dim_payable_code AS PayableCode ON sundry.payable_code_id = PayableCode.[bk_aggregated_dim_payable_code_id] AND PayableCode.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_receivable_tax AS taxes ON taxes.[receivable_id] = receivables.[bk_aggregated_dim_receivable_id] AND taxes.current_flag = 1 AND taxes.is_active = 1
+LEFT JOIN aggregated_odessa_dim_customer AS Customer ON sundry.customer_id = Customer.[bk_aggregated_dim_customer_id] AND Customer.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_sundry_detail AS SundryDetail ON sundry.[bk_aggregated_dim_sundry_id] = SundryDetail.[sundry_id] AND SundryDetail.current_flag = 1 AND SundryDetail.is_active = 1
+
+where sundry.current_flag = 1 AND sundry.is_active = 1
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: pbi_fleetspendreporting1
+-- Depends on: vw_asset, vw_sundry_details
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW pbi_fleetspendreporting1 AS
+
+
+SELECT DISTINCT
+Asset.registration_number,
+Asset.product_name,
+Asset.asset_status,
+Asset.manufacturer_name,
+Asset.model_name,
+Asset.gvw,
+Asset.body_builder,
+Asset.serial_number,
+Asset.comments,
+Asset.model_year,
+Asset.asset_contract_type,
+SundryRecurring.[bk_aggregated_dim_sundry_recurring_id] AS Id,
+SundryRecurring.[sundry_type] AS type,
+SundryRecurringDetail.[amount_amount] AS amount,
+null as r2_c_invoice_number,
+    ReceivableCode.name AS recurring_sundry_name,
+    nulL AS Recharge_Fee_Name,
+    Null as Expense_Fee_Name,
+--SundryRecurringSchedule.receivable_id,
+	SundryRecurringSchedule.due_date AS schedule_due_date,
+	null AS receivable_due_date,
+	null as sundry_created_date,
+
+	null AS sundry_payable_amount,
+	Null AS payable_due_date,
+	null AS invoice_comment,
+   Customer.company_name AS company
+   
+
+FROM aggregated_odessa_dim_sundry_recurring AS SundryRecurring
+JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS SundryRecurringDetail ON SundryRecurringDetail.[sundry_recurring_id] = SundryRecurring.bk_aggregated_dim_sundry_recurring_id AND SundryRecurringDetail.current_flag = 1
+JOIN aggregated_odessa_dim_sundry_recurring_payment_schedule AS SundryRecurringSchedule ON SundryRecurringSchedule.[sundry_recurring_id] = SundryRecurring.[bk_aggregated_dim_sundry_recurring_id] AND SundryRecurringSchedule.current_flag = 1
+--JOIN aggregated_odessa_dim_receivable as Receivable ON SundryRecurringSchedule.receivable_id = Receivable.[bk_aggregated_dim_receivable_id] AND Receivable.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON SundryRecurring.[receivable_code_id] = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1
+JOIN aggregated_odessa_dim_customer AS Customer ON SundryRecurring.customer_id = Customer.bk_aggregated_dim_customer_id AND Customer.current_flag = 1
+JOIN vw_asset AS Asset ON SundryRecurringDetail.[asset_id] = Asset.[bk_aggregated_dim_asset_id]
+JOIN [aggregated_odessa_dim_contract] AS Contract ON SundryRecurring.[contract_id] = Contract.[bk_aggregated_dim_contract_id] AND Contract.current_flag = 1
+WHERE SundryRecurring.current_flag = 1
+AND SundryRecurringSchedule.due_date < GETDATE()
+
+
+UNION ALL
+
+SELECT  
+Asset.registration_number,
+Asset.product_name,
+Asset.asset_status,
+Asset.manufacturer_name,
+Asset.model_name,
+Asset.gvw,
+Asset.body_builder,
+Asset.serial_number,
+Asset.comments,
+Asset.model_year,
+Asset.asset_contract_type,
+
+		Sundry.[bk_aggregated_dim_sundry_id] AS Id,
+ --   Sundry.number AS invoice_number,
+	Sundry.[sundry_type] AS type,
+    Sundry.[amount_amount] amount,
+	Sundry.[r2_c_invoice_number] AS r2_c_invoice_number,
+null AS recurring_sundry_name,
+    Sundry.Recharge_Fee_Name,
+    Sundry.Expense_Fee_Name,
+
+ --null AS receivable_id,
+	nuLl  AS schedule_due_date,
+	Sundry.[receivable_due_date] AS receivable_due_date,
+	Sundry.[created_time] AS sundry_created_date,
+	Sundry.[payable_amount_amount] AS sundry_payable_amount,
+	Sundry.[payable_due_date] AS payable_due_date,
+	Sundry.[invoice_comment] AS invoice_comment,
+    Sundry.[company_name] AS company
+
+
+FROM vw_sundry_details AS Sundry
+LEFT JOIN vw_asset AS Asset ON Sundry.asset_id = Asset.[bk_aggregated_dim_asset_id]
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_all_asset_maintenance_costs
+-- Depends on: vw_sundry_details
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_all_asset_maintenance_costs AS (SELECT
+b.registration_number,
+b.asset_id,
+
+CASE WHEN SUM(b.budget) IS NULL THEN 0 ELSE SUM(b.budget) END AS budget_income,
+CASE WHEN SUM(SUM(b.budget)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.budget)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_budget,
+
+CASE WHEN SUM(b.recharge) IS NULL THEN 0 ELSE SUM(b.recharge) END AS recharge_income,
+CASE WHEN SUM(SUM(b.recharge)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.recharge)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_recharge,
+
+CASE WHEN SUM(b.combined_income) IS NULL THEN 0 ELSE SUM(b.combined_income) END AS total_income,
+SUM(SUM(b.combined_income)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) AS cumulative_total_income,
+
+CASE WHEN SUM(b.expense) IS NULL THEN 0 ELSE SUM(b.expense) END AS expense_amount,
+CASE WHEN SUM(SUM(b.expense)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.expense)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_expense,
+
+COALESCE(SUM(b.combined_income), 0) - COALESCE(SUM(b.expense), 0) AS net,
+SUM(COALESCE(SUM(b.combined_income), 0) - COALESCE(SUM(b.expense), 0)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) AS cumulative_net,
+
+b.merge_date AS invoice_month
+
+
+ FROM (
+
+SELECT 
+a.registration_number, 
+a.asset_id,
+
+budget,
+recharge,
+COALESCE(budget, 0) + COALESCE(recharge, 0) AS combined_income,
+expense, 
+invoice_date,
+FORMAT(invoice_date, 'yyyy-MM') AS merge_date
+
+ FROM (
+
+SELECT 
+reg.registration_number,
+SundryRecurringDetail.[asset_id],
+SUM(SundryRecurringDetail.[amount_amount]) AS budget,
+null AS expense,
+NULL AS recharge,
+SundryRecurringSchedule.due_date AS invoice_date
+
+
+FROM aggregated_odessa_dim_sundry_recurring AS SundryRecurring
+JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS SundryRecurringDetail ON SundryRecurringDetail.[sundry_recurring_id] = SundryRecurring.bk_aggregated_dim_sundry_recurring_id AND SundryRecurringDetail.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON SundryRecurring.[receivable_code_id] = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1
+ JOIN aggregated_odessa_dim_customer AS Customer ON SundryRecurring.customer_id = Customer.bk_aggregated_dim_customer_id AND Customer.current_flag = 1
+ JOIN aggregated_odessa_dim_asset AS Asset ON SundryRecurringDetail.[asset_id] = Asset.[bk_aggregated_dim_asset_id] AND Asset.current_flag = 1
+ LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON Asset.[bk_aggregated_dim_asset_id] = reg.[asset_id] AND reg.current_flag = 1 AND reg.is_active = 1
+
+LEFT JOIN (
+SELECT DISTINCT 
+sundry_recurring_id,
+due_date
+from  aggregated_odessa_dim_sundry_recurring_payment_schedule AS SundryRecurringSchedule
+WHERE SundryRecurringSchedule.current_flag = 1 and SundryRecurringSchedule.is_active = 1) AS SundryRecurringSchedule ON SundryRecurringSchedule.[sundry_recurring_id] = SundryRecurring.[bk_aggregated_dim_sundry_recurring_id]
+WHERE SundryRecurring.current_flag = 1
+AND SundryRecurringSchedule.due_date < GETDATE()
+GROUP BY 
+reg.registration_number,
+SundryRecurringDetail.[asset_id],
+SundryRecurringSchedule.due_date
+
+UNION ALL
+
+SELECT 
+registration_number,
+asset_id,
+NULL AS budget,
+SUM(expense) AS expense,
+SUM(recharge) AS recharge,
+invoice_date
+ FROM (
+SELECT  
+Sundry.[bk_aggregated_dim_sundry_id],
+Sundry.asset_id,
+reg.registration_number,
+Sundry.contract_id,
+null AS budget,
+CASE WHEN Sundry.sundry_type = 'PayableOnly' THEN Sundry.[amount_amount] ELSE 0 END AS expense,
+CASE WHEN Sundry.sundry_type = 'ReceivableOnly' THEN Sundry.[amount_amount] ELSE 0 END AS recharge,
+CASE WHEN Sundry.sundry_type = 'PayableOnly' THEN Sundry.[payable_due_date]
+WHEN Sundry.sundry_type = 'ReceivableOnly' THEN Sundry.[receivable_due_date] END AS invoice_date
+
+
+FROM vw_sundry_details AS Sundry
+ JOIN aggregated_odessa_dim_asset AS Asset ON Sundry.asset_id = Asset.[bk_aggregated_dim_asset_id] AND Asset.current_flag = 1
+ LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON Asset.[bk_aggregated_dim_asset_id] = reg.[asset_id] AND reg.current_flag = 1 AND reg.is_active = 1
+) AS sundries
+
+GROUP BY
+sundries.registration_number,
+sundries.asset_id,
+sundries.invoice_date 
+)
+AS a
+
+WHERE a.registration_number IS NOT NULL 
+
+)
+AS b
+
+GROUP BY
+b.registration_number,
+b.asset_id,
+b.merge_date)
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: rpt_ch_maintenance_provision
+-- Depends on: pbi_fleetspendreporting2, vw_sundry_details
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW rpt_ch_maintenance_provision AS (
+SELECT 
+b.merge_date,
+b.registration_number,
+b.asset_id,
+b.sequence_number,
+b.status,
+b.description,
+b.company_name,
+b.commencement_date,
+b.contract_end_date,
+
+CASE WHEN SUM(b.budget) IS NULL THEN 0 ELSE SUM(b.budget) END AS budget_income,
+CASE WHEN SUM(SUM(b.budget)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.budget)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_budget,
+
+CASE WHEN SUM(b.recharge) IS NULL THEN 0 ELSE SUM(b.recharge) END AS recharge_income,
+CASE WHEN SUM(SUM(b.recharge)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.recharge)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_recharge,
+
+CASE WHEN SUM(b.combined_income) IS NULL THEN 0 ELSE SUM(b.combined_income) END AS total_income,
+SUM(SUM(b.combined_income)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) AS cumulative_total_income,
+
+CASE WHEN SUM(b.expense) IS NULL THEN 0 ELSE SUM(b.expense) END AS expense_amount,
+CASE WHEN SUM(SUM(b.expense)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) IS NULL THEN 0 ELSE SUM(SUM(b.expense)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) END AS cumulative_expense,
+
+COALESCE(SUM(b.combined_income), 0) - COALESCE(SUM(b.expense), 0) AS net,
+SUM(COALESCE(SUM(b.combined_income), 0) - COALESCE(SUM(b.expense), 0)) OVER (PARTITION BY b.registration_number ORDER BY b.merge_date) AS cumulative_net
+
+
+
+FROM (
+
+SELECT 
+asset_sundries.registration_number, 
+budget,
+recharge,
+COALESCE(budget, 0) + COALESCE(recharge, 0) AS combined_income,
+expense, 
+invoice_date,
+FORMAT(invoice_date, 'yyyy-MM') AS merge_date,
+contracts.*
+
+
+ FROM (
+
+SELECT 
+reg.registration_number,
+SundryRecurringDetail.[asset_id],
+SUM(SundryRecurringDetail.[amount_amount]) AS budget,
+null AS expense,
+NULL AS recharge,
+SundryRecurringSchedule.due_date AS invoice_date
+
+FROM aggregated_odessa_dim_sundry_recurring AS SundryRecurring
+JOIN aggregated_odessa_dim_sundry_recurring_payment_detail AS SundryRecurringDetail ON SundryRecurringDetail.[sundry_recurring_id] = SundryRecurring.bk_aggregated_dim_sundry_recurring_id AND SundryRecurringDetail.current_flag = 1
+JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON SundryRecurring.[receivable_code_id] = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1
+ JOIN aggregated_odessa_dim_customer AS Customer ON SundryRecurring.customer_id = Customer.bk_aggregated_dim_customer_id AND Customer.current_flag = 1
+ JOIN aggregated_odessa_dim_asset AS Asset ON SundryRecurringDetail.[asset_id] = Asset.[bk_aggregated_dim_asset_id] AND Asset.current_flag = 1
+ LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON Asset.[bk_aggregated_dim_asset_id] = reg.[asset_id] AND reg.current_flag = 1 AND reg.is_active = 1
+
+ JOIN (
+SELECT DISTINCT 
+sundry_recurring_id,
+due_date
+from  aggregated_odessa_dim_sundry_recurring_payment_schedule AS SundryRecurringSchedule
+WHERE SundryRecurringSchedule.current_flag = 1  and SundryRecurringSchedule.is_active = 1) AS SundryRecurringSchedule ON SundryRecurringSchedule.[sundry_recurring_id] = SundryRecurring.[bk_aggregated_dim_sundry_recurring_id]
+WHERE SundryRecurring.current_flag = 1
+AND SundryRecurringSchedule.due_date < GETDATE()
+GROUP BY 
+reg.registration_number,
+SundryRecurringDetail.[asset_id],
+SundryRecurringSchedule.due_date
+
+UNION ALL
+
+SELECT 
+registration_number,
+asset_id,
+NULL AS budget,
+SUM(expense) AS expense,
+SUM(recharge) AS recharge,
+invoice_date
+ FROM (
+SELECT  
+Sundry.[bk_aggregated_dim_sundry_id],
+Sundry.asset_id,
+reg.registration_number,
+Sundry.contract_id,
+null AS budget,
+CASE WHEN Sundry.sundry_type = 'PayableOnly' THEN Sundry.[amount_amount] ELSE 0 END AS expense,
+CASE WHEN Sundry.sundry_type = 'ReceivableOnly' THEN Sundry.[amount_amount] ELSE 0 END AS recharge,
+CASE WHEN Sundry.sundry_type = 'PayableOnly' THEN Sundry.[payable_due_date]
+WHEN Sundry.sundry_type = 'ReceivableOnly' THEN Sundry.[receivable_due_date] END AS invoice_date
+
+
+FROM vw_sundry_details AS Sundry
+ JOIN aggregated_odessa_dim_asset AS Asset ON Sundry.asset_id = Asset.[bk_aggregated_dim_asset_id] AND Asset.current_flag = 1
+ LEFT JOIN (select *, row_number() over (partition by asset_id order by asset_registration_effective_date desc) RegRN from aggregated_odessa_dim_asset_registration_detail where current_flag = 1) AS reg 
+        ON Asset.[bk_aggregated_dim_asset_id] = reg.[asset_id] AND reg.current_flag = 1 AND reg.is_active = 1
+WHERE Sundry.is_active = 1
+) AS sundries
+
+GROUP BY
+sundries.registration_number,
+sundries.asset_id,
+sundries.invoice_date 
+
+) AS asset_sundries 
+
+LEFT JOIN (
+
+SELECT
+p.asset_id,
+p.ContractBK,
+p.sequence_number,
+p.status,
+p.company_name,
+p.commencement_date,
+p.maturity_date,
+--p.terminated_date,
+--p.transaction_type,
+CASE WHEN terminated_date = '9999-01-1' THEN NULL ELSE terminated_date END AS termination_date,
+CASE WHEN terminated_date < maturity_date THEN terminated_date
+ELSE maturity_date END AS contract_end_date,
+cc.description
+FROM pbi_fleetspendreporting2 AS p
+JOIN aggregated_odessa_dim_contract as c ON p.ContractBK = c.[bk_aggregated_dim_contract_id] AND c.current_flag = 1
+JOIN aggregated_odessa_dim_cost_center AS cc ON c.cost_center_id = cc.[bk_aggregated_dim_cost_center_id] AND cc.current_flag = 1
+
+WHERE p.sequence_number IS NOT NULL AND p.transaction_type = 'Contract Hire' AND p.status NOT IN ('Inactive', 'Pending', 'InstallingAssets')
+) AS contracts ON asset_sundries.asset_id = contracts.asset_id AND asset_sundries.invoice_date BETWEEN contracts.commencement_date AND contracts.contract_end_date
+
+) AS b
+WHERE b.asset_id IS NOT NULL
+GROUP BY
+b.registration_number,
+b.asset_id,
+b.merge_date,
+b.sequence_number,
+b.status,
+b.description,
+b.company_name,
+b.commencement_date,
+b.contract_end_date
+)
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_sundry_recurring_charges
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_sundry_recurring_charges
+AS
+SELECT *
+FROM  
+(
+SELECT DISTINCT 
+		
+			SundryRecurring.[bk_aggregated_dim_sundry_recurring_id],
+			SundryRecurring.[sundry_type],
+			SundryRecurring.[invoice_comment],
+			SundryRecurring.[current_flag],
+			SundryRecurring.[sk_aggregated_dim_sundry_recurring],
+			SundryRecurring.[branch_id],
+			SundryRecurring.[regular_amount_amount],
+			SundryRecurring.[regular_amount_currency],
+			SundryRecurring.[lineof_business_id],
+			SundryRecurring.[status],
+			SundryRecurring.[payable_amount_amount],
+			SundryRecurring.[payable_amount_currency],
+			SundryRecurring.[bill_to_id],
+			SundryRecurring.[vendor_id],
+			SundryRecurring.[legal_entity_id],
+			SundryRecurring.[contract_id],
+			SundryRecurring.[customer_id],
+			SundryRecurring.[receivable_code_id],
+			SundryRecurring.[frequency],
+			SundryRecurring.[due_day],
+			SundryRecurring.[is_asset_based],
+			SundryRecurring.[is_rental_based],
+			SundryRecurring.[number_of_payments],
+
+			ReceivableCode.name,
+			ReceivableCode.name AS 	charge_name,		
+
+    		contract.sequence_number
+
+FROM [aggregated_odessa_dim_sundry_recurring] AS SundryRecurring
+
+LEFT JOIN aggregated_odessa_dim_receivable_code AS ReceivableCode ON SundryRecurring.[receivable_code_id] = ReceivableCode.[bk_aggregated_dim_receivable_code_id] AND ReceivableCode.current_flag = 1
+LEFT JOIN aggregated_odessa_dim_contract contract ON SundryRecurring.[contract_id] = contract.[bk_aggregated_dim_contract_id] AND contract.current_flag = 1
+
+WHERE
+
+SundryRecurring.current_flag = 1
+) AS a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_sundry_recurring_charge_details
+-- Depends on: vw_sundry_recurring_charges
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_sundry_recurring_charge_details
+AS 
+SELECT *
+from
+(
+    SELECT 
+
+    SundryRecurringDetail.[bk_aggregated_dim_sundry_recurring_payment_detail_id],
+    SundryRecurringDetail.[amount_amount],
+    SundryRecurringDetail.[amount_currency],
+    SundryRecurringDetail.[current_flag],
+    SundryRecurringDetail.[sundry_recurring_id],
+    SundryRecurringDetail.[payable_amount_amount],
+    SundryRecurringDetail.[payable_amount_currency],
+    SundryRecurringDetail.[bill_to_id],
+
+
+    SR.sequence_number,
+    SR.contract_id AS contract_id,
+    SR.charge_name,
+    SundryRecurringDetail.asset_id,
+    SundryRecurringDetail.[amount_amount] sundry_amount,
+    SundryRecurringDetail.[vat_amount_amount] vat_amount,
+    AC.[amount_amount] additional_charge_amount    
+
+    FROM aggregated_odessa_dim_sundry_recurring_payment_detail AS SundryRecurringDetail
+    JOIN vw_sundry_recurring_charges AS SR ON SundryRecurringDetail.[bk_aggregated_dim_sundry_recurring_payment_detail_id] = SR.[bk_aggregated_dim_sundry_recurring_id]
+
+    JOIN aggregated_odessa_dim_lease_finance_additional_charge LFAC ON LFAC.[recurring_sundry_id] = SR.[bk_aggregated_dim_sundry_recurring_id]
+    JOIN aggregated_odessa_dim_additional_charge AS AC ON AC.[bk_aggregated_dim_additional_charge_id] = LFAC.[additional_charge_id]
+  
+    WHERE SundryRecurringDetail.current_flag = 1
+    AND AC.current_flag = 1
+    AND SR.current_flag = 1
+    AND LFAC.current_flag = 1
+   
+) as a
+
+;
+GO
+
+-- ----------------------------------------------------------
+-- View: vw_sundry_recurring_schedule
+-- ----------------------------------------------------------
+CREATE OR ALTER VIEW vw_sundry_recurring_schedule
+AS 
+(
+	SELECT [sk_aggregated_dim_sundry_recurring_payment_schedule],
+			[current_flag],
+			[payable_amount_currency],
+			[receivable_id],
+			[payable_id],
+			[sundry_recurring_id],
+			[payable_amount_amount],
+			[created_time],
+			[bk_aggregated_dim_sundry_recurring_payment_schedule_id],
+			[due_date],
+			[amount_amount],
+			[amount_currency]
+	FROM [aggregated_odessa_dim_sundry_recurring_payment_schedule]
+	WHERE current_flag = 1
+)
+
+;
+GO
+

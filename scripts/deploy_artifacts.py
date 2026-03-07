@@ -722,48 +722,38 @@ class FabricDeployer:
                 return True
             
             # Step 1: Filter incoming remote changes.
-            # Items deployed via API already exist in the workspace.  Pulling
-            # them again via updateFromGit would cause "duplicate display name"
-            # errors.  Skip any remote "Added" item whose displayName already
-            # exists in the workspace.
+            # Only paginated reports should be synced via updateFromGit.
+            # All other artifact types (semantic models, reports, notebooks,
+            # lakehouses, pipelines, etc.) are deployed exclusively via API.
+            # Syncing non-paginated types can cause "duplicate display name"
+            # errors when items of different types share the same name
+            # (e.g. "Finance Summary" Report + "Finance Summary" SemanticModel).
+            paginated_types = {"rdlreport", "paginatedreport"}
+            
             if remote_changes:
-                # Build a set of workspace item names for quick lookup.
-                # We compare by displayName only (lowered) because the
-                # git/status API and list_items API use DIFFERENT type labels
-                # for the same artifact (e.g. "Variables" vs "VariableLibrary",
-                # "DataPipeline" vs "Pipeline").  Name-only matching is safe
-                # because Fabric enforces unique displayName within a type.
-                workspace_items = self.client.list_items(self.workspace_id)
-                ws_name_set = {
-                    w.get("displayName", "").lower()
-                    for w in workspace_items
-                }
-                
-                safe_to_sync = []
-                skipped = []
+                paginated_to_sync = []
+                api_skipped = []
                 
                 for rc in remote_changes:
                     r_meta = rc.get("itemMetadata", {})
                     r_name = r_meta.get("displayName", "")
                     r_type = r_meta.get("itemType", "")
-                    r_change = rc.get("remoteChange", "")
                     
-                    # Only skip "Added" items that already exist in workspace
-                    if r_change == "Added" and r_name.lower() in ws_name_set:
-                        skipped.append(f"{r_name} ({r_type})")
+                    if r_type.lower() in paginated_types:
+                        paginated_to_sync.append(rc)
                     else:
-                        safe_to_sync.append(rc)
+                        api_skipped.append(f"{r_name} ({r_type})")
                 
-                if skipped:
-                    logger.info(f"  ⏭ Skipping {len(skipped)} item(s) from Git sync (already deployed via API):")
-                    for s in skipped:
+                if api_skipped:
+                    logger.info(f"  ⏭ Skipping {len(api_skipped)} item(s) from Git sync (deployed via API):")
+                    for s in api_skipped:
                         logger.info(f"    - {s}")
                 
-                # Only call updateFromGit if there are safe items to sync
-                if safe_to_sync:
+                # Only call updateFromGit if there are paginated reports to sync
+                if paginated_to_sync:
                     # Build selective items list
                     selective_items = []
-                    for rc in safe_to_sync:
+                    for rc in paginated_to_sync:
                         item_meta = rc.get("itemMetadata", {})
                         item_entry = {}
                         if item_meta.get("logicalId"):
@@ -775,9 +765,9 @@ class FabricDeployer:
                     
                     sync_names = [
                         f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
-                        for c in safe_to_sync
+                        for c in paginated_to_sync
                     ]
-                    logger.info(f"  📥 {len(safe_to_sync)} incoming Git change(s) to sync:")
+                    logger.info(f"  📥 {len(paginated_to_sync)} paginated report(s) to sync from Git:")
                     for sn in sync_names:
                         logger.info(f"    - {sn}")
                     
@@ -789,15 +779,11 @@ class FabricDeployer:
                         allow_override_items=True,
                         items=selective_items if selective_items else None
                     )
-                    logger.info("  ✓ Incoming changes synced")
+                    logger.info("  ✓ Paginated reports synced from Git")
                     for sn in sync_names:
                         logger.info(f"  ✅ Deployed via Git sync: {sn}")
-                elif not skipped:
-                    # remote_changes existed but none were safe — this shouldn't
-                    # happen, but handle gracefully
-                    logger.info("  ℹ No incoming Git changes require syncing")
                 else:
-                    logger.info("  ✓ All incoming Git items already in workspace — skipping updateFromGit")
+                    logger.info("  ✓ No paginated reports pending — skipping updateFromGit")
                 
                 # Re-fetch status after updateFromGit (or after skipping)
                 status = self.client.get_git_status(self.workspace_id)

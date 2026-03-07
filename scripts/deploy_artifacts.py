@@ -3173,18 +3173,6 @@ print('Notebook initialized')
         if failure_count == 0:
             self._save_deployment_state()
         
-        # Post-deploy: commit API-created items to Git so they are linked
-        # to the repo.  This is needed because all non-paginated artifacts
-        # are deployed via the API and won't be Git-linked until committed.
-        # This prevents duplicate-name conflicts in Fabric Source Control.
-        #
-        # NOTE: _commit_workspace_to_git() skips updateFromGit for items
-        # already in the workspace (API-deployed), so connection bindings
-        # set during _deploy_semantic_model() are preserved.
-        git_config = self.config.config.get("git_integration", {})
-        if failure_count == 0 and not dry_run and git_config.get("auto_update_from_git", True):
-            self._commit_workspace_to_git()
-        
         # Refresh semantic models that were deployed in this run.
         # This must happen after connection binding (done in _deploy_semantic_model)
         # so the model can connect to the data source during refresh.

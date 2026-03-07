@@ -1,270 +1,754 @@
-2026-03-07T19:03:27.5854126Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2026-03-07T19:03:27.5863592Z ==============================================================================
-2026-03-07T19:03:27.5863792Z Task         : Command line
-2026-03-07T19:03:27.5863918Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-03-07T19:03:27.5864097Z Version      : 2.268.0
-2026-03-07T19:03:27.5864221Z Author       : Microsoft Corporation
-2026-03-07T19:03:27.5864352Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-03-07T19:03:27.5864541Z ==============================================================================
-2026-03-07T19:03:27.7255645Z Generating script.
-2026-03-07T19:03:27.7269082Z ========================== Starting Command Output ===========================
-2026-03-07T19:03:27.7278682Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/1d43363c-c846-4630-9d4c-002e2794f3d2.sh
-2026-03-07T19:03:27.7339696Z ========================================
-2026-03-07T19:03:27.7340246Z DEBUG: Verifying Repository Checkout
-2026-03-07T19:03:27.7355945Z ========================================
-2026-03-07T19:03:27.7356299Z Current directory: /home/vsts/work/1/s
-2026-03-07T19:03:27.7356629Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-03-07T19:03:27.7356761Z 
-2026-03-07T19:03:27.7357044Z Contents of Build.SourcesDirectory:
-2026-03-07T19:03:27.7365302Z total 40
-2026-03-07T19:03:27.7367865Z drwxr-xr-x 8 vsts vsts 4096 Mar  7 19:02 .
-2026-03-07T19:03:27.7368234Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 19:02 ..
-2026-03-07T19:03:27.7368859Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:02 .deployment_tracking
-2026-03-07T19:03:27.7369232Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 19:02 .git
-2026-03-07T19:03:27.7369586Z -rw-r--r-- 1 vsts vsts   44 Mar  7 19:02 .gitignore
-2026-03-07T19:03:27.7369947Z -rw-r--r-- 1 vsts vsts  985 Mar  7 19:02 README.md
-2026-03-07T19:03:27.7370332Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:02 azure-pipelines
-2026-03-07T19:03:27.7370740Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:02 config
-2026-03-07T19:03:27.7371334Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:02 scripts
-2026-03-07T19:03:27.7371734Z drwxr-xr-x 6 vsts vsts 4096 Mar  7 19:02 wsartifacts
-2026-03-07T19:03:27.7371967Z 
-2026-03-07T19:03:27.7379065Z Checking for required folders:
-2026-03-07T19:03:27.7379781Z ✓ scripts/ exists
-2026-03-07T19:03:27.7380288Z ✓ config/ exists
-2026-03-07T19:03:27.7380760Z ✓ wsartifacts/ exists
-2026-03-07T19:03:27.7381124Z ========================================
-2026-03-07T19:03:27.7382091Z ========================================
-2026-03-07T19:03:27.7382417Z Deploying to Dev Environment
-2026-03-07T19:03:27.7382730Z ========================================
-2026-03-07T19:03:27.7383006Z Features:
-2026-03-07T19:03:27.7388787Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-03-07T19:03:27.7389300Z   📊 Dependency-aware deployment ordering
-2026-03-07T19:03:27.7389721Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-03-07T19:03:27.7389897Z 
-2026-03-07T19:03:27.7390223Z Deployment steps:
-2026-03-07T19:03:27.7390533Z   1. Create artifacts from config file
-2026-03-07T19:03:27.7390900Z   2. Detect changed artifacts using Git diff
-2026-03-07T19:03:27.7391255Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-03-07T19:03:27.7391631Z ========================================
-2026-03-07T19:03:28.1701887Z 2026-03-07 19:03:28,169 - __main__ - INFO - Initializing deployment to dev environment
-2026-03-07T19:03:28.1704421Z 2026-03-07 19:03:28,169 - config_manager - INFO - Loading configuration from: config/dev.json
-2026-03-07T19:03:28.1704914Z 2026-03-07 19:03:28,169 - __main__ - INFO - Using environment-specific service principal for dev
-2026-03-07T19:03:28.1705384Z 2026-03-07 19:03:28,169 - __main__ - INFO - Using artifacts root folder: wsartifacts
-2026-03-07T19:03:28.1705874Z 2026-03-07 19:03:28,169 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
-2026-03-07T19:03:28.4963594Z 2026-03-07 19:03:28,495 - fabric_auth - INFO - Authentication validation successful
-2026-03-07T19:03:28.4984769Z 2026-03-07 19:03:28,497 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
-2026-03-07T19:03:28.4985687Z 2026-03-07 19:03:28,497 - __main__ - INFO - Running in artifact creation mode
-2026-03-07T19:03:28.4987074Z 2026-03-07 19:03:28,497 - __main__ - INFO - ============================================================
-2026-03-07T19:03:28.4988008Z 2026-03-07 19:03:28,497 - __main__ - INFO - Creating artifacts from configuration for dev
-2026-03-07T19:03:28.4989755Z 2026-03-07 19:03:28,497 - __main__ - INFO - ============================================================
-2026-03-07T19:03:28.4991204Z 2026-03-07 19:03:28,497 - __main__ - INFO - No artifacts configured for creation
-2026-03-07T19:03:28.4992671Z 2026-03-07 19:03:28,497 - __main__ - INFO - Artifact creation completed successfully
-2026-03-07T19:03:28.4996194Z 2026-03-07 19:03:28,497 - __main__ - INFO - ============================================================
-2026-03-07T19:03:28.4997628Z 2026-03-07 19:03:28,497 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
-2026-03-07T19:03:28.4998833Z 2026-03-07 19:03:28,497 - __main__ - INFO - ============================================================
-2026-03-07T19:03:28.5000978Z 2026-03-07 19:03:28,497 - __main__ - INFO - Discovering artifacts from file system...
-2026-03-07T19:03:28.5001466Z 2026-03-07 19:03:28,498 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
-2026-03-07T19:03:28.5001944Z 2026-03-07 19:03:28,498 - __main__ - INFO - Discovered 1 Variable Library: ReportingWSVariables
-2026-03-07T19:03:28.5009870Z 2026-03-07 19:03:28,500 - __main__ - INFO - Discovered 18 semantic model(s): Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), TTS Sales (Fabric Git), Tyre Analysis (Fabric Git)
-2026-03-07T19:03:28.5014424Z 2026-03-07 19:03:28,500 - __main__ - INFO - ============================================================
-2026-03-07T19:03:28.5015716Z 2026-03-07 19:03:28,501 - __main__ - INFO - DISCOVERY COMPLETE: Found 20 total artifacts
-2026-03-07T19:03:28.5017223Z 2026-03-07 19:03:28,501 - __main__ - INFO - ============================================================
-2026-03-07T19:03:28.5019129Z 2026-03-07 19:03:28,501 - __main__ - INFO - 
-2026-03-07T19:03:28.5020510Z 2026-03-07 19:03:28,501 - __main__ - INFO - ============================================================
-2026-03-07T19:03:28.5021821Z 2026-03-07 19:03:28,501 - __main__ - INFO - CHANGE DETECTION
-2026-03-07T19:03:28.5023074Z 2026-03-07 19:03:28,501 - __main__ - INFO - ============================================================
-2026-03-07T19:03:28.5080129Z 2026-03-07 19:03:28,507 - change_detector - INFO - Found 2 changed file(s) since eb02ac79
-2026-03-07T19:03:28.5085590Z 2026-03-07 19:03:28,507 - change_detector - INFO - Change detection: 0 artifact(s) changed
-2026-03-07T19:03:28.5086475Z 2026-03-07 19:03:28,507 - __main__ - INFO - No changes detected since last deployment
-2026-03-07T19:03:28.5087985Z 2026-03-07 19:03:28,508 - __main__ - INFO - Skipping deployment (use --force-all to override)
-2026-03-07T19:03:28.5089384Z 2026-03-07 19:03:28,508 - __main__ - INFO - ============================================================
-2026-03-07T19:03:28.5091347Z 2026-03-07 19:03:28,508 - __main__ - INFO - Starting deployment to dev environment
-2026-03-07T19:03:28.5091830Z 2026-03-07 19:03:28,508 - __main__ - INFO - ============================================================
-2026-03-07T19:03:28.5092268Z 2026-03-07 19:03:28,508 - __main__ - INFO - 
-2026-03-07T19:03:28.5092941Z 2026-03-07 19:03:28,508 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T19:03:28.5093464Z 2026-03-07 19:03:28,508 - __main__ - INFO - SOURCE CONTROL SYNC
-2026-03-07T19:03:28.5093926Z 2026-03-07 19:03:28,508 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T19:03:28.5094409Z 2026-03-07 19:03:28,508 - __main__ - INFO - Checking for pending Git updates in workspace...
-2026-03-07T19:03:28.5094916Z 2026-03-07 19:03:28,508 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T19:03:28.7231168Z 2026-03-07 19:03:28,715 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
-2026-03-07T19:03:28.7233065Z 2026-03-07 19:03:28,715 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T19:03:43.4749460Z 2026-03-07 19:03:43,473 - __main__ - INFO -   Workspace head:   bb893b6e8437...
-2026-03-07T19:03:43.4750423Z 2026-03-07 19:03:43,474 - __main__ - INFO -   Remote commit:    520112a03e56...
-2026-03-07T19:03:43.4751562Z 2026-03-07 19:03:43,474 - __main__ - INFO -   📦 52 update(s) available from Git:
-2026-03-07T19:03:43.4752290Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Aged Debtors - With Filters (report): Added
-2026-03-07T19:03:43.4754389Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Aged Debtors - With Filters (dataset): Added
-2026-03-07T19:03:43.4754854Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - All Assets Summary (report): Added
-2026-03-07T19:03:43.4755303Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - All Assets Summary (dataset): Added
-2026-03-07T19:03:43.4755765Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Asset Alias & Registration Number Check (report): Added
-2026-03-07T19:03:43.4756261Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset): Added
-2026-03-07T19:03:43.4756727Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - BDM Credit Report - Sales Team (report): Added
-2026-03-07T19:03:43.4757211Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset): Added
-2026-03-07T19:03:43.4757659Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Cash Collection (report): Added
-2026-03-07T19:03:43.4758097Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Cash Collection (dataset): Added
-2026-03-07T19:03:43.4758823Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - CloudLending Documents (report): Added
-2026-03-07T19:03:43.4782140Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - CloudLending Documents (dataset): Added
-2026-03-07T19:03:43.4782657Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Contract Management (report): Added
-2026-03-07T19:03:43.4787261Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Contract Management (dataset): Added
-2026-03-07T19:03:43.4787851Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Customer Retention & Growth (report): Added
-2026-03-07T19:03:43.4788544Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Finance Summary (report): Added
-2026-03-07T19:03:43.4793535Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Fleet Overheads by Asset (report): Added
-2026-03-07T19:03:43.4794066Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report): Added
-2026-03-07T19:03:43.4798741Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report): Added
-2026-03-07T19:03:43.4799300Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - MOT Tracker (report): Added
-2026-03-07T19:03:43.4801249Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Maintenance Provision - All Assets (report): Added
-2026-03-07T19:03:43.4801722Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Maintenance Provision (report): Added
-2026-03-07T19:03:43.4802172Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - NewAssetAwaitingDelivery (report): Added
-2026-03-07T19:03:43.4802635Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report): Added
-2026-03-07T19:03:43.4803512Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Origination (report): Added
-2026-03-07T19:03:43.4803930Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - PCN (report): Added
-2026-03-07T19:03:43.4804349Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Procurement Report (report): Added
-2026-03-07T19:03:43.4804798Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - R2C to Odessa Discrepancies (report): Added
-2026-03-07T19:03:43.4805209Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - RV Analysis (report): Added
-2026-03-07T19:03:43.4805650Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Rental utilisation (report): Added
-2026-03-07T19:03:43.4806081Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - TTS Sales (report): Added
-2026-03-07T19:03:43.4806498Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - TTS Stock (report): Added
-2026-03-07T19:03:43.4806919Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Tyre Analysis (report): Added
-2026-03-07T19:03:43.4807339Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - TTS Stock (dataset): Added
-2026-03-07T19:03:43.4807755Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Customer Retention & Growth (dataset): Added
-2026-03-07T19:03:43.4808190Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Finance Summary (dataset): Added
-2026-03-07T19:03:43.4808807Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Fleet Overheads by Asset (dataset): Added
-2026-03-07T19:03:43.4809258Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (dataset): Added
-2026-03-07T19:03:43.4809687Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (dataset): Added
-2026-03-07T19:03:43.4810098Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - MOT Tracker (dataset): Added
-2026-03-07T19:03:43.4810543Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Maintenance Provision - All Assets (dataset): Added
-2026-03-07T19:03:43.4810973Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Maintenance Provision (dataset): Added
-2026-03-07T19:03:43.4811400Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - NewAssetAwaitingDelivery (dataset): Added
-2026-03-07T19:03:43.4811841Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Odessa to Certinia Discrepancies (dataset): Added
-2026-03-07T19:03:43.4812285Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - Origination (dataset): Added
-2026-03-07T19:03:43.4812702Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - PCN (dataset): Added
-2026-03-07T19:03:43.4813128Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - Procurement Report (dataset): Added
-2026-03-07T19:03:43.4813569Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - R2C to Odessa Discrepancies (dataset): Added
-2026-03-07T19:03:43.4813997Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - RV Analysis (dataset): Added
-2026-03-07T19:03:43.4814421Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - Rental utilisation (dataset): Added
-2026-03-07T19:03:43.4814847Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - TTS Sales (dataset): Added
-2026-03-07T19:03:43.4815277Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - Tyre Analysis (dataset): Added
-2026-03-07T19:03:43.4815949Z 2026-03-07 19:03:43,477 - __main__ - INFO -   ⏭ Skipping 52 item(s) from Git sync (deployed via API):
-2026-03-07T19:03:43.4816413Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - Aged Debtors - With Filters (report)
-2026-03-07T19:03:43.4816852Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - Aged Debtors - With Filters (dataset)
-2026-03-07T19:03:43.4817283Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - All Assets Summary (report)
-2026-03-07T19:03:43.4817696Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - All Assets Summary (dataset)
-2026-03-07T19:03:43.4818133Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - Asset Alias & Registration Number Check (report)
-2026-03-07T19:03:43.4818786Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset)
-2026-03-07T19:03:43.4821692Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - BDM Credit Report - Sales Team (report)
-2026-03-07T19:03:43.4822295Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset)
-2026-03-07T19:03:43.4822718Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Cash Collection (report)
-2026-03-07T19:03:43.4823127Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Cash Collection (dataset)
-2026-03-07T19:03:43.4823544Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - CloudLending Documents (report)
-2026-03-07T19:03:43.4824023Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - CloudLending Documents (dataset)
-2026-03-07T19:03:43.4824443Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Contract Management (report)
-2026-03-07T19:03:43.4824861Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Contract Management (dataset)
-2026-03-07T19:03:43.4825297Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Customer Retention & Growth (report)
-2026-03-07T19:03:43.4825724Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Finance Summary (report)
-2026-03-07T19:03:43.4826149Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Fleet Overheads by Asset (report)
-2026-03-07T19:03:43.4826588Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report)
-2026-03-07T19:03:43.4827019Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report)
-2026-03-07T19:03:43.4827432Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - MOT Tracker (report)
-2026-03-07T19:03:43.4827857Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Maintenance Provision - All Assets (report)
-2026-03-07T19:03:43.4828465Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Maintenance Provision (report)
-2026-03-07T19:03:43.4828916Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - NewAssetAwaitingDelivery (report)
-2026-03-07T19:03:43.4829335Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report)
-2026-03-07T19:03:43.4829751Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Origination (report)
-2026-03-07T19:03:43.4830146Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - PCN (report)
-2026-03-07T19:03:43.4830540Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Procurement Report (report)
-2026-03-07T19:03:43.4830978Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - R2C to Odessa Discrepancies (report)
-2026-03-07T19:03:43.4831388Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - RV Analysis (report)
-2026-03-07T19:03:43.4831776Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - Rental utilisation (report)
-2026-03-07T19:03:43.4832155Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - TTS Sales (report)
-2026-03-07T19:03:43.4832513Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - TTS Stock (report)
-2026-03-07T19:03:43.4832901Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - Tyre Analysis (report)
-2026-03-07T19:03:43.4833355Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - TTS Stock (dataset)
-2026-03-07T19:03:43.4833792Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - Customer Retention & Growth (dataset)
-2026-03-07T19:03:43.4834168Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - Finance Summary (dataset)
-2026-03-07T19:03:43.4834557Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - Fleet Overheads by Asset (dataset)
-2026-03-07T19:03:43.4834926Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (dataset)
-2026-03-07T19:03:43.4835337Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (dataset)
-2026-03-07T19:03:43.4835729Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - MOT Tracker (dataset)
-2026-03-07T19:03:43.4836128Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Maintenance Provision - All Assets (dataset)
-2026-03-07T19:03:43.4836533Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Maintenance Provision (dataset)
-2026-03-07T19:03:43.4836927Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - NewAssetAwaitingDelivery (dataset)
-2026-03-07T19:03:43.4837352Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Odessa to Certinia Discrepancies (dataset)
-2026-03-07T19:03:43.4837966Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Origination (dataset)
-2026-03-07T19:03:43.4838540Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - PCN (dataset)
-2026-03-07T19:03:43.4838978Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Procurement Report (dataset)
-2026-03-07T19:03:43.4839392Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - R2C to Odessa Discrepancies (dataset)
-2026-03-07T19:03:43.4839797Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - RV Analysis (dataset)
-2026-03-07T19:03:43.4840182Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Rental utilisation (dataset)
-2026-03-07T19:03:43.4840560Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - TTS Sales (dataset)
-2026-03-07T19:03:43.4840934Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Tyre Analysis (dataset)
-2026-03-07T19:03:43.4841581Z 2026-03-07 19:03:43,480 - __main__ - INFO -   ✓ No paginated reports pending in Git — skipping updateFromGit
-2026-03-07T19:03:43.4842084Z 2026-03-07 19:03:43,480 - __main__ - INFO -     All items will be deployed via API and committed to Git afterward
-2026-03-07T19:03:43.4842613Z 2026-03-07 19:03:43,480 - dependency_resolver - INFO - ✅ All dependencies are valid
-2026-03-07T19:03:43.4842852Z 2026-03-07 19:03:43,480 - dependency_resolver - WARNING - No artifacts to deploy
-2026-03-07T19:03:43.4843061Z 2026-03-07 19:03:43,480 - __main__ - WARNING - No artifacts to deploy
-2026-03-07T19:03:43.4843254Z 2026-03-07 19:03:43,480 - __main__ - INFO - 
-2026-03-07T19:03:43.4843470Z 2026-03-07 19:03:43,480 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T19:03:43.4843710Z 2026-03-07 19:03:43,480 - __main__ - INFO - POST-DEPLOY: LINK WORKSPACE ITEMS TO GIT
-2026-03-07T19:03:43.4843942Z 2026-03-07 19:03:43,480 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T19:03:43.4844195Z 2026-03-07 19:03:43,480 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T19:03:43.6071891Z 2026-03-07 19:03:43,606 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
-2026-03-07T19:03:43.6073694Z 2026-03-07 19:03:43,606 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T19:03:46.8589741Z 2026-03-07 19:03:46,856 - __main__ - INFO -   ⏭ Skipping 52 item(s) from Git sync (deployed via API):
-2026-03-07T19:03:46.8590916Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Aged Debtors - With Filters (report)
-2026-03-07T19:03:46.8591664Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Aged Debtors - With Filters (dataset)
-2026-03-07T19:03:46.8592441Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - All Assets Summary (report)
-2026-03-07T19:03:46.8593248Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - All Assets Summary (dataset)
-2026-03-07T19:03:46.8593929Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Asset Alias & Registration Number Check (report)
-2026-03-07T19:03:46.8594641Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset)
-2026-03-07T19:03:46.8595309Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - BDM Credit Report - Sales Team (report)
-2026-03-07T19:03:46.8595963Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset)
-2026-03-07T19:03:46.8596616Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Cash Collection (report)
-2026-03-07T19:03:46.8597239Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Cash Collection (dataset)
-2026-03-07T19:03:46.8597858Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - CloudLending Documents (report)
-2026-03-07T19:03:46.8598738Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - CloudLending Documents (dataset)
-2026-03-07T19:03:46.8599448Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Contract Management (report)
-2026-03-07T19:03:46.8600098Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Contract Management (dataset)
-2026-03-07T19:03:46.8601202Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Customer Retention & Growth (report)
-2026-03-07T19:03:46.8601838Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Finance Summary (report)
-2026-03-07T19:03:46.8602487Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Fleet Overheads by Asset (report)
-2026-03-07T19:03:46.8603254Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report)
-2026-03-07T19:03:46.8603672Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report)
-2026-03-07T19:03:46.8604063Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - MOT Tracker (report)
-2026-03-07T19:03:46.8604464Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Maintenance Provision - All Assets (report)
-2026-03-07T19:03:46.8604881Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Maintenance Provision (report)
-2026-03-07T19:03:46.8605281Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - NewAssetAwaitingDelivery (report)
-2026-03-07T19:03:46.8605703Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report)
-2026-03-07T19:03:46.8606112Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Origination (report)
-2026-03-07T19:03:46.8606479Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - PCN (report)
-2026-03-07T19:03:46.8606861Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Procurement Report (report)
-2026-03-07T19:03:46.8607257Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - R2C to Odessa Discrepancies (report)
-2026-03-07T19:03:46.8607643Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - RV Analysis (report)
-2026-03-07T19:03:46.8608021Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Rental utilisation (report)
-2026-03-07T19:03:46.8608560Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - TTS Sales (report)
-2026-03-07T19:03:46.8608938Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - TTS Stock (report)
-2026-03-07T19:03:46.8609341Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Tyre Analysis (report)
-2026-03-07T19:03:46.8609775Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - TTS Stock (dataset)
-2026-03-07T19:03:46.8610208Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Customer Retention & Growth (dataset)
-2026-03-07T19:03:46.8610651Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Finance Summary (dataset)
-2026-03-07T19:03:46.8611136Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Fleet Overheads by Asset (dataset)
-2026-03-07T19:03:46.8611581Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (dataset)
-2026-03-07T19:03:46.8612019Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (dataset)
-2026-03-07T19:03:46.8612435Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - MOT Tracker (dataset)
-2026-03-07T19:03:46.8612859Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Maintenance Provision - All Assets (dataset)
-2026-03-07T19:03:46.8613299Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Maintenance Provision (dataset)
-2026-03-07T19:03:46.8613741Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - NewAssetAwaitingDelivery (dataset)
-2026-03-07T19:03:46.8614186Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Odessa to Certinia Discrepancies (dataset)
-2026-03-07T19:03:46.8614615Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Origination (dataset)
-2026-03-07T19:03:46.8615010Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - PCN (dataset)
-2026-03-07T19:03:46.8615412Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Procurement Report (dataset)
-2026-03-07T19:03:46.8615853Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - R2C to Odessa Discrepancies (dataset)
-2026-03-07T19:03:46.8616276Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - RV Analysis (dataset)
-2026-03-07T19:03:46.8616685Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Rental utilisation (dataset)
-2026-03-07T19:03:46.8617087Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - TTS Sales (dataset)
-2026-03-07T19:03:46.8617490Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Tyre Analysis (dataset)
-2026-03-07T19:03:46.8618602Z 2026-03-07 19:03:46,859 - __main__ - INFO -   ✓ No paginated reports pending — skipping updateFromGit
-2026-03-07T19:03:46.8619119Z 2026-03-07 19:03:46,859 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T19:03:50.4269564Z 2026-03-07 19:03:50,426 - __main__ - INFO -   ✓ Source Control sync complete — no conflicts
-2026-03-07T19:03:50.4604452Z 
-2026-03-07T19:03:50.4605604Z ✓ Dev deployment completed successfully
-2026-03-07T19:03:50.4623049Z 
-2026-03-07T19:03:50.4695017Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-07T19:19:31.6254772Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-07T19:19:31.6263310Z ==============================================================================
+2026-03-07T19:19:31.6263498Z Task         : Command line
+2026-03-07T19:19:31.6263617Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-03-07T19:19:31.6263806Z Version      : 2.268.0
+2026-03-07T19:19:31.6263921Z Author       : Microsoft Corporation
+2026-03-07T19:19:31.6264107Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-03-07T19:19:31.6264597Z ==============================================================================
+2026-03-07T19:19:31.7603783Z Generating script.
+2026-03-07T19:19:31.7610596Z ========================== Starting Command Output ===========================
+2026-03-07T19:19:31.7627507Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/b4260eb4-da3a-42ea-82c2-4215f2aa2ce9.sh
+2026-03-07T19:19:31.7693148Z ========================================
+2026-03-07T19:19:31.7694065Z DEBUG: Verifying Repository Checkout
+2026-03-07T19:19:31.7695105Z ========================================
+2026-03-07T19:19:31.7697017Z Current directory: /home/vsts/work/1/s
+2026-03-07T19:19:31.7697541Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-03-07T19:19:31.7699331Z 
+2026-03-07T19:19:31.7700367Z Contents of Build.SourcesDirectory:
+2026-03-07T19:19:31.7714812Z total 40
+2026-03-07T19:19:31.7716519Z drwxr-xr-x 8 vsts vsts 4096 Mar  7 19:18 .
+2026-03-07T19:19:31.7717177Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 19:18 ..
+2026-03-07T19:19:31.7717781Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:18 .deployment_tracking
+2026-03-07T19:19:31.7731537Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 19:18 .git
+2026-03-07T19:19:31.7732416Z -rw-r--r-- 1 vsts vsts   44 Mar  7 19:18 .gitignore
+2026-03-07T19:19:31.7733748Z -rw-r--r-- 1 vsts vsts  985 Mar  7 19:18 README.md
+2026-03-07T19:19:31.7734461Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:18 azure-pipelines
+2026-03-07T19:19:31.7736073Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:18 config
+2026-03-07T19:19:31.7736652Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:18 scripts
+2026-03-07T19:19:31.7737153Z drwxr-xr-x 6 vsts vsts 4096 Mar  7 19:18 wsartifacts
+2026-03-07T19:19:31.7737709Z 
+2026-03-07T19:19:31.7738237Z Checking for required folders:
+2026-03-07T19:19:31.7738918Z ✓ scripts/ exists
+2026-03-07T19:19:31.7739554Z ✓ config/ exists
+2026-03-07T19:19:31.7740275Z ✓ wsartifacts/ exists
+2026-03-07T19:19:31.7740937Z ========================================
+2026-03-07T19:19:31.7741914Z ========================================
+2026-03-07T19:19:31.7742505Z Deploying to Dev Environment
+2026-03-07T19:19:31.7743132Z ========================================
+2026-03-07T19:19:31.7743600Z Features:
+2026-03-07T19:19:31.7744577Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-03-07T19:19:31.7745852Z   📊 Dependency-aware deployment ordering
+2026-03-07T19:19:31.7746871Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-03-07T19:19:31.7747481Z 
+2026-03-07T19:19:31.7752404Z Deployment steps:
+2026-03-07T19:19:31.7752694Z   1. Create artifacts from config file
+2026-03-07T19:19:31.7752990Z   2. Detect changed artifacts using Git diff
+2026-03-07T19:19:31.7753300Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-03-07T19:19:31.7753617Z ========================================
+2026-03-07T19:19:32.4430719Z 2026-03-07 19:19:32,442 - __main__ - INFO - Initializing deployment to dev environment
+2026-03-07T19:19:32.4433663Z 2026-03-07 19:19:32,442 - config_manager - INFO - Loading configuration from: config/dev.json
+2026-03-07T19:19:32.4434759Z 2026-03-07 19:19:32,442 - __main__ - INFO - Using environment-specific service principal for dev
+2026-03-07T19:19:32.4435640Z 2026-03-07 19:19:32,442 - __main__ - INFO - Using artifacts root folder: wsartifacts
+2026-03-07T19:19:32.4436314Z 2026-03-07 19:19:32,442 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
+2026-03-07T19:19:32.8105243Z 2026-03-07 19:19:32,810 - fabric_auth - INFO - Authentication validation successful
+2026-03-07T19:19:32.8117401Z 2026-03-07 19:19:32,811 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
+2026-03-07T19:19:32.8123012Z 2026-03-07 19:19:32,811 - __main__ - INFO - Running in artifact creation mode
+2026-03-07T19:19:32.8123939Z 2026-03-07 19:19:32,811 - __main__ - INFO - ============================================================
+2026-03-07T19:19:32.8127651Z 2026-03-07 19:19:32,811 - __main__ - INFO - Creating artifacts from configuration for dev
+2026-03-07T19:19:32.8128527Z 2026-03-07 19:19:32,811 - __main__ - INFO - ============================================================
+2026-03-07T19:19:32.8131417Z 2026-03-07 19:19:32,811 - __main__ - INFO - No artifacts configured for creation
+2026-03-07T19:19:32.8132163Z 2026-03-07 19:19:32,811 - __main__ - INFO - Artifact creation completed successfully
+2026-03-07T19:19:32.8132829Z 2026-03-07 19:19:32,811 - __main__ - INFO - ============================================================
+2026-03-07T19:19:32.8133508Z 2026-03-07 19:19:32,811 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
+2026-03-07T19:19:32.8137656Z 2026-03-07 19:19:32,811 - __main__ - INFO - ============================================================
+2026-03-07T19:19:32.8138679Z 2026-03-07 19:19:32,811 - __main__ - INFO - Discovering artifacts from file system...
+2026-03-07T19:19:32.8139478Z 2026-03-07 19:19:32,812 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
+2026-03-07T19:19:32.8140187Z 2026-03-07 19:19:32,812 - __main__ - INFO - Discovered 1 Variable Library: ReportingWSVariables
+2026-03-07T19:19:32.8152390Z 2026-03-07 19:19:32,814 - __main__ - INFO - Discovered 18 semantic model(s): Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), TTS Sales (Fabric Git), Tyre Analysis (Fabric Git)
+2026-03-07T19:19:32.8153804Z 2026-03-07 19:19:32,814 - __main__ - INFO - ============================================================
+2026-03-07T19:19:32.8155493Z 2026-03-07 19:19:32,814 - __main__ - INFO - DISCOVERY COMPLETE: Found 20 total artifacts
+2026-03-07T19:19:32.8157342Z 2026-03-07 19:19:32,815 - __main__ - INFO - ============================================================
+2026-03-07T19:19:32.8157970Z 2026-03-07 19:19:32,815 - __main__ - INFO - 
+2026-03-07T19:19:32.8158602Z 2026-03-07 19:19:32,815 - __main__ - INFO - ============================================================
+2026-03-07T19:19:32.8167059Z 2026-03-07 19:19:32,815 - __main__ - INFO - CHANGE DETECTION
+2026-03-07T19:19:32.8167492Z 2026-03-07 19:19:32,815 - __main__ - INFO - ============================================================
+2026-03-07T19:19:32.8233900Z 2026-03-07 19:19:32,823 - change_detector - INFO - Found 2 changed file(s) since eb02ac79
+2026-03-07T19:19:32.8236405Z 2026-03-07 19:19:32,823 - change_detector - INFO - Change detection: 0 artifact(s) changed
+2026-03-07T19:19:32.8237039Z 2026-03-07 19:19:32,823 - fabric_client - INFO - Listing items in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:19:33.0475809Z 2026-03-07 19:19:33,047 - __main__ - INFO - 🔍 Found 18 artifact(s) missing from workspace — including in deployment:
+2026-03-07T19:19:33.0479460Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + Customer Retention & Growth (SemanticModel)
+2026-03-07T19:19:33.0479941Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + Finance Summary (SemanticModel)
+2026-03-07T19:19:33.0480353Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + Fleet Overheads by Asset (SemanticModel)
+2026-03-07T19:19:33.0481124Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + FleetSpendReporting 1 of 2 (SemanticModel)
+2026-03-07T19:19:33.0481719Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + FleetSpendReporting 2 of 2 (SemanticModel)
+2026-03-07T19:19:33.0482139Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + MOT Tracker (SemanticModel)
+2026-03-07T19:19:33.0482556Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + Maintenance Provision (SemanticModel)
+2026-03-07T19:19:33.0482966Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + Maintenance Provision - All Assets (SemanticModel)
+2026-03-07T19:19:33.0483369Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + NewAssetAwaitingDelivery (SemanticModel)
+2026-03-07T19:19:33.0483786Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + Odessa to Certinia Discrepancies (SemanticModel)
+2026-03-07T19:19:33.0484168Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + Origination (SemanticModel)
+2026-03-07T19:19:33.0484752Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + PCN (SemanticModel)
+2026-03-07T19:19:33.0485129Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + Procurement Report (SemanticModel)
+2026-03-07T19:19:33.0485514Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + R2C to Odessa Discrepancies (SemanticModel)
+2026-03-07T19:19:33.0485892Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + RV Analysis (SemanticModel)
+2026-03-07T19:19:33.0486283Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + Rental utilisation (SemanticModel)
+2026-03-07T19:19:33.0488528Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + TTS Sales (SemanticModel)
+2026-03-07T19:19:33.0489270Z 2026-03-07 19:19:33,047 - __main__ - INFO -     + Tyre Analysis (SemanticModel)
+2026-03-07T19:19:33.0489816Z 2026-03-07 19:19:33,047 - __main__ - INFO - Changed artifacts: 18
+2026-03-07T19:19:33.0490493Z 2026-03-07 19:19:33,047 - __main__ - INFO -   SemanticModel: Customer Retention & Growth, Finance Summary, Fleet Overheads by Asset, FleetSpendReporting 1 of 2, FleetSpendReporting 2 of 2, MOT Tracker, Maintenance Provision, Maintenance Provision - All Assets, NewAssetAwaitingDelivery, Odessa to Certinia Discrepancies, Origination, PCN, Procurement Report, R2C to Odessa Discrepancies, RV Analysis, Rental utilisation, TTS Sales, Tyre Analysis
+2026-03-07T19:19:33.0491205Z 2026-03-07 19:19:33,047 - __main__ - INFO - Skipped (unchanged): 2
+2026-03-07T19:19:33.0491593Z 2026-03-07 19:19:33,048 - __main__ - INFO - ============================================================
+2026-03-07T19:19:33.0492019Z 2026-03-07 19:19:33,048 - __main__ - INFO - ============================================================
+2026-03-07T19:19:33.0492436Z 2026-03-07 19:19:33,048 - __main__ - INFO - Starting deployment to dev environment
+2026-03-07T19:19:33.0492838Z 2026-03-07 19:19:33,048 - __main__ - INFO - ============================================================
+2026-03-07T19:19:33.0493201Z 2026-03-07 19:19:33,048 - __main__ - INFO - 
+2026-03-07T19:19:33.0493568Z 2026-03-07 19:19:33,048 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T19:19:33.0493975Z 2026-03-07 19:19:33,048 - __main__ - INFO - SOURCE CONTROL SYNC
+2026-03-07T19:19:33.0494590Z 2026-03-07 19:19:33,048 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T19:19:33.0495018Z 2026-03-07 19:19:33,048 - __main__ - INFO - Checking for pending Git updates in workspace...
+2026-03-07T19:19:33.0495472Z 2026-03-07 19:19:33,048 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:19:33.3003257Z 2026-03-07 19:19:33,299 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
+2026-03-07T19:19:33.3006738Z 2026-03-07 19:19:33,299 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:19:48.1762633Z 2026-03-07 19:19:48,175 - __main__ - INFO -   Workspace head:   bb893b6e8437...
+2026-03-07T19:19:48.1765462Z 2026-03-07 19:19:48,176 - __main__ - INFO -   Remote commit:    888d4486a091...
+2026-03-07T19:19:48.1767120Z 2026-03-07 19:19:48,176 - __main__ - INFO -   📦 52 update(s) available from Git:
+2026-03-07T19:19:48.1767870Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Aged Debtors - With Filters (report): Added
+2026-03-07T19:19:48.1768605Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Aged Debtors - With Filters (dataset): Added
+2026-03-07T19:19:48.1770329Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - All Assets Summary (report): Added
+2026-03-07T19:19:48.1771027Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - All Assets Summary (dataset): Added
+2026-03-07T19:19:48.1771688Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Asset Alias & Registration Number Check (report): Added
+2026-03-07T19:19:48.1772567Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset): Added
+2026-03-07T19:19:48.1776032Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - BDM Credit Report - Sales Team (report): Added
+2026-03-07T19:19:48.1777100Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset): Added
+2026-03-07T19:19:48.1777920Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Cash Collection (report): Added
+2026-03-07T19:19:48.1778599Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Cash Collection (dataset): Added
+2026-03-07T19:19:48.1779407Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - CloudLending Documents (report): Added
+2026-03-07T19:19:48.1779953Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - CloudLending Documents (dataset): Added
+2026-03-07T19:19:48.1780903Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Contract Management (report): Added
+2026-03-07T19:19:48.1781290Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Contract Management (dataset): Added
+2026-03-07T19:19:48.1781712Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Customer Retention & Growth (report): Added
+2026-03-07T19:19:48.1782104Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Finance Summary (report): Added
+2026-03-07T19:19:48.1782510Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Fleet Overheads by Asset (report): Added
+2026-03-07T19:19:48.1782925Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report): Added
+2026-03-07T19:19:48.1783342Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report): Added
+2026-03-07T19:19:48.1783735Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - MOT Tracker (report): Added
+2026-03-07T19:19:48.1784127Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Maintenance Provision - All Assets (report): Added
+2026-03-07T19:19:48.1784754Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Maintenance Provision (report): Added
+2026-03-07T19:19:48.1785144Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - NewAssetAwaitingDelivery (report): Added
+2026-03-07T19:19:48.1785544Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report): Added
+2026-03-07T19:19:48.1785937Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Origination (report): Added
+2026-03-07T19:19:48.1786292Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - PCN (report): Added
+2026-03-07T19:19:48.1786662Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - Procurement Report (report): Added
+2026-03-07T19:19:48.1787046Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - R2C to Odessa Discrepancies (report): Added
+2026-03-07T19:19:48.1787450Z 2026-03-07 19:19:48,176 - __main__ - INFO -     - RV Analysis (report): Added
+2026-03-07T19:19:48.1787829Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Rental utilisation (report): Added
+2026-03-07T19:19:48.1788195Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - TTS Sales (report): Added
+2026-03-07T19:19:48.1788558Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - TTS Stock (report): Added
+2026-03-07T19:19:48.1788917Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Tyre Analysis (report): Added
+2026-03-07T19:19:48.1789275Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - TTS Stock (dataset): Added
+2026-03-07T19:19:48.1789965Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Customer Retention & Growth (dataset): Added
+2026-03-07T19:19:48.1790351Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Finance Summary (dataset): Added
+2026-03-07T19:19:48.1790729Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Fleet Overheads by Asset (dataset): Added
+2026-03-07T19:19:48.1791125Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (dataset): Added
+2026-03-07T19:19:48.1791515Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (dataset): Added
+2026-03-07T19:19:48.1791890Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - MOT Tracker (dataset): Added
+2026-03-07T19:19:48.1792273Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Maintenance Provision - All Assets (dataset): Added
+2026-03-07T19:19:48.1792677Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Maintenance Provision (dataset): Added
+2026-03-07T19:19:48.1793103Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - NewAssetAwaitingDelivery (dataset): Added
+2026-03-07T19:19:48.1793503Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Odessa to Certinia Discrepancies (dataset): Added
+2026-03-07T19:19:48.1793890Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Origination (dataset): Added
+2026-03-07T19:19:48.1794416Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - PCN (dataset): Added
+2026-03-07T19:19:48.1794822Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Procurement Report (dataset): Added
+2026-03-07T19:19:48.1795242Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - R2C to Odessa Discrepancies (dataset): Added
+2026-03-07T19:19:48.1795648Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - RV Analysis (dataset): Added
+2026-03-07T19:19:48.1796049Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Rental utilisation (dataset): Added
+2026-03-07T19:19:48.1796444Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - TTS Sales (dataset): Added
+2026-03-07T19:19:48.1796856Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Tyre Analysis (dataset): Added
+2026-03-07T19:19:48.1797533Z 2026-03-07 19:19:48,177 - __main__ - INFO -   ⏭ Skipping 52 item(s) from Git sync (deployed via API):
+2026-03-07T19:19:48.1797973Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Aged Debtors - With Filters (report)
+2026-03-07T19:19:48.1798389Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Aged Debtors - With Filters (dataset)
+2026-03-07T19:19:48.1798793Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - All Assets Summary (report)
+2026-03-07T19:19:48.1799183Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - All Assets Summary (dataset)
+2026-03-07T19:19:48.1799605Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Asset Alias & Registration Number Check (report)
+2026-03-07T19:19:48.1811433Z 2026-03-07 19:19:48,177 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset)
+2026-03-07T19:19:48.1816168Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - BDM Credit Report - Sales Team (report)
+2026-03-07T19:19:48.1816590Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset)
+2026-03-07T19:19:48.1816988Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Cash Collection (report)
+2026-03-07T19:19:48.1817369Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Cash Collection (dataset)
+2026-03-07T19:19:48.1817766Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - CloudLending Documents (report)
+2026-03-07T19:19:48.1818167Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - CloudLending Documents (dataset)
+2026-03-07T19:19:48.1818563Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Contract Management (report)
+2026-03-07T19:19:48.1818968Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Contract Management (dataset)
+2026-03-07T19:19:48.1819371Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Customer Retention & Growth (report)
+2026-03-07T19:19:48.1819773Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Finance Summary (report)
+2026-03-07T19:19:48.1820330Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Fleet Overheads by Asset (report)
+2026-03-07T19:19:48.1820863Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report)
+2026-03-07T19:19:48.1821284Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report)
+2026-03-07T19:19:48.1821678Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - MOT Tracker (report)
+2026-03-07T19:19:48.1822081Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Maintenance Provision - All Assets (report)
+2026-03-07T19:19:48.1822490Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Maintenance Provision (report)
+2026-03-07T19:19:48.1822887Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - NewAssetAwaitingDelivery (report)
+2026-03-07T19:19:48.1823379Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report)
+2026-03-07T19:19:48.1823760Z 2026-03-07 19:19:48,179 - __main__ - INFO -     - Origination (report)
+2026-03-07T19:19:48.1824100Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - PCN (report)
+2026-03-07T19:19:48.1824665Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Procurement Report (report)
+2026-03-07T19:19:48.1825043Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - R2C to Odessa Discrepancies (report)
+2026-03-07T19:19:48.1825417Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - RV Analysis (report)
+2026-03-07T19:19:48.1825789Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Rental utilisation (report)
+2026-03-07T19:19:48.1826173Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - TTS Sales (report)
+2026-03-07T19:19:48.1826549Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - TTS Stock (report)
+2026-03-07T19:19:48.1826929Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Tyre Analysis (report)
+2026-03-07T19:19:48.1827277Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - TTS Stock (dataset)
+2026-03-07T19:19:48.1827639Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Customer Retention & Growth (dataset)
+2026-03-07T19:19:48.1828026Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Finance Summary (dataset)
+2026-03-07T19:19:48.1828413Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Fleet Overheads by Asset (dataset)
+2026-03-07T19:19:48.1828802Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (dataset)
+2026-03-07T19:19:48.1829204Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (dataset)
+2026-03-07T19:19:48.1829595Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - MOT Tracker (dataset)
+2026-03-07T19:19:48.1830001Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Maintenance Provision - All Assets (dataset)
+2026-03-07T19:19:48.1830410Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Maintenance Provision (dataset)
+2026-03-07T19:19:48.1830814Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - NewAssetAwaitingDelivery (dataset)
+2026-03-07T19:19:48.1831234Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Odessa to Certinia Discrepancies (dataset)
+2026-03-07T19:19:48.1831628Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Origination (dataset)
+2026-03-07T19:19:48.1832010Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - PCN (dataset)
+2026-03-07T19:19:48.1832377Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Procurement Report (dataset)
+2026-03-07T19:19:48.1832770Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - R2C to Odessa Discrepancies (dataset)
+2026-03-07T19:19:48.1833157Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - RV Analysis (dataset)
+2026-03-07T19:19:48.1833534Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Rental utilisation (dataset)
+2026-03-07T19:19:48.1833915Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - TTS Sales (dataset)
+2026-03-07T19:19:48.1834567Z 2026-03-07 19:19:48,180 - __main__ - INFO -     - Tyre Analysis (dataset)
+2026-03-07T19:19:48.1835203Z 2026-03-07 19:19:48,180 - __main__ - INFO -   ✓ No paginated reports pending in Git — skipping updateFromGit
+2026-03-07T19:19:48.1835639Z 2026-03-07 19:19:48,181 - __main__ - INFO -     All items will be deployed via API and committed to Git afterward
+2026-03-07T19:19:48.1841402Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO - ✅ All dependencies are valid
+2026-03-07T19:19:48.1841852Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO - Deployment order determined:
+2026-03-07T19:19:48.1842296Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO -   1. NewAssetAwaitingDelivery (SemanticModel)
+2026-03-07T19:19:48.1842735Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO -   2. Origination (SemanticModel)
+2026-03-07T19:19:48.1843156Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO -   3. RV Analysis (SemanticModel)
+2026-03-07T19:19:48.1843603Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO -   4. Customer Retention & Growth (SemanticModel)
+2026-03-07T19:19:48.1844055Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO -   5. Odessa to Certinia Discrepancies (SemanticModel)
+2026-03-07T19:19:48.1844734Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO -   6. R2C to Odessa Discrepancies (SemanticModel)
+2026-03-07T19:19:48.1845197Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO -   7. Maintenance Provision (SemanticModel)
+2026-03-07T19:19:48.1845578Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO -   8. PCN (SemanticModel)
+2026-03-07T19:19:48.1845959Z 2026-03-07 19:19:48,181 - dependency_resolver - INFO -   9. TTS Sales (SemanticModel)
+2026-03-07T19:19:48.1846349Z 2026-03-07 19:19:48,182 - dependency_resolver - INFO -   10. FleetSpendReporting 2 of 2 (SemanticModel)
+2026-03-07T19:19:48.1846743Z 2026-03-07 19:19:48,182 - dependency_resolver - INFO -   11. MOT Tracker (SemanticModel)
+2026-03-07T19:19:48.1847141Z 2026-03-07 19:19:48,182 - dependency_resolver - INFO -   12. Finance Summary (SemanticModel)
+2026-03-07T19:19:48.1847576Z 2026-03-07 19:19:48,182 - dependency_resolver - INFO -   13. Procurement Report (SemanticModel)
+2026-03-07T19:19:48.1851257Z 2026-03-07 19:19:48,182 - dependency_resolver - INFO -   14. Tyre Analysis (SemanticModel)
+2026-03-07T19:19:48.1851729Z 2026-03-07 19:19:48,182 - dependency_resolver - INFO -   15. Fleet Overheads by Asset (SemanticModel)
+2026-03-07T19:19:48.1852188Z 2026-03-07 19:19:48,182 - dependency_resolver - INFO -   16. FleetSpendReporting 1 of 2 (SemanticModel)
+2026-03-07T19:19:48.1854729Z 2026-03-07 19:19:48,182 - dependency_resolver - INFO -   17. Rental utilisation (SemanticModel)
+2026-03-07T19:19:48.1855396Z 2026-03-07 19:19:48,182 - dependency_resolver - INFO -   18. Maintenance Provision - All Assets (SemanticModel)
+2026-03-07T19:19:48.1855778Z 2026-03-07 19:19:48,182 - __main__ - INFO - 
+2026-03-07T19:19:48.1856124Z 2026-03-07 19:19:48,182 - __main__ - INFO - --- Deploying 18 artifact(s) ---
+2026-03-07T19:19:48.1856470Z 2026-03-07 19:19:48,182 - __main__ - INFO - 
+2026-03-07T19:19:48.1856839Z 2026-03-07 19:19:48,182 - __main__ - INFO - Deploying: NewAssetAwaitingDelivery (SemanticModel)
+2026-03-07T19:19:48.1857284Z 2026-03-07 19:19:48,182 - __main__ - INFO -   Reading semantic model from Fabric Git format: NewAssetAwaitingDelivery.SemanticModel
+2026-03-07T19:19:48.1858136Z 2026-03-07 19:19:48,184 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:19:48.1858947Z 2026-03-07 19:19:48,185 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:19:48.1888827Z 2026-03-07 19:19:48,188 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:19:48.3322270Z 2026-03-07 19:19:48,331 - fabric_client - INFO - Listing folders in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:19:48.4717969Z 2026-03-07 19:19:48,471 - fabric_client - INFO - Creating semantic model: NewAssetAwaitingDelivery
+2026-03-07T19:19:48.7417750Z 2026-03-07 19:19:48,741 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:20:08.8655965Z 2026-03-07 19:20:08,864 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:20:08.8659222Z 2026-03-07 19:20:08,865 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:20:09.0030770Z 2026-03-07 19:20:09,001 - __main__ - INFO -   ✓ Created semantic model 'NewAssetAwaitingDelivery' in 'Semanticmodels' folder (ID: d4c5cabd-de30-41c9-8ed9-6b9604ff9265)
+2026-03-07T19:20:09.0031413Z 2026-03-07 19:20:09,002 - __main__ - INFO -   Looking up Fabric connection: 'dev-tmp02-reporting-lakehouse-connection'
+2026-03-07T19:20:09.0031888Z 2026-03-07 19:20:09,002 - fabric_client - INFO - Listing connections via Fabric Connections API
+2026-03-07T19:20:09.1280937Z 2026-03-07 19:20:09,127 - fabric_client - INFO -   Retrieved 4 connections total
+2026-03-07T19:20:09.1281822Z 2026-03-07 19:20:09,127 - __main__ - INFO -   ✓ Found connection: 'dev-tmp02-reporting-lakehouse-connection'
+2026-03-07T19:20:09.1282514Z 2026-03-07 19:20:09,127 - __main__ - INFO -   Binding 'NewAssetAwaitingDelivery' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:20:09.1283203Z 2026-03-07 19:20:09,127 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:20:09.1283814Z 2026-03-07 19:20:09,127 - fabric_client - INFO - Taking over ownership of semantic model d4c5cabd-de30-41c9-8ed9-6b9604ff9265
+2026-03-07T19:20:09.2732451Z 2026-03-07 19:20:09,272 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model d4c5cabd-de30-41c9-8ed9-6b9604ff9265
+2026-03-07T19:20:09.2748425Z 2026-03-07 19:20:09,273 - fabric_client - INFO -   Listing connections for item d4c5cabd-de30-41c9-8ed9-6b9604ff9265
+2026-03-07T19:20:09.4877466Z 2026-03-07 19:20:09,487 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:20:09.7673542Z 2026-03-07 19:20:09,766 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:20:09.7674464Z 2026-03-07 19:20:09,766 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:20:09.7675262Z 2026-03-07 19:20:09,766 - __main__ - INFO -   ✓ Bound 'NewAssetAwaitingDelivery' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:20:09.7675994Z 2026-03-07 19:20:09,766 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'NewAssetAwaitingDelivery'
+2026-03-07T19:20:09.7676630Z 2026-03-07 19:20:09,766 - __main__ - INFO - ✅ Successfully deployed: NewAssetAwaitingDelivery
+2026-03-07T19:20:09.7677039Z 2026-03-07 19:20:09,766 - __main__ - INFO - 
+2026-03-07T19:20:09.7677404Z 2026-03-07 19:20:09,766 - __main__ - INFO - Deploying: Origination (SemanticModel)
+2026-03-07T19:20:09.7679957Z 2026-03-07 19:20:09,767 - __main__ - INFO -   Reading semantic model from Fabric Git format: Origination.SemanticModel
+2026-03-07T19:20:09.7689266Z 2026-03-07 19:20:09,768 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:20:09.7691986Z 2026-03-07 19:20:09,768 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:20:09.7694981Z 2026-03-07 19:20:09,769 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:20:09.7716374Z 2026-03-07 19:20:09,771 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:20:09.9782709Z 2026-03-07 19:20:09,977 - fabric_client - INFO - Creating semantic model: Origination
+2026-03-07T19:20:10.2321641Z 2026-03-07 19:20:10,231 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:20:30.3884772Z 2026-03-07 19:20:30,387 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:20:30.3885679Z 2026-03-07 19:20:30,388 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:20:30.5310591Z 2026-03-07 19:20:30,530 - __main__ - INFO -   ✓ Created semantic model 'Origination' in 'Semanticmodels' folder (ID: f04e5f33-a2e9-4e44-93ed-a69cce95528f)
+2026-03-07T19:20:30.5311197Z 2026-03-07 19:20:30,530 - __main__ - INFO -   Binding 'Origination' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:20:30.5311810Z 2026-03-07 19:20:30,530 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:20:30.5312301Z 2026-03-07 19:20:30,530 - fabric_client - INFO - Taking over ownership of semantic model f04e5f33-a2e9-4e44-93ed-a69cce95528f
+2026-03-07T19:20:30.6700282Z 2026-03-07 19:20:30,669 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model f04e5f33-a2e9-4e44-93ed-a69cce95528f
+2026-03-07T19:20:30.6708747Z 2026-03-07 19:20:30,670 - fabric_client - INFO -   Listing connections for item f04e5f33-a2e9-4e44-93ed-a69cce95528f
+2026-03-07T19:20:30.8129949Z 2026-03-07 19:20:30,812 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:20:31.1080666Z 2026-03-07 19:20:31,107 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:20:31.1083144Z 2026-03-07 19:20:31,107 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:20:31.1084473Z 2026-03-07 19:20:31,107 - __main__ - INFO -   ✓ Bound 'Origination' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:20:31.1085602Z 2026-03-07 19:20:31,107 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Origination'
+2026-03-07T19:20:31.1087596Z 2026-03-07 19:20:31,108 - __main__ - INFO - ✅ Successfully deployed: Origination
+2026-03-07T19:20:31.1094718Z 2026-03-07 19:20:31,108 - __main__ - INFO - 
+2026-03-07T19:20:31.1095119Z 2026-03-07 19:20:31,108 - __main__ - INFO - Deploying: RV Analysis (SemanticModel)
+2026-03-07T19:20:31.1095563Z 2026-03-07 19:20:31,108 - __main__ - INFO -   Reading semantic model from Fabric Git format: RV Analysis.SemanticModel
+2026-03-07T19:20:31.1107343Z 2026-03-07 19:20:31,110 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:20:31.1114097Z 2026-03-07 19:20:31,111 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:20:31.1213557Z 2026-03-07 19:20:31,121 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:20:31.2898356Z 2026-03-07 19:20:31,289 - fabric_client - INFO - Creating semantic model: RV Analysis
+2026-03-07T19:20:31.5830825Z 2026-03-07 19:20:31,582 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:20:51.7129671Z 2026-03-07 19:20:51,712 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:20:51.7132722Z 2026-03-07 19:20:51,712 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:20:51.8996199Z 2026-03-07 19:20:51,899 - __main__ - INFO -   ✓ Created semantic model 'RV Analysis' in 'Semanticmodels' folder (ID: 72c4bf8d-bf2c-4d95-8c79-21ac72d48803)
+2026-03-07T19:20:51.8998663Z 2026-03-07 19:20:51,899 - __main__ - INFO -   Binding 'RV Analysis' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:20:51.9000191Z 2026-03-07 19:20:51,899 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:20:51.9000960Z 2026-03-07 19:20:51,899 - fabric_client - INFO - Taking over ownership of semantic model 72c4bf8d-bf2c-4d95-8c79-21ac72d48803
+2026-03-07T19:20:52.0401601Z 2026-03-07 19:20:52,039 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 72c4bf8d-bf2c-4d95-8c79-21ac72d48803
+2026-03-07T19:20:52.0410006Z 2026-03-07 19:20:52,040 - fabric_client - INFO -   Listing connections for item 72c4bf8d-bf2c-4d95-8c79-21ac72d48803
+2026-03-07T19:20:52.2225867Z 2026-03-07 19:20:52,221 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:20:52.5435180Z 2026-03-07 19:20:52,542 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:20:52.5439367Z 2026-03-07 19:20:52,543 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:20:52.5440092Z 2026-03-07 19:20:52,543 - __main__ - INFO -   ✓ Bound 'RV Analysis' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:20:52.5440740Z 2026-03-07 19:20:52,543 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'RV Analysis'
+2026-03-07T19:20:52.5441332Z 2026-03-07 19:20:52,543 - __main__ - INFO - ✅ Successfully deployed: RV Analysis
+2026-03-07T19:20:52.5441721Z 2026-03-07 19:20:52,543 - __main__ - INFO - 
+2026-03-07T19:20:52.5442114Z 2026-03-07 19:20:52,543 - __main__ - INFO - Deploying: Customer Retention & Growth (SemanticModel)
+2026-03-07T19:20:52.5455993Z 2026-03-07 19:20:52,544 - __main__ - INFO -   Reading semantic model from Fabric Git format: Customer Retention & Growth.SemanticModel
+2026-03-07T19:20:52.5464835Z 2026-03-07 19:20:52,546 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:20:52.5473226Z 2026-03-07 19:20:52,546 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:20:52.5494879Z 2026-03-07 19:20:52,549 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:20:52.7874001Z 2026-03-07 19:20:52,786 - fabric_client - INFO - Creating semantic model: Customer Retention & Growth
+2026-03-07T19:20:53.0637086Z 2026-03-07 19:20:53,063 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:21:13.2759148Z 2026-03-07 19:21:13,275 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:21:13.2760195Z 2026-03-07 19:21:13,275 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:21:13.4734455Z 2026-03-07 19:21:13,472 - __main__ - INFO -   ✓ Created semantic model 'Customer Retention & Growth' in 'Semanticmodels' folder (ID: 755c31ba-00e8-41d3-8020-713fe0311a58)
+2026-03-07T19:21:13.4736736Z 2026-03-07 19:21:13,473 - __main__ - INFO -   Binding 'Customer Retention & Growth' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:21:13.4737471Z 2026-03-07 19:21:13,473 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:21:13.4738229Z 2026-03-07 19:21:13,473 - fabric_client - INFO - Taking over ownership of semantic model 755c31ba-00e8-41d3-8020-713fe0311a58
+2026-03-07T19:21:13.6465102Z 2026-03-07 19:21:13,645 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 755c31ba-00e8-41d3-8020-713fe0311a58
+2026-03-07T19:21:13.6472953Z 2026-03-07 19:21:13,646 - fabric_client - INFO -   Listing connections for item 755c31ba-00e8-41d3-8020-713fe0311a58
+2026-03-07T19:21:13.8634095Z 2026-03-07 19:21:13,862 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:21:14.0966659Z 2026-03-07 19:21:14,096 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:21:14.0969241Z 2026-03-07 19:21:14,096 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:21:14.0971157Z 2026-03-07 19:21:14,096 - __main__ - INFO -   ✓ Bound 'Customer Retention & Growth' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:21:14.0972588Z 2026-03-07 19:21:14,096 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Customer Retention & Growth'
+2026-03-07T19:21:14.0973659Z 2026-03-07 19:21:14,096 - __main__ - INFO - ✅ Successfully deployed: Customer Retention & Growth
+2026-03-07T19:21:14.0976482Z 2026-03-07 19:21:14,096 - __main__ - INFO - 
+2026-03-07T19:21:14.0977388Z 2026-03-07 19:21:14,096 - __main__ - INFO - Deploying: Odessa to Certinia Discrepancies (SemanticModel)
+2026-03-07T19:21:14.0979681Z 2026-03-07 19:21:14,097 - __main__ - INFO -   Reading semantic model from Fabric Git format: Odessa to Certinia Discrepancies.SemanticModel
+2026-03-07T19:21:14.0983853Z 2026-03-07 19:21:14,098 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:14.0988174Z 2026-03-07 19:21:14,098 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:14.0998522Z 2026-03-07 19:21:14,099 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:21:14.3116899Z 2026-03-07 19:21:14,311 - fabric_client - INFO - Creating semantic model: Odessa to Certinia Discrepancies
+2026-03-07T19:21:14.5446361Z 2026-03-07 19:21:14,544 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:21:34.7079744Z 2026-03-07 19:21:34,707 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:21:34.7081958Z 2026-03-07 19:21:34,707 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:21:34.8923012Z 2026-03-07 19:21:34,891 - __main__ - INFO -   ✓ Created semantic model 'Odessa to Certinia Discrepancies' in 'Semanticmodels' folder (ID: db5c7062-8651-4ccf-b7b8-ac423c2bab34)
+2026-03-07T19:21:34.8928091Z 2026-03-07 19:21:34,891 - __main__ - INFO -   Binding 'Odessa to Certinia Discrepancies' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:21:34.8928707Z 2026-03-07 19:21:34,891 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:21:34.8929271Z 2026-03-07 19:21:34,891 - fabric_client - INFO - Taking over ownership of semantic model db5c7062-8651-4ccf-b7b8-ac423c2bab34
+2026-03-07T19:21:35.0465739Z 2026-03-07 19:21:35,045 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model db5c7062-8651-4ccf-b7b8-ac423c2bab34
+2026-03-07T19:21:35.0476060Z 2026-03-07 19:21:35,047 - fabric_client - INFO -   Listing connections for item db5c7062-8651-4ccf-b7b8-ac423c2bab34
+2026-03-07T19:21:35.2109786Z 2026-03-07 19:21:35,210 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:21:35.5647360Z 2026-03-07 19:21:35,563 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:21:35.5648052Z 2026-03-07 19:21:35,563 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:21:35.5648819Z 2026-03-07 19:21:35,563 - __main__ - INFO -   ✓ Bound 'Odessa to Certinia Discrepancies' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:21:35.5649612Z 2026-03-07 19:21:35,563 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Odessa to Certinia Discrepancies'
+2026-03-07T19:21:35.5650263Z 2026-03-07 19:21:35,563 - __main__ - INFO - ✅ Successfully deployed: Odessa to Certinia Discrepancies
+2026-03-07T19:21:35.5650674Z 2026-03-07 19:21:35,564 - __main__ - INFO - 
+2026-03-07T19:21:35.5651060Z 2026-03-07 19:21:35,564 - __main__ - INFO - Deploying: R2C to Odessa Discrepancies (SemanticModel)
+2026-03-07T19:21:35.5654042Z 2026-03-07 19:21:35,564 - __main__ - INFO -   Reading semantic model from Fabric Git format: R2C to Odessa Discrepancies.SemanticModel
+2026-03-07T19:21:35.5662089Z 2026-03-07 19:21:35,565 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:35.5666469Z 2026-03-07 19:21:35,566 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:35.5671518Z 2026-03-07 19:21:35,566 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:35.5678597Z 2026-03-07 19:21:35,567 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:35.5683241Z 2026-03-07 19:21:35,568 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:35.5720014Z 2026-03-07 19:21:35,571 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:21:35.7935325Z 2026-03-07 19:21:35,792 - fabric_client - INFO - Creating semantic model: R2C to Odessa Discrepancies
+2026-03-07T19:21:36.0755897Z 2026-03-07 19:21:36,074 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:21:56.2629936Z 2026-03-07 19:21:56,262 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:21:56.2632342Z 2026-03-07 19:21:56,262 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:21:56.4417701Z 2026-03-07 19:21:56,441 - __main__ - INFO -   ✓ Created semantic model 'R2C to Odessa Discrepancies' in 'Semanticmodels' folder (ID: 5084a2af-1c90-4470-b537-3acd937cf9b9)
+2026-03-07T19:21:56.4420561Z 2026-03-07 19:21:56,441 - __main__ - INFO -   Binding 'R2C to Odessa Discrepancies' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:21:56.4421449Z 2026-03-07 19:21:56,441 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:21:56.4422129Z 2026-03-07 19:21:56,441 - fabric_client - INFO - Taking over ownership of semantic model 5084a2af-1c90-4470-b537-3acd937cf9b9
+2026-03-07T19:21:56.5683246Z 2026-03-07 19:21:56,568 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 5084a2af-1c90-4470-b537-3acd937cf9b9
+2026-03-07T19:21:56.5692625Z 2026-03-07 19:21:56,568 - fabric_client - INFO -   Listing connections for item 5084a2af-1c90-4470-b537-3acd937cf9b9
+2026-03-07T19:21:56.7370640Z 2026-03-07 19:21:56,736 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:21:57.0291385Z 2026-03-07 19:21:57,028 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:21:57.0292241Z 2026-03-07 19:21:57,028 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:21:57.0293054Z 2026-03-07 19:21:57,028 - __main__ - INFO -   ✓ Bound 'R2C to Odessa Discrepancies' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:21:57.0293954Z 2026-03-07 19:21:57,028 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'R2C to Odessa Discrepancies'
+2026-03-07T19:21:57.0300266Z 2026-03-07 19:21:57,029 - __main__ - INFO - ✅ Successfully deployed: R2C to Odessa Discrepancies
+2026-03-07T19:21:57.0301193Z 2026-03-07 19:21:57,029 - __main__ - INFO - 
+2026-03-07T19:21:57.0302052Z 2026-03-07 19:21:57,029 - __main__ - INFO - Deploying: Maintenance Provision (SemanticModel)
+2026-03-07T19:21:57.0303914Z 2026-03-07 19:21:57,030 - __main__ - INFO -   Reading semantic model from Fabric Git format: Maintenance Provision.SemanticModel
+2026-03-07T19:21:57.0313042Z 2026-03-07 19:21:57,031 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:57.0320620Z 2026-03-07 19:21:57,031 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:57.0322807Z 2026-03-07 19:21:57,032 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:57.0329138Z 2026-03-07 19:21:57,032 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:57.0331429Z 2026-03-07 19:21:57,032 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:21:57.0359153Z 2026-03-07 19:21:57,035 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:21:57.2219277Z 2026-03-07 19:21:57,220 - fabric_client - INFO - Creating semantic model: Maintenance Provision
+2026-03-07T19:21:57.4466301Z 2026-03-07 19:21:57,446 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:22:17.5721008Z 2026-03-07 19:22:17,571 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:22:17.5721912Z 2026-03-07 19:22:17,571 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:22:17.7571987Z 2026-03-07 19:22:17,756 - __main__ - INFO -   ✓ Created semantic model 'Maintenance Provision' in 'Semanticmodels' folder (ID: f1620b7e-312e-4b58-ad75-0a21e6abd0ea)
+2026-03-07T19:22:17.7574510Z 2026-03-07 19:22:17,756 - __main__ - INFO -   Binding 'Maintenance Provision' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:22:17.7575473Z 2026-03-07 19:22:17,757 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:22:17.7578594Z 2026-03-07 19:22:17,757 - fabric_client - INFO - Taking over ownership of semantic model f1620b7e-312e-4b58-ad75-0a21e6abd0ea
+2026-03-07T19:22:18.0495328Z 2026-03-07 19:22:18,049 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model f1620b7e-312e-4b58-ad75-0a21e6abd0ea
+2026-03-07T19:22:18.0504820Z 2026-03-07 19:22:18,050 - fabric_client - INFO -   Listing connections for item f1620b7e-312e-4b58-ad75-0a21e6abd0ea
+2026-03-07T19:22:18.2136178Z 2026-03-07 19:22:18,213 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:22:18.4907203Z 2026-03-07 19:22:18,490 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:22:18.4909586Z 2026-03-07 19:22:18,490 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:22:18.4910645Z 2026-03-07 19:22:18,490 - __main__ - INFO -   ✓ Bound 'Maintenance Provision' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:22:18.4911628Z 2026-03-07 19:22:18,490 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Maintenance Provision'
+2026-03-07T19:22:18.4917220Z 2026-03-07 19:22:18,490 - __main__ - INFO - ✅ Successfully deployed: Maintenance Provision
+2026-03-07T19:22:18.4918147Z 2026-03-07 19:22:18,490 - __main__ - INFO - 
+2026-03-07T19:22:18.4918728Z 2026-03-07 19:22:18,490 - __main__ - INFO - Deploying: PCN (SemanticModel)
+2026-03-07T19:22:18.4919531Z 2026-03-07 19:22:18,491 - __main__ - INFO -   Reading semantic model from Fabric Git format: PCN.SemanticModel
+2026-03-07T19:22:18.4928933Z 2026-03-07 19:22:18,492 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:22:18.4932182Z 2026-03-07 19:22:18,493 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:22:18.6954067Z 2026-03-07 19:22:18,694 - fabric_client - INFO - Creating semantic model: PCN
+2026-03-07T19:22:18.9404194Z 2026-03-07 19:22:18,940 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:22:39.0817269Z 2026-03-07 19:22:39,081 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:22:39.0818116Z 2026-03-07 19:22:39,081 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:22:39.2414848Z 2026-03-07 19:22:39,240 - __main__ - INFO -   ✓ Created semantic model 'PCN' in 'Semanticmodels' folder (ID: 04bcf0ef-9ab3-43e9-9d97-8461accf37dc)
+2026-03-07T19:22:39.2415770Z 2026-03-07 19:22:39,241 - __main__ - INFO -   Binding 'PCN' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:22:39.2416516Z 2026-03-07 19:22:39,241 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:22:39.2418239Z 2026-03-07 19:22:39,241 - fabric_client - INFO - Taking over ownership of semantic model 04bcf0ef-9ab3-43e9-9d97-8461accf37dc
+2026-03-07T19:22:39.3614568Z 2026-03-07 19:22:39,361 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 04bcf0ef-9ab3-43e9-9d97-8461accf37dc
+2026-03-07T19:22:39.3622504Z 2026-03-07 19:22:39,361 - fabric_client - INFO -   Listing connections for item 04bcf0ef-9ab3-43e9-9d97-8461accf37dc
+2026-03-07T19:22:39.5424786Z 2026-03-07 19:22:39,541 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:22:39.7807026Z 2026-03-07 19:22:39,780 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:22:39.7808396Z 2026-03-07 19:22:39,780 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:22:39.7809562Z 2026-03-07 19:22:39,780 - __main__ - INFO -   ✓ Bound 'PCN' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:22:39.7810659Z 2026-03-07 19:22:39,780 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'PCN'
+2026-03-07T19:22:39.7818543Z 2026-03-07 19:22:39,780 - __main__ - INFO - ✅ Successfully deployed: PCN
+2026-03-07T19:22:39.7818952Z 2026-03-07 19:22:39,780 - __main__ - INFO - 
+2026-03-07T19:22:39.7819327Z 2026-03-07 19:22:39,780 - __main__ - INFO - Deploying: TTS Sales (SemanticModel)
+2026-03-07T19:22:39.7819771Z 2026-03-07 19:22:39,781 - __main__ - INFO -   Reading semantic model from Fabric Git format: TTS Sales.SemanticModel
+2026-03-07T19:22:39.7823861Z 2026-03-07 19:22:39,782 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:22:39.7838698Z 2026-03-07 19:22:39,783 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:22:39.9548443Z 2026-03-07 19:22:39,954 - fabric_client - INFO - Creating semantic model: TTS Sales
+2026-03-07T19:22:40.2071557Z 2026-03-07 19:22:40,206 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:23:00.3413920Z 2026-03-07 19:23:00,340 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:23:00.3414993Z 2026-03-07 19:23:00,341 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:23:00.5182785Z 2026-03-07 19:23:00,517 - __main__ - INFO -   ✓ Created semantic model 'TTS Sales' in 'Semanticmodels' folder (ID: 9b868155-82af-4a61-bf27-318502d46628)
+2026-03-07T19:23:00.5185567Z 2026-03-07 19:23:00,518 - __main__ - INFO -   Binding 'TTS Sales' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:23:00.5186586Z 2026-03-07 19:23:00,518 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:23:00.5187899Z 2026-03-07 19:23:00,518 - fabric_client - INFO - Taking over ownership of semantic model 9b868155-82af-4a61-bf27-318502d46628
+2026-03-07T19:23:00.6898449Z 2026-03-07 19:23:00,689 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 9b868155-82af-4a61-bf27-318502d46628
+2026-03-07T19:23:00.6906678Z 2026-03-07 19:23:00,690 - fabric_client - INFO -   Listing connections for item 9b868155-82af-4a61-bf27-318502d46628
+2026-03-07T19:23:00.9168604Z 2026-03-07 19:23:00,916 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:23:01.1455075Z 2026-03-07 19:23:01,145 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:23:01.1456540Z 2026-03-07 19:23:01,145 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:23:01.1458704Z 2026-03-07 19:23:01,145 - __main__ - INFO -   ✓ Bound 'TTS Sales' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:23:01.1460343Z 2026-03-07 19:23:01,145 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'TTS Sales'
+2026-03-07T19:23:01.1461733Z 2026-03-07 19:23:01,145 - __main__ - INFO - ✅ Successfully deployed: TTS Sales
+2026-03-07T19:23:01.1462425Z 2026-03-07 19:23:01,145 - __main__ - INFO - 
+2026-03-07T19:23:01.1464574Z 2026-03-07 19:23:01,145 - __main__ - INFO - Deploying: FleetSpendReporting 2 of 2 (SemanticModel)
+2026-03-07T19:23:01.1468108Z 2026-03-07 19:23:01,146 - __main__ - INFO -   Reading semantic model from Fabric Git format: FleetSpendReporting 2 of 2.SemanticModel
+2026-03-07T19:23:01.1480293Z 2026-03-07 19:23:01,147 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:01.1486786Z 2026-03-07 19:23:01,148 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:01.1491713Z 2026-03-07 19:23:01,148 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:01.1493874Z 2026-03-07 19:23:01,149 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:01.1501089Z 2026-03-07 19:23:01,149 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:01.1562613Z 2026-03-07 19:23:01,156 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:23:01.3090246Z 2026-03-07 19:23:01,308 - fabric_client - INFO - Creating semantic model: FleetSpendReporting 2 of 2
+2026-03-07T19:23:01.5994036Z 2026-03-07 19:23:01,599 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:23:21.7240656Z 2026-03-07 19:23:21,723 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:23:21.7241933Z 2026-03-07 19:23:21,723 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:23:21.8941394Z 2026-03-07 19:23:21,893 - __main__ - INFO -   ✓ Created semantic model 'FleetSpendReporting 2 of 2' in 'Semanticmodels' folder (ID: 9abc6159-bb81-4254-8f3f-73873edf507a)
+2026-03-07T19:23:21.8944510Z 2026-03-07 19:23:21,893 - __main__ - INFO -   Binding 'FleetSpendReporting 2 of 2' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:23:21.8945518Z 2026-03-07 19:23:21,893 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:23:21.8947430Z 2026-03-07 19:23:21,893 - fabric_client - INFO - Taking over ownership of semantic model 9abc6159-bb81-4254-8f3f-73873edf507a
+2026-03-07T19:23:22.0576271Z 2026-03-07 19:23:22,057 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 9abc6159-bb81-4254-8f3f-73873edf507a
+2026-03-07T19:23:22.0586001Z 2026-03-07 19:23:22,058 - fabric_client - INFO -   Listing connections for item 9abc6159-bb81-4254-8f3f-73873edf507a
+2026-03-07T19:23:22.2240465Z 2026-03-07 19:23:22,223 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:23:22.4543393Z 2026-03-07 19:23:22,453 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:23:22.4545689Z 2026-03-07 19:23:22,453 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:23:22.4546416Z 2026-03-07 19:23:22,453 - __main__ - INFO -   ✓ Bound 'FleetSpendReporting 2 of 2' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:23:22.4549986Z 2026-03-07 19:23:22,453 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'FleetSpendReporting 2 of 2'
+2026-03-07T19:23:22.4552361Z 2026-03-07 19:23:22,455 - __main__ - INFO - ✅ Successfully deployed: FleetSpendReporting 2 of 2
+2026-03-07T19:23:22.4560321Z 2026-03-07 19:23:22,455 - __main__ - INFO - 
+2026-03-07T19:23:22.4561332Z 2026-03-07 19:23:22,455 - __main__ - INFO - Deploying: MOT Tracker (SemanticModel)
+2026-03-07T19:23:22.4567107Z 2026-03-07 19:23:22,456 - __main__ - INFO -   Reading semantic model from Fabric Git format: MOT Tracker.SemanticModel
+2026-03-07T19:23:22.4576535Z 2026-03-07 19:23:22,457 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:22.4597079Z 2026-03-07 19:23:22,459 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:23:22.6113919Z 2026-03-07 19:23:22,610 - fabric_client - INFO - Creating semantic model: MOT Tracker
+2026-03-07T19:23:22.8498440Z 2026-03-07 19:23:22,849 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:23:43.0096075Z 2026-03-07 19:23:43,009 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:23:43.0099199Z 2026-03-07 19:23:43,009 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:23:43.1500600Z 2026-03-07 19:23:43,149 - __main__ - INFO -   ✓ Created semantic model 'MOT Tracker' in 'Semanticmodels' folder (ID: ee4a4076-0a50-4f46-b09e-5b7adcc42233)
+2026-03-07T19:23:43.1501262Z 2026-03-07 19:23:43,149 - __main__ - INFO -   Binding 'MOT Tracker' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:23:43.1501730Z 2026-03-07 19:23:43,149 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:23:43.1502199Z 2026-03-07 19:23:43,149 - fabric_client - INFO - Taking over ownership of semantic model ee4a4076-0a50-4f46-b09e-5b7adcc42233
+2026-03-07T19:23:43.3017449Z 2026-03-07 19:23:43,301 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model ee4a4076-0a50-4f46-b09e-5b7adcc42233
+2026-03-07T19:23:43.3027884Z 2026-03-07 19:23:43,302 - fabric_client - INFO -   Listing connections for item ee4a4076-0a50-4f46-b09e-5b7adcc42233
+2026-03-07T19:23:43.5041062Z 2026-03-07 19:23:43,503 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:23:43.7949298Z 2026-03-07 19:23:43,794 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:23:43.7957454Z 2026-03-07 19:23:43,794 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:23:43.7958187Z 2026-03-07 19:23:43,794 - __main__ - INFO -   ✓ Bound 'MOT Tracker' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:23:43.7959718Z 2026-03-07 19:23:43,794 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'MOT Tracker'
+2026-03-07T19:23:43.7960379Z 2026-03-07 19:23:43,794 - __main__ - INFO - ✅ Successfully deployed: MOT Tracker
+2026-03-07T19:23:43.7960748Z 2026-03-07 19:23:43,794 - __main__ - INFO - 
+2026-03-07T19:23:43.7961126Z 2026-03-07 19:23:43,794 - __main__ - INFO - Deploying: Finance Summary (SemanticModel)
+2026-03-07T19:23:43.7962493Z 2026-03-07 19:23:43,795 - __main__ - INFO -   Reading semantic model from Fabric Git format: Finance Summary.SemanticModel
+2026-03-07T19:23:43.7971250Z 2026-03-07 19:23:43,796 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:43.7974915Z 2026-03-07 19:23:43,797 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:43.7979535Z 2026-03-07 19:23:43,797 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:43.7980601Z 2026-03-07 19:23:43,797 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:43.7986917Z 2026-03-07 19:23:43,798 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:43.7988704Z 2026-03-07 19:23:43,798 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:43.7999083Z 2026-03-07 19:23:43,799 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:43.8001315Z 2026-03-07 19:23:43,799 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:23:43.8013564Z 2026-03-07 19:23:43,801 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:23:43.9769140Z 2026-03-07 19:23:43,975 - fabric_client - INFO - Creating semantic model: Finance Summary
+2026-03-07T19:23:44.1816423Z 2026-03-07 19:23:44,181 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:24:04.3143277Z 2026-03-07 19:24:04,314 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:24:04.3146241Z 2026-03-07 19:24:04,314 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:24:04.4881796Z 2026-03-07 19:24:04,487 - __main__ - INFO -   ✓ Created semantic model 'Finance Summary' in 'Semanticmodels' folder (ID: db476918-155b-4ffc-8c5f-d4ba158e57f5)
+2026-03-07T19:24:04.4884010Z 2026-03-07 19:24:04,487 - __main__ - INFO -   Binding 'Finance Summary' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:24:04.4885387Z 2026-03-07 19:24:04,488 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:24:04.4891912Z 2026-03-07 19:24:04,488 - fabric_client - INFO - Taking over ownership of semantic model db476918-155b-4ffc-8c5f-d4ba158e57f5
+2026-03-07T19:24:04.6043546Z 2026-03-07 19:24:04,603 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model db476918-155b-4ffc-8c5f-d4ba158e57f5
+2026-03-07T19:24:04.6056532Z 2026-03-07 19:24:04,605 - fabric_client - INFO -   Listing connections for item db476918-155b-4ffc-8c5f-d4ba158e57f5
+2026-03-07T19:24:04.8137002Z 2026-03-07 19:24:04,813 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:24:05.0732926Z 2026-03-07 19:24:05,072 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:24:05.0733628Z 2026-03-07 19:24:05,072 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:24:05.0734675Z 2026-03-07 19:24:05,072 - __main__ - INFO -   ✓ Bound 'Finance Summary' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:24:05.0735409Z 2026-03-07 19:24:05,072 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Finance Summary'
+2026-03-07T19:24:05.0736022Z 2026-03-07 19:24:05,072 - __main__ - INFO - ✅ Successfully deployed: Finance Summary
+2026-03-07T19:24:05.0736420Z 2026-03-07 19:24:05,072 - __main__ - INFO - 
+2026-03-07T19:24:05.0736811Z 2026-03-07 19:24:05,072 - __main__ - INFO - Deploying: Procurement Report (SemanticModel)
+2026-03-07T19:24:05.0745374Z 2026-03-07 19:24:05,074 - __main__ - INFO -   Reading semantic model from Fabric Git format: Procurement Report.SemanticModel
+2026-03-07T19:24:05.0753034Z 2026-03-07 19:24:05,075 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:05.0756244Z 2026-03-07 19:24:05,075 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:05.0763714Z 2026-03-07 19:24:05,075 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:05.0765713Z 2026-03-07 19:24:05,075 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:05.0768041Z 2026-03-07 19:24:05,076 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:05.0775813Z 2026-03-07 19:24:05,077 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:05.0825630Z 2026-03-07 19:24:05,082 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:24:05.2591286Z 2026-03-07 19:24:05,258 - fabric_client - INFO - Creating semantic model: Procurement Report
+2026-03-07T19:24:05.5307334Z 2026-03-07 19:24:05,530 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:24:25.6902516Z 2026-03-07 19:24:25,689 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:24:25.6908277Z 2026-03-07 19:24:25,690 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:24:25.8297480Z 2026-03-07 19:24:25,829 - __main__ - INFO -   ✓ Created semantic model 'Procurement Report' in 'Semanticmodels' folder (ID: b6bf1606-45fb-4172-aca0-459339d44a17)
+2026-03-07T19:24:25.8300043Z 2026-03-07 19:24:25,829 - __main__ - INFO -   Binding 'Procurement Report' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:24:25.8300610Z 2026-03-07 19:24:25,829 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:24:25.8301090Z 2026-03-07 19:24:25,829 - fabric_client - INFO - Taking over ownership of semantic model b6bf1606-45fb-4172-aca0-459339d44a17
+2026-03-07T19:24:25.9933419Z 2026-03-07 19:24:25,993 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model b6bf1606-45fb-4172-aca0-459339d44a17
+2026-03-07T19:24:25.9941083Z 2026-03-07 19:24:25,993 - fabric_client - INFO -   Listing connections for item b6bf1606-45fb-4172-aca0-459339d44a17
+2026-03-07T19:24:26.1413291Z 2026-03-07 19:24:26,140 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:24:26.3622193Z 2026-03-07 19:24:26,361 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:24:26.3624085Z 2026-03-07 19:24:26,362 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:24:26.3625787Z 2026-03-07 19:24:26,362 - __main__ - INFO -   ✓ Bound 'Procurement Report' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:24:26.3626724Z 2026-03-07 19:24:26,362 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Procurement Report'
+2026-03-07T19:24:26.3646239Z 2026-03-07 19:24:26,362 - __main__ - INFO - ✅ Successfully deployed: Procurement Report
+2026-03-07T19:24:26.3646854Z 2026-03-07 19:24:26,362 - __main__ - INFO - 
+2026-03-07T19:24:26.3647402Z 2026-03-07 19:24:26,362 - __main__ - INFO - Deploying: Tyre Analysis (SemanticModel)
+2026-03-07T19:24:26.3651774Z 2026-03-07 19:24:26,364 - __main__ - INFO -   Reading semantic model from Fabric Git format: Tyre Analysis.SemanticModel
+2026-03-07T19:24:26.3656268Z 2026-03-07 19:24:26,365 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:26.3661383Z 2026-03-07 19:24:26,365 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:26.3668545Z 2026-03-07 19:24:26,366 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:26.3671103Z 2026-03-07 19:24:26,366 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:26.3716913Z 2026-03-07 19:24:26,371 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:24:26.5456258Z 2026-03-07 19:24:26,545 - fabric_client - INFO - Creating semantic model: Tyre Analysis
+2026-03-07T19:24:26.8077148Z 2026-03-07 19:24:26,807 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:24:46.9367129Z 2026-03-07 19:24:46,936 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:24:46.9368501Z 2026-03-07 19:24:46,936 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:24:47.0798381Z 2026-03-07 19:24:47,079 - __main__ - INFO -   ✓ Created semantic model 'Tyre Analysis' in 'Semanticmodels' folder (ID: 98ece603-3977-447e-9992-d76d6fddbf8c)
+2026-03-07T19:24:47.0800656Z 2026-03-07 19:24:47,079 - __main__ - INFO -   Binding 'Tyre Analysis' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:24:47.0801152Z 2026-03-07 19:24:47,079 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:24:47.0801608Z 2026-03-07 19:24:47,079 - fabric_client - INFO - Taking over ownership of semantic model 98ece603-3977-447e-9992-d76d6fddbf8c
+2026-03-07T19:24:47.2042467Z 2026-03-07 19:24:47,203 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 98ece603-3977-447e-9992-d76d6fddbf8c
+2026-03-07T19:24:47.2050397Z 2026-03-07 19:24:47,204 - fabric_client - INFO -   Listing connections for item 98ece603-3977-447e-9992-d76d6fddbf8c
+2026-03-07T19:24:47.3461372Z 2026-03-07 19:24:47,345 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:24:47.5951183Z 2026-03-07 19:24:47,594 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:24:47.5955241Z 2026-03-07 19:24:47,594 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:24:47.5956250Z 2026-03-07 19:24:47,594 - __main__ - INFO -   ✓ Bound 'Tyre Analysis' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:24:47.5957281Z 2026-03-07 19:24:47,594 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Tyre Analysis'
+2026-03-07T19:24:47.5959390Z 2026-03-07 19:24:47,595 - __main__ - INFO - ✅ Successfully deployed: Tyre Analysis
+2026-03-07T19:24:47.5959809Z 2026-03-07 19:24:47,595 - __main__ - INFO - 
+2026-03-07T19:24:47.5960214Z 2026-03-07 19:24:47,595 - __main__ - INFO - Deploying: Fleet Overheads by Asset (SemanticModel)
+2026-03-07T19:24:47.5964931Z 2026-03-07 19:24:47,596 - __main__ - INFO -   Reading semantic model from Fabric Git format: Fleet Overheads by Asset.SemanticModel
+2026-03-07T19:24:47.5973881Z 2026-03-07 19:24:47,597 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:24:47.5978380Z 2026-03-07 19:24:47,597 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:24:47.8501656Z 2026-03-07 19:24:47,849 - fabric_client - INFO - Creating semantic model: Fleet Overheads by Asset
+2026-03-07T19:24:48.1571203Z 2026-03-07 19:24:48,156 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:25:08.2709609Z 2026-03-07 19:25:08,270 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:25:08.2711546Z 2026-03-07 19:25:08,270 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:25:08.4100808Z 2026-03-07 19:25:08,409 - __main__ - INFO -   ✓ Created semantic model 'Fleet Overheads by Asset' in 'Semanticmodels' folder (ID: 59932d53-0b54-4c5e-9476-849bc2a55ead)
+2026-03-07T19:25:08.4102797Z 2026-03-07 19:25:08,409 - __main__ - INFO -   Binding 'Fleet Overheads by Asset' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:25:08.4103766Z 2026-03-07 19:25:08,409 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:25:08.4105194Z 2026-03-07 19:25:08,410 - fabric_client - INFO - Taking over ownership of semantic model 59932d53-0b54-4c5e-9476-849bc2a55ead
+2026-03-07T19:25:08.5301485Z 2026-03-07 19:25:08,529 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 59932d53-0b54-4c5e-9476-849bc2a55ead
+2026-03-07T19:25:08.5309229Z 2026-03-07 19:25:08,530 - fabric_client - INFO -   Listing connections for item 59932d53-0b54-4c5e-9476-849bc2a55ead
+2026-03-07T19:25:08.6892075Z 2026-03-07 19:25:08,688 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:25:08.9170370Z 2026-03-07 19:25:08,916 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:25:08.9171707Z 2026-03-07 19:25:08,916 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:25:08.9172915Z 2026-03-07 19:25:08,916 - __main__ - INFO -   ✓ Bound 'Fleet Overheads by Asset' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:25:08.9174491Z 2026-03-07 19:25:08,916 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Fleet Overheads by Asset'
+2026-03-07T19:25:08.9175643Z 2026-03-07 19:25:08,916 - __main__ - INFO - ✅ Successfully deployed: Fleet Overheads by Asset
+2026-03-07T19:25:08.9176427Z 2026-03-07 19:25:08,916 - __main__ - INFO - 
+2026-03-07T19:25:08.9182602Z 2026-03-07 19:25:08,916 - __main__ - INFO - Deploying: FleetSpendReporting 1 of 2 (SemanticModel)
+2026-03-07T19:25:08.9183115Z 2026-03-07 19:25:08,918 - __main__ - INFO -   Reading semantic model from Fabric Git format: FleetSpendReporting 1 of 2.SemanticModel
+2026-03-07T19:25:08.9194441Z 2026-03-07 19:25:08,919 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:25:08.9205571Z 2026-03-07 19:25:08,920 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:25:09.0733499Z 2026-03-07 19:25:09,072 - fabric_client - INFO - Creating semantic model: FleetSpendReporting 1 of 2
+2026-03-07T19:25:09.3273620Z 2026-03-07 19:25:09,327 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:25:29.4484507Z 2026-03-07 19:25:29,447 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:25:29.4486518Z 2026-03-07 19:25:29,448 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:25:29.6579051Z 2026-03-07 19:25:29,657 - __main__ - INFO -   ✓ Created semantic model 'FleetSpendReporting 1 of 2' in 'Semanticmodels' folder (ID: 4bc07c05-0155-4151-8e43-8ee642684d58)
+2026-03-07T19:25:29.6579635Z 2026-03-07 19:25:29,657 - __main__ - INFO -   Binding 'FleetSpendReporting 1 of 2' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:25:29.6580130Z 2026-03-07 19:25:29,657 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:25:29.6580598Z 2026-03-07 19:25:29,657 - fabric_client - INFO - Taking over ownership of semantic model 4bc07c05-0155-4151-8e43-8ee642684d58
+2026-03-07T19:25:29.7799057Z 2026-03-07 19:25:29,779 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 4bc07c05-0155-4151-8e43-8ee642684d58
+2026-03-07T19:25:29.7806830Z 2026-03-07 19:25:29,780 - fabric_client - INFO -   Listing connections for item 4bc07c05-0155-4151-8e43-8ee642684d58
+2026-03-07T19:25:29.9862431Z 2026-03-07 19:25:29,985 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:25:30.2499065Z 2026-03-07 19:25:30,249 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:25:30.2499711Z 2026-03-07 19:25:30,249 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:25:30.2500443Z 2026-03-07 19:25:30,249 - __main__ - INFO -   ✓ Bound 'FleetSpendReporting 1 of 2' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:25:30.2501204Z 2026-03-07 19:25:30,249 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'FleetSpendReporting 1 of 2'
+2026-03-07T19:25:30.2506526Z 2026-03-07 19:25:30,249 - __main__ - INFO - ✅ Successfully deployed: FleetSpendReporting 1 of 2
+2026-03-07T19:25:30.2506976Z 2026-03-07 19:25:30,249 - __main__ - INFO - 
+2026-03-07T19:25:30.2507373Z 2026-03-07 19:25:30,249 - __main__ - INFO - Deploying: Rental utilisation (SemanticModel)
+2026-03-07T19:25:30.2512924Z 2026-03-07 19:25:30,251 - __main__ - INFO -   Reading semantic model from Fabric Git format: Rental utilisation.SemanticModel
+2026-03-07T19:25:30.2522807Z 2026-03-07 19:25:30,252 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:25:30.2541066Z 2026-03-07 19:25:30,253 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:25:30.4278007Z 2026-03-07 19:25:30,427 - fabric_client - INFO - Creating semantic model: Rental utilisation
+2026-03-07T19:25:30.6268122Z 2026-03-07 19:25:30,626 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:25:50.7741803Z 2026-03-07 19:25:50,773 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:25:50.7742717Z 2026-03-07 19:25:50,773 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:25:50.9096463Z 2026-03-07 19:25:50,909 - __main__ - INFO -   ✓ Created semantic model 'Rental utilisation' in 'Semanticmodels' folder (ID: 22e3f473-6d03-437f-83f4-32cc961c4f0b)
+2026-03-07T19:25:50.9098169Z 2026-03-07 19:25:50,909 - __main__ - INFO -   Binding 'Rental utilisation' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:25:50.9098668Z 2026-03-07 19:25:50,909 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:25:50.9099120Z 2026-03-07 19:25:50,909 - fabric_client - INFO - Taking over ownership of semantic model 22e3f473-6d03-437f-83f4-32cc961c4f0b
+2026-03-07T19:25:51.1003374Z 2026-03-07 19:25:51,099 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 22e3f473-6d03-437f-83f4-32cc961c4f0b
+2026-03-07T19:25:51.1015867Z 2026-03-07 19:25:51,101 - fabric_client - INFO -   Listing connections for item 22e3f473-6d03-437f-83f4-32cc961c4f0b
+2026-03-07T19:25:51.2497325Z 2026-03-07 19:25:51,249 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:25:51.4893234Z 2026-03-07 19:25:51,488 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:25:51.4896216Z 2026-03-07 19:25:51,489 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:25:51.4897293Z 2026-03-07 19:25:51,489 - __main__ - INFO -   ✓ Bound 'Rental utilisation' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:25:51.4898532Z 2026-03-07 19:25:51,489 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Rental utilisation'
+2026-03-07T19:25:51.4901052Z 2026-03-07 19:25:51,489 - __main__ - INFO - ✅ Successfully deployed: Rental utilisation
+2026-03-07T19:25:51.4901914Z 2026-03-07 19:25:51,489 - __main__ - INFO - 
+2026-03-07T19:25:51.4903055Z 2026-03-07 19:25:51,489 - __main__ - INFO - Deploying: Maintenance Provision - All Assets (SemanticModel)
+2026-03-07T19:25:51.4913169Z 2026-03-07 19:25:51,490 - __main__ - INFO -   Reading semantic model from Fabric Git format: Maintenance Provision - All Assets.SemanticModel
+2026-03-07T19:25:51.4919005Z 2026-03-07 19:25:51,491 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:25:51.4924608Z 2026-03-07 19:25:51,492 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:25:51.4929705Z 2026-03-07 19:25:51,492 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-07T19:25:51.4940681Z 2026-03-07 19:25:51,493 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:25:51.6574658Z 2026-03-07 19:25:51,656 - fabric_client - INFO - Creating semantic model: Maintenance Provision - All Assets
+2026-03-07T19:25:51.8559324Z 2026-03-07 19:25:51,855 - __main__ - INFO -   Semantic model creation initiated (LRO), waiting for completion...
+2026-03-07T19:26:11.9703657Z 2026-03-07 19:26:11,969 - fabric_client - INFO -     Attempt 1/10: Succeeded (100% complete)
+2026-03-07T19:26:11.9705237Z 2026-03-07 19:26:11,970 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-07T19:26:12.1181520Z 2026-03-07 19:26:12,117 - __main__ - INFO -   ✓ Created semantic model 'Maintenance Provision - All Assets' in 'Semanticmodels' folder (ID: 23ac30aa-2f03-4ff7-a796-ed6b705a70b4)
+2026-03-07T19:26:12.1182125Z 2026-03-07 19:26:12,117 - __main__ - INFO -   Binding 'Maintenance Provision - All Assets' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-07T19:26:12.1182641Z 2026-03-07 19:26:12,117 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-07T19:26:12.1183164Z 2026-03-07 19:26:12,117 - fabric_client - INFO - Taking over ownership of semantic model 23ac30aa-2f03-4ff7-a796-ed6b705a70b4
+2026-03-07T19:26:12.2480209Z 2026-03-07 19:26:12,247 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 23ac30aa-2f03-4ff7-a796-ed6b705a70b4
+2026-03-07T19:26:12.2487874Z 2026-03-07 19:26:12,248 - fabric_client - INFO -   Listing connections for item 23ac30aa-2f03-4ff7-a796-ed6b705a70b4
+2026-03-07T19:26:12.4199578Z 2026-03-07 19:26:12,419 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-07T19:26:12.6524695Z 2026-03-07 19:26:12,651 - fabric_client - INFO -   ✓ Successfully bound data source to ShareableCloud connection
+2026-03-07T19:26:12.6525321Z 2026-03-07 19:26:12,651 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-07T19:26:12.6525993Z 2026-03-07 19:26:12,651 - __main__ - INFO -   ✓ Bound 'Maintenance Provision - All Assets' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-07T19:26:12.6526704Z 2026-03-07 19:26:12,651 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Maintenance Provision - All Assets'
+2026-03-07T19:26:12.6527268Z 2026-03-07 19:26:12,651 - __main__ - INFO - ✅ Successfully deployed: Maintenance Provision - All Assets
+2026-03-07T19:26:12.6527565Z 2026-03-07 19:26:12,651 - __main__ - INFO - 
+2026-03-07T19:26:12.6527859Z 2026-03-07 19:26:12,651 - __main__ - INFO - ============================================================
+2026-03-07T19:26:12.6528214Z 2026-03-07 19:26:12,651 - __main__ - INFO - DEPLOYMENT SUMMARY
+2026-03-07T19:26:12.6528585Z 2026-03-07 19:26:12,652 - __main__ - INFO - ============================================================
+2026-03-07T19:26:12.6528962Z 2026-03-07 19:26:12,652 - __main__ - INFO - Total artifacts: 18
+2026-03-07T19:26:12.6529295Z 2026-03-07 19:26:12,652 - __main__ - INFO - Successful: 18
+2026-03-07T19:26:12.6529825Z 2026-03-07 19:26:12,652 - __main__ - INFO - Failed: 0
+2026-03-07T19:26:12.6530501Z 2026-03-07 19:26:12,652 - __main__ - INFO - ============================================================
+2026-03-07T19:26:12.6553364Z 2026-03-07 19:26:12,654 - change_detector - INFO - Saved deployment commit: 888d4486
+2026-03-07T19:26:12.6553770Z 2026-03-07 19:26:12,654 - __main__ - INFO - Saved deployment state: 888d4486
+2026-03-07T19:26:12.6554116Z 2026-03-07 19:26:12,654 - __main__ - INFO - 
+2026-03-07T19:26:12.6554715Z 2026-03-07 19:26:12,654 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T19:26:12.6555131Z 2026-03-07 19:26:12,654 - __main__ - INFO - POST-DEPLOY: SEMANTIC MODEL REFRESH
+2026-03-07T19:26:12.6555532Z 2026-03-07 19:26:12,655 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T19:26:12.6555949Z 2026-03-07 19:26:12,655 - __main__ - INFO -   Triggering refresh for 18 deployed semantic model(s)
+2026-03-07T19:26:12.6556386Z 2026-03-07 19:26:12,655 - __main__ - INFO -   Refreshing 'NewAssetAwaitingDelivery' (ID: d4c5cabd-de30-41c9-8ed9-6b9604ff9265)...
+2026-03-07T19:26:12.6556885Z 2026-03-07 19:26:12,655 - fabric_client - INFO - Triggering full refresh for semantic model: d4c5cabd-de30-41c9-8ed9-6b9604ff9265
+2026-03-07T19:26:13.0573992Z 2026-03-07 19:26:13,056 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:13.0583017Z 2026-03-07 19:26:13,057 - __main__ - INFO -   ✓ Refresh triggered for 'NewAssetAwaitingDelivery'
+2026-03-07T19:26:13.0584877Z 2026-03-07 19:26:13,058 - __main__ - INFO -   Refreshing 'Origination' (ID: f04e5f33-a2e9-4e44-93ed-a69cce95528f)...
+2026-03-07T19:26:13.0585636Z 2026-03-07 19:26:13,058 - fabric_client - INFO - Triggering full refresh for semantic model: f04e5f33-a2e9-4e44-93ed-a69cce95528f
+2026-03-07T19:26:13.3206395Z 2026-03-07 19:26:13,320 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:13.3214457Z 2026-03-07 19:26:13,321 - __main__ - INFO -   ✓ Refresh triggered for 'Origination'
+2026-03-07T19:26:13.3216394Z 2026-03-07 19:26:13,321 - __main__ - INFO -   Refreshing 'RV Analysis' (ID: 72c4bf8d-bf2c-4d95-8c79-21ac72d48803)...
+2026-03-07T19:26:13.3217442Z 2026-03-07 19:26:13,321 - fabric_client - INFO - Triggering full refresh for semantic model: 72c4bf8d-bf2c-4d95-8c79-21ac72d48803
+2026-03-07T19:26:13.5670389Z 2026-03-07 19:26:13,566 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:13.5678410Z 2026-03-07 19:26:13,567 - __main__ - INFO -   ✓ Refresh triggered for 'RV Analysis'
+2026-03-07T19:26:13.5681636Z 2026-03-07 19:26:13,567 - __main__ - INFO -   Refreshing 'Customer Retention & Growth' (ID: 755c31ba-00e8-41d3-8020-713fe0311a58)...
+2026-03-07T19:26:13.5682169Z 2026-03-07 19:26:13,567 - fabric_client - INFO - Triggering full refresh for semantic model: 755c31ba-00e8-41d3-8020-713fe0311a58
+2026-03-07T19:26:13.9038665Z 2026-03-07 19:26:13,903 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:13.9049604Z 2026-03-07 19:26:13,904 - __main__ - INFO -   ✓ Refresh triggered for 'Customer Retention & Growth'
+2026-03-07T19:26:13.9050519Z 2026-03-07 19:26:13,904 - __main__ - INFO -   Refreshing 'Odessa to Certinia Discrepancies' (ID: db5c7062-8651-4ccf-b7b8-ac423c2bab34)...
+2026-03-07T19:26:13.9051469Z 2026-03-07 19:26:13,904 - fabric_client - INFO - Triggering full refresh for semantic model: db5c7062-8651-4ccf-b7b8-ac423c2bab34
+2026-03-07T19:26:14.1929591Z 2026-03-07 19:26:14,192 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:14.1935677Z 2026-03-07 19:26:14,193 - __main__ - INFO -   ✓ Refresh triggered for 'Odessa to Certinia Discrepancies'
+2026-03-07T19:26:14.1937466Z 2026-03-07 19:26:14,193 - __main__ - INFO -   Refreshing 'R2C to Odessa Discrepancies' (ID: 5084a2af-1c90-4470-b537-3acd937cf9b9)...
+2026-03-07T19:26:14.1938481Z 2026-03-07 19:26:14,193 - fabric_client - INFO - Triggering full refresh for semantic model: 5084a2af-1c90-4470-b537-3acd937cf9b9
+2026-03-07T19:26:14.5459576Z 2026-03-07 19:26:14,545 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:14.5468535Z 2026-03-07 19:26:14,546 - __main__ - INFO -   ✓ Refresh triggered for 'R2C to Odessa Discrepancies'
+2026-03-07T19:26:14.5470358Z 2026-03-07 19:26:14,546 - __main__ - INFO -   Refreshing 'Maintenance Provision' (ID: f1620b7e-312e-4b58-ad75-0a21e6abd0ea)...
+2026-03-07T19:26:14.5472474Z 2026-03-07 19:26:14,546 - fabric_client - INFO - Triggering full refresh for semantic model: f1620b7e-312e-4b58-ad75-0a21e6abd0ea
+2026-03-07T19:26:14.8569580Z 2026-03-07 19:26:14,856 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:14.8578494Z 2026-03-07 19:26:14,857 - __main__ - INFO -   ✓ Refresh triggered for 'Maintenance Provision'
+2026-03-07T19:26:14.8580503Z 2026-03-07 19:26:14,857 - __main__ - INFO -   Refreshing 'PCN' (ID: 04bcf0ef-9ab3-43e9-9d97-8461accf37dc)...
+2026-03-07T19:26:14.8583224Z 2026-03-07 19:26:14,857 - fabric_client - INFO - Triggering full refresh for semantic model: 04bcf0ef-9ab3-43e9-9d97-8461accf37dc
+2026-03-07T19:26:15.2620477Z 2026-03-07 19:26:15,261 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:15.2629249Z 2026-03-07 19:26:15,262 - __main__ - INFO -   ✓ Refresh triggered for 'PCN'
+2026-03-07T19:26:15.2631014Z 2026-03-07 19:26:15,262 - __main__ - INFO -   Refreshing 'TTS Sales' (ID: 9b868155-82af-4a61-bf27-318502d46628)...
+2026-03-07T19:26:15.2632304Z 2026-03-07 19:26:15,262 - fabric_client - INFO - Triggering full refresh for semantic model: 9b868155-82af-4a61-bf27-318502d46628
+2026-03-07T19:26:15.5812343Z 2026-03-07 19:26:15,580 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:15.5820762Z 2026-03-07 19:26:15,581 - __main__ - INFO -   ✓ Refresh triggered for 'TTS Sales'
+2026-03-07T19:26:15.5821682Z 2026-03-07 19:26:15,581 - __main__ - INFO -   Refreshing 'FleetSpendReporting 2 of 2' (ID: 9abc6159-bb81-4254-8f3f-73873edf507a)...
+2026-03-07T19:26:15.5823377Z 2026-03-07 19:26:15,581 - fabric_client - INFO - Triggering full refresh for semantic model: 9abc6159-bb81-4254-8f3f-73873edf507a
+2026-03-07T19:26:15.9060616Z 2026-03-07 19:26:15,905 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:15.9069304Z 2026-03-07 19:26:15,906 - __main__ - INFO -   ✓ Refresh triggered for 'FleetSpendReporting 2 of 2'
+2026-03-07T19:26:15.9070189Z 2026-03-07 19:26:15,906 - __main__ - INFO -   Refreshing 'MOT Tracker' (ID: ee4a4076-0a50-4f46-b09e-5b7adcc42233)...
+2026-03-07T19:26:15.9071512Z 2026-03-07 19:26:15,906 - fabric_client - INFO - Triggering full refresh for semantic model: ee4a4076-0a50-4f46-b09e-5b7adcc42233
+2026-03-07T19:26:16.2218143Z 2026-03-07 19:26:16,221 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:16.2227184Z 2026-03-07 19:26:16,222 - __main__ - INFO -   ✓ Refresh triggered for 'MOT Tracker'
+2026-03-07T19:26:16.2230509Z 2026-03-07 19:26:16,222 - __main__ - INFO -   Refreshing 'Finance Summary' (ID: db476918-155b-4ffc-8c5f-d4ba158e57f5)...
+2026-03-07T19:26:16.2231096Z 2026-03-07 19:26:16,222 - fabric_client - INFO - Triggering full refresh for semantic model: db476918-155b-4ffc-8c5f-d4ba158e57f5
+2026-03-07T19:26:16.5099747Z 2026-03-07 19:26:16,509 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:16.5108619Z 2026-03-07 19:26:16,510 - __main__ - INFO -   ✓ Refresh triggered for 'Finance Summary'
+2026-03-07T19:26:16.5110340Z 2026-03-07 19:26:16,510 - __main__ - INFO -   Refreshing 'Procurement Report' (ID: b6bf1606-45fb-4172-aca0-459339d44a17)...
+2026-03-07T19:26:16.5111220Z 2026-03-07 19:26:16,510 - fabric_client - INFO - Triggering full refresh for semantic model: b6bf1606-45fb-4172-aca0-459339d44a17
+2026-03-07T19:26:16.8718789Z 2026-03-07 19:26:16,871 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:16.8727284Z 2026-03-07 19:26:16,872 - __main__ - INFO -   ✓ Refresh triggered for 'Procurement Report'
+2026-03-07T19:26:16.8730928Z 2026-03-07 19:26:16,872 - __main__ - INFO -   Refreshing 'Tyre Analysis' (ID: 98ece603-3977-447e-9992-d76d6fddbf8c)...
+2026-03-07T19:26:16.8731797Z 2026-03-07 19:26:16,872 - fabric_client - INFO - Triggering full refresh for semantic model: 98ece603-3977-447e-9992-d76d6fddbf8c
+2026-03-07T19:26:17.1164075Z 2026-03-07 19:26:17,116 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:17.1173464Z 2026-03-07 19:26:17,116 - __main__ - INFO -   ✓ Refresh triggered for 'Tyre Analysis'
+2026-03-07T19:26:17.1177143Z 2026-03-07 19:26:17,117 - __main__ - INFO -   Refreshing 'Fleet Overheads by Asset' (ID: 59932d53-0b54-4c5e-9476-849bc2a55ead)...
+2026-03-07T19:26:17.1177701Z 2026-03-07 19:26:17,117 - fabric_client - INFO - Triggering full refresh for semantic model: 59932d53-0b54-4c5e-9476-849bc2a55ead
+2026-03-07T19:26:17.4442874Z 2026-03-07 19:26:17,443 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:17.4451750Z 2026-03-07 19:26:17,444 - __main__ - INFO -   ✓ Refresh triggered for 'Fleet Overheads by Asset'
+2026-03-07T19:26:17.4453655Z 2026-03-07 19:26:17,445 - __main__ - INFO -   Refreshing 'FleetSpendReporting 1 of 2' (ID: 4bc07c05-0155-4151-8e43-8ee642684d58)...
+2026-03-07T19:26:17.4454782Z 2026-03-07 19:26:17,445 - fabric_client - INFO - Triggering full refresh for semantic model: 4bc07c05-0155-4151-8e43-8ee642684d58
+2026-03-07T19:26:17.7534726Z 2026-03-07 19:26:17,753 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:17.7541916Z 2026-03-07 19:26:17,753 - __main__ - INFO -   ✓ Refresh triggered for 'FleetSpendReporting 1 of 2'
+2026-03-07T19:26:17.7545898Z 2026-03-07 19:26:17,754 - __main__ - INFO -   Refreshing 'Rental utilisation' (ID: 22e3f473-6d03-437f-83f4-32cc961c4f0b)...
+2026-03-07T19:26:17.7546689Z 2026-03-07 19:26:17,754 - fabric_client - INFO - Triggering full refresh for semantic model: 22e3f473-6d03-437f-83f4-32cc961c4f0b
+2026-03-07T19:26:18.0417709Z 2026-03-07 19:26:18,041 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:18.0425866Z 2026-03-07 19:26:18,042 - __main__ - INFO -   ✓ Refresh triggered for 'Rental utilisation'
+2026-03-07T19:26:18.0433642Z 2026-03-07 19:26:18,042 - __main__ - INFO -   Refreshing 'Maintenance Provision - All Assets' (ID: 23ac30aa-2f03-4ff7-a796-ed6b705a70b4)...
+2026-03-07T19:26:18.0434675Z 2026-03-07 19:26:18,042 - fabric_client - INFO - Triggering full refresh for semantic model: 23ac30aa-2f03-4ff7-a796-ed6b705a70b4
+2026-03-07T19:26:18.3469858Z 2026-03-07 19:26:18,346 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-07T19:26:18.3479436Z 2026-03-07 19:26:18,347 - __main__ - INFO -   ✓ Refresh triggered for 'Maintenance Provision - All Assets'
+2026-03-07T19:26:18.3484921Z 2026-03-07 19:26:18,347 - __main__ - INFO -   Done — 18 refresh(es) triggered, 0 failed
+2026-03-07T19:26:18.3763417Z 
+2026-03-07T19:26:18.3764595Z ✓ Dev deployment completed successfully
+2026-03-07T19:26:18.3780151Z 
+2026-03-07T19:26:18.3859135Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

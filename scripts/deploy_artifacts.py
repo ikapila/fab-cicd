@@ -272,7 +272,7 @@ class FabricDeployer:
             self._artifact_name_aliases[artifact_type][folder_name] = display_name
             logger.debug(f"Registered name alias: {artifact_type}/{folder_name} → {display_name}")
     
-    def _remap_changed_artifact_names(self, changed_artifacts: Dict[str, Set[str]]) -> None:
+    def _remap_changed_artifact_names(self, changed_artifacts: Dict[str, set]) -> None:
         """Remap changed artifact names from folder-based to displayName.
         
         Change detection uses folder names from git diff; discovery uses

@@ -1,172 +1,139 @@
-2026-03-07T12:02:06.7898052Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2026-03-07T12:02:06.7903896Z ==============================================================================
-2026-03-07T12:02:06.7904002Z Task         : Command line
-2026-03-07T12:02:06.7904063Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-03-07T12:02:06.7904163Z Version      : 2.268.0
-2026-03-07T12:02:06.7904222Z Author       : Microsoft Corporation
-2026-03-07T12:02:06.7904287Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-03-07T12:02:06.7904380Z ==============================================================================
-2026-03-07T12:02:06.9263672Z Generating script.
-2026-03-07T12:02:06.9269691Z ========================== Starting Command Output ===========================
-2026-03-07T12:02:06.9287933Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/1d77a543-669b-4127-ac15-93ae94d3fc5a.sh
-2026-03-07T12:02:06.9364019Z ========================================
-2026-03-07T12:02:06.9364564Z DEBUG: Verifying Repository Checkout
-2026-03-07T12:02:06.9364880Z ========================================
-2026-03-07T12:02:06.9365191Z Current directory: /home/vsts/work/1/s
-2026-03-07T12:02:06.9365491Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-03-07T12:02:06.9365618Z 
-2026-03-07T12:02:06.9365880Z Contents of Build.SourcesDirectory:
-2026-03-07T12:02:06.9376250Z total 40
-2026-03-07T12:02:06.9376575Z drwxr-xr-x 8 vsts vsts 4096 Mar  7 12:01 .
-2026-03-07T12:02:06.9376918Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 12:01 ..
-2026-03-07T12:02:06.9377273Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 12:01 .deployment_tracking
-2026-03-07T12:02:06.9377646Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 12:01 .git
-2026-03-07T12:02:06.9377993Z -rw-r--r-- 1 vsts vsts   44 Mar  7 12:01 .gitignore
-2026-03-07T12:02:06.9378335Z -rw-r--r-- 1 vsts vsts  985 Mar  7 12:01 README.md
-2026-03-07T12:02:06.9378692Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 12:01 azure-pipelines
-2026-03-07T12:02:06.9379052Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 12:01 config
-2026-03-07T12:02:06.9379387Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 12:01 scripts
-2026-03-07T12:02:06.9379725Z drwxr-xr-x 4 vsts vsts 4096 Mar  7 12:01 wsartifacts
-2026-03-07T12:02:06.9383887Z 
-2026-03-07T12:02:06.9384523Z Checking for required folders:
-2026-03-07T12:02:06.9385366Z ✓ scripts/ exists
-2026-03-07T12:02:06.9385903Z ✓ config/ exists
-2026-03-07T12:02:06.9386235Z ✓ wsartifacts/ exists
-2026-03-07T12:02:06.9386524Z ========================================
-2026-03-07T12:02:06.9386834Z ========================================
-2026-03-07T12:02:06.9387122Z Deploying to Dev Environment
-2026-03-07T12:02:06.9387426Z ========================================
-2026-03-07T12:02:06.9387695Z Features:
-2026-03-07T12:02:06.9388102Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-03-07T12:02:06.9388521Z   📊 Dependency-aware deployment ordering
-2026-03-07T12:02:06.9388927Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-03-07T12:02:06.9389075Z 
-2026-03-07T12:02:06.9389316Z Deployment steps:
-2026-03-07T12:02:06.9389588Z   1. Create artifacts from config file
-2026-03-07T12:02:06.9389913Z   2. Detect changed artifacts using Git diff
-2026-03-07T12:02:06.9390230Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-03-07T12:02:06.9390550Z ========================================
-2026-03-07T12:02:07.6175007Z 2026-03-07 12:02:07,616 - __main__ - INFO - Initializing deployment to dev environment
-2026-03-07T12:02:07.6184103Z 2026-03-07 12:02:07,617 - config_manager - INFO - Loading configuration from: config/dev.json
-2026-03-07T12:02:07.6184885Z 2026-03-07 12:02:07,617 - __main__ - INFO - Using environment-specific service principal for dev
-2026-03-07T12:02:07.6185680Z 2026-03-07 12:02:07,617 - __main__ - INFO - Using artifacts root folder: wsartifacts
-2026-03-07T12:02:07.6186489Z 2026-03-07 12:02:07,617 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
-2026-03-07T12:02:08.0056057Z 2026-03-07 12:02:08,005 - fabric_auth - INFO - Authentication validation successful
-2026-03-07T12:02:08.0069597Z 2026-03-07 12:02:08,006 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
-2026-03-07T12:02:08.0076492Z 2026-03-07 12:02:08,006 - __main__ - INFO - Running in artifact creation mode
-2026-03-07T12:02:08.0078586Z 2026-03-07 12:02:08,006 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0080855Z 2026-03-07 12:02:08,007 - __main__ - INFO - Creating artifacts from configuration for dev
-2026-03-07T12:02:08.0081767Z 2026-03-07 12:02:08,007 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0088071Z 2026-03-07 12:02:08,007 - __main__ - INFO - No artifacts configured for creation
-2026-03-07T12:02:08.0088776Z 2026-03-07 12:02:08,007 - __main__ - INFO - Artifact creation completed successfully
-2026-03-07T12:02:08.0089402Z 2026-03-07 12:02:08,007 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0090024Z 2026-03-07 12:02:08,007 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
-2026-03-07T12:02:08.0090595Z 2026-03-07 12:02:08,007 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0091162Z 2026-03-07 12:02:08,007 - __main__ - INFO - Discovering artifacts from file system...
-2026-03-07T12:02:08.0099512Z 2026-03-07 12:02:08,007 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
-2026-03-07T12:02:08.0100450Z 2026-03-07 12:02:08,008 - __main__ - INFO - Discovered 1 Variable Library: ReportingVariables
-2026-03-07T12:02:08.0101084Z 2026-03-07 12:02:08,008 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0101659Z 2026-03-07 12:02:08,008 - __main__ - INFO - DISCOVERY COMPLETE: Found 2 total artifacts
-2026-03-07T12:02:08.0103245Z 2026-03-07 12:02:08,008 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0104438Z 2026-03-07 12:02:08,008 - __main__ - INFO - 
-2026-03-07T12:02:08.0104964Z 2026-03-07 12:02:08,008 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0105510Z 2026-03-07 12:02:08,008 - __main__ - INFO - CHANGE DETECTION
-2026-03-07T12:02:08.0106044Z 2026-03-07 12:02:08,008 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0168559Z 2026-03-07 12:02:08,016 - change_detector - INFO - Found 7 changed file(s) since 8629c508
-2026-03-07T12:02:08.0172457Z 2026-03-07 12:02:08,016 - change_detector - INFO - Change detection: 1 artifact(s) changed
-2026-03-07T12:02:08.0173491Z 2026-03-07 12:02:08,016 - change_detector - INFO -   VariableLibrary: ReportingVariables
-2026-03-07T12:02:08.0174257Z 2026-03-07 12:02:08,016 - __main__ - INFO - Changed artifacts: 1
-2026-03-07T12:02:08.0175283Z 2026-03-07 12:02:08,017 - __main__ - INFO -   VariableLibrary: ReportingVariables
-2026-03-07T12:02:08.0176214Z 2026-03-07 12:02:08,017 - __main__ - INFO - Skipped (unchanged): 1
-2026-03-07T12:02:08.0177007Z 2026-03-07 12:02:08,017 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0181095Z 2026-03-07 12:02:08,017 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0181579Z 2026-03-07 12:02:08,017 - __main__ - INFO - Starting deployment to dev environment
-2026-03-07T12:02:08.0182009Z 2026-03-07 12:02:08,017 - __main__ - INFO - ============================================================
-2026-03-07T12:02:08.0182407Z 2026-03-07 12:02:08,017 - __main__ - INFO - 
-2026-03-07T12:02:08.0182996Z 2026-03-07 12:02:08,017 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T12:02:08.0183423Z 2026-03-07 12:02:08,017 - __main__ - INFO - SOURCE CONTROL SYNC
-2026-03-07T12:02:08.0183840Z 2026-03-07 12:02:08,017 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T12:02:08.0184275Z 2026-03-07 12:02:08,017 - __main__ - INFO - Checking for pending Git updates in workspace...
-2026-03-07T12:02:08.0184937Z 2026-03-07 12:02:08,017 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T12:02:08.2861919Z 2026-03-07 12:02:08,285 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
-2026-03-07T12:02:08.2865167Z 2026-03-07 12:02:08,285 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T12:02:12.6460051Z 2026-03-07 12:02:12,645 - fabric_client - ERROR - HTTP Error: 400 - {"requestId":"9319ef51-3499-4061-bce0-00f98bb4d93f","errorCode":"InvalidSystemFiles","message":"Git directory contains invalid system files."}
-2026-03-07T12:02:12.6465719Z 2026-03-07 12:02:12,645 - fabric_client - ERROR - Error details: {
-2026-03-07T12:02:12.6466083Z   "requestId": "9319ef51-3499-4061-bce0-00f98bb4d93f",
-2026-03-07T12:02:12.6466394Z   "errorCode": "InvalidSystemFiles",
-2026-03-07T12:02:12.6466711Z   "message": "Git directory contains invalid system files."
-2026-03-07T12:02:12.6466980Z }
-2026-03-07T12:02:12.6467881Z 2026-03-07 12:02:12,645 - __main__ - WARNING -   ⚠ Source control sync failed: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/status
-2026-03-07T12:02:12.6468402Z 2026-03-07 12:02:12,645 - __main__ - WARNING -     Update source control manually in Fabric portal
-2026-03-07T12:02:12.6477515Z 2026-03-07 12:02:12,647 - dependency_resolver - INFO - ✅ All dependencies are valid
-2026-03-07T12:02:12.6479810Z 2026-03-07 12:02:12,647 - dependency_resolver - INFO - Deployment order determined:
-2026-03-07T12:02:12.6482066Z 2026-03-07 12:02:12,647 - dependency_resolver - INFO -   1. ReportingVariables (VariableLibrary)
-2026-03-07T12:02:12.6482457Z 2026-03-07 12:02:12,647 - __main__ - INFO - 
-2026-03-07T12:02:12.6483100Z 2026-03-07 12:02:12,648 - __main__ - INFO - --- Deploying 1 artifact(s) ---
-2026-03-07T12:02:12.6490603Z 2026-03-07 12:02:12,648 - __main__ - INFO - 
-2026-03-07T12:02:12.6491334Z 2026-03-07 12:02:12,648 - __main__ - INFO - Deploying: ReportingVariables (VariableLibrary)
-2026-03-07T12:02:12.6493584Z 2026-03-07 12:02:12,648 - __main__ - INFO -   Reading variable library definition from folder: ReportingVariables.VariableLibrary/
-2026-03-07T12:02:12.6494069Z 2026-03-07 12:02:12,648 - __main__ - INFO -   Using .platform file (Git format v2)
-2026-03-07T12:02:12.6494519Z 2026-03-07 12:02:12,648 - __main__ - INFO -   Found valueSets folder - reading Git format structure
-2026-03-07T12:02:12.6494908Z 2026-03-07 12:02:12,648 - __main__ - INFO -   Reading variables.json...
-2026-03-07T12:02:12.6495489Z 2026-03-07 12:02:12,648 - __main__ - INFO -     ✓ Loaded 5 base variable definitions
-2026-03-07T12:02:12.6495871Z 2026-03-07 12:02:12,648 - __main__ - INFO -   Reading settings.json...
-2026-03-07T12:02:12.6496388Z 2026-03-07 12:02:12,648 - __main__ - INFO -     ✓ Loaded valueSetsOrder: ['dev', 'uat', 'prod']
-2026-03-07T12:02:12.6496811Z 2026-03-07 12:02:12,648 - __main__ - INFO -   Available value sets: uat.json, dev.json, prod.json
-2026-03-07T12:02:12.6497195Z 2026-03-07 12:02:12,649 - __main__ - INFO -   Reading value set: uat.json
-2026-03-07T12:02:12.6497714Z 2026-03-07 12:02:12,649 - __main__ - INFO -     ✓ Loaded 5 variable override(s) from 'uat' set
-2026-03-07T12:02:12.6500700Z 2026-03-07 12:02:12,649 - __main__ - INFO -   Reading value set: dev.json
-2026-03-07T12:02:12.6503079Z 2026-03-07 12:02:12,650 - __main__ - INFO -     ✓ Loaded 5 variable override(s) from 'dev' set
-2026-03-07T12:02:12.6503673Z 2026-03-07 12:02:12,650 - __main__ - INFO -   Reading value set: prod.json
-2026-03-07T12:02:12.6508395Z 2026-03-07 12:02:12,650 - __main__ - INFO -     ✓ Loaded 5 variable override(s) from 'prod' set
-2026-03-07T12:02:12.6509025Z 2026-03-07 12:02:12,650 - __main__ - INFO -   Total value sets to deploy: 3
-2026-03-07T12:02:12.6510979Z 2026-03-07 12:02:12,650 - __main__ - INFO -   Total base variables: 5
-2026-03-07T12:02:12.6511881Z 2026-03-07 12:02:12,650 - __main__ - INFO -   NOTE: All value sets will be deployed. You can switch between them in the Fabric UI.
-2026-03-07T12:02:12.6512390Z 2026-03-07 12:02:12,650 - fabric_client - INFO - Listing Variable Libraries in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T12:02:12.8688579Z 2026-03-07 12:02:12,868 - __main__ - INFO -   Creating Variable Library: ReportingVariables
-2026-03-07T12:02:12.8689055Z 2026-03-07 12:02:12,868 - fabric_client - INFO - Listing folders in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T12:02:13.0565857Z 2026-03-07 12:02:13,055 - fabric_client - INFO - Creating Variable Library: ReportingVariables
-2026-03-07T12:02:13.0568432Z 2026-03-07 12:02:13,056 - fabric_client - INFO -   Including folderId in payload: 382af9eb-7cae-4982-9b6d-abe6fb9e3c3b
-2026-03-07T12:02:14.4452586Z 2026-03-07 12:02:14,444 - __main__ - INFO -   ✓ Created Variable Library 'ReportingVariables' in 'Variablelibraries' folder (ID: e6e14fe2-d20f-408c-8532-25e7b8b0693a)
-2026-03-07T12:02:14.4454067Z 2026-03-07 12:02:14,444 - __main__ - INFO -   Setting base variables (5) + 3 value sets + settings...
-2026-03-07T12:02:14.4454921Z 2026-03-07 12:02:14,444 - fabric_client - INFO - Updating Variable Library definition: e6e14fe2-d20f-408c-8532-25e7b8b0693a
-2026-03-07T12:02:15.6852596Z 2026-03-07 12:02:15,684 - __main__ - INFO -   ✓ Initialized variable definition for 'ReportingVariables'
-2026-03-07T12:02:15.6853720Z 2026-03-07 12:02:15,684 - __main__ - INFO -   Waiting for definition initialization to complete...
-2026-03-07T12:02:35.8203553Z 2026-03-07 12:02:35,819 - fabric_client - INFO -     Attempt 1/12: Succeeded (100% complete)
-2026-03-07T12:02:35.8205860Z 2026-03-07 12:02:35,819 - fabric_client - INFO -   ✓ Operation completed successfully
-2026-03-07T12:02:36.0268387Z 2026-03-07 12:02:36,026 - __main__ - INFO -   Setting active value set to 'dev'...
-2026-03-07T12:02:36.0271185Z 2026-03-07 12:02:36,026 - fabric_client - INFO - Setting active value set to 'dev' for Variable Library: e6e14fe2-d20f-408c-8532-25e7b8b0693a
-2026-03-07T12:02:36.7273556Z 2026-03-07 12:02:36,726 - __main__ - INFO -   ✓ Set active value set to 'dev' for Variable Library 'ReportingVariables'
-2026-03-07T12:02:36.7285669Z 2026-03-07 12:02:36,727 - __main__ - INFO - ✅ Successfully deployed: ReportingVariables
-2026-03-07T12:02:36.7286039Z 2026-03-07 12:02:36,727 - __main__ - INFO - 
-2026-03-07T12:02:36.7286425Z 2026-03-07 12:02:36,727 - __main__ - INFO - ============================================================
-2026-03-07T12:02:36.7286826Z 2026-03-07 12:02:36,727 - __main__ - INFO - DEPLOYMENT SUMMARY
-2026-03-07T12:02:36.7287248Z 2026-03-07 12:02:36,727 - __main__ - INFO - ============================================================
-2026-03-07T12:02:36.7287611Z 2026-03-07 12:02:36,727 - __main__ - INFO - Total artifacts: 1
-2026-03-07T12:02:36.7287918Z 2026-03-07 12:02:36,727 - __main__ - INFO - Successful: 1
-2026-03-07T12:02:36.7288244Z 2026-03-07 12:02:36,727 - __main__ - INFO - Failed: 0
-2026-03-07T12:02:36.7288638Z 2026-03-07 12:02:36,727 - __main__ - INFO - ============================================================
-2026-03-07T12:02:36.7304045Z 2026-03-07 12:02:36,730 - change_detector - INFO - Saved deployment commit: 5a5fa165
-2026-03-07T12:02:36.7305171Z 2026-03-07 12:02:36,730 - __main__ - INFO - Saved deployment state: 5a5fa165
-2026-03-07T12:02:36.7306084Z 2026-03-07 12:02:36,730 - __main__ - INFO - 
-2026-03-07T12:02:36.7310505Z 2026-03-07 12:02:36,730 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T12:02:36.7313386Z 2026-03-07 12:02:36,730 - __main__ - INFO - POST-DEPLOY: LINK WORKSPACE ITEMS TO GIT
-2026-03-07T12:02:36.7315945Z 2026-03-07 12:02:36,730 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T12:02:36.7324306Z 2026-03-07 12:02:36,730 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T12:02:36.9064961Z 2026-03-07 12:02:36,905 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
-2026-03-07T12:02:36.9066242Z 2026-03-07 12:02:36,906 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T12:02:39.3422511Z 2026-03-07 12:02:39,341 - fabric_client - ERROR - HTTP Error: 400 - {"requestId":"0e657732-62c2-4816-a0c6-6c106f6bea61","errorCode":"InvalidSystemFiles","message":"Git directory contains invalid system files."}
-2026-03-07T12:02:39.3423817Z 2026-03-07 12:02:39,341 - fabric_client - ERROR - Error details: {
-2026-03-07T12:02:39.3424764Z   "requestId": "0e657732-62c2-4816-a0c6-6c106f6bea61",
-2026-03-07T12:02:39.3425584Z   "errorCode": "InvalidSystemFiles",
-2026-03-07T12:02:39.3426040Z   "message": "Git directory contains invalid system files."
-2026-03-07T12:02:39.3426477Z }
-2026-03-07T12:02:39.3427576Z 2026-03-07 12:02:39,341 - __main__ - WARNING -   ⚠ Post-deploy Git sync failed: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/status
-2026-03-07T12:02:39.3428324Z 2026-03-07 12:02:39,341 - __main__ - WARNING -     You may need to resolve Source Control conflicts manually in Fabric portal:
-2026-03-07T12:02:39.3429073Z 2026-03-07 12:02:39,341 - __main__ - WARNING -     1. Open the workspace in Fabric
-2026-03-07T12:02:39.3433923Z 2026-03-07 12:02:39,341 - __main__ - WARNING -     2. Click 'Source control' > 'Update all' (to pull Git changes)
-2026-03-07T12:02:39.3434368Z 2026-03-07 12:02:39,342 - __main__ - WARNING -     3. Then commit any remaining workspace changes
-2026-03-07T12:02:39.3777231Z 
-2026-03-07T12:02:39.3779612Z ✓ Dev deployment completed successfully
-2026-03-07T12:02:39.3792556Z 
-2026-03-07T12:02:39.3858338Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-07T12:32:20.5922602Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-07T12:32:20.5931605Z ==============================================================================
+2026-03-07T12:32:20.5931815Z Task         : Command line
+2026-03-07T12:32:20.5931941Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-03-07T12:32:20.5932140Z Version      : 2.268.0
+2026-03-07T12:32:20.5932426Z Author       : Microsoft Corporation
+2026-03-07T12:32:20.5932565Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-03-07T12:32:20.5932763Z ==============================================================================
+2026-03-07T12:32:20.7296575Z Generating script.
+2026-03-07T12:32:20.7303464Z ========================== Starting Command Output ===========================
+2026-03-07T12:32:20.7320267Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/00d756b2-5190-4446-84b3-c635be007bfd.sh
+2026-03-07T12:32:20.7380506Z ========================================
+2026-03-07T12:32:20.7382304Z DEBUG: Verifying Repository Checkout
+2026-03-07T12:32:20.7383101Z ========================================
+2026-03-07T12:32:20.7386550Z Current directory: /home/vsts/work/1/s
+2026-03-07T12:32:20.7387814Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-03-07T12:32:20.7387970Z 
+2026-03-07T12:32:20.7388231Z Contents of Build.SourcesDirectory:
+2026-03-07T12:32:20.7401385Z total 40
+2026-03-07T12:32:20.7407851Z drwxr-xr-x 8 vsts vsts 4096 Mar  7 12:31 .
+2026-03-07T12:32:20.7408270Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 12:31 ..
+2026-03-07T12:32:20.7408664Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 12:31 .deployment_tracking
+2026-03-07T12:32:20.7409073Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 12:31 .git
+2026-03-07T12:32:20.7412137Z -rw-r--r-- 1 vsts vsts   44 Mar  7 12:31 .gitignore
+2026-03-07T12:32:20.7412686Z -rw-r--r-- 1 vsts vsts  985 Mar  7 12:31 README.md
+2026-03-07T12:32:20.7413089Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 12:31 azure-pipelines
+2026-03-07T12:32:20.7413475Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 12:31 config
+2026-03-07T12:32:20.7413832Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 12:31 scripts
+2026-03-07T12:32:20.7414485Z drwxr-xr-x 4 vsts vsts 4096 Mar  7 12:31 wsartifacts
+2026-03-07T12:32:20.7414793Z 
+2026-03-07T12:32:20.7416002Z Checking for required folders:
+2026-03-07T12:32:20.7416535Z ✓ scripts/ exists
+2026-03-07T12:32:20.7416883Z ✓ config/ exists
+2026-03-07T12:32:20.7417218Z ✓ wsartifacts/ exists
+2026-03-07T12:32:20.7417521Z ========================================
+2026-03-07T12:32:20.7417840Z ========================================
+2026-03-07T12:32:20.7418260Z Deploying to Dev Environment
+2026-03-07T12:32:20.7418590Z ========================================
+2026-03-07T12:32:20.7418892Z Features:
+2026-03-07T12:32:20.7419349Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-03-07T12:32:20.7419811Z   📊 Dependency-aware deployment ordering
+2026-03-07T12:32:20.7420256Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-03-07T12:32:20.7420424Z 
+2026-03-07T12:32:20.7420706Z Deployment steps:
+2026-03-07T12:32:20.7421007Z   1. Create artifacts from config file
+2026-03-07T12:32:20.7421327Z   2. Detect changed artifacts using Git diff
+2026-03-07T12:32:20.7421672Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-03-07T12:32:20.7422093Z ========================================
+2026-03-07T12:32:21.4832001Z 2026-03-07 12:32:21,482 - __main__ - INFO - Initializing deployment to dev environment
+2026-03-07T12:32:21.4834870Z 2026-03-07 12:32:21,482 - config_manager - INFO - Loading configuration from: config/dev.json
+2026-03-07T12:32:21.4835375Z 2026-03-07 12:32:21,482 - __main__ - INFO - Using environment-specific service principal for dev
+2026-03-07T12:32:21.4835813Z 2026-03-07 12:32:21,483 - __main__ - INFO - Using artifacts root folder: wsartifacts
+2026-03-07T12:32:21.4840378Z 2026-03-07 12:32:21,483 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
+2026-03-07T12:32:21.9749627Z 2026-03-07 12:32:21,974 - fabric_auth - INFO - Authentication validation successful
+2026-03-07T12:32:21.9757889Z 2026-03-07 12:32:21,975 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
+2026-03-07T12:32:21.9763070Z 2026-03-07 12:32:21,975 - __main__ - INFO - Running in artifact creation mode
+2026-03-07T12:32:21.9763566Z 2026-03-07 12:32:21,975 - __main__ - INFO - ============================================================
+2026-03-07T12:32:21.9764478Z 2026-03-07 12:32:21,975 - __main__ - INFO - Creating artifacts from configuration for dev
+2026-03-07T12:32:21.9764980Z 2026-03-07 12:32:21,975 - __main__ - INFO - ============================================================
+2026-03-07T12:32:21.9765470Z 2026-03-07 12:32:21,975 - __main__ - INFO - No artifacts configured for creation
+2026-03-07T12:32:21.9767420Z 2026-03-07 12:32:21,975 - __main__ - INFO - Artifact creation completed successfully
+2026-03-07T12:32:21.9770503Z 2026-03-07 12:32:21,975 - __main__ - INFO - ============================================================
+2026-03-07T12:32:21.9771177Z 2026-03-07 12:32:21,976 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
+2026-03-07T12:32:21.9772030Z 2026-03-07 12:32:21,976 - __main__ - INFO - ============================================================
+2026-03-07T12:32:21.9772743Z 2026-03-07 12:32:21,976 - __main__ - INFO - Discovering artifacts from file system...
+2026-03-07T12:32:21.9773507Z 2026-03-07 12:32:21,976 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
+2026-03-07T12:32:21.9776152Z 2026-03-07 12:32:21,976 - __main__ - INFO - Discovered 1 Variable Library: ReportingVariables
+2026-03-07T12:32:21.9781793Z 2026-03-07 12:32:21,976 - __main__ - INFO - ============================================================
+2026-03-07T12:32:21.9782506Z 2026-03-07 12:32:21,977 - __main__ - INFO - DISCOVERY COMPLETE: Found 2 total artifacts
+2026-03-07T12:32:21.9783149Z 2026-03-07 12:32:21,977 - __main__ - INFO - ============================================================
+2026-03-07T12:32:21.9783782Z 2026-03-07 12:32:21,977 - __main__ - INFO - 
+2026-03-07T12:32:21.9784731Z 2026-03-07 12:32:21,977 - __main__ - INFO - ============================================================
+2026-03-07T12:32:21.9785655Z 2026-03-07 12:32:21,977 - __main__ - INFO - CHANGE DETECTION
+2026-03-07T12:32:21.9786081Z 2026-03-07 12:32:21,977 - __main__ - INFO - ============================================================
+2026-03-07T12:32:21.9842492Z 2026-03-07 12:32:21,983 - change_detector - INFO - Found 2 changed file(s) since 5a5fa165
+2026-03-07T12:32:21.9843419Z 2026-03-07 12:32:21,983 - change_detector - INFO - Change detection: 0 artifact(s) changed
+2026-03-07T12:32:21.9844668Z 2026-03-07 12:32:21,983 - __main__ - INFO - No changes detected since last deployment
+2026-03-07T12:32:21.9845443Z 2026-03-07 12:32:21,983 - __main__ - INFO - Skipping deployment (use --force-all to override)
+2026-03-07T12:32:21.9846264Z 2026-03-07 12:32:21,984 - __main__ - INFO - ============================================================
+2026-03-07T12:32:21.9847096Z 2026-03-07 12:32:21,984 - __main__ - INFO - Starting deployment to dev environment
+2026-03-07T12:32:21.9848243Z 2026-03-07 12:32:21,984 - __main__ - INFO - ============================================================
+2026-03-07T12:32:21.9852350Z 2026-03-07 12:32:21,984 - __main__ - INFO -   ✓ Auto-generated logicalId for wsartifacts/Variablelibraries/ReportingVariables.VariableLibrary/.platform: 904d0439-7513-4eb7-8050-9cb7e5cab1fc
+2026-03-07T12:32:21.9923041Z 2026-03-07 12:32:21,992 - __main__ - WARNING -   ⚠ Could not push .platform fixes to Git: Author identity unknown
+2026-03-07T12:32:21.9923434Z 
+2026-03-07T12:32:21.9923786Z *** Please tell me who you are.
+2026-03-07T12:32:21.9931955Z 
+2026-03-07T12:32:21.9932297Z Run
+2026-03-07T12:32:21.9932403Z 
+2026-03-07T12:32:21.9932725Z   git config --global user.email "you@example.com"
+2026-03-07T12:32:21.9933074Z   git config --global user.name "Your Name"
+2026-03-07T12:32:21.9933211Z 
+2026-03-07T12:32:21.9933503Z to set your account's default identity.
+2026-03-07T12:32:21.9934276Z Omit --global to set the identity only in this repository.
+2026-03-07T12:32:21.9934449Z 
+2026-03-07T12:32:21.9934870Z fatal: empty ident name (for <vsts@runnervmzqwse.euygxapij1ge5abgbjz5w0exlb.zx.internal.cloudapp.net>) not allowed
+2026-03-07T12:32:21.9935097Z 
+2026-03-07T12:32:21.9935479Z 2026-03-07 12:32:21,992 - __main__ - WARNING -     Commit the logicalId fixes manually and push to the remote branch
+2026-03-07T12:32:21.9936082Z 2026-03-07 12:32:21,992 - __main__ - INFO -   Fixed 1 .platform file(s) with empty logicalId
+2026-03-07T12:32:21.9938788Z 2026-03-07 12:32:21,992 - __main__ - INFO - 
+2026-03-07T12:32:21.9940173Z 2026-03-07 12:32:21,992 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T12:32:21.9940951Z 2026-03-07 12:32:21,992 - __main__ - INFO - SOURCE CONTROL SYNC
+2026-03-07T12:32:21.9941752Z 2026-03-07 12:32:21,992 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T12:32:21.9942625Z 2026-03-07 12:32:21,992 - __main__ - INFO - Checking for pending Git updates in workspace...
+2026-03-07T12:32:21.9943372Z 2026-03-07 12:32:21,992 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T12:32:22.2036676Z 2026-03-07 12:32:22,203 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
+2026-03-07T12:32:22.2040054Z 2026-03-07 12:32:22,203 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T12:32:26.7371606Z 2026-03-07 12:32:26,736 - fabric_client - ERROR - HTTP Error: 400 - {"requestId":"bfebdbca-0a3d-4b94-aec5-a84ec20c2217","errorCode":"InvalidSystemFiles","message":"Git directory contains invalid system files."}
+2026-03-07T12:32:26.7374846Z 2026-03-07 12:32:26,737 - fabric_client - ERROR - Error details: {
+2026-03-07T12:32:26.7376274Z   "requestId": "bfebdbca-0a3d-4b94-aec5-a84ec20c2217",
+2026-03-07T12:32:26.7376583Z   "errorCode": "InvalidSystemFiles",
+2026-03-07T12:32:26.7376888Z   "message": "Git directory contains invalid system files."
+2026-03-07T12:32:26.7377145Z }
+2026-03-07T12:32:26.7378005Z 2026-03-07 12:32:26,737 - __main__ - WARNING -   ⚠ Source control sync failed: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/status
+2026-03-07T12:32:26.7378577Z 2026-03-07 12:32:26,737 - __main__ - WARNING -     Update source control manually in Fabric portal
+2026-03-07T12:32:26.7387184Z 2026-03-07 12:32:26,738 - dependency_resolver - INFO - ✅ All dependencies are valid
+2026-03-07T12:32:26.7389590Z 2026-03-07 12:32:26,738 - dependency_resolver - WARNING - No artifacts to deploy
+2026-03-07T12:32:26.7390017Z 2026-03-07 12:32:26,738 - __main__ - WARNING - No artifacts to deploy
+2026-03-07T12:32:26.7390400Z 2026-03-07 12:32:26,738 - __main__ - INFO - 
+2026-03-07T12:32:26.7390821Z 2026-03-07 12:32:26,738 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T12:32:26.7391291Z 2026-03-07 12:32:26,738 - __main__ - INFO - POST-DEPLOY: LINK WORKSPACE ITEMS TO GIT
+2026-03-07T12:32:26.7391744Z 2026-03-07 12:32:26,738 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T12:32:26.7396467Z 2026-03-07 12:32:26,738 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T12:32:26.9285659Z 2026-03-07 12:32:26,928 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
+2026-03-07T12:32:26.9288397Z 2026-03-07 12:32:26,928 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T12:32:29.6018240Z 2026-03-07 12:32:29,601 - fabric_client - ERROR - HTTP Error: 400 - {"requestId":"cb46610e-1f27-4dbb-abba-cf4d725bff57","errorCode":"InvalidSystemFiles","message":"Git directory contains invalid system files."}
+2026-03-07T12:32:29.6022265Z 2026-03-07 12:32:29,601 - fabric_client - ERROR - Error details: {
+2026-03-07T12:32:29.6022831Z   "requestId": "cb46610e-1f27-4dbb-abba-cf4d725bff57",
+2026-03-07T12:32:29.6023124Z   "errorCode": "InvalidSystemFiles",
+2026-03-07T12:32:29.6024059Z   "message": "Git directory contains invalid system files."
+2026-03-07T12:32:29.6024375Z }
+2026-03-07T12:32:29.6025302Z 2026-03-07 12:32:29,601 - __main__ - WARNING -   ⚠ Post-deploy Git sync failed: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/status
+2026-03-07T12:32:29.6025999Z 2026-03-07 12:32:29,601 - __main__ - WARNING -     You may need to resolve Source Control conflicts manually in Fabric portal:
+2026-03-07T12:32:29.6026412Z 2026-03-07 12:32:29,601 - __main__ - WARNING -     1. Open the workspace in Fabric
+2026-03-07T12:32:29.6026816Z 2026-03-07 12:32:29,601 - __main__ - WARNING -     2. Click 'Source control' > 'Update all' (to pull Git changes)
+2026-03-07T12:32:29.6027236Z 2026-03-07 12:32:29,601 - __main__ - WARNING -     3. Then commit any remaining workspace changes
+2026-03-07T12:32:29.6333802Z 
+2026-03-07T12:32:29.6337119Z ✓ Dev deployment completed successfully
+2026-03-07T12:32:29.6345195Z 
+2026-03-07T12:32:29.6412373Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

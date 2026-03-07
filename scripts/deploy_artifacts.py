@@ -95,6 +95,12 @@ class FabricDeployer:
         # Track artifacts created in this run to avoid immediate update attempts
         self._created_in_this_run = set()
         
+        # Mapping from folder-based name to displayName for change detection.
+        # Built during discovery when a .platform displayName differs from
+        # the folder name (e.g. folder "ReportingVariables.VariableLibrary"
+        # but displayName "ReportingWSVariables").  Keyed by artifact type.
+        self._artifact_name_aliases: Dict[str, Dict[str, str]] = {}
+        
         # Paginated reports deferred to Git sync.
         # _deploy_paginated_report() records each report here; after
         # _update_source_control() completes, deploy_all() runs TakeOver +
@@ -253,6 +259,39 @@ class FabricDeployer:
             )
         return self._folder_cache[folder_name]
     
+    def _register_name_alias(self, artifact_type: str, folder_name: str, display_name: str) -> None:
+        """Register an alias when a folder name differs from the .platform displayName.
+        
+        Change detection extracts names from file paths (folder names), but
+        discovery uses the displayName from .platform files.  This mapping
+        lets _apply_change_detection() resolve the difference.
+        """
+        if folder_name != display_name:
+            if artifact_type not in self._artifact_name_aliases:
+                self._artifact_name_aliases[artifact_type] = {}
+            self._artifact_name_aliases[artifact_type][folder_name] = display_name
+            logger.debug(f"Registered name alias: {artifact_type}/{folder_name} → {display_name}")
+    
+    def _remap_changed_artifact_names(self, changed_artifacts: Dict[str, Set[str]]) -> None:
+        """Remap changed artifact names from folder-based to displayName.
+        
+        Change detection uses folder names from git diff; discovery uses
+        displayName from .platform files.  When these differ, this method
+        translates so the filtering step can match them correctly.
+        """
+        for artifact_type, names in list(changed_artifacts.items()):
+            type_aliases = self._artifact_name_aliases.get(artifact_type, {})
+            if type_aliases:
+                remapped = set()
+                for name in names:
+                    if name in type_aliases:
+                        display_name = type_aliases[name]
+                        logger.info(f"  Resolved folder name '{name}' → displayName '{display_name}'")
+                        remapped.add(display_name)
+                    else:
+                        remapped.add(name)
+                changed_artifacts[artifact_type] = remapped
+    
     def _apply_change_detection(self) -> None:
         """
         Apply change detection to filter artifacts
@@ -277,6 +316,10 @@ class FabricDeployer:
             logger.info("Skipping deployment (use --force-all to override)")
             self.resolver.artifacts = []
             return
+        
+        # Remap change detection names (folder-based) to discovery names
+        # (displayName from .platform) so the filtering step can match them.
+        self._remap_changed_artifact_names(changed_artifacts)
         
         # Get all discovered artifacts organized by type
         all_discovered = {}
@@ -747,6 +790,8 @@ class FabricDeployer:
                         items=selective_items if selective_items else None
                     )
                     logger.info("  ✓ Incoming changes synced")
+                    for sn in sync_names:
+                        logger.info(f"  ✅ Deployed via Git sync: {sn}")
                 elif not skipped:
                     # remote_changes existed but none were safe — this shouldn't
                     # happen, but handle gracefully
@@ -1147,6 +1192,7 @@ class FabricDeployer:
                     platform_data = json.load(f)
                 
                 lakehouse_name = platform_data["metadata"].get("displayName", base_name)
+                self._register_name_alias("Lakehouse", base_name, lakehouse_name)
                 # Always use standard format for consistency with view dependencies
                 lakehouse_id = f"lakehouse-{lakehouse_name}"
                 
@@ -1172,6 +1218,7 @@ class FabricDeployer:
                     metadata = json.load(f)
                 
                 lakehouse_name = metadata.get("displayName", base_name)
+                self._register_name_alias("Lakehouse", base_name, lakehouse_name)
                 
                 # Skip if already discovered from JSON file
                 if lakehouse_name in discovered:
@@ -1438,10 +1485,12 @@ class FabricDeployer:
                 with open(platform_file, 'r') as f:
                     platform_data = json.load(f)
                 library_name = platform_data["metadata"].get("displayName", base_name)
+                self._register_name_alias("VariableLibrary", base_name, library_name)
             elif metadata_file.exists():
                 with open(metadata_file, 'r') as f:
                     metadata = json.load(f)
                 library_name = metadata.get("displayName", base_name)
+                self._register_name_alias("VariableLibrary", base_name, library_name)
             elif value_sets_dir.exists():
                 # valueSets folder exists - assume it's a custom format library
                 library_name = base_name
@@ -1578,6 +1627,8 @@ class FabricDeployer:
                             platform_data = json.load(f)
                         
                         model_name = platform_data.get("metadata", {}).get("displayName", item.name.replace(".SemanticModel", ""))
+                        folder_base = item.name.replace(".SemanticModel", "")
+                        self._register_name_alias("SemanticModel", folder_base, model_name)
                         discovered.append(f"{model_name} (Fabric Git)")
                         model_id = platform_data.get("config", {}).get("logicalId", f"semanticmodel-{model_name}")
                         
@@ -1633,6 +1684,8 @@ class FabricDeployer:
                             platform_data = json.load(f)
                         
                         report_name = platform_data.get("metadata", {}).get("displayName", item.name.replace(".Report", ""))
+                        folder_base = item.name.replace(".Report", "")
+                        self._register_name_alias("Report", folder_base, report_name)
                         discovered.append(f"{report_name} (Fabric Git)")
                         report_id = platform_data.get("config", {}).get("logicalId", f"report-{report_name}")
                         
@@ -1741,6 +1794,8 @@ class FabricDeployer:
                                 platform_data = json.load(f)
                             
                             report_name = platform_data.get("metadata", {}).get("displayName", item.name.replace(".PaginatedReport", ""))
+                            folder_base = item.name.replace(".PaginatedReport", "")
+                            self._register_name_alias("PaginatedReport", folder_base, report_name)
                             discovered.append(f"{report_name} (Fabric Git)")
                             report_id = platform_data.get("config", {}).get("logicalId", f"paginatedreport-{report_name}")
                             

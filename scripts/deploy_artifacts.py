@@ -295,14 +295,14 @@ class FabricDeployer:
     def _find_missing_workspace_artifacts(self) -> Dict[str, set]:
         """Check which discovered artifacts are missing from the workspace.
         
-        Lists the current workspace items via API and compares against
-        discovered artifacts.  Returns a dict of {artifact_type: {names}}
-        for artifacts that exist in discovery but not in the workspace.
-        
-        This ensures new artifacts get deployed even when change detection
-        reports no file changes (e.g. first deploy after adding artifacts
-        to the repo, or workspace was reset/recreated).
+        Returns a dict of {artifact_type: {names}} for artifacts that exist
+        in discovery (wsartifacts/) but are not yet present in the Fabric
+        workspace.  This handles first deploy, workspace reset, or newly
+        added artifacts that change detection would otherwise skip.
         """
+        needs_deploy = {}
+        
+        # Check for items missing from workspace
         try:
             workspace_items = self.client.list_items(self.workspace_id)
         except Exception as e:
@@ -319,7 +319,6 @@ class FabricDeployer:
             ws_items_set.add((item_type, item_name))
         
         # Check each discovered artifact against workspace
-        missing = {}
         for artifact in self.resolver.artifacts:
             artifact_type = artifact["type"].value  # e.g. "SemanticModel"
             artifact_name = artifact["name"]
@@ -329,11 +328,11 @@ class FabricDeployer:
                 continue
             
             if (artifact_type.lower(), artifact_name.lower()) not in ws_items_set:
-                if artifact_type not in missing:
-                    missing[artifact_type] = set()
-                missing[artifact_type].add(artifact_name)
+                if artifact_type not in needs_deploy:
+                    needs_deploy[artifact_type] = set()
+                needs_deploy[artifact_type].add(artifact_name)
         
-        return missing
+        return needs_deploy
     
     def _apply_change_detection(self) -> None:
         """
@@ -355,15 +354,12 @@ class FabricDeployer:
             return
         
         # Workspace reconciliation: check which discovered artifacts are
-        # missing from the workspace and include them even if unchanged.
-        # This handles the case where items exist in git/discovery but
-        # have not yet been created in the workspace (e.g. first deploy
-        # of new artifacts, or workspace was reset).
+        # missing from the workspace and need to be deployed via API.
         missing_artifacts = self._find_missing_workspace_artifacts()
         
         if missing_artifacts:
             total_missing = sum(len(names) for names in missing_artifacts.values())
-            logger.info(f"🔍 Found {total_missing} artifact(s) missing from workspace — including in deployment:")
+            logger.info(f"🔍 Found {total_missing} artifact(s) needing API deployment:")
             for artifact_type, names in sorted(missing_artifacts.items()):
                 for name in sorted(names):
                     logger.info(f"    + {name} ({artifact_type})")
@@ -521,23 +517,27 @@ class FabricDeployer:
     
     def _update_source_control(self) -> bool:
         """
-        Selectively sync paginated reports from Git to the workspace.
+        Sync ONLY paginated reports from Git into the workspace.
         
-        Only paginated reports are synced via updateFromGit because service
-        principals cannot create them via the Fabric REST API.  All other
-        artifact types (notebooks, reports, semantic models, lakehouses,
-        pipelines, etc.) are deployed exclusively via the API.
+        Paginated reports cannot be deployed via the Fabric REST API when
+        using a service principal (PrincipalTypeNotSupported error).  They
+        are synced from Git instead.
         
-        After API deployment, _commit_workspace_to_git() pushes the API-created
-        items back to Git so they are linked in Source Control.
+        All other item types (semantic models, reports, notebooks,
+        lakehouses, pipelines, etc.) are deployed exclusively via the API.
+        This avoids "duplicate display name" conflicts that occur when
+        Git-synced items clash with API-created items.
+        
+        After API deployment, _commit_workspace_to_git() pushes API changes
+        back to Git so they are properly linked.
         
         The feature is controlled by the config setting:
             git_integration.auto_update_from_git  (default: True)
         
         Flow:
           1. GET /git/status → get workspaceHead, remoteCommitHash, and changes
-          2. Filter to only paginated report changes
-          3. POST /git/updateFromGit with selective items → sync only paginated reports
+          2. Filter to paginated reports only (rdlreport / paginatedreport)
+          3. POST /git/updateFromGit (selective) → sync only paginated reports
         
         Returns:
             True if update succeeded or was not needed, False on failure
@@ -596,44 +596,37 @@ class FabricDeployer:
             else:
                 logger.info(f"  📦 Commits available: workspace is behind remote")
             
-            # Step 2: Selective sync — only paginated reports
-            #
-            # Paginated reports (rdlreport/paginatedreport) are the ONLY items
-            # that need Git sync because service principals cannot create them
-            # via the Fabric API.  Everything else is deployed via REST API:
-            #   - Semantic models → API create/update + connection binding
-            #   - Power BI reports → API create/update + rebinding
-            #   - Notebooks, pipelines, lakehouses, etc. → API create/update
-            #
-            # After API deployment, _commit_workspace_to_git() links all
-            # API-created items back to the Git repo.
-            
+            # Step 2: Filter to paginated reports only.
+            # All other types are deployed via API — syncing them from Git
+            # would create duplicates.
             paginated_types = {"rdlreport", "paginatedreport"}
             
-            paginated_changes = []
-            api_changes = []
-            for change in remote_changes:
-                item_type = change.get("itemMetadata", {}).get("itemType", "").lower()
-                if item_type in paginated_types:
-                    paginated_changes.append(change)
+            paginated_to_sync = []
+            api_managed = []
+            
+            for rc in remote_changes:
+                r_meta = rc.get("itemMetadata", {})
+                r_name = r_meta.get("displayName", "Unknown")
+                r_type = r_meta.get("itemType", "Unknown")
+                
+                if r_type.lower() in paginated_types:
+                    paginated_to_sync.append(rc)
                 else:
-                    api_changes.append(change)
+                    api_managed.append(f"{r_name} ({r_type})")
             
-            if api_changes:
-                api_names = [f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})" for c in api_changes]
-                logger.info(f"  ⏭ Skipping {len(api_changes)} item(s) from Git sync (deployed via API):")
-                for an in api_names:
-                    logger.info(f"    - {an}")
+            if api_managed:
+                logger.info(f"  ⏭ Skipping {len(api_managed)} item(s) from Git sync (deployed via API):")
+                for am in api_managed:
+                    logger.info(f"    - {am}")
             
-            if not paginated_changes:
+            if not paginated_to_sync:
                 logger.info("  ✓ No paginated reports pending in Git — skipping updateFromGit")
-                logger.info("    All items will be deployed via API and committed to Git afterward")
                 return True
             
-            # Build selective items list for updateFromGit (paginated reports only)
+            # Build selective items list for paginated reports only
             selective_items = []
-            for change in paginated_changes:
-                item_meta = change.get("itemMetadata", {})
+            for rc in paginated_to_sync:
+                item_meta = rc.get("itemMetadata", {})
                 item_entry = {}
                 if item_meta.get("logicalId"):
                     item_entry["logicalId"] = item_meta["logicalId"]
@@ -642,15 +635,16 @@ class FabricDeployer:
                 if item_entry:
                     selective_items.append(item_entry)
             
-            pag_names = [f"{c.get('itemMetadata', {}).get('displayName', '?')}" for c in paginated_changes]
-            logger.info(f"  Syncing {len(paginated_changes)} paginated report(s) from Git:")
-            for pn in pag_names:
-                logger.info(f"    - {pn}")
-            
             conflict_policy = git_config.get("conflict_resolution_policy", "PreferRemote")
             allow_override = git_config.get("allow_override_items", True)
             
-            logger.info(f"  Updating workspace from Git (policy: {conflict_policy}, paginated reports only)...")
+            sync_names = [
+                f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
+                for c in paginated_to_sync
+            ]
+            logger.info(f"  📥 Syncing {len(paginated_to_sync)} paginated report(s) from Git:")
+            for sn in sync_names:
+                logger.info(f"    - {sn}")
             
             self.client.update_from_git(
                 workspace_id=self.workspace_id,
@@ -661,7 +655,7 @@ class FabricDeployer:
                 items=selective_items if selective_items else None
             )
             
-            logger.info("  ✓ Paginated reports synced from Git successfully")
+            logger.info(f"  ✓ {len(paginated_to_sync)} paginated report(s) synced from Git")
             return True
             
         except Exception as e:
@@ -675,49 +669,11 @@ class FabricDeployer:
                 logger.warning("    Grant Contributor role and Workspace.GitUpdate.All scope")
                 return False
             elif "PrincipalTypeNotSupported" in error_msg:
-                # The updateFromGit API is all-or-nothing — it fails if ANY changed
-                # item uses a type that doesn't support SP-based Git sync (e.g.
-                # rdlreport / paginatedreport).
-                #
-                # Strategy: identify the unsupported items.
-                # - If ONLY paginated reports blocked the sync, treat as success
-                #   (they are skipped; post-sync datasource updates still run
-                #   for reports already in the workspace).
-                # - If other item types also failed, log and return False.
-                unsupported_types = {"rdlreport", "paginatedreport"}
-                try:
-                    status = self.client.get_git_status(self.workspace_id)
-                    remote_changes = [c for c in status.get("changes", []) if c.get("remoteChange")]
-                    
-                    non_paginated = [
-                        c for c in remote_changes
-                        if c.get("itemMetadata", {}).get("itemType", "").lower() not in unsupported_types
-                    ]
-                    paginated = [
-                        c for c in remote_changes
-                        if c.get("itemMetadata", {}).get("itemType", "").lower() in unsupported_types
-                    ]
-                    
-                    if paginated:
-                        pag_names = [c.get("itemMetadata", {}).get("displayName", "?") for c in paginated]
-                        logger.info(f"  ℹ Paginated report(s) skipped in Git sync (SP not supported): {', '.join(pag_names)}")
-                        logger.info(f"    These will be handled by post-sync datasource updates if already in workspace")
-                    
-                    if non_paginated:
-                        np_names = [f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})" for c in non_paginated]
-                        logger.warning(f"  ⚠ {len(non_paginated)} non-paginated item(s) also could not sync from Git:")
-                        for np_name in np_names:
-                            logger.warning(f"    - {np_name}")
-                        logger.warning(f"    Sync these manually in Fabric portal: Source control > Update all")
-                        return False
-                    else:
-                        # Only paginated reports were unsupported — skip them, treat as success
-                        logger.info(f"  ✓ All unsupported items are paginated reports — skipping, Git sync otherwise up to date")
-                        return True
-                except Exception:
-                    logger.warning("  ⚠ Service principal is not supported for Git operations on some item types")
-                    logger.warning("    Update source control manually in Fabric portal")
-                    return False
+                logger.warning("  ⚠ Service principal is not supported for Git operations on some item types")
+                logger.warning("    Paginated reports can only be synced interactively. They will be")
+                logger.warning("    handled by post-sync datasource updates if already in workspace.")
+                logger.warning("    All other artifacts are deployed via API.")
+                return True  # Treat as non-fatal; API deployment handles non-paginated items
             elif "GitCredentialsNotConfigured" in error_msg:
                 logger.warning("  ⚠ Git credentials are not configured for the service principal")
                 logger.warning("    Set git_integration.git_credentials_connection_id in config")
@@ -3209,15 +3165,13 @@ print('Notebook initialized')
             logger.info("DRY RUN MODE - No changes will be made")
         logger.info("="*60)
         
-        # Source control sync — paginated reports only.
-        # Paginated reports cannot be created via the Fabric REST API by
-        # service principals, so they are synced from Git using updateFromGit.
-        # All other artifact types (reports, semantic models, notebooks,
-        # lakehouses, pipelines, etc.) are deployed exclusively via the API.
+        # Source control sync — pull all pending Git items into the workspace.
+        # This creates reports, datasets, and other items with correct Git IDs
+        # so that API deployment can UPDATE them (by display-name match) rather
+        # than creating duplicate items with new IDs.
         #
-        # After API deployment, _commit_workspace_to_git() links all
-        # API-created items back to the Git repo, preventing duplicate-name
-        # conflicts in the Fabric Source Control panel.
+        # After API deployment, _commit_workspace_to_git() commits any
+        # API modifications back to Git, keeping Source Control in sync.
         if not dry_run:
             self._update_source_control()
         
@@ -3232,12 +3186,6 @@ print('Notebook initialized')
         
         if not deployment_order:
             logger.warning("No artifacts to deploy")
-            # Even with no artifacts to deploy, if workspace is Git-connected
-            # we may need to commit existing API-created items to Git to
-            # resolve Source Control conflicts from previous runs.
-            git_config = self.config.config.get("git_integration", {})
-            if not dry_run and git_config.get("auto_update_from_git", True):
-                self._commit_workspace_to_git()
             return True
         
         # Deploy all artifacts via API in dependency order

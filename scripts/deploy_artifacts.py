@@ -684,10 +684,15 @@ class FabricDeployer:
             # errors.  Skip any remote "Added" item whose displayName already
             # exists in the workspace.
             if remote_changes:
-                # Build a set of workspace item names for quick lookup
+                # Build a set of workspace item names for quick lookup.
+                # We compare by displayName only (lowered) because the
+                # git/status API and list_items API use DIFFERENT type labels
+                # for the same artifact (e.g. "Variables" vs "VariableLibrary",
+                # "DataPipeline" vs "Pipeline").  Name-only matching is safe
+                # because Fabric enforces unique displayName within a type.
                 workspace_items = self.client.list_items(self.workspace_id)
-                ws_name_type_set = {
-                    (w.get("displayName", "").lower(), w.get("type", "").lower())
+                ws_name_set = {
+                    w.get("displayName", "").lower()
                     for w in workspace_items
                 }
                 
@@ -701,7 +706,7 @@ class FabricDeployer:
                     r_change = rc.get("remoteChange", "")
                     
                     # Only skip "Added" items that already exist in workspace
-                    if r_change == "Added" and (r_name.lower(), r_type.lower()) in ws_name_type_set:
+                    if r_change == "Added" and r_name.lower() in ws_name_set:
                         skipped.append(f"{r_name} ({r_type})")
                     else:
                         safe_to_sync.append(rc)

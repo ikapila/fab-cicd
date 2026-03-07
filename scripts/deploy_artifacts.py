@@ -8,6 +8,8 @@ import re
 import sys
 import json
 import base64
+import uuid
+import subprocess
 import argparse
 import logging
 import time
@@ -615,6 +617,12 @@ class FabricDeployer:
                 logger.warning("    Set git_integration.git_credentials_connection_id in config")
                 logger.warning("    See: https://learn.microsoft.com/en-us/fabric/cicd/git-integration/git-automation#get-or-create-git-provider-credentials-connection")
                 return False
+            elif "InvalidSystemFiles" in error_msg:
+                logger.warning(f"  ⚠ Source control sync failed: Git directory contains invalid system files")
+                logger.warning("    This is usually caused by a .platform file with an empty logicalId.")
+                logger.warning("    Fix: ensure every .platform file has a valid GUID in config.logicalId")
+                logger.warning("    Continuing with API deployment — Git sync will be retried post-deploy")
+                return False
             else:
                 logger.warning(f"  ⚠ Source control sync failed: {e}")
                 logger.warning("    Update source control manually in Fabric portal")
@@ -773,11 +781,19 @@ class FabricDeployer:
             return True
             
         except Exception as e:
-            logger.warning(f"  ⚠ Post-deploy Git sync failed: {e}")
-            logger.warning("    You may need to resolve Source Control conflicts manually in Fabric portal:")
-            logger.warning("    1. Open the workspace in Fabric")
-            logger.warning("    2. Click 'Source control' > 'Update all' (to pull Git changes)")
-            logger.warning("    3. Then commit any remaining workspace changes")
+            error_msg = str(e)
+            if "InvalidSystemFiles" in error_msg:
+                logger.warning(f"  ⚠ Post-deploy Git sync failed: Git directory contains invalid system files")
+                logger.warning("    This is usually caused by a .platform file with an empty logicalId.")
+                logger.warning("    Fix: ensure every .platform file in the connected Git branch has")
+                logger.warning("    a valid GUID in config.logicalId, then commit and push the fix.")
+                logger.warning("    The pipeline auto-fixes local files, but the remote branch must also be updated.")
+            else:
+                logger.warning(f"  ⚠ Post-deploy Git sync failed: {e}")
+                logger.warning("    You may need to resolve Source Control conflicts manually in Fabric portal:")
+                logger.warning("    1. Open the workspace in Fabric")
+                logger.warning("    2. Click 'Source control' > 'Update all' (to pull Git changes)")
+                logger.warning("    3. Then commit any remaining workspace changes")
             return False
 
     def _ensure_git_credentials(self) -> None:
@@ -3068,6 +3084,95 @@ print('Notebook initialized')
             "variables": variables
         }
     
+    def _validate_and_fix_platform_files(self) -> int:
+        """
+        Scan all .platform files in wsartifacts and auto-generate a logicalId
+        where the field is empty or missing.
+
+        Fabric's Git integration requires every .platform file to contain a
+        valid GUID in config.logicalId.  An empty string causes the git/status
+        API to fail with InvalidSystemFiles, blocking all Git operations.
+
+        When files are fixed, the changes are committed and pushed to the
+        remote Git branch so that Fabric's git/status sees valid files.
+
+        Returns:
+            Number of files that were fixed.
+        """
+        artifacts_root = self.artifacts_dir / self.artifacts_root_folder
+        if not artifacts_root.exists():
+            return 0
+
+        fixed = 0
+        fixed_files: list[str] = []
+        for platform_file in artifacts_root.rglob(".platform"):
+            try:
+                with open(platform_file, 'r') as f:
+                    data = json.load(f)
+
+                config_block = data.get("config", {})
+                logical_id = config_block.get("logicalId", "")
+
+                # Fix if logicalId is empty, missing, or the placeholder zeros
+                if not logical_id or logical_id == "00000000-0000-0000-0000-000000000000":
+                    new_id = str(uuid.uuid4())
+                    if "config" not in data:
+                        data["config"] = {}
+                    data["config"]["logicalId"] = new_id
+
+                    with open(platform_file, 'w') as f:
+                        json.dump(data, f, indent=2)
+
+                    rel = platform_file.relative_to(self.artifacts_dir)
+                    logger.info(f"  ✓ Auto-generated logicalId for {rel}: {new_id}")
+                    fixed += 1
+                    fixed_files.append(str(platform_file))
+            except Exception as exc:
+                logger.warning(f"  ⚠ Could not validate {platform_file}: {exc}")
+
+        # Push fixes to the remote branch so Fabric's git/status sees valid files
+        if fixed_files:
+            self._push_platform_fixes_to_git(fixed_files)
+
+        return fixed
+
+    def _push_platform_fixes_to_git(self, fixed_files: list[str]) -> None:
+        """
+        Commit and push fixed .platform files back to the remote Git branch.
+
+        Without this, Fabric's git/status would still see the invalid files
+        on the remote and fail with InvalidSystemFiles.
+        """
+        repo_root = str(self.artifacts_dir)
+        try:
+            # Stage the fixed files
+            subprocess.run(
+                ["git", "add"] + fixed_files,
+                cwd=repo_root, capture_output=True, text=True, check=True, timeout=30
+            )
+
+            # Commit
+            subprocess.run(
+                ["git", "commit", "-m",
+                 "CI/CD: auto-generate logicalId for .platform files"],
+                cwd=repo_root, capture_output=True, text=True, check=True, timeout=30
+            )
+
+            # Push to the current branch
+            result = subprocess.run(
+                ["git", "push"],
+                cwd=repo_root, capture_output=True, text=True, check=True, timeout=60
+            )
+            logger.info(f"  ✓ Pushed .platform fixes to remote Git branch")
+
+        except subprocess.CalledProcessError as e:
+            # Non-fatal — deployment can continue; Fabric git/status may still
+            # fail but the user will get an actionable error message.
+            logger.warning(f"  ⚠ Could not push .platform fixes to Git: {e.stderr or e.stdout or e}")
+            logger.warning("    Commit the logicalId fixes manually and push to the remote branch")
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not push .platform fixes to Git: {e}")
+
     def deploy_all(self, dry_run: bool = False) -> bool:
         """
         Deploy all discovered artifacts in dependency order
@@ -3083,7 +3188,14 @@ print('Notebook initialized')
         if dry_run:
             logger.info("DRY RUN MODE - No changes will be made")
         logger.info("="*60)
-        
+
+        # Validate .platform files — auto-generate logicalId where empty.
+        # This must run before any Git operations (git/status, commitToGit)
+        # because Fabric rejects .platform files with empty logicalId.
+        fixed_count = self._validate_and_fix_platform_files()
+        if fixed_count:
+            logger.info(f"  Fixed {fixed_count} .platform file(s) with empty logicalId")
+
         # Source control sync — paginated reports only.
         # Paginated reports cannot be created via the Fabric REST API by
         # service principals, so they are synced from Git using updateFromGit.

@@ -1,174 +1,440 @@
-2026-03-07T20:25:16.7564800Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2026-03-07T20:25:16.7574162Z ==============================================================================
-2026-03-07T20:25:16.7574377Z Task         : Command line
-2026-03-07T20:25:16.7574501Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-03-07T20:25:16.7574704Z Version      : 2.268.0
-2026-03-07T20:25:16.7574828Z Author       : Microsoft Corporation
-2026-03-07T20:25:16.7574962Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-03-07T20:25:16.7575156Z ==============================================================================
-2026-03-07T20:25:16.8926572Z Generating script.
-2026-03-07T20:25:16.8936884Z ========================== Starting Command Output ===========================
-2026-03-07T20:25:16.8946884Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/986ea351-17ee-4633-9e11-db44f0ac3db4.sh
-2026-03-07T20:25:16.9012365Z ========================================
-2026-03-07T20:25:16.9012740Z DEBUG: Verifying Repository Checkout
-2026-03-07T20:25:16.9013081Z ========================================
-2026-03-07T20:25:16.9013462Z Current directory: /home/vsts/work/1/s
-2026-03-07T20:25:16.9013964Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-03-07T20:25:16.9014173Z 
-2026-03-07T20:25:16.9014604Z Contents of Build.SourcesDirectory:
-2026-03-07T20:25:16.9031365Z total 40
-2026-03-07T20:25:16.9032231Z drwxr-xr-x 8 vsts vsts 4096 Mar  7 20:24 .
-2026-03-07T20:25:16.9033671Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 20:24 ..
-2026-03-07T20:25:16.9034051Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 20:24 .deployment_tracking
-2026-03-07T20:25:16.9034428Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 20:24 .git
-2026-03-07T20:25:16.9034810Z -rw-r--r-- 1 vsts vsts   44 Mar  7 20:24 .gitignore
-2026-03-07T20:25:16.9035180Z -rw-r--r-- 1 vsts vsts  985 Mar  7 20:24 README.md
-2026-03-07T20:25:16.9037145Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 20:24 azure-pipelines
-2026-03-07T20:25:16.9037572Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 20:24 config
-2026-03-07T20:25:16.9037945Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 20:24 scripts
-2026-03-07T20:25:16.9038313Z drwxr-xr-x 6 vsts vsts 4096 Mar  7 20:24 wsartifacts
-2026-03-07T20:25:16.9044378Z 
-2026-03-07T20:25:16.9046024Z Checking for required folders:
-2026-03-07T20:25:16.9046885Z ✓ scripts/ exists
-2026-03-07T20:25:16.9047834Z ✓ config/ exists
-2026-03-07T20:25:16.9050149Z ✓ wsartifacts/ exists
-2026-03-07T20:25:16.9050682Z ========================================
-2026-03-07T20:25:16.9053475Z ========================================
-2026-03-07T20:25:16.9053972Z Deploying to Dev Environment
-2026-03-07T20:25:16.9054568Z ========================================
-2026-03-07T20:25:16.9055535Z Features:
-2026-03-07T20:25:16.9056290Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-03-07T20:25:16.9057018Z   📊 Dependency-aware deployment ordering
-2026-03-07T20:25:16.9059243Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-03-07T20:25:16.9059769Z 
-2026-03-07T20:25:16.9060288Z Deployment steps:
-2026-03-07T20:25:16.9060830Z   1. Create artifacts from config file
-2026-03-07T20:25:16.9063851Z   2. Detect changed artifacts using Git diff
-2026-03-07T20:25:16.9064212Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-03-07T20:25:16.9064558Z ========================================
-2026-03-07T20:25:17.4093349Z 2026-03-07 20:25:17,407 - __main__ - INFO - Initializing deployment to dev environment
-2026-03-07T20:25:17.4103567Z 2026-03-07 20:25:17,408 - config_manager - INFO - Loading configuration from: config/dev.json
-2026-03-07T20:25:17.4104308Z 2026-03-07 20:25:17,408 - __main__ - INFO - Using environment-specific service principal for dev
-2026-03-07T20:25:17.4104940Z 2026-03-07 20:25:17,408 - __main__ - INFO - Using artifacts root folder: wsartifacts
-2026-03-07T20:25:17.4105782Z 2026-03-07 20:25:17,408 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
-2026-03-07T20:25:17.7877059Z 2026-03-07 20:25:17,787 - fabric_auth - INFO - Authentication validation successful
-2026-03-07T20:25:17.7898918Z 2026-03-07 20:25:17,789 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
-2026-03-07T20:25:17.7914483Z 2026-03-07 20:25:17,790 - __main__ - INFO - Running in artifact creation mode
-2026-03-07T20:25:17.7915368Z 2026-03-07 20:25:17,790 - __main__ - INFO - ============================================================
-2026-03-07T20:25:17.7916240Z 2026-03-07 20:25:17,790 - __main__ - INFO - Creating artifacts from configuration for dev
-2026-03-07T20:25:17.7917006Z 2026-03-07 20:25:17,790 - __main__ - INFO - ============================================================
-2026-03-07T20:25:17.7917792Z 2026-03-07 20:25:17,790 - __main__ - INFO - No artifacts configured for creation
-2026-03-07T20:25:17.7918533Z 2026-03-07 20:25:17,790 - __main__ - INFO - Artifact creation completed successfully
-2026-03-07T20:25:17.7919995Z 2026-03-07 20:25:17,790 - __main__ - INFO - ============================================================
-2026-03-07T20:25:17.7920797Z 2026-03-07 20:25:17,790 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
-2026-03-07T20:25:17.7921521Z 2026-03-07 20:25:17,790 - __main__ - INFO - ============================================================
-2026-03-07T20:25:17.7922593Z 2026-03-07 20:25:17,790 - __main__ - INFO - Discovering artifacts from file system...
-2026-03-07T20:25:17.7953757Z 2026-03-07 20:25:17,793 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
-2026-03-07T20:25:17.7954571Z 2026-03-07 20:25:17,793 - __main__ - INFO - Discovered 1 Variable Library: ReportingWSVariables
-2026-03-07T20:25:17.7966807Z 2026-03-07 20:25:17,796 - __main__ - INFO - Discovered 18 semantic model(s): Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), TTS Sales (Fabric Git), Tyre Analysis (Fabric Git)
-2026-03-07T20:25:17.7977157Z 2026-03-07 20:25:17,797 - __main__ - INFO - ============================================================
-2026-03-07T20:25:17.7984719Z 2026-03-07 20:25:17,798 - __main__ - INFO - DISCOVERY COMPLETE: Found 20 total artifacts
-2026-03-07T20:25:17.7991572Z 2026-03-07 20:25:17,799 - __main__ - INFO - ============================================================
-2026-03-07T20:25:17.8002194Z 2026-03-07 20:25:17,799 - __main__ - INFO - 
-2026-03-07T20:25:17.8008227Z 2026-03-07 20:25:17,799 - __main__ - INFO - ============================================================
-2026-03-07T20:25:17.8009023Z 2026-03-07 20:25:17,799 - __main__ - INFO - CHANGE DETECTION
-2026-03-07T20:25:17.8009804Z 2026-03-07 20:25:17,799 - __main__ - INFO - ============================================================
-2026-03-07T20:25:17.8084924Z 2026-03-07 20:25:17,808 - change_detector - INFO - Found 235 changed file(s) since bca5473c
-2026-03-07T20:25:17.8100755Z 2026-03-07 20:25:17,809 - change_detector - INFO - Change detection: 1 artifact(s) changed
-2026-03-07T20:25:17.8103108Z 2026-03-07 20:25:17,809 - change_detector - INFO -   Report: PowerBIReports
-2026-03-07T20:25:17.8103904Z 2026-03-07 20:25:17,809 - fabric_client - INFO - Listing items in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T20:25:18.0090204Z 2026-03-07 20:25:18,008 - __main__ - INFO - Changed artifacts: 1
-2026-03-07T20:25:18.0092499Z 2026-03-07 20:25:18,008 - __main__ - INFO -   Report: PowerBIReports
-2026-03-07T20:25:18.0093614Z 2026-03-07 20:25:18,008 - __main__ - INFO - Skipped (unchanged): 20
-2026-03-07T20:25:18.0096314Z 2026-03-07 20:25:18,008 - __main__ - INFO - ============================================================
-2026-03-07T20:25:18.0096992Z 2026-03-07 20:25:18,008 - __main__ - INFO - ============================================================
-2026-03-07T20:25:18.0097464Z 2026-03-07 20:25:18,008 - __main__ - INFO - Starting deployment to dev environment
-2026-03-07T20:25:18.0097930Z 2026-03-07 20:25:18,008 - __main__ - INFO - ============================================================
-2026-03-07T20:25:18.0098350Z 2026-03-07 20:25:18,008 - __main__ - INFO - 
-2026-03-07T20:25:18.0098782Z 2026-03-07 20:25:18,008 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T20:25:18.0099224Z 2026-03-07 20:25:18,008 - __main__ - INFO - SOURCE CONTROL SYNC
-2026-03-07T20:25:18.0099670Z 2026-03-07 20:25:18,008 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T20:25:18.0100144Z 2026-03-07 20:25:18,008 - __main__ - INFO - Checking for pending Git updates in workspace...
-2026-03-07T20:25:18.0100633Z 2026-03-07 20:25:18,008 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T20:25:18.1943051Z 2026-03-07 20:25:18,193 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
-2026-03-07T20:25:18.1943622Z 2026-03-07 20:25:18,193 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T20:25:29.1753075Z 2026-03-07 20:25:29,173 - __main__ - INFO -   Workspace head:   bca5473cd336...
-2026-03-07T20:25:29.1755386Z 2026-03-07 20:25:29,173 - __main__ - INFO -   Remote commit:    f42ce617da75...
-2026-03-07T20:25:29.1756505Z 2026-03-07 20:25:29,173 - __main__ - INFO -   📦 34 update(s) available from Git:
-2026-03-07T20:25:29.1757233Z 2026-03-07 20:25:29,173 - __main__ - INFO -     - Aged Debtors - With Filters (report): Added
-2026-03-07T20:25:29.1757930Z 2026-03-07 20:25:29,173 - __main__ - INFO -     - Aged Debtors - With Filters (dataset): Added
-2026-03-07T20:25:29.1758598Z 2026-03-07 20:25:29,173 - __main__ - INFO -     - All Assets Summary (report): Added
-2026-03-07T20:25:29.1759274Z 2026-03-07 20:25:29,173 - __main__ - INFO -     - All Assets Summary (dataset): Added
-2026-03-07T20:25:29.1759962Z 2026-03-07 20:25:29,173 - __main__ - INFO -     - Asset Alias & Registration Number Check (report): Added
-2026-03-07T20:25:29.1760659Z 2026-03-07 20:25:29,173 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset): Added
-2026-03-07T20:25:29.1761376Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - BDM Credit Report - Sales Team (report): Added
-2026-03-07T20:25:29.1762248Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset): Added
-2026-03-07T20:25:29.1762932Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Cash Collection (report): Added
-2026-03-07T20:25:29.1763358Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Cash Collection (dataset): Added
-2026-03-07T20:25:29.1763770Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - CloudLending Documents (report): Added
-2026-03-07T20:25:29.1764192Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - CloudLending Documents (dataset): Added
-2026-03-07T20:25:29.1764604Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Contract Management (report): Added
-2026-03-07T20:25:29.1765018Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Contract Management (dataset): Added
-2026-03-07T20:25:29.1765437Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Customer Retention & Growth (report): Added
-2026-03-07T20:25:29.1765851Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Finance Summary (report): Added
-2026-03-07T20:25:29.1766261Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Fleet Overheads by Asset (report): Added
-2026-03-07T20:25:29.1766686Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report): Added
-2026-03-07T20:25:29.1767409Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report): Added
-2026-03-07T20:25:29.1767815Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - MOT Tracker (report): Added
-2026-03-07T20:25:29.1768371Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Maintenance Provision - All Assets (report): Added
-2026-03-07T20:25:29.1768810Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Maintenance Provision (report): Added
-2026-03-07T20:25:29.1769254Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - NewAssetAwaitingDelivery (report): Added
-2026-03-07T20:25:29.1769720Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report): Added
-2026-03-07T20:25:29.1770125Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Origination (report): Added
-2026-03-07T20:25:29.1770510Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - PCN (report): Added
-2026-03-07T20:25:29.1770910Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Procurement Report (report): Added
-2026-03-07T20:25:29.1771332Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - R2C to Odessa Discrepancies (report): Added
-2026-03-07T20:25:29.1771745Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - RV Analysis (report): Added
-2026-03-07T20:25:29.1781268Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - Rental utilisation (report): Added
-2026-03-07T20:25:29.1781738Z 2026-03-07 20:25:29,174 - __main__ - INFO -     - TTS Sales (report): Added
-2026-03-07T20:25:29.1782400Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - TTS Stock (report): Added
-2026-03-07T20:25:29.1782767Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Tyre Analysis (report): Added
-2026-03-07T20:25:29.1783123Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - TTS Stock (dataset): Added
-2026-03-07T20:25:29.1783735Z 2026-03-07 20:25:29,175 - __main__ - INFO -   ⏭ Skipping 34 item(s) from Git sync (deployed via API):
-2026-03-07T20:25:29.1784128Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Aged Debtors - With Filters (report)
-2026-03-07T20:25:29.1784513Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Aged Debtors - With Filters (dataset)
-2026-03-07T20:25:29.1784881Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - All Assets Summary (report)
-2026-03-07T20:25:29.1785250Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - All Assets Summary (dataset)
-2026-03-07T20:25:29.1785642Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Asset Alias & Registration Number Check (report)
-2026-03-07T20:25:29.1786060Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset)
-2026-03-07T20:25:29.1786456Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - BDM Credit Report - Sales Team (report)
-2026-03-07T20:25:29.1786846Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset)
-2026-03-07T20:25:29.1787230Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Cash Collection (report)
-2026-03-07T20:25:29.1787592Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Cash Collection (dataset)
-2026-03-07T20:25:29.1787960Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - CloudLending Documents (report)
-2026-03-07T20:25:29.1788330Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - CloudLending Documents (dataset)
-2026-03-07T20:25:29.1788711Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Contract Management (report)
-2026-03-07T20:25:29.1789108Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Contract Management (dataset)
-2026-03-07T20:25:29.1789501Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Customer Retention & Growth (report)
-2026-03-07T20:25:29.1789878Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Finance Summary (report)
-2026-03-07T20:25:29.1790258Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Fleet Overheads by Asset (report)
-2026-03-07T20:25:29.1790644Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report)
-2026-03-07T20:25:29.1791044Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report)
-2026-03-07T20:25:29.1791581Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - MOT Tracker (report)
-2026-03-07T20:25:29.1792290Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Maintenance Provision - All Assets (report)
-2026-03-07T20:25:29.1792869Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Maintenance Provision (report)
-2026-03-07T20:25:29.1793275Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - NewAssetAwaitingDelivery (report)
-2026-03-07T20:25:29.1793676Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report)
-2026-03-07T20:25:29.1794053Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Origination (report)
-2026-03-07T20:25:29.1794386Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - PCN (report)
-2026-03-07T20:25:29.1794729Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - Procurement Report (report)
-2026-03-07T20:25:29.1795099Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - R2C to Odessa Discrepancies (report)
-2026-03-07T20:25:29.1795460Z 2026-03-07 20:25:29,175 - __main__ - INFO -     - RV Analysis (report)
-2026-03-07T20:25:29.1795826Z 2026-03-07 20:25:29,176 - __main__ - INFO -     - Rental utilisation (report)
-2026-03-07T20:25:29.1796176Z 2026-03-07 20:25:29,176 - __main__ - INFO -     - TTS Sales (report)
-2026-03-07T20:25:29.1796542Z 2026-03-07 20:25:29,176 - __main__ - INFO -     - TTS Stock (report)
-2026-03-07T20:25:29.1796900Z 2026-03-07 20:25:29,176 - __main__ - INFO -     - Tyre Analysis (report)
-2026-03-07T20:25:29.1797248Z 2026-03-07 20:25:29,176 - __main__ - INFO -     - TTS Stock (dataset)
-2026-03-07T20:25:29.1797814Z 2026-03-07 20:25:29,176 - __main__ - INFO -   ✓ No paginated reports pending in Git — skipping updateFromGit
-2026-03-07T20:25:29.1798334Z 2026-03-07 20:25:29,176 - dependency_resolver - INFO - ✅ All dependencies are valid
-2026-03-07T20:25:29.1798701Z 2026-03-07 20:25:29,177 - dependency_resolver - WARNING - No artifacts to deploy
-2026-03-07T20:25:29.1799058Z 2026-03-07 20:25:29,177 - __main__ - WARNING - No artifacts to deploy
-2026-03-07T20:25:29.2086175Z 
-2026-03-07T20:25:29.2089002Z ✓ Dev deployment completed successfully
-2026-03-07T20:25:29.2101901Z 
-2026-03-07T20:25:29.2166216Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-07T21:17:55.6000524Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-07T21:17:55.6009353Z ==============================================================================
+2026-03-07T21:17:55.6009563Z Task         : Command line
+2026-03-07T21:17:55.6009685Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-03-07T21:17:55.6009862Z Version      : 2.268.0
+2026-03-07T21:17:55.6009976Z Author       : Microsoft Corporation
+2026-03-07T21:17:55.6010151Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-03-07T21:17:55.6010334Z ==============================================================================
+2026-03-07T21:17:55.7395825Z Generating script.
+2026-03-07T21:17:55.7402951Z ========================== Starting Command Output ===========================
+2026-03-07T21:17:55.7421701Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/c3317cd5-da0a-431a-9470-7537391547a7.sh
+2026-03-07T21:17:55.7483008Z ========================================
+2026-03-07T21:17:55.7484830Z DEBUG: Verifying Repository Checkout
+2026-03-07T21:17:55.7491312Z ========================================
+2026-03-07T21:17:55.7492011Z Current directory: /home/vsts/work/1/s
+2026-03-07T21:17:55.7493159Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-03-07T21:17:55.7494985Z 
+2026-03-07T21:17:55.7504548Z Contents of Build.SourcesDirectory:
+2026-03-07T21:17:55.7509746Z total 40
+2026-03-07T21:17:55.7518477Z drwxr-xr-x 8 vsts vsts 4096 Mar  7 21:17 .
+2026-03-07T21:17:55.7521223Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 21:17 ..
+2026-03-07T21:17:55.7521983Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 21:17 .deployment_tracking
+2026-03-07T21:17:55.7523863Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 21:17 .git
+2026-03-07T21:17:55.7524302Z -rw-r--r-- 1 vsts vsts   44 Mar  7 21:17 .gitignore
+2026-03-07T21:17:55.7524667Z -rw-r--r-- 1 vsts vsts  985 Mar  7 21:17 README.md
+2026-03-07T21:17:55.7525034Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 21:17 azure-pipelines
+2026-03-07T21:17:55.7525397Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 21:17 config
+2026-03-07T21:17:55.7525748Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 21:17 scripts
+2026-03-07T21:17:55.7526097Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 21:17 wsartifacts
+2026-03-07T21:17:55.7526252Z 
+2026-03-07T21:17:55.7526517Z Checking for required folders:
+2026-03-07T21:17:55.7527064Z ✓ scripts/ exists
+2026-03-07T21:17:55.7527611Z ✓ config/ exists
+2026-03-07T21:17:55.7527931Z ✓ wsartifacts/ exists
+2026-03-07T21:17:55.7528239Z ========================================
+2026-03-07T21:17:55.7528560Z ========================================
+2026-03-07T21:17:55.7528873Z Deploying to Dev Environment
+2026-03-07T21:17:55.7529176Z ========================================
+2026-03-07T21:17:55.7529456Z Features:
+2026-03-07T21:17:55.7529897Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-03-07T21:17:55.7530314Z   📊 Dependency-aware deployment ordering
+2026-03-07T21:17:55.7530739Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-03-07T21:17:55.7530912Z 
+2026-03-07T21:17:55.7531173Z Deployment steps:
+2026-03-07T21:17:55.7531466Z   1. Create artifacts from config file
+2026-03-07T21:17:55.7531872Z   2. Detect changed artifacts using Git diff
+2026-03-07T21:17:55.7532261Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-03-07T21:17:55.7532606Z ========================================
+2026-03-07T21:17:56.2059355Z 2026-03-07 21:17:56,204 - __main__ - INFO - Initializing deployment to dev environment
+2026-03-07T21:17:56.2068201Z 2026-03-07 21:17:56,204 - config_manager - INFO - Loading configuration from: config/dev.json
+2026-03-07T21:17:56.2068660Z 2026-03-07 21:17:56,204 - __main__ - INFO - Using environment-specific service principal for dev
+2026-03-07T21:17:56.2069099Z 2026-03-07 21:17:56,204 - __main__ - INFO - Using artifacts root folder: wsartifacts
+2026-03-07T21:17:56.2069724Z 2026-03-07 21:17:56,205 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
+2026-03-07T21:17:56.6958076Z 2026-03-07 21:17:56,693 - fabric_auth - INFO - Authentication validation successful
+2026-03-07T21:17:56.6959927Z 2026-03-07 21:17:56,694 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
+2026-03-07T21:17:56.6961307Z 2026-03-07 21:17:56,695 - __main__ - INFO - Running in artifact creation mode
+2026-03-07T21:17:56.6962216Z 2026-03-07 21:17:56,695 - __main__ - INFO - ============================================================
+2026-03-07T21:17:56.6963490Z 2026-03-07 21:17:56,695 - __main__ - INFO - Creating artifacts from configuration for dev
+2026-03-07T21:17:56.6964514Z 2026-03-07 21:17:56,695 - __main__ - INFO - ============================================================
+2026-03-07T21:17:56.6965801Z 2026-03-07 21:17:56,695 - __main__ - INFO - No artifacts configured for creation
+2026-03-07T21:17:56.6988405Z 2026-03-07 21:17:56,695 - __main__ - INFO - Artifact creation completed successfully
+2026-03-07T21:17:56.6989928Z 2026-03-07 21:17:56,696 - __main__ - INFO - ============================================================
+2026-03-07T21:17:56.6991513Z 2026-03-07 21:17:56,696 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
+2026-03-07T21:17:56.6993090Z 2026-03-07 21:17:56,696 - __main__ - INFO - ============================================================
+2026-03-07T21:17:56.6994618Z 2026-03-07 21:17:56,696 - __main__ - INFO - Discovering artifacts from file system...
+2026-03-07T21:17:56.6996148Z 2026-03-07 21:17:56,696 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
+2026-03-07T21:17:56.6997983Z 2026-03-07 21:17:56,697 - __main__ - INFO - Discovered 1 Variable Library: ReportingWSVariables
+2026-03-07T21:17:56.6999858Z 2026-03-07 21:17:56,699 - __main__ - INFO - Discovered 18 semantic model(s): Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), TTS Sales (Fabric Git), Tyre Analysis (Fabric Git)
+2026-03-07T21:17:56.7040307Z 2026-03-07 21:17:56,703 - __main__ - INFO - Discovered 26 report(s): Aged Debtors - With Filters (Fabric Git), All Assets Summary (Fabric Git), Asset Alias & Registration Number Check (Fabric Git), BDM Credit Report - Sales Team (Fabric Git), Cash Collection (Fabric Git), CloudLending Documents (Fabric Git), Contract Management (Fabric Git), Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), TTS Sales (Fabric Git), TTS Stock (Fabric Git), Tyre Analysis (Fabric Git)
+2026-03-07T21:17:56.7072428Z 2026-03-07 21:17:56,706 - __main__ - INFO - Discovered 51 paginated report(s): Aged Debtors (Fabric Git), Aged Debtors by Due Date (Fabric Git), All Assets - Maintenance Provision (Fabric Git), All Assets Report (Fabric Git), Anna Asset Delivery Dates (Fabric Git), Annual Reviews - Proposed Exposure greater than 0 (Fabric Git), Application to Lease Contract (Fabric Git), Applications in Progress (Fabric Git), Arbuthnot Loan Agreement Report (Fabric Git), Arbuthnot MI Contract Report (Fabric Git), Arbuthnot MI Report (Fabric Git), Arbuthnot Regulatory Report (Fabric Git), Asset Transfer Report (Fabric Git), Assets Awaiting Delivery (Fabric Git), Assets terminated in a month (Fabric Git), Available Assets (Fabric Git), Bounced Direct Debit (Fabric Git), Contract Hire - Maintenance Provision (Fabric Git), Contracts Created in Month (Fabric Git), Contracts Terminated Live (Fabric Git), Contracts for Origination (Fabric Git), Contracts with Maintenance Budgets (Fabric Git), Customers cw Credit Rating (Fabric Git), Equipment Accruals - On Contract (Fabric Git), Evergreen Leased (Fabric Git), Evergreen Rental (Fabric Git), Incoming Payment (Fabric Git), Individual Customer Exposure (Fabric Git), Open Lease File (Fabric Git), Open Lease for for individual customers (Fabric Git), QA Queue for Ops (Fabric Git), R2C Daily Report @12 (Fabric Git), R2C Paid Recharges (Fabric Git), R2C Stock Assets Report (Fabric Git), RV Receivables - Assets Not On Hire (Fabric Git), RV Receivables from Live Contracts (Fabric Git), Rental Availability Report (Fabric Git), TS Applications in Progress (Fabric Git), TS Asset NBV (Fabric Git), TS Asset NBV for Funding Migration (Fabric Git), TS Assets Funding Analysis (Fabric Git), TS CL Invoices Outstanding (Fabric Git), TS Contracts Not Activated (Fabric Git), TS Depreciation Stream Contract Info (Fabric Git), TS Equipment Accruals - On Contract (Fabric Git), TS LS Contract Income Streams (Fabric Git), TS Recharge for Debt Reporting (Fabric Git), TTS MSF (Fabric Git), TTS OC (Fabric Git), TTS Unpaid Sales (Fabric Git), Warehouse assets inc stock (Fabric Git)
+2026-03-07T21:17:56.7078465Z 2026-03-07 21:17:56,706 - __main__ - INFO - ============================================================
+2026-03-07T21:17:56.7080710Z 2026-03-07 21:17:56,706 - __main__ - INFO - DISCOVERY COMPLETE: Found 97 total artifacts
+2026-03-07T21:17:56.7082035Z 2026-03-07 21:17:56,707 - __main__ - INFO - ============================================================
+2026-03-07T21:17:56.7083609Z 2026-03-07 21:17:56,707 - __main__ - INFO - 
+2026-03-07T21:17:56.7084776Z 2026-03-07 21:17:56,707 - __main__ - INFO - ============================================================
+2026-03-07T21:17:56.7086464Z 2026-03-07 21:17:56,707 - __main__ - INFO - CHANGE DETECTION
+2026-03-07T21:17:56.7087685Z 2026-03-07 21:17:56,707 - __main__ - INFO - ============================================================
+2026-03-07T21:17:56.7148964Z 2026-03-07 21:17:56,714 - change_detector - INFO - Found 372 changed file(s) since bca5473c
+2026-03-07T21:17:56.7171391Z 2026-03-07 21:17:56,716 - change_detector - INFO - Change detection: 103 artifact(s) changed
+2026-03-07T21:17:56.7176501Z 2026-03-07 21:17:56,716 - change_detector - INFO -   PaginatedReport: Aged Debtors, Aged Debtors by Due Date, All Assets - Maintenance Provision, All Assets Report, Anna Asset Delivery Dates, Annual Reviews - Proposed Exposure greater than 0, Application to Lease Contract, Applications in Progress, Arbuthnot Loan Agreement Report, Arbuthnot MI Contract Report, Arbuthnot MI Report, Arbuthnot Regulatory Report, Asset Transfer Report, Assets Awaiting Delivery, Assets terminated in a month, Available Assets, Bounced Direct Debit, Contract Hire - Maintenance Provision, Contracts Created in Month, Contracts Terminated Live, Contracts for Origination, Contracts with Maintenance Budgets, Customers cw Credit Rating, Equipment Accruals - On Contract, Evergreen Leased, Evergreen Rental, Incoming Payment, Individual Customer Exposure, Open Lease File, Open Lease for for individual customers, QA Queue for Ops, R2C Daily Report @12, R2C Paid Recharges, R2C Stock Assets Report, RV Receivables - Assets Not On Hire, RV Receivables from Live Contracts, Rental Availability Report, TS Applications in Progress, TS Asset NBV, TS Asset NBV for Funding Migration, TS Assets Funding Analysis, TS CL Invoices Outstanding, TS Contracts Not Activated, TS Depreciation Stream Contract Info, TS Equipment Accruals - On Contract, TS LS Contract Income Streams, TS Recharge for Debt Reporting, TTS MSF, TTS OC, TTS Unpaid Sales, Warehouse assets inc stock
+2026-03-07T21:17:56.7181484Z 2026-03-07 21:17:56,717 - change_detector - INFO -   Report: Aged Debtors - With Filters, Aged Debtors - With Filters.SemanticModel, All Assets Summary, All Assets Summary.SemanticModel, Asset Alias & Registration Number Check, Asset Alias & Registration Number Check.SemanticModel, BDM Credit Report - Sales Team, BDM Credit Report - Sales Team.SemanticModel, Cash Collection, Cash Collection.SemanticModel, CloudLending Documents, CloudLending Documents.SemanticModel, Contract Management, Contract Management.SemanticModel, Customer Retention & Growth, Finance Summary, Fleet Overheads by Asset, FleetSpendReporting 1 of 2, FleetSpendReporting 2 of 2, MOT Tracker, Maintenance Provision, Maintenance Provision - All Assets, NewAssetAwaitingDelivery, Odessa to Certinia Discrepancies, Origination, PCN, Procurement Report, R2C to Odessa Discrepancies, RV Analysis, Rental utilisation, TTS Sales, TTS Stock, Tyre Analysis, c91dfe93-986f-bcad-44f6-113aeac99f77.SemanticModel
+2026-03-07T21:17:56.7183338Z 2026-03-07 21:17:56,717 - change_detector - INFO -   SemanticModel: Customer Retention & Growth, Finance Summary, Fleet Overheads by Asset, FleetSpendReporting 1 of 2, FleetSpendReporting 2 of 2, MOT Tracker, Maintenance Provision, Maintenance Provision - All Assets, NewAssetAwaitingDelivery, Odessa to Certinia Discrepancies, Origination, PCN, Procurement Report, R2C to Odessa Discrepancies, RV Analysis, Rental utilisation, TTS Sales, Tyre Analysis
+2026-03-07T21:17:56.7184158Z 2026-03-07 21:17:56,717 - fabric_client - INFO - Listing items in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T21:17:57.0605336Z 2026-03-07 21:17:57,059 - __main__ - INFO - 🔍 Found 95 artifact(s) needing API deployment:
+2026-03-07T21:17:57.0630117Z 2026-03-07 21:17:57,059 - __main__ - INFO -     + Aged Debtors (PaginatedReport)
+2026-03-07T21:17:57.0631564Z 2026-03-07 21:17:57,059 - __main__ - INFO -     + Aged Debtors by Due Date (PaginatedReport)
+2026-03-07T21:17:57.0632502Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + All Assets - Maintenance Provision (PaginatedReport)
+2026-03-07T21:17:57.0634832Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + All Assets Report (PaginatedReport)
+2026-03-07T21:17:57.0635314Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Anna Asset Delivery Dates (PaginatedReport)
+2026-03-07T21:17:57.0635776Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Annual Reviews - Proposed Exposure greater than 0 (PaginatedReport)
+2026-03-07T21:17:57.0636240Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Application to Lease Contract (PaginatedReport)
+2026-03-07T21:17:57.0636686Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Applications in Progress (PaginatedReport)
+2026-03-07T21:17:57.0637116Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Arbuthnot Loan Agreement Report (PaginatedReport)
+2026-03-07T21:17:57.0637800Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Arbuthnot MI Contract Report (PaginatedReport)
+2026-03-07T21:17:57.0638248Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Arbuthnot MI Report (PaginatedReport)
+2026-03-07T21:17:57.0638688Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Arbuthnot Regulatory Report (PaginatedReport)
+2026-03-07T21:17:57.0639140Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Asset Transfer Report (PaginatedReport)
+2026-03-07T21:17:57.0639574Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Assets Awaiting Delivery (PaginatedReport)
+2026-03-07T21:17:57.0640068Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Assets terminated in a month (PaginatedReport)
+2026-03-07T21:17:57.0640536Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Available Assets (PaginatedReport)
+2026-03-07T21:17:57.0640966Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Bounced Direct Debit (PaginatedReport)
+2026-03-07T21:17:57.0641487Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Contract Hire - Maintenance Provision (PaginatedReport)
+2026-03-07T21:17:57.0642374Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Contracts Created in Month (PaginatedReport)
+2026-03-07T21:17:57.0642829Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Contracts Terminated Live (PaginatedReport)
+2026-03-07T21:17:57.0643438Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Contracts for Origination (PaginatedReport)
+2026-03-07T21:17:57.0643882Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Contracts with Maintenance Budgets (PaginatedReport)
+2026-03-07T21:17:57.0644341Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Customers cw Credit Rating (PaginatedReport)
+2026-03-07T21:17:57.0644785Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Equipment Accruals - On Contract (PaginatedReport)
+2026-03-07T21:17:57.0645227Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Evergreen Leased (PaginatedReport)
+2026-03-07T21:17:57.0646279Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Evergreen Rental (PaginatedReport)
+2026-03-07T21:17:57.0646727Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Incoming Payment (PaginatedReport)
+2026-03-07T21:17:57.0647348Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Individual Customer Exposure (PaginatedReport)
+2026-03-07T21:17:57.0647800Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Open Lease File (PaginatedReport)
+2026-03-07T21:17:57.0648260Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + Open Lease for for individual customers (PaginatedReport)
+2026-03-07T21:17:57.0648702Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + QA Queue for Ops (PaginatedReport)
+2026-03-07T21:17:57.0649125Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + R2C Daily Report @12 (PaginatedReport)
+2026-03-07T21:17:57.0649547Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + R2C Paid Recharges (PaginatedReport)
+2026-03-07T21:17:57.0649972Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + R2C Stock Assets Report (PaginatedReport)
+2026-03-07T21:17:57.0650419Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + RV Receivables - Assets Not On Hire (PaginatedReport)
+2026-03-07T21:17:57.0650880Z 2026-03-07 21:17:57,060 - __main__ - INFO -     + RV Receivables from Live Contracts (PaginatedReport)
+2026-03-07T21:17:57.0651324Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + Rental Availability Report (PaginatedReport)
+2026-03-07T21:17:57.0651779Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TS Applications in Progress (PaginatedReport)
+2026-03-07T21:17:57.0652206Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TS Asset NBV (PaginatedReport)
+2026-03-07T21:17:57.0652639Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TS Asset NBV for Funding Migration (PaginatedReport)
+2026-03-07T21:17:57.0653086Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TS Assets Funding Analysis (PaginatedReport)
+2026-03-07T21:17:57.0653525Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TS CL Invoices Outstanding (PaginatedReport)
+2026-03-07T21:17:57.0653961Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TS Contracts Not Activated (PaginatedReport)
+2026-03-07T21:17:57.0654416Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TS Depreciation Stream Contract Info (PaginatedReport)
+2026-03-07T21:17:57.0654883Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TS Equipment Accruals - On Contract (PaginatedReport)
+2026-03-07T21:17:57.0655335Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TS LS Contract Income Streams (PaginatedReport)
+2026-03-07T21:17:57.0655782Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TS Recharge for Debt Reporting (PaginatedReport)
+2026-03-07T21:17:57.0656202Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TTS MSF (PaginatedReport)
+2026-03-07T21:17:57.0656596Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TTS OC (PaginatedReport)
+2026-03-07T21:17:57.0657014Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + TTS Unpaid Sales (PaginatedReport)
+2026-03-07T21:17:57.0666286Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + Warehouse assets inc stock (PaginatedReport)
+2026-03-07T21:17:57.0666722Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + Aged Debtors - With Filters (Report)
+2026-03-07T21:17:57.0667483Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + All Assets Summary (Report)
+2026-03-07T21:17:57.0667906Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + Asset Alias & Registration Number Check (Report)
+2026-03-07T21:17:57.0668448Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + BDM Credit Report - Sales Team (Report)
+2026-03-07T21:17:57.0668841Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + Cash Collection (Report)
+2026-03-07T21:17:57.0669228Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + CloudLending Documents (Report)
+2026-03-07T21:17:57.0669637Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + Contract Management (Report)
+2026-03-07T21:17:57.0670042Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + Customer Retention & Growth (Report)
+2026-03-07T21:17:57.0670458Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + Finance Summary (Report)
+2026-03-07T21:17:57.0670859Z 2026-03-07 21:17:57,061 - __main__ - INFO -     + Fleet Overheads by Asset (Report)
+2026-03-07T21:17:57.0671273Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + FleetSpendReporting 1 of 2 (Report)
+2026-03-07T21:17:57.0671685Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + FleetSpendReporting 2 of 2 (Report)
+2026-03-07T21:17:57.0672085Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + MOT Tracker (Report)
+2026-03-07T21:17:57.0672489Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Maintenance Provision (Report)
+2026-03-07T21:17:57.0672899Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Maintenance Provision - All Assets (Report)
+2026-03-07T21:17:57.0673322Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + NewAssetAwaitingDelivery (Report)
+2026-03-07T21:17:57.0673745Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Odessa to Certinia Discrepancies (Report)
+2026-03-07T21:17:57.0674150Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Origination (Report)
+2026-03-07T21:17:57.0674536Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + PCN (Report)
+2026-03-07T21:17:57.0674925Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Procurement Report (Report)
+2026-03-07T21:17:57.0675331Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + R2C to Odessa Discrepancies (Report)
+2026-03-07T21:17:57.0675730Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + RV Analysis (Report)
+2026-03-07T21:17:57.0676118Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Rental utilisation (Report)
+2026-03-07T21:17:57.0676502Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + TTS Sales (Report)
+2026-03-07T21:17:57.0676889Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + TTS Stock (Report)
+2026-03-07T21:17:57.0677460Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Tyre Analysis (Report)
+2026-03-07T21:17:57.0677878Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Customer Retention & Growth (SemanticModel)
+2026-03-07T21:17:57.0679504Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Finance Summary (SemanticModel)
+2026-03-07T21:17:57.0679935Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Fleet Overheads by Asset (SemanticModel)
+2026-03-07T21:17:57.0680368Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + FleetSpendReporting 1 of 2 (SemanticModel)
+2026-03-07T21:17:57.0680801Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + FleetSpendReporting 2 of 2 (SemanticModel)
+2026-03-07T21:17:57.0681218Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + MOT Tracker (SemanticModel)
+2026-03-07T21:17:57.0681627Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Maintenance Provision (SemanticModel)
+2026-03-07T21:17:57.0682067Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Maintenance Provision - All Assets (SemanticModel)
+2026-03-07T21:17:57.0682500Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + NewAssetAwaitingDelivery (SemanticModel)
+2026-03-07T21:17:57.0682935Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Odessa to Certinia Discrepancies (SemanticModel)
+2026-03-07T21:17:57.0683351Z 2026-03-07 21:17:57,062 - __main__ - INFO -     + Origination (SemanticModel)
+2026-03-07T21:17:57.0683877Z 2026-03-07 21:17:57,063 - __main__ - INFO -     + PCN (SemanticModel)
+2026-03-07T21:17:57.0684278Z 2026-03-07 21:17:57,063 - __main__ - INFO -     + Procurement Report (SemanticModel)
+2026-03-07T21:17:57.0684677Z 2026-03-07 21:17:57,063 - __main__ - INFO -     + R2C to Odessa Discrepancies (SemanticModel)
+2026-03-07T21:17:57.0685221Z 2026-03-07 21:17:57,063 - __main__ - INFO -     + RV Analysis (SemanticModel)
+2026-03-07T21:17:57.0685619Z 2026-03-07 21:17:57,063 - __main__ - INFO -     + Rental utilisation (SemanticModel)
+2026-03-07T21:17:57.0686018Z 2026-03-07 21:17:57,063 - __main__ - INFO -     + TTS Sales (SemanticModel)
+2026-03-07T21:17:57.0686421Z 2026-03-07 21:17:57,063 - __main__ - INFO -     + Tyre Analysis (SemanticModel)
+2026-03-07T21:17:57.0686827Z 2026-03-07 21:17:57,065 - __main__ - INFO - Changed artifacts: 103
+2026-03-07T21:17:57.0688644Z 2026-03-07 21:17:57,065 - __main__ - INFO -   PaginatedReport: Aged Debtors, Aged Debtors by Due Date, All Assets - Maintenance Provision, All Assets Report, Anna Asset Delivery Dates, Annual Reviews - Proposed Exposure greater than 0, Application to Lease Contract, Applications in Progress, Arbuthnot Loan Agreement Report, Arbuthnot MI Contract Report, Arbuthnot MI Report, Arbuthnot Regulatory Report, Asset Transfer Report, Assets Awaiting Delivery, Assets terminated in a month, Available Assets, Bounced Direct Debit, Contract Hire - Maintenance Provision, Contracts Created in Month, Contracts Terminated Live, Contracts for Origination, Contracts with Maintenance Budgets, Customers cw Credit Rating, Equipment Accruals - On Contract, Evergreen Leased, Evergreen Rental, Incoming Payment, Individual Customer Exposure, Open Lease File, Open Lease for for individual customers, QA Queue for Ops, R2C Daily Report @12, R2C Paid Recharges, R2C Stock Assets Report, RV Receivables - Assets Not On Hire, RV Receivables from Live Contracts, Rental Availability Report, TS Applications in Progress, TS Asset NBV, TS Asset NBV for Funding Migration, TS Assets Funding Analysis, TS CL Invoices Outstanding, TS Contracts Not Activated, TS Depreciation Stream Contract Info, TS Equipment Accruals - On Contract, TS LS Contract Income Streams, TS Recharge for Debt Reporting, TTS MSF, TTS OC, TTS Unpaid Sales, Warehouse assets inc stock
+2026-03-07T21:17:57.0691157Z 2026-03-07 21:17:57,065 - __main__ - INFO -   Report: Aged Debtors - With Filters, Aged Debtors - With Filters.SemanticModel, All Assets Summary, All Assets Summary.SemanticModel, Asset Alias & Registration Number Check, Asset Alias & Registration Number Check.SemanticModel, BDM Credit Report - Sales Team, BDM Credit Report - Sales Team.SemanticModel, Cash Collection, Cash Collection.SemanticModel, CloudLending Documents, CloudLending Documents.SemanticModel, Contract Management, Contract Management.SemanticModel, Customer Retention & Growth, Finance Summary, Fleet Overheads by Asset, FleetSpendReporting 1 of 2, FleetSpendReporting 2 of 2, MOT Tracker, Maintenance Provision, Maintenance Provision - All Assets, NewAssetAwaitingDelivery, Odessa to Certinia Discrepancies, Origination, PCN, Procurement Report, R2C to Odessa Discrepancies, RV Analysis, Rental utilisation, TTS Sales, TTS Stock, Tyre Analysis, c91dfe93-986f-bcad-44f6-113aeac99f77.SemanticModel
+2026-03-07T21:17:57.0692773Z 2026-03-07 21:17:57,065 - __main__ - INFO -   SemanticModel: Customer Retention & Growth, Finance Summary, Fleet Overheads by Asset, FleetSpendReporting 1 of 2, FleetSpendReporting 2 of 2, MOT Tracker, Maintenance Provision, Maintenance Provision - All Assets, NewAssetAwaitingDelivery, Odessa to Certinia Discrepancies, Origination, PCN, Procurement Report, R2C to Odessa Discrepancies, RV Analysis, Rental utilisation, TTS Sales, Tyre Analysis
+2026-03-07T21:17:57.0693505Z 2026-03-07 21:17:57,066 - __main__ - INFO - Skipped (unchanged): 2
+2026-03-07T21:17:57.0693925Z 2026-03-07 21:17:57,066 - __main__ - INFO - ============================================================
+2026-03-07T21:17:57.0694382Z 2026-03-07 21:17:57,066 - __main__ - INFO - ============================================================
+2026-03-07T21:17:57.0694957Z 2026-03-07 21:17:57,066 - __main__ - INFO - Starting deployment to dev environment
+2026-03-07T21:17:57.0695398Z 2026-03-07 21:17:57,066 - __main__ - INFO - ============================================================
+2026-03-07T21:17:57.0695926Z 2026-03-07 21:17:57,066 - __main__ - INFO - 
+2026-03-07T21:17:57.0696321Z 2026-03-07 21:17:57,066 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T21:17:57.0696732Z 2026-03-07 21:17:57,066 - __main__ - INFO - SOURCE CONTROL SYNC
+2026-03-07T21:17:57.0697340Z 2026-03-07 21:17:57,066 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T21:17:57.0697790Z 2026-03-07 21:17:57,066 - __main__ - INFO - Checking for pending Git updates in workspace...
+2026-03-07T21:17:57.0698246Z 2026-03-07 21:17:57,066 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T21:17:57.3002223Z 2026-03-07 21:17:57,299 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
+2026-03-07T21:17:57.3002765Z 2026-03-07 21:17:57,299 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T21:18:08.8236395Z 2026-03-07 21:18:08,823 - __main__ - INFO -   Workspace head:   f18c7d32537e...
+2026-03-07T21:18:08.8244629Z 2026-03-07 21:18:08,823 - __main__ - INFO -   Remote commit:    017d8d249346...
+2026-03-07T21:18:08.8245444Z 2026-03-07 21:18:08,823 - __main__ - INFO -   📦 103 update(s) available from Git:
+2026-03-07T21:18:08.8245898Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Aged Debtors by Due Date (rdlreport): Added
+2026-03-07T21:18:08.8246328Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Aged Debtors (rdlreport): Added
+2026-03-07T21:18:08.8246773Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - All Assets - Maintenance Provision (rdlreport): Added
+2026-03-07T21:18:08.8247414Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - All Assets Report (rdlreport): Added
+2026-03-07T21:18:08.8247898Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Anna Asset Delivery Dates (rdlreport): Added
+2026-03-07T21:18:08.8248356Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Annual Reviews - Proposed Exposure greater than 0 (rdlreport): Added
+2026-03-07T21:18:08.8248838Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Application to Lease Contract (rdlreport): Added
+2026-03-07T21:18:08.8249292Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Applications in Progress (rdlreport): Added
+2026-03-07T21:18:08.8249735Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Arbuthnot Loan Agreement Report (rdlreport): Added
+2026-03-07T21:18:08.8250176Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Arbuthnot MI Contract Report (rdlreport): Added
+2026-03-07T21:18:08.8250605Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Arbuthnot MI Report (rdlreport): Added
+2026-03-07T21:18:08.8251040Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Arbuthnot Regulatory Report (rdlreport): Added
+2026-03-07T21:18:08.8251494Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Asset Transfer Report (rdlreport): Added
+2026-03-07T21:18:08.8251931Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Assets Awaiting Delivery (rdlreport): Added
+2026-03-07T21:18:08.8252378Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Assets terminated in a month (rdlreport): Added
+2026-03-07T21:18:08.8252814Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Available Assets (rdlreport): Added
+2026-03-07T21:18:08.8253238Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Bounced Direct Debit (rdlreport): Added
+2026-03-07T21:18:08.8253694Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Contract Hire - Maintenance Provision (rdlreport): Added
+2026-03-07T21:18:08.8254148Z 2026-03-07 21:18:08,823 - __main__ - INFO -     - Contracts Created in Month (rdlreport): Added
+2026-03-07T21:18:08.8254594Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Contracts Terminated Live (rdlreport): Added
+2026-03-07T21:18:08.8255957Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Contracts for Origination (rdlreport): Added
+2026-03-07T21:18:08.8256431Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Contracts with Maintenance Budgets (rdlreport): Added
+2026-03-07T21:18:08.8257054Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Customers cw Credit Rating (rdlreport): Added
+2026-03-07T21:18:08.8288755Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Equipment Accruals - On Contract (rdlreport): Added
+2026-03-07T21:18:08.8289219Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Evergreen Leased (rdlreport): Added
+2026-03-07T21:18:08.8289733Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Evergreen Rental (rdlreport): Added
+2026-03-07T21:18:08.8290151Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Incoming Payment (rdlreport): Added
+2026-03-07T21:18:08.8290594Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Individual Customer Exposure (rdlreport): Added
+2026-03-07T21:18:08.8291038Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Open Lease File (rdlreport): Added
+2026-03-07T21:18:08.8291492Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Open Lease for for individual customers (rdlreport): Added
+2026-03-07T21:18:08.8291943Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - QA Queue for Ops (rdlreport): Added
+2026-03-07T21:18:08.8292364Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - R2C Daily Report @12 (rdlreport): Added
+2026-03-07T21:18:08.8292787Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - R2C Paid Recharges (rdlreport): Added
+2026-03-07T21:18:08.8293219Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - R2C Stock Assets Report (rdlreport): Added
+2026-03-07T21:18:08.8293669Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - RV Receivables - Assets Not On Hire (rdlreport): Added
+2026-03-07T21:18:08.8294119Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - RV Receivables from Live Contracts (rdlreport): Added
+2026-03-07T21:18:08.8294551Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Rental Availability Report (rdlreport): Added
+2026-03-07T21:18:08.8294977Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TS Applications in Progress (rdlreport): Added
+2026-03-07T21:18:08.8295405Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TS Asset NBV for Funding Migration (rdlreport): Added
+2026-03-07T21:18:08.8295825Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TS Asset NBV (rdlreport): Added
+2026-03-07T21:18:08.8296237Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TS Assets Funding Analysis (rdlreport): Added
+2026-03-07T21:18:08.8296660Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TS CL Invoices Outstanding (rdlreport): Added
+2026-03-07T21:18:08.8297072Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TS Contracts Not Activated (rdlreport): Added
+2026-03-07T21:18:08.8297728Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TS Depreciation Stream Contract Info (rdlreport): Added
+2026-03-07T21:18:08.8298159Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TS Equipment Accruals - On Contract (rdlreport): Added
+2026-03-07T21:18:08.8298580Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TS LS Contract Income Streams (rdlreport): Added
+2026-03-07T21:18:08.8298998Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TS Recharge for Debt Reporting (rdlreport): Added
+2026-03-07T21:18:08.8299401Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TTS MSF (rdlreport): Added
+2026-03-07T21:18:08.8299805Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TTS OC (rdlreport): Added
+2026-03-07T21:18:08.8300208Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - TTS Unpaid Sales (rdlreport): Added
+2026-03-07T21:18:08.8300640Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Warehouse assets inc stock (rdlreport): Added
+2026-03-07T21:18:08.8301067Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Aged Debtors - With Filters (report): Added
+2026-03-07T21:18:08.8301492Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Aged Debtors - With Filters (dataset): Added
+2026-03-07T21:18:08.8302083Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - All Assets Summary (report): Added
+2026-03-07T21:18:08.8302491Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - All Assets Summary (dataset): Added
+2026-03-07T21:18:08.8303012Z 2026-03-07 21:18:08,824 - __main__ - INFO -     - Asset Alias & Registration Number Check (report): Added
+2026-03-07T21:18:08.8303461Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset): Added
+2026-03-07T21:18:08.8303904Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - BDM Credit Report - Sales Team (report): Added
+2026-03-07T21:18:08.8304342Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset): Added
+2026-03-07T21:18:08.8304756Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Cash Collection (report): Added
+2026-03-07T21:18:08.8305162Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Cash Collection (dataset): Added
+2026-03-07T21:18:08.8305571Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - CloudLending Documents (report): Added
+2026-03-07T21:18:08.8305996Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - CloudLending Documents (dataset): Added
+2026-03-07T21:18:08.8306420Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Contract Management (report): Added
+2026-03-07T21:18:08.8306834Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Contract Management (dataset): Added
+2026-03-07T21:18:08.8307416Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Customer Retention & Growth (report): Added
+2026-03-07T21:18:08.8307795Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Finance Summary (report): Added
+2026-03-07T21:18:08.8308193Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Fleet Overheads by Asset (report): Added
+2026-03-07T21:18:08.8308626Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report): Added
+2026-03-07T21:18:08.8309049Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report): Added
+2026-03-07T21:18:08.8309462Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - MOT Tracker (report): Added
+2026-03-07T21:18:08.8309883Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Maintenance Provision - All Assets (report): Added
+2026-03-07T21:18:08.8310315Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Maintenance Provision (report): Added
+2026-03-07T21:18:08.8310742Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - NewAssetAwaitingDelivery (report): Added
+2026-03-07T21:18:08.8311176Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report): Added
+2026-03-07T21:18:08.8311595Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Origination (report): Added
+2026-03-07T21:18:08.8311983Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - PCN (report): Added
+2026-03-07T21:18:08.8312377Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Procurement Report (report): Added
+2026-03-07T21:18:08.8312802Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - R2C to Odessa Discrepancies (report): Added
+2026-03-07T21:18:08.8313211Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - RV Analysis (report): Added
+2026-03-07T21:18:08.8313610Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Rental utilisation (report): Added
+2026-03-07T21:18:08.8314012Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - TTS Sales (report): Added
+2026-03-07T21:18:08.8314401Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - TTS Stock (report): Added
+2026-03-07T21:18:08.8314793Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Tyre Analysis (report): Added
+2026-03-07T21:18:08.8315190Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - TTS Stock (dataset): Added
+2026-03-07T21:18:08.8315579Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Customer Retention & Growth (dataset): Added
+2026-03-07T21:18:08.8315989Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Finance Summary (dataset): Added
+2026-03-07T21:18:08.8316398Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Fleet Overheads by Asset (dataset): Added
+2026-03-07T21:18:08.8316966Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (dataset): Added
+2026-03-07T21:18:08.8317748Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (dataset): Added
+2026-03-07T21:18:08.8318734Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - MOT Tracker (dataset): Added
+2026-03-07T21:18:08.8319188Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Maintenance Provision - All Assets (dataset): Added
+2026-03-07T21:18:08.8319635Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - Maintenance Provision (dataset): Added
+2026-03-07T21:18:08.8320090Z 2026-03-07 21:18:08,825 - __main__ - INFO -     - NewAssetAwaitingDelivery (dataset): Added
+2026-03-07T21:18:08.8326425Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Odessa to Certinia Discrepancies (dataset): Added
+2026-03-07T21:18:08.8327067Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Origination (dataset): Added
+2026-03-07T21:18:08.8327725Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - PCN (dataset): Added
+2026-03-07T21:18:08.8328176Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Procurement Report (dataset): Added
+2026-03-07T21:18:08.8328635Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - R2C to Odessa Discrepancies (dataset): Added
+2026-03-07T21:18:08.8329086Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - RV Analysis (dataset): Added
+2026-03-07T21:18:08.8329573Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Rental utilisation (dataset): Added
+2026-03-07T21:18:08.8329807Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - TTS Sales (dataset): Added
+2026-03-07T21:18:08.8330128Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Tyre Analysis (dataset): Added
+2026-03-07T21:18:08.8330558Z 2026-03-07 21:18:08,826 - __main__ - INFO -   ⏭ Skipping 52 item(s) from Git sync (deployed via API):
+2026-03-07T21:18:08.8330833Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Aged Debtors - With Filters (report)
+2026-03-07T21:18:08.8331139Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Aged Debtors - With Filters (dataset)
+2026-03-07T21:18:08.8331396Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - All Assets Summary (report)
+2026-03-07T21:18:08.8331642Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - All Assets Summary (dataset)
+2026-03-07T21:18:08.8331886Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Asset Alias & Registration Number Check (report)
+2026-03-07T21:18:08.8332206Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset)
+2026-03-07T21:18:08.8332525Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - BDM Credit Report - Sales Team (report)
+2026-03-07T21:18:08.8332778Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset)
+2026-03-07T21:18:08.8333061Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Cash Collection (report)
+2026-03-07T21:18:08.8333300Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Cash Collection (dataset)
+2026-03-07T21:18:08.8333543Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - CloudLending Documents (report)
+2026-03-07T21:18:08.8333869Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - CloudLending Documents (dataset)
+2026-03-07T21:18:08.8334131Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Contract Management (report)
+2026-03-07T21:18:08.8334383Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Contract Management (dataset)
+2026-03-07T21:18:08.8334631Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Customer Retention & Growth (report)
+2026-03-07T21:18:08.8334877Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Finance Summary (report)
+2026-03-07T21:18:08.8335117Z 2026-03-07 21:18:08,826 - __main__ - INFO -     - Fleet Overheads by Asset (report)
+2026-03-07T21:18:08.8335394Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report)
+2026-03-07T21:18:08.8335703Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report)
+2026-03-07T21:18:08.8335963Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - MOT Tracker (report)
+2026-03-07T21:18:08.8336337Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Maintenance Provision - All Assets (report)
+2026-03-07T21:18:08.8336623Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Maintenance Provision (report)
+2026-03-07T21:18:08.8336985Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - NewAssetAwaitingDelivery (report)
+2026-03-07T21:18:08.8337594Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report)
+2026-03-07T21:18:08.8337839Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Origination (report)
+2026-03-07T21:18:08.8338144Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - PCN (report)
+2026-03-07T21:18:08.8338402Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Procurement Report (report)
+2026-03-07T21:18:08.8338698Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - R2C to Odessa Discrepancies (report)
+2026-03-07T21:18:08.8338939Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - RV Analysis (report)
+2026-03-07T21:18:08.8339183Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Rental utilisation (report)
+2026-03-07T21:18:08.8339424Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - TTS Sales (report)
+2026-03-07T21:18:08.8339642Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - TTS Stock (report)
+2026-03-07T21:18:08.8340002Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Tyre Analysis (report)
+2026-03-07T21:18:08.8340271Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - TTS Stock (dataset)
+2026-03-07T21:18:08.8340519Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Customer Retention & Growth (dataset)
+2026-03-07T21:18:08.8340764Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Finance Summary (dataset)
+2026-03-07T21:18:08.8341010Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Fleet Overheads by Asset (dataset)
+2026-03-07T21:18:08.8341284Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (dataset)
+2026-03-07T21:18:08.8341590Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (dataset)
+2026-03-07T21:18:08.8341857Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - MOT Tracker (dataset)
+2026-03-07T21:18:08.8342108Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Maintenance Provision - All Assets (dataset)
+2026-03-07T21:18:08.8342366Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Maintenance Provision (dataset)
+2026-03-07T21:18:08.8342659Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - NewAssetAwaitingDelivery (dataset)
+2026-03-07T21:18:08.8342912Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Odessa to Certinia Discrepancies (dataset)
+2026-03-07T21:18:08.8343143Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Origination (dataset)
+2026-03-07T21:18:08.8343442Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - PCN (dataset)
+2026-03-07T21:18:08.8343697Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Procurement Report (dataset)
+2026-03-07T21:18:08.8343977Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - R2C to Odessa Discrepancies (dataset)
+2026-03-07T21:18:08.8344264Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - RV Analysis (dataset)
+2026-03-07T21:18:08.8344503Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Rental utilisation (dataset)
+2026-03-07T21:18:08.8344742Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - TTS Sales (dataset)
+2026-03-07T21:18:08.8344964Z 2026-03-07 21:18:08,827 - __main__ - INFO -     - Tyre Analysis (dataset)
+2026-03-07T21:18:08.8345377Z 2026-03-07 21:18:08,827 - __main__ - INFO -   📥 Syncing 51 paginated report(s) from Git:
+2026-03-07T21:18:08.8345691Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Aged Debtors by Due Date (rdlreport)
+2026-03-07T21:18:08.8345934Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Aged Debtors (rdlreport)
+2026-03-07T21:18:08.8346186Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - All Assets - Maintenance Provision (rdlreport)
+2026-03-07T21:18:08.8346437Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - All Assets Report (rdlreport)
+2026-03-07T21:18:08.8346685Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Anna Asset Delivery Dates (rdlreport)
+2026-03-07T21:18:08.8347118Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Annual Reviews - Proposed Exposure greater than 0 (rdlreport)
+2026-03-07T21:18:08.8348050Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Application to Lease Contract (rdlreport)
+2026-03-07T21:18:08.8348526Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Applications in Progress (rdlreport)
+2026-03-07T21:18:08.8349001Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Arbuthnot Loan Agreement Report (rdlreport)
+2026-03-07T21:18:08.8349459Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Arbuthnot MI Contract Report (rdlreport)
+2026-03-07T21:18:08.8349971Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Arbuthnot MI Report (rdlreport)
+2026-03-07T21:18:08.8350392Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Arbuthnot Regulatory Report (rdlreport)
+2026-03-07T21:18:08.8350945Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Asset Transfer Report (rdlreport)
+2026-03-07T21:18:08.8351426Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Assets Awaiting Delivery (rdlreport)
+2026-03-07T21:18:08.8351883Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Assets terminated in a month (rdlreport)
+2026-03-07T21:18:08.8352435Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Available Assets (rdlreport)
+2026-03-07T21:18:08.8352889Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Bounced Direct Debit (rdlreport)
+2026-03-07T21:18:08.8353351Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Contract Hire - Maintenance Provision (rdlreport)
+2026-03-07T21:18:08.8353792Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Contracts Created in Month (rdlreport)
+2026-03-07T21:18:08.8354517Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Contracts Terminated Live (rdlreport)
+2026-03-07T21:18:08.8354979Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Contracts for Origination (rdlreport)
+2026-03-07T21:18:08.8355456Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Contracts with Maintenance Budgets (rdlreport)
+2026-03-07T21:18:08.8355978Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Customers cw Credit Rating (rdlreport)
+2026-03-07T21:18:08.8356389Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Equipment Accruals - On Contract (rdlreport)
+2026-03-07T21:18:08.8356676Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Evergreen Leased (rdlreport)
+2026-03-07T21:18:08.8357005Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Evergreen Rental (rdlreport)
+2026-03-07T21:18:08.8357614Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Incoming Payment (rdlreport)
+2026-03-07T21:18:08.8357883Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Individual Customer Exposure (rdlreport)
+2026-03-07T21:18:08.8358134Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Open Lease File (rdlreport)
+2026-03-07T21:18:08.8358429Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - Open Lease for for individual customers (rdlreport)
+2026-03-07T21:18:08.8358683Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - QA Queue for Ops (rdlreport)
+2026-03-07T21:18:08.8358912Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - R2C Daily Report @12 (rdlreport)
+2026-03-07T21:18:08.8359271Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - R2C Paid Recharges (rdlreport)
+2026-03-07T21:18:08.8359539Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - R2C Stock Assets Report (rdlreport)
+2026-03-07T21:18:08.8359837Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - RV Receivables - Assets Not On Hire (rdlreport)
+2026-03-07T21:18:08.8360100Z 2026-03-07 21:18:08,828 - __main__ - INFO -     - RV Receivables from Live Contracts (rdlreport)
+2026-03-07T21:18:08.8360357Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - Rental Availability Report (rdlreport)
+2026-03-07T21:18:08.8360613Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TS Applications in Progress (rdlreport)
+2026-03-07T21:18:08.8360960Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TS Asset NBV for Funding Migration (rdlreport)
+2026-03-07T21:18:08.8361339Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TS Asset NBV (rdlreport)
+2026-03-07T21:18:08.8361586Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TS Assets Funding Analysis (rdlreport)
+2026-03-07T21:18:08.8361906Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TS CL Invoices Outstanding (rdlreport)
+2026-03-07T21:18:08.8362159Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TS Contracts Not Activated (rdlreport)
+2026-03-07T21:18:08.8362495Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TS Depreciation Stream Contract Info (rdlreport)
+2026-03-07T21:18:08.8362739Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TS Equipment Accruals - On Contract (rdlreport)
+2026-03-07T21:18:08.8363062Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TS LS Contract Income Streams (rdlreport)
+2026-03-07T21:18:08.8363341Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TS Recharge for Debt Reporting (rdlreport)
+2026-03-07T21:18:08.8363586Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TTS MSF (rdlreport)
+2026-03-07T21:18:08.8364130Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TTS OC (rdlreport)
+2026-03-07T21:18:08.8364613Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - TTS Unpaid Sales (rdlreport)
+2026-03-07T21:18:08.8365078Z 2026-03-07 21:18:08,829 - __main__ - INFO -     - Warehouse assets inc stock (rdlreport)
+2026-03-07T21:18:08.8365578Z 2026-03-07 21:18:08,829 - fabric_client - INFO - Updating workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64 from Git (commit: 017d8d249346...)
+2026-03-07T21:18:13.8545010Z 2026-03-07 21:18:13,854 - fabric_client - ERROR - HTTP Error: 400 - {"requestId":"11a3fe8c-8b01-4a01-8989-76f1664e7916","errorCode":"BadRequest","moreDetails":[{"errorCode":"PrincipalTypeNotSupported","message":"The operation is not supported for the principal type","relatedResource":{"resourceType":"PaginatedReport"}}],"message":"The request could not be processed due to missing or invalid information"}
+2026-03-07T21:18:13.8552037Z 2026-03-07 21:18:13,854 - fabric_client - ERROR - Error details: {
+2026-03-07T21:18:13.8552501Z   "requestId": "11a3fe8c-8b01-4a01-8989-76f1664e7916",
+2026-03-07T21:18:13.8552908Z   "errorCode": "BadRequest",
+2026-03-07T21:18:13.8553262Z   "moreDetails": [
+2026-03-07T21:18:13.8553628Z     {
+2026-03-07T21:18:13.8553993Z       "errorCode": "PrincipalTypeNotSupported",
+2026-03-07T21:18:13.8554617Z       "message": "The operation is not supported for the principal type",
+2026-03-07T21:18:13.8555052Z       "relatedResource": {
+2026-03-07T21:18:13.8555456Z         "resourceType": "PaginatedReport"
+2026-03-07T21:18:13.8555803Z       }
+2026-03-07T21:18:13.8556072Z     }
+2026-03-07T21:18:13.8556388Z   ],
+2026-03-07T21:18:13.8556696Z   "message": "The request could not be processed due to missing or invalid information"
+2026-03-07T21:18:13.8557424Z }
+2026-03-07T21:18:13.8558478Z 2026-03-07 21:18:13,854 - __main__ - WARNING -   ⚠ Source control sync failed: 400 Client Error: Bad Request for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/updateFromGit
+2026-03-07T21:18:13.8559110Z 2026-03-07 21:18:13,854 - __main__ - WARNING -     Update source control manually in Fabric portal
+2026-03-07T21:18:13.8562251Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR - Dependency validation failed:
+2026-03-07T21:18:13.8563198Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR -   - Artifact 'Rental utilisation' depends on non-existent artifact ID: semanticmodel-aa9faa2e-336d-ba44-4393-8df401a17f60
+2026-03-07T21:18:13.8564292Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR -   - Artifact 'Asset Alias & Registration Number Check' depends on non-existent artifact ID: semanticmodel-Asset Alias & Registration Number Check
+2026-03-07T21:18:13.8571828Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR -   - Artifact 'Contract Management' depends on non-existent artifact ID: semanticmodel-Contract Management
+2026-03-07T21:18:13.8572436Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR -   - Artifact 'All Assets Summary' depends on non-existent artifact ID: semanticmodel-All Assets Summary
+2026-03-07T21:18:13.8573350Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR -   - Artifact 'Cash Collection' depends on non-existent artifact ID: semanticmodel-Cash Collection
+2026-03-07T21:18:13.8574112Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR -   - Artifact 'RV Analysis' depends on non-existent artifact ID: semanticmodel-rpt_rv_analysis
+2026-03-07T21:18:13.8574624Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR -   - Artifact 'BDM Credit Report - Sales Team' depends on non-existent artifact ID: semanticmodel-BDM Credit Report - Sales Team
+2026-03-07T21:18:13.8575309Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR -   - Artifact 'Aged Debtors - With Filters' depends on non-existent artifact ID: semanticmodel-Aged Debtors - With Filters
+2026-03-07T21:18:13.8575987Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR -   - Artifact 'TTS Stock' depends on non-existent artifact ID: semanticmodel-c91dfe93-986f-bcad-44f6-113aeac99f77
+2026-03-07T21:18:13.8576562Z 2026-03-07 21:18:13,856 - dependency_resolver - ERROR -   - Artifact 'CloudLending Documents' depends on non-existent artifact ID: semanticmodel-CloudLending Documents
+2026-03-07T21:18:13.8577059Z 2026-03-07 21:18:13,856 - __main__ - ERROR - Dependency validation failed. Aborting deployment.
+2026-03-07T21:18:13.8901647Z 
+2026-03-07T21:18:13.8944133Z ##[error]Bash exited with code '1'.
+2026-03-07T21:18:13.8980756Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

@@ -292,10 +292,54 @@ class FabricDeployer:
                         remapped.add(name)
                 changed_artifacts[artifact_type] = remapped
     
+    def _find_missing_workspace_artifacts(self) -> Dict[str, set]:
+        """Check which discovered artifacts are missing from the workspace.
+        
+        Lists the current workspace items via API and compares against
+        discovered artifacts.  Returns a dict of {artifact_type: {names}}
+        for artifacts that exist in discovery but not in the workspace.
+        
+        This ensures new artifacts get deployed even when change detection
+        reports no file changes (e.g. first deploy after adding artifacts
+        to the repo, or workspace was reset/recreated).
+        """
+        try:
+            workspace_items = self.client.list_items(self.workspace_id)
+        except Exception as e:
+            logger.warning(f"  ⚠ Could not list workspace items for reconciliation: {e}")
+            return {}
+        
+        # Build lookup: (lowered_type, lowered_name) → True
+        # The Fabric list_items API returns type values like "SemanticModel",
+        # "Report", "Lakehouse", "VariableLibrary" which match ArtifactType.value
+        ws_items_set = set()
+        for item in workspace_items:
+            item_type = item.get("type", "").lower()
+            item_name = item.get("displayName", "").lower()
+            ws_items_set.add((item_type, item_name))
+        
+        # Check each discovered artifact against workspace
+        missing = {}
+        for artifact in self.resolver.artifacts:
+            artifact_type = artifact["type"].value  # e.g. "SemanticModel"
+            artifact_name = artifact["name"]
+            
+            # Skip SQL views — they're deployed differently (not workspace items)
+            if artifact_type == "SqlView":
+                continue
+            
+            if (artifact_type.lower(), artifact_name.lower()) not in ws_items_set:
+                if artifact_type not in missing:
+                    missing[artifact_type] = set()
+                missing[artifact_type].add(artifact_name)
+        
+        return missing
+    
     def _apply_change_detection(self) -> None:
         """
-        Apply change detection to filter artifacts
-        Only artifacts that have changed will be deployed
+        Apply change detection to filter artifacts.
+        Only artifacts that have changed OR are missing from the workspace
+        will be deployed.
         """
         logger.info("")
         logger.info("="*60)
@@ -310,8 +354,29 @@ class FabricDeployer:
             logger.info("Deploying all discovered artifacts")
             return
         
+        # Workspace reconciliation: check which discovered artifacts are
+        # missing from the workspace and include them even if unchanged.
+        # This handles the case where items exist in git/discovery but
+        # have not yet been created in the workspace (e.g. first deploy
+        # of new artifacts, or workspace was reset).
+        missing_artifacts = self._find_missing_workspace_artifacts()
+        
+        if missing_artifacts:
+            total_missing = sum(len(names) for names in missing_artifacts.values())
+            logger.info(f"🔍 Found {total_missing} artifact(s) missing from workspace — including in deployment:")
+            for artifact_type, names in sorted(missing_artifacts.items()):
+                for name in sorted(names):
+                    logger.info(f"    + {name} ({artifact_type})")
+            
+            # Merge missing artifacts into the changed set
+            for artifact_type, names in missing_artifacts.items():
+                if artifact_type in changed_artifacts:
+                    changed_artifacts[artifact_type].update(names)
+                else:
+                    changed_artifacts[artifact_type] = names
+        
         if not changed_artifacts:
-            # No changes detected
+            # No changes detected AND nothing missing from workspace
             logger.info("No changes detected since last deployment")
             logger.info("Skipping deployment (use --force-all to override)")
             self.resolver.artifacts = []

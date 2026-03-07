@@ -146,7 +146,7 @@ def main():
         ("Datapipelines", "Pipeline", "*.json"),
         ("Reports", "Report", "*.json"),
         ("Semanticmodels", "Semantic Model", "*.json"),
-        ("Paginatedreports", "Paginated Report", "*.json"),
+        ("PaginatedReports", "Paginated Report", "*.json"),
         ("Variablelibraries", "Variable Library", "*.json"),
     ]
     

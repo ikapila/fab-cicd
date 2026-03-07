@@ -1,124 +1,270 @@
-2026-03-07T13:32:18.5592655Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2026-03-07T13:32:18.5597719Z ==============================================================================
-2026-03-07T13:32:18.5597828Z Task         : Command line
-2026-03-07T13:32:18.5597892Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-03-07T13:32:18.5598102Z Version      : 2.268.0
-2026-03-07T13:32:18.5598162Z Author       : Microsoft Corporation
-2026-03-07T13:32:18.5598560Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-03-07T13:32:18.5598743Z ==============================================================================
-2026-03-07T13:32:18.6912692Z Generating script.
-2026-03-07T13:32:18.6919575Z ========================== Starting Command Output ===========================
-2026-03-07T13:32:18.6936267Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/747c1165-a602-499c-ae51-d3d008be7abc.sh
-2026-03-07T13:32:18.6995554Z ========================================
-2026-03-07T13:32:18.6996436Z DEBUG: Verifying Repository Checkout
-2026-03-07T13:32:18.7000841Z ========================================
-2026-03-07T13:32:18.7004713Z Current directory: /home/vsts/work/1/s
-2026-03-07T13:32:18.7006010Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-03-07T13:32:18.7006738Z 
-2026-03-07T13:32:18.7007848Z Contents of Build.SourcesDirectory:
-2026-03-07T13:32:18.7032872Z total 40
-2026-03-07T13:32:18.7033234Z drwxr-xr-x 8 vsts vsts 4096 Mar  7 13:31 .
-2026-03-07T13:32:18.7033564Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 13:31 ..
-2026-03-07T13:32:18.7033923Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 13:31 .deployment_tracking
-2026-03-07T13:32:18.7034266Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 13:31 .git
-2026-03-07T13:32:18.7034608Z -rw-r--r-- 1 vsts vsts   44 Mar  7 13:31 .gitignore
-2026-03-07T13:32:18.7034953Z -rw-r--r-- 1 vsts vsts  985 Mar  7 13:31 README.md
-2026-03-07T13:32:18.7035292Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 13:31 azure-pipelines
-2026-03-07T13:32:18.7035632Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 13:31 config
-2026-03-07T13:32:18.7035959Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 13:31 scripts
-2026-03-07T13:32:18.7036288Z drwxr-xr-x 4 vsts vsts 4096 Mar  7 13:31 wsartifacts
-2026-03-07T13:32:18.7036433Z 
-2026-03-07T13:32:18.7036683Z Checking for required folders:
-2026-03-07T13:32:18.7037186Z ✓ scripts/ exists
-2026-03-07T13:32:18.7037498Z ✓ config/ exists
-2026-03-07T13:32:18.7037801Z ✓ wsartifacts/ exists
-2026-03-07T13:32:18.7038080Z ========================================
-2026-03-07T13:32:18.7038755Z ========================================
-2026-03-07T13:32:18.7039046Z Deploying to Dev Environment
-2026-03-07T13:32:18.7039336Z ========================================
-2026-03-07T13:32:18.7039600Z Features:
-2026-03-07T13:32:18.7040017Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-03-07T13:32:18.7040423Z   📊 Dependency-aware deployment ordering
-2026-03-07T13:32:18.7040820Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-03-07T13:32:18.7040976Z 
-2026-03-07T13:32:18.7041211Z Deployment steps:
-2026-03-07T13:32:18.7041481Z   1. Create artifacts from config file
-2026-03-07T13:32:18.7041764Z   2. Detect changed artifacts using Git diff
-2026-03-07T13:32:18.7042073Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-03-07T13:32:18.7042394Z ========================================
-2026-03-07T13:32:19.1488873Z 2026-03-07 13:32:19,147 - __main__ - INFO - Initializing deployment to dev environment
-2026-03-07T13:32:19.1509240Z 2026-03-07 13:32:19,147 - config_manager - INFO - Loading configuration from: config/dev.json
-2026-03-07T13:32:19.1510069Z 2026-03-07 13:32:19,147 - __main__ - INFO - Using environment-specific service principal for dev
-2026-03-07T13:32:19.1519499Z 2026-03-07 13:32:19,147 - __main__ - INFO - Using artifacts root folder: wsartifacts
-2026-03-07T13:32:19.1520298Z 2026-03-07 13:32:19,147 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
-2026-03-07T13:32:19.5545777Z 2026-03-07 13:32:19,550 - fabric_auth - INFO - Authentication validation successful
-2026-03-07T13:32:19.5550136Z 2026-03-07 13:32:19,552 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
-2026-03-07T13:32:19.5552585Z 2026-03-07 13:32:19,552 - __main__ - INFO - Running in artifact creation mode
-2026-03-07T13:32:19.5553046Z 2026-03-07 13:32:19,553 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5553701Z 2026-03-07 13:32:19,553 - __main__ - INFO - Creating artifacts from configuration for dev
-2026-03-07T13:32:19.5554129Z 2026-03-07 13:32:19,553 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5554517Z 2026-03-07 13:32:19,553 - __main__ - INFO - No artifacts configured for creation
-2026-03-07T13:32:19.5554900Z 2026-03-07 13:32:19,553 - __main__ - INFO - Artifact creation completed successfully
-2026-03-07T13:32:19.5555323Z 2026-03-07 13:32:19,553 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5555758Z 2026-03-07 13:32:19,553 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
-2026-03-07T13:32:19.5556172Z 2026-03-07 13:32:19,553 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5556595Z 2026-03-07 13:32:19,553 - __main__ - INFO - Discovering artifacts from file system...
-2026-03-07T13:32:19.5557033Z 2026-03-07 13:32:19,554 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
-2026-03-07T13:32:19.5557495Z 2026-03-07 13:32:19,554 - __main__ - INFO - Discovered 1 Variable Library: ReportingWSVariables
-2026-03-07T13:32:19.5558583Z 2026-03-07 13:32:19,555 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5559331Z 2026-03-07 13:32:19,555 - __main__ - INFO - DISCOVERY COMPLETE: Found 2 total artifacts
-2026-03-07T13:32:19.5560120Z 2026-03-07 13:32:19,555 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5560806Z 2026-03-07 13:32:19,555 - __main__ - INFO - 
-2026-03-07T13:32:19.5561470Z 2026-03-07 13:32:19,555 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5563517Z 2026-03-07 13:32:19,555 - __main__ - INFO - CHANGE DETECTION
-2026-03-07T13:32:19.5579179Z 2026-03-07 13:32:19,556 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5676593Z 2026-03-07 13:32:19,567 - change_detector - INFO - Found 3 changed file(s) since af7c651a
-2026-03-07T13:32:19.5678731Z 2026-03-07 13:32:19,567 - change_detector - INFO - Change detection: 1 artifact(s) changed
-2026-03-07T13:32:19.5680524Z 2026-03-07 13:32:19,567 - change_detector - INFO -   VariableLibrary: ReportingVariables
-2026-03-07T13:32:19.5683910Z 2026-03-07 13:32:19,568 - __main__ - INFO - Changed artifacts: 1
-2026-03-07T13:32:19.5686510Z 2026-03-07 13:32:19,568 - __main__ - INFO -   VariableLibrary: ReportingVariables
-2026-03-07T13:32:19.5699729Z 2026-03-07 13:32:19,568 - __main__ - INFO - Skipped (unchanged): 2
-2026-03-07T13:32:19.5700578Z 2026-03-07 13:32:19,568 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5701289Z 2026-03-07 13:32:19,568 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5701705Z 2026-03-07 13:32:19,568 - __main__ - INFO - Starting deployment to dev environment
-2026-03-07T13:32:19.5702103Z 2026-03-07 13:32:19,568 - __main__ - INFO - ============================================================
-2026-03-07T13:32:19.5702485Z 2026-03-07 13:32:19,568 - __main__ - INFO - 
-2026-03-07T13:32:19.5702845Z 2026-03-07 13:32:19,568 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T13:32:19.5703224Z 2026-03-07 13:32:19,568 - __main__ - INFO - SOURCE CONTROL SYNC
-2026-03-07T13:32:19.5703601Z 2026-03-07 13:32:19,568 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T13:32:19.5704004Z 2026-03-07 13:32:19,568 - __main__ - INFO - Checking for pending Git updates in workspace...
-2026-03-07T13:32:19.5704602Z 2026-03-07 13:32:19,568 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T13:32:19.8623964Z 2026-03-07 13:32:19,861 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
-2026-03-07T13:32:19.8625981Z 2026-03-07 13:32:19,862 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T13:32:29.0225883Z 2026-03-07 13:32:29,022 - __main__ - INFO -   Workspace head:   c7ab157dc0d7...
-2026-03-07T13:32:29.0229738Z 2026-03-07 13:32:29,022 - __main__ - INFO -   Remote commit:    2ea81cf22f03...
-2026-03-07T13:32:29.0231032Z 2026-03-07 13:32:29,022 - __main__ - INFO -   📦 1 update(s) available from Git:
-2026-03-07T13:32:29.0231869Z 2026-03-07 13:32:29,022 - __main__ - INFO -     - ReportingWSVariables (Variables): Added
-2026-03-07T13:32:29.0232761Z 2026-03-07 13:32:29,022 - __main__ - INFO -   ⏭ Skipping 1 item(s) from Git sync (deployed via API):
-2026-03-07T13:32:29.0233666Z 2026-03-07 13:32:29,022 - __main__ - INFO -     - ReportingWSVariables (Variables)
-2026-03-07T13:32:29.0235304Z 2026-03-07 13:32:29,022 - __main__ - INFO -   ✓ No paginated reports pending in Git — skipping updateFromGit
-2026-03-07T13:32:29.0237136Z 2026-03-07 13:32:29,022 - __main__ - INFO -     All items will be deployed via API and committed to Git afterward
-2026-03-07T13:32:29.0237757Z 2026-03-07 13:32:29,022 - dependency_resolver - INFO - ✅ All dependencies are valid
-2026-03-07T13:32:29.0238145Z 2026-03-07 13:32:29,022 - dependency_resolver - WARNING - No artifacts to deploy
-2026-03-07T13:32:29.0245720Z 2026-03-07 13:32:29,022 - __main__ - WARNING - No artifacts to deploy
-2026-03-07T13:32:29.0246070Z 2026-03-07 13:32:29,022 - __main__ - INFO - 
-2026-03-07T13:32:29.0246451Z 2026-03-07 13:32:29,022 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T13:32:29.0246881Z 2026-03-07 13:32:29,022 - __main__ - INFO - POST-DEPLOY: LINK WORKSPACE ITEMS TO GIT
-2026-03-07T13:32:29.0247290Z 2026-03-07 13:32:29,022 - __main__ - INFO - ------------------------------------------------------------
-2026-03-07T13:32:29.0247744Z 2026-03-07 13:32:29,022 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T13:32:29.1901668Z 2026-03-07 13:32:29,189 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
-2026-03-07T13:32:29.1902236Z 2026-03-07 13:32:29,189 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T13:32:32.7866948Z 2026-03-07 13:32:32,786 - fabric_client - INFO - Listing items in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T13:32:32.9924953Z 2026-03-07 13:32:32,991 - __main__ - INFO -   📥 1 incoming Git change(s) to sync:
-2026-03-07T13:32:32.9927732Z 2026-03-07 13:32:32,992 - __main__ - INFO -     - ReportingWSVariables (Variables)
-2026-03-07T13:32:32.9929428Z 2026-03-07 13:32:32,992 - fabric_client - INFO - Updating workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64 from Git (commit: 2ea81cf22f03...)
-2026-03-07T13:32:38.5872378Z 2026-03-07 13:32:38,586 - fabric_client - INFO -   Update from Git in progress (operation: c6546ba4-3510-4c12-b4ea-25070a494378), polling...
-2026-03-07T13:32:58.8135157Z 2026-03-07 13:32:58,813 - fabric_client - INFO -     Poll 1: Succeeded (100% complete)
-2026-03-07T13:32:58.8137779Z 2026-03-07 13:32:58,813 - fabric_client - INFO -   ✓ Update from Git completed successfully
-2026-03-07T13:32:58.8139716Z 2026-03-07 13:32:58,813 - __main__ - INFO -   ✓ Incoming changes synced
-2026-03-07T13:32:58.8140482Z 2026-03-07 13:32:58,813 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-07T13:33:03.6198726Z 2026-03-07 13:33:03,619 - __main__ - INFO -   ✓ Source Control sync complete — no conflicts
-2026-03-07T13:33:03.6540755Z 
-2026-03-07T13:33:03.6541918Z ✓ Dev deployment completed successfully
-2026-03-07T13:33:03.6551340Z 
-2026-03-07T13:33:03.6621989Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-07T19:03:27.5854126Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-07T19:03:27.5863592Z ==============================================================================
+2026-03-07T19:03:27.5863792Z Task         : Command line
+2026-03-07T19:03:27.5863918Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-03-07T19:03:27.5864097Z Version      : 2.268.0
+2026-03-07T19:03:27.5864221Z Author       : Microsoft Corporation
+2026-03-07T19:03:27.5864352Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-03-07T19:03:27.5864541Z ==============================================================================
+2026-03-07T19:03:27.7255645Z Generating script.
+2026-03-07T19:03:27.7269082Z ========================== Starting Command Output ===========================
+2026-03-07T19:03:27.7278682Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/1d43363c-c846-4630-9d4c-002e2794f3d2.sh
+2026-03-07T19:03:27.7339696Z ========================================
+2026-03-07T19:03:27.7340246Z DEBUG: Verifying Repository Checkout
+2026-03-07T19:03:27.7355945Z ========================================
+2026-03-07T19:03:27.7356299Z Current directory: /home/vsts/work/1/s
+2026-03-07T19:03:27.7356629Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-03-07T19:03:27.7356761Z 
+2026-03-07T19:03:27.7357044Z Contents of Build.SourcesDirectory:
+2026-03-07T19:03:27.7365302Z total 40
+2026-03-07T19:03:27.7367865Z drwxr-xr-x 8 vsts vsts 4096 Mar  7 19:02 .
+2026-03-07T19:03:27.7368234Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 19:02 ..
+2026-03-07T19:03:27.7368859Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:02 .deployment_tracking
+2026-03-07T19:03:27.7369232Z drwxr-xr-x 7 vsts vsts 4096 Mar  7 19:02 .git
+2026-03-07T19:03:27.7369586Z -rw-r--r-- 1 vsts vsts   44 Mar  7 19:02 .gitignore
+2026-03-07T19:03:27.7369947Z -rw-r--r-- 1 vsts vsts  985 Mar  7 19:02 README.md
+2026-03-07T19:03:27.7370332Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:02 azure-pipelines
+2026-03-07T19:03:27.7370740Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:02 config
+2026-03-07T19:03:27.7371334Z drwxr-xr-x 2 vsts vsts 4096 Mar  7 19:02 scripts
+2026-03-07T19:03:27.7371734Z drwxr-xr-x 6 vsts vsts 4096 Mar  7 19:02 wsartifacts
+2026-03-07T19:03:27.7371967Z 
+2026-03-07T19:03:27.7379065Z Checking for required folders:
+2026-03-07T19:03:27.7379781Z ✓ scripts/ exists
+2026-03-07T19:03:27.7380288Z ✓ config/ exists
+2026-03-07T19:03:27.7380760Z ✓ wsartifacts/ exists
+2026-03-07T19:03:27.7381124Z ========================================
+2026-03-07T19:03:27.7382091Z ========================================
+2026-03-07T19:03:27.7382417Z Deploying to Dev Environment
+2026-03-07T19:03:27.7382730Z ========================================
+2026-03-07T19:03:27.7383006Z Features:
+2026-03-07T19:03:27.7388787Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-03-07T19:03:27.7389300Z   📊 Dependency-aware deployment ordering
+2026-03-07T19:03:27.7389721Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-03-07T19:03:27.7389897Z 
+2026-03-07T19:03:27.7390223Z Deployment steps:
+2026-03-07T19:03:27.7390533Z   1. Create artifacts from config file
+2026-03-07T19:03:27.7390900Z   2. Detect changed artifacts using Git diff
+2026-03-07T19:03:27.7391255Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-03-07T19:03:27.7391631Z ========================================
+2026-03-07T19:03:28.1701887Z 2026-03-07 19:03:28,169 - __main__ - INFO - Initializing deployment to dev environment
+2026-03-07T19:03:28.1704421Z 2026-03-07 19:03:28,169 - config_manager - INFO - Loading configuration from: config/dev.json
+2026-03-07T19:03:28.1704914Z 2026-03-07 19:03:28,169 - __main__ - INFO - Using environment-specific service principal for dev
+2026-03-07T19:03:28.1705384Z 2026-03-07 19:03:28,169 - __main__ - INFO - Using artifacts root folder: wsartifacts
+2026-03-07T19:03:28.1705874Z 2026-03-07 19:03:28,169 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
+2026-03-07T19:03:28.4963594Z 2026-03-07 19:03:28,495 - fabric_auth - INFO - Authentication validation successful
+2026-03-07T19:03:28.4984769Z 2026-03-07 19:03:28,497 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
+2026-03-07T19:03:28.4985687Z 2026-03-07 19:03:28,497 - __main__ - INFO - Running in artifact creation mode
+2026-03-07T19:03:28.4987074Z 2026-03-07 19:03:28,497 - __main__ - INFO - ============================================================
+2026-03-07T19:03:28.4988008Z 2026-03-07 19:03:28,497 - __main__ - INFO - Creating artifacts from configuration for dev
+2026-03-07T19:03:28.4989755Z 2026-03-07 19:03:28,497 - __main__ - INFO - ============================================================
+2026-03-07T19:03:28.4991204Z 2026-03-07 19:03:28,497 - __main__ - INFO - No artifacts configured for creation
+2026-03-07T19:03:28.4992671Z 2026-03-07 19:03:28,497 - __main__ - INFO - Artifact creation completed successfully
+2026-03-07T19:03:28.4996194Z 2026-03-07 19:03:28,497 - __main__ - INFO - ============================================================
+2026-03-07T19:03:28.4997628Z 2026-03-07 19:03:28,497 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
+2026-03-07T19:03:28.4998833Z 2026-03-07 19:03:28,497 - __main__ - INFO - ============================================================
+2026-03-07T19:03:28.5000978Z 2026-03-07 19:03:28,497 - __main__ - INFO - Discovering artifacts from file system...
+2026-03-07T19:03:28.5001466Z 2026-03-07 19:03:28,498 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
+2026-03-07T19:03:28.5001944Z 2026-03-07 19:03:28,498 - __main__ - INFO - Discovered 1 Variable Library: ReportingWSVariables
+2026-03-07T19:03:28.5009870Z 2026-03-07 19:03:28,500 - __main__ - INFO - Discovered 18 semantic model(s): Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), TTS Sales (Fabric Git), Tyre Analysis (Fabric Git)
+2026-03-07T19:03:28.5014424Z 2026-03-07 19:03:28,500 - __main__ - INFO - ============================================================
+2026-03-07T19:03:28.5015716Z 2026-03-07 19:03:28,501 - __main__ - INFO - DISCOVERY COMPLETE: Found 20 total artifacts
+2026-03-07T19:03:28.5017223Z 2026-03-07 19:03:28,501 - __main__ - INFO - ============================================================
+2026-03-07T19:03:28.5019129Z 2026-03-07 19:03:28,501 - __main__ - INFO - 
+2026-03-07T19:03:28.5020510Z 2026-03-07 19:03:28,501 - __main__ - INFO - ============================================================
+2026-03-07T19:03:28.5021821Z 2026-03-07 19:03:28,501 - __main__ - INFO - CHANGE DETECTION
+2026-03-07T19:03:28.5023074Z 2026-03-07 19:03:28,501 - __main__ - INFO - ============================================================
+2026-03-07T19:03:28.5080129Z 2026-03-07 19:03:28,507 - change_detector - INFO - Found 2 changed file(s) since eb02ac79
+2026-03-07T19:03:28.5085590Z 2026-03-07 19:03:28,507 - change_detector - INFO - Change detection: 0 artifact(s) changed
+2026-03-07T19:03:28.5086475Z 2026-03-07 19:03:28,507 - __main__ - INFO - No changes detected since last deployment
+2026-03-07T19:03:28.5087985Z 2026-03-07 19:03:28,508 - __main__ - INFO - Skipping deployment (use --force-all to override)
+2026-03-07T19:03:28.5089384Z 2026-03-07 19:03:28,508 - __main__ - INFO - ============================================================
+2026-03-07T19:03:28.5091347Z 2026-03-07 19:03:28,508 - __main__ - INFO - Starting deployment to dev environment
+2026-03-07T19:03:28.5091830Z 2026-03-07 19:03:28,508 - __main__ - INFO - ============================================================
+2026-03-07T19:03:28.5092268Z 2026-03-07 19:03:28,508 - __main__ - INFO - 
+2026-03-07T19:03:28.5092941Z 2026-03-07 19:03:28,508 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T19:03:28.5093464Z 2026-03-07 19:03:28,508 - __main__ - INFO - SOURCE CONTROL SYNC
+2026-03-07T19:03:28.5093926Z 2026-03-07 19:03:28,508 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T19:03:28.5094409Z 2026-03-07 19:03:28,508 - __main__ - INFO - Checking for pending Git updates in workspace...
+2026-03-07T19:03:28.5094916Z 2026-03-07 19:03:28,508 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:03:28.7231168Z 2026-03-07 19:03:28,715 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
+2026-03-07T19:03:28.7233065Z 2026-03-07 19:03:28,715 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:03:43.4749460Z 2026-03-07 19:03:43,473 - __main__ - INFO -   Workspace head:   bb893b6e8437...
+2026-03-07T19:03:43.4750423Z 2026-03-07 19:03:43,474 - __main__ - INFO -   Remote commit:    520112a03e56...
+2026-03-07T19:03:43.4751562Z 2026-03-07 19:03:43,474 - __main__ - INFO -   📦 52 update(s) available from Git:
+2026-03-07T19:03:43.4752290Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Aged Debtors - With Filters (report): Added
+2026-03-07T19:03:43.4754389Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Aged Debtors - With Filters (dataset): Added
+2026-03-07T19:03:43.4754854Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - All Assets Summary (report): Added
+2026-03-07T19:03:43.4755303Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - All Assets Summary (dataset): Added
+2026-03-07T19:03:43.4755765Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Asset Alias & Registration Number Check (report): Added
+2026-03-07T19:03:43.4756261Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset): Added
+2026-03-07T19:03:43.4756727Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - BDM Credit Report - Sales Team (report): Added
+2026-03-07T19:03:43.4757211Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset): Added
+2026-03-07T19:03:43.4757659Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Cash Collection (report): Added
+2026-03-07T19:03:43.4758097Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Cash Collection (dataset): Added
+2026-03-07T19:03:43.4758823Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - CloudLending Documents (report): Added
+2026-03-07T19:03:43.4782140Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - CloudLending Documents (dataset): Added
+2026-03-07T19:03:43.4782657Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Contract Management (report): Added
+2026-03-07T19:03:43.4787261Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Contract Management (dataset): Added
+2026-03-07T19:03:43.4787851Z 2026-03-07 19:03:43,474 - __main__ - INFO -     - Customer Retention & Growth (report): Added
+2026-03-07T19:03:43.4788544Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Finance Summary (report): Added
+2026-03-07T19:03:43.4793535Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Fleet Overheads by Asset (report): Added
+2026-03-07T19:03:43.4794066Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report): Added
+2026-03-07T19:03:43.4798741Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report): Added
+2026-03-07T19:03:43.4799300Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - MOT Tracker (report): Added
+2026-03-07T19:03:43.4801249Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Maintenance Provision - All Assets (report): Added
+2026-03-07T19:03:43.4801722Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Maintenance Provision (report): Added
+2026-03-07T19:03:43.4802172Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - NewAssetAwaitingDelivery (report): Added
+2026-03-07T19:03:43.4802635Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report): Added
+2026-03-07T19:03:43.4803512Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Origination (report): Added
+2026-03-07T19:03:43.4803930Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - PCN (report): Added
+2026-03-07T19:03:43.4804349Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Procurement Report (report): Added
+2026-03-07T19:03:43.4804798Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - R2C to Odessa Discrepancies (report): Added
+2026-03-07T19:03:43.4805209Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - RV Analysis (report): Added
+2026-03-07T19:03:43.4805650Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Rental utilisation (report): Added
+2026-03-07T19:03:43.4806081Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - TTS Sales (report): Added
+2026-03-07T19:03:43.4806498Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - TTS Stock (report): Added
+2026-03-07T19:03:43.4806919Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Tyre Analysis (report): Added
+2026-03-07T19:03:43.4807339Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - TTS Stock (dataset): Added
+2026-03-07T19:03:43.4807755Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Customer Retention & Growth (dataset): Added
+2026-03-07T19:03:43.4808190Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Finance Summary (dataset): Added
+2026-03-07T19:03:43.4808807Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Fleet Overheads by Asset (dataset): Added
+2026-03-07T19:03:43.4809258Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (dataset): Added
+2026-03-07T19:03:43.4809687Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (dataset): Added
+2026-03-07T19:03:43.4810098Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - MOT Tracker (dataset): Added
+2026-03-07T19:03:43.4810543Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Maintenance Provision - All Assets (dataset): Added
+2026-03-07T19:03:43.4810973Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Maintenance Provision (dataset): Added
+2026-03-07T19:03:43.4811400Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - NewAssetAwaitingDelivery (dataset): Added
+2026-03-07T19:03:43.4811841Z 2026-03-07 19:03:43,475 - __main__ - INFO -     - Odessa to Certinia Discrepancies (dataset): Added
+2026-03-07T19:03:43.4812285Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - Origination (dataset): Added
+2026-03-07T19:03:43.4812702Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - PCN (dataset): Added
+2026-03-07T19:03:43.4813128Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - Procurement Report (dataset): Added
+2026-03-07T19:03:43.4813569Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - R2C to Odessa Discrepancies (dataset): Added
+2026-03-07T19:03:43.4813997Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - RV Analysis (dataset): Added
+2026-03-07T19:03:43.4814421Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - Rental utilisation (dataset): Added
+2026-03-07T19:03:43.4814847Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - TTS Sales (dataset): Added
+2026-03-07T19:03:43.4815277Z 2026-03-07 19:03:43,476 - __main__ - INFO -     - Tyre Analysis (dataset): Added
+2026-03-07T19:03:43.4815949Z 2026-03-07 19:03:43,477 - __main__ - INFO -   ⏭ Skipping 52 item(s) from Git sync (deployed via API):
+2026-03-07T19:03:43.4816413Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - Aged Debtors - With Filters (report)
+2026-03-07T19:03:43.4816852Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - Aged Debtors - With Filters (dataset)
+2026-03-07T19:03:43.4817283Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - All Assets Summary (report)
+2026-03-07T19:03:43.4817696Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - All Assets Summary (dataset)
+2026-03-07T19:03:43.4818133Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - Asset Alias & Registration Number Check (report)
+2026-03-07T19:03:43.4818786Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset)
+2026-03-07T19:03:43.4821692Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - BDM Credit Report - Sales Team (report)
+2026-03-07T19:03:43.4822295Z 2026-03-07 19:03:43,477 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset)
+2026-03-07T19:03:43.4822718Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Cash Collection (report)
+2026-03-07T19:03:43.4823127Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Cash Collection (dataset)
+2026-03-07T19:03:43.4823544Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - CloudLending Documents (report)
+2026-03-07T19:03:43.4824023Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - CloudLending Documents (dataset)
+2026-03-07T19:03:43.4824443Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Contract Management (report)
+2026-03-07T19:03:43.4824861Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Contract Management (dataset)
+2026-03-07T19:03:43.4825297Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Customer Retention & Growth (report)
+2026-03-07T19:03:43.4825724Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Finance Summary (report)
+2026-03-07T19:03:43.4826149Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Fleet Overheads by Asset (report)
+2026-03-07T19:03:43.4826588Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report)
+2026-03-07T19:03:43.4827019Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report)
+2026-03-07T19:03:43.4827432Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - MOT Tracker (report)
+2026-03-07T19:03:43.4827857Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Maintenance Provision - All Assets (report)
+2026-03-07T19:03:43.4828465Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Maintenance Provision (report)
+2026-03-07T19:03:43.4828916Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - NewAssetAwaitingDelivery (report)
+2026-03-07T19:03:43.4829335Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report)
+2026-03-07T19:03:43.4829751Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Origination (report)
+2026-03-07T19:03:43.4830146Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - PCN (report)
+2026-03-07T19:03:43.4830540Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - Procurement Report (report)
+2026-03-07T19:03:43.4830978Z 2026-03-07 19:03:43,478 - __main__ - INFO -     - R2C to Odessa Discrepancies (report)
+2026-03-07T19:03:43.4831388Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - RV Analysis (report)
+2026-03-07T19:03:43.4831776Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - Rental utilisation (report)
+2026-03-07T19:03:43.4832155Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - TTS Sales (report)
+2026-03-07T19:03:43.4832513Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - TTS Stock (report)
+2026-03-07T19:03:43.4832901Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - Tyre Analysis (report)
+2026-03-07T19:03:43.4833355Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - TTS Stock (dataset)
+2026-03-07T19:03:43.4833792Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - Customer Retention & Growth (dataset)
+2026-03-07T19:03:43.4834168Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - Finance Summary (dataset)
+2026-03-07T19:03:43.4834557Z 2026-03-07 19:03:43,479 - __main__ - INFO -     - Fleet Overheads by Asset (dataset)
+2026-03-07T19:03:43.4834926Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (dataset)
+2026-03-07T19:03:43.4835337Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (dataset)
+2026-03-07T19:03:43.4835729Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - MOT Tracker (dataset)
+2026-03-07T19:03:43.4836128Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Maintenance Provision - All Assets (dataset)
+2026-03-07T19:03:43.4836533Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Maintenance Provision (dataset)
+2026-03-07T19:03:43.4836927Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - NewAssetAwaitingDelivery (dataset)
+2026-03-07T19:03:43.4837352Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Odessa to Certinia Discrepancies (dataset)
+2026-03-07T19:03:43.4837966Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Origination (dataset)
+2026-03-07T19:03:43.4838540Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - PCN (dataset)
+2026-03-07T19:03:43.4838978Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Procurement Report (dataset)
+2026-03-07T19:03:43.4839392Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - R2C to Odessa Discrepancies (dataset)
+2026-03-07T19:03:43.4839797Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - RV Analysis (dataset)
+2026-03-07T19:03:43.4840182Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Rental utilisation (dataset)
+2026-03-07T19:03:43.4840560Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - TTS Sales (dataset)
+2026-03-07T19:03:43.4840934Z 2026-03-07 19:03:43,480 - __main__ - INFO -     - Tyre Analysis (dataset)
+2026-03-07T19:03:43.4841581Z 2026-03-07 19:03:43,480 - __main__ - INFO -   ✓ No paginated reports pending in Git — skipping updateFromGit
+2026-03-07T19:03:43.4842084Z 2026-03-07 19:03:43,480 - __main__ - INFO -     All items will be deployed via API and committed to Git afterward
+2026-03-07T19:03:43.4842613Z 2026-03-07 19:03:43,480 - dependency_resolver - INFO - ✅ All dependencies are valid
+2026-03-07T19:03:43.4842852Z 2026-03-07 19:03:43,480 - dependency_resolver - WARNING - No artifacts to deploy
+2026-03-07T19:03:43.4843061Z 2026-03-07 19:03:43,480 - __main__ - WARNING - No artifacts to deploy
+2026-03-07T19:03:43.4843254Z 2026-03-07 19:03:43,480 - __main__ - INFO - 
+2026-03-07T19:03:43.4843470Z 2026-03-07 19:03:43,480 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T19:03:43.4843710Z 2026-03-07 19:03:43,480 - __main__ - INFO - POST-DEPLOY: LINK WORKSPACE ITEMS TO GIT
+2026-03-07T19:03:43.4843942Z 2026-03-07 19:03:43,480 - __main__ - INFO - ------------------------------------------------------------
+2026-03-07T19:03:43.4844195Z 2026-03-07 19:03:43,480 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:03:43.6071891Z 2026-03-07 19:03:43,606 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
+2026-03-07T19:03:43.6073694Z 2026-03-07 19:03:43,606 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:03:46.8589741Z 2026-03-07 19:03:46,856 - __main__ - INFO -   ⏭ Skipping 52 item(s) from Git sync (deployed via API):
+2026-03-07T19:03:46.8590916Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Aged Debtors - With Filters (report)
+2026-03-07T19:03:46.8591664Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Aged Debtors - With Filters (dataset)
+2026-03-07T19:03:46.8592441Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - All Assets Summary (report)
+2026-03-07T19:03:46.8593248Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - All Assets Summary (dataset)
+2026-03-07T19:03:46.8593929Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Asset Alias & Registration Number Check (report)
+2026-03-07T19:03:46.8594641Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Asset Alias & Registration Number Check (dataset)
+2026-03-07T19:03:46.8595309Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - BDM Credit Report - Sales Team (report)
+2026-03-07T19:03:46.8595963Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - BDM Credit Report - Sales Team (dataset)
+2026-03-07T19:03:46.8596616Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Cash Collection (report)
+2026-03-07T19:03:46.8597239Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Cash Collection (dataset)
+2026-03-07T19:03:46.8597858Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - CloudLending Documents (report)
+2026-03-07T19:03:46.8598738Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - CloudLending Documents (dataset)
+2026-03-07T19:03:46.8599448Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Contract Management (report)
+2026-03-07T19:03:46.8600098Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Contract Management (dataset)
+2026-03-07T19:03:46.8601202Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Customer Retention & Growth (report)
+2026-03-07T19:03:46.8601838Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Finance Summary (report)
+2026-03-07T19:03:46.8602487Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Fleet Overheads by Asset (report)
+2026-03-07T19:03:46.8603254Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (report)
+2026-03-07T19:03:46.8603672Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (report)
+2026-03-07T19:03:46.8604063Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - MOT Tracker (report)
+2026-03-07T19:03:46.8604464Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Maintenance Provision - All Assets (report)
+2026-03-07T19:03:46.8604881Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Maintenance Provision (report)
+2026-03-07T19:03:46.8605281Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - NewAssetAwaitingDelivery (report)
+2026-03-07T19:03:46.8605703Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Odessa to Certinia Discrepancies (report)
+2026-03-07T19:03:46.8606112Z 2026-03-07 19:03:46,857 - __main__ - INFO -     - Origination (report)
+2026-03-07T19:03:46.8606479Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - PCN (report)
+2026-03-07T19:03:46.8606861Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Procurement Report (report)
+2026-03-07T19:03:46.8607257Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - R2C to Odessa Discrepancies (report)
+2026-03-07T19:03:46.8607643Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - RV Analysis (report)
+2026-03-07T19:03:46.8608021Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Rental utilisation (report)
+2026-03-07T19:03:46.8608560Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - TTS Sales (report)
+2026-03-07T19:03:46.8608938Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - TTS Stock (report)
+2026-03-07T19:03:46.8609341Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Tyre Analysis (report)
+2026-03-07T19:03:46.8609775Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - TTS Stock (dataset)
+2026-03-07T19:03:46.8610208Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Customer Retention & Growth (dataset)
+2026-03-07T19:03:46.8610651Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Finance Summary (dataset)
+2026-03-07T19:03:46.8611136Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Fleet Overheads by Asset (dataset)
+2026-03-07T19:03:46.8611581Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - FleetSpendReporting 1 of 2 (dataset)
+2026-03-07T19:03:46.8612019Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - FleetSpendReporting 2 of 2 (dataset)
+2026-03-07T19:03:46.8612435Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - MOT Tracker (dataset)
+2026-03-07T19:03:46.8612859Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Maintenance Provision - All Assets (dataset)
+2026-03-07T19:03:46.8613299Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Maintenance Provision (dataset)
+2026-03-07T19:03:46.8613741Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - NewAssetAwaitingDelivery (dataset)
+2026-03-07T19:03:46.8614186Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Odessa to Certinia Discrepancies (dataset)
+2026-03-07T19:03:46.8614615Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Origination (dataset)
+2026-03-07T19:03:46.8615010Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - PCN (dataset)
+2026-03-07T19:03:46.8615412Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Procurement Report (dataset)
+2026-03-07T19:03:46.8615853Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - R2C to Odessa Discrepancies (dataset)
+2026-03-07T19:03:46.8616276Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - RV Analysis (dataset)
+2026-03-07T19:03:46.8616685Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Rental utilisation (dataset)
+2026-03-07T19:03:46.8617087Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - TTS Sales (dataset)
+2026-03-07T19:03:46.8617490Z 2026-03-07 19:03:46,858 - __main__ - INFO -     - Tyre Analysis (dataset)
+2026-03-07T19:03:46.8618602Z 2026-03-07 19:03:46,859 - __main__ - INFO -   ✓ No paginated reports pending — skipping updateFromGit
+2026-03-07T19:03:46.8619119Z 2026-03-07 19:03:46,859 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-07T19:03:50.4269564Z 2026-03-07 19:03:50,426 - __main__ - INFO -   ✓ Source Control sync complete — no conflicts
+2026-03-07T19:03:50.4604452Z 
+2026-03-07T19:03:50.4605604Z ✓ Dev deployment completed successfully
+2026-03-07T19:03:50.4623049Z 
+2026-03-07T19:03:50.4695017Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

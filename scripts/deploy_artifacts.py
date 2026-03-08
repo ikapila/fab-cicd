@@ -517,27 +517,28 @@ class FabricDeployer:
     
     def _update_source_control(self) -> bool:
         """
-        Sync ONLY paginated reports from Git into the workspace.
+        Sync items from Git into the workspace BEFORE API deployment.
         
-        Paginated reports cannot be deployed via the Fabric REST API when
-        using a service principal (PrincipalTypeNotSupported error).  They
-        are synced from Git instead.
+        This step is critical to prevent duplicate display-name errors:
+        Git sync creates/updates items with their correct Git logicalIds.
+        When the API deployment runs next, it finds items by displayName
+        and UPDATES them in-place instead of creating new (duplicate) items.
         
-        All other item types (semantic models, reports, notebooks,
-        lakehouses, pipelines, etc.) are deployed exclusively via the API.
-        This avoids "duplicate display name" conflicts that occur when
-        Git-synced items clash with API-created items.
+        Paginated reports are EXCLUDED from sync because the Fabric API
+        returns PrincipalTypeNotSupported for service principals on those.
+        All other item types (semantic models, reports, notebooks, etc.)
+        are synced.
         
-        After API deployment, _commit_workspace_to_git() pushes API changes
-        back to Git so they are properly linked.
+        After API deployment, _commit_workspace_to_git() pushes any API
+        modifications back to Git, keeping Source Control clean.
         
         The feature is controlled by the config setting:
             git_integration.auto_update_from_git  (default: True)
         
         Flow:
           1. GET /git/status → get workspaceHead, remoteCommitHash, and changes
-          2. Filter to paginated reports only (rdlreport / paginatedreport)
-          3. POST /git/updateFromGit (selective) → sync only paginated reports
+          2. Filter OUT paginated reports (PrincipalTypeNotSupported)
+          3. POST /git/updateFromGit (selective) → sync non-paginated items
         
         Returns:
             True if update succeeded or was not needed, False on failure
@@ -596,13 +597,14 @@ class FabricDeployer:
             else:
                 logger.info(f"  📦 Commits available: workspace is behind remote")
             
-            # Step 2: Filter to paginated reports only.
-            # All other types are deployed via API — syncing them from Git
-            # would create duplicates.
+            # Step 2: Filter OUT paginated reports (PrincipalTypeNotSupported
+            # for service principals).  Everything else gets synced from Git
+            # so items exist with correct Git logicalIds BEFORE API deployment.
+            # This prevents duplicate display-name errors.
             paginated_types = {"rdlreport", "paginatedreport"}
             
-            paginated_to_sync = []
-            api_managed = []
+            items_to_sync = []
+            skipped_paginated = []
             
             for rc in remote_changes:
                 r_meta = rc.get("itemMetadata", {})
@@ -610,22 +612,22 @@ class FabricDeployer:
                 r_type = r_meta.get("itemType", "Unknown")
                 
                 if r_type.lower() in paginated_types:
-                    paginated_to_sync.append(rc)
+                    skipped_paginated.append(f"{r_name} ({r_type})")
                 else:
-                    api_managed.append(f"{r_name} ({r_type})")
+                    items_to_sync.append(rc)
             
-            if api_managed:
-                logger.info(f"  ⏭ Skipping {len(api_managed)} item(s) from Git sync (deployed via API):")
-                for am in api_managed:
-                    logger.info(f"    - {am}")
+            if skipped_paginated:
+                logger.info(f"  ⏭ Skipping {len(skipped_paginated)} paginated report(s) from Git sync (PrincipalTypeNotSupported):")
+                for sp in skipped_paginated:
+                    logger.info(f"    - {sp}")
             
-            if not paginated_to_sync:
-                logger.info("  ✓ No paginated reports pending in Git — skipping updateFromGit")
+            if not items_to_sync:
+                logger.info("  ✓ No non-paginated items pending in Git — skipping updateFromGit")
                 return True
             
-            # Build selective items list for paginated reports only
+            # Build selective items list for non-paginated items
             selective_items = []
-            for rc in paginated_to_sync:
+            for rc in items_to_sync:
                 item_meta = rc.get("itemMetadata", {})
                 item_entry = {}
                 if item_meta.get("logicalId"):
@@ -640,9 +642,9 @@ class FabricDeployer:
             
             sync_names = [
                 f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
-                for c in paginated_to_sync
+                for c in items_to_sync
             ]
-            logger.info(f"  📥 Syncing {len(paginated_to_sync)} paginated report(s) from Git:")
+            logger.info(f"  📥 Syncing {len(items_to_sync)} item(s) from Git (pre-deploy):")
             for sn in sync_names:
                 logger.info(f"    - {sn}")
             
@@ -655,7 +657,7 @@ class FabricDeployer:
                 items=selective_items if selective_items else None
             )
             
-            logger.info(f"  ✓ {len(paginated_to_sync)} paginated report(s) synced from Git")
+            logger.info(f"  ✓ {len(items_to_sync)} item(s) synced from Git")
             return True
             
         except Exception as e:
@@ -702,21 +704,19 @@ class FabricDeployer:
 
     def _commit_workspace_to_git(self) -> bool:
         """
-        Link API-deployed workspace items to Git after deployment.
+        Commit API-deployed workspace changes back to Git after deployment.
         
-        All non-paginated artifacts are deployed via the Fabric REST API.
-        API-created items are NOT linked to the Git repo, causing duplicate-name
-        conflicts in the Fabric Source Control panel.
+        Pre-deploy, _update_source_control() synced all non-paginated items
+        from Git so they exist with correct logicalIds.  API deployment then
+        updated those items in-place.  This method commits any resulting
+        workspace modifications (updated definitions, new items) back to Git
+        so Source Control stays clean.
         
-        Resolution flow:
-          1. Get Git status and list workspace items.
-          2. For incoming remote "Added" items, check if an item with the
-             same displayName already exists in the workspace (API-deployed).
-             If so, SKIP it from updateFromGit — the API version is correct.
-          3. updateFromGit (selective) — only pull items that genuinely need
-             syncing from Git and don't clash with API-deployed items.
-          4. commitToGit — push all workspace changes (including API-deployed
-             items) back to Git so they are properly linked.
+        Flow:
+          1. Get Git status.
+          2. If there are still unresolved remote changes (e.g. paginated
+             reports skipped in pre-deploy), log them but don't block.
+          3. commitToGit — push workspace modifications back.
         
         Returns:
             True if sync succeeded or was not needed, False on failure
@@ -729,7 +729,7 @@ class FabricDeployer:
         
         logger.info("")
         logger.info("-"*60)
-        logger.info("POST-DEPLOY: LINK WORKSPACE ITEMS TO GIT")
+        logger.info("POST-DEPLOY: COMMIT WORKSPACE CHANGES TO GIT")
         logger.info("-"*60)
         
         try:
@@ -745,104 +745,37 @@ class FabricDeployer:
                 logger.warning("  ⚠ Cannot sync — workspace not connected to Git")
                 return False
             
-            remote_changes = [c for c in changes if c.get("remoteChange")]
             workspace_changes = [c for c in changes if c.get("workspaceChange")]
+            remote_changes = [c for c in changes if c.get("remoteChange")]
             
-            if not remote_changes and not workspace_changes:
-                logger.info("  ✓ Workspace is in sync with Git — no action needed")
+            if not workspace_changes:
+                logger.info("  ✓ No workspace changes to commit — Git is in sync")
                 return True
             
-            # Step 1: Filter incoming remote changes.
-            # Only paginated reports should be synced via updateFromGit.
-            # All other artifact types (semantic models, reports, notebooks,
-            # lakehouses, pipelines, etc.) are deployed exclusively via API.
-            # Syncing non-paginated types can cause "duplicate display name"
-            # errors when items of different types share the same name
-            # (e.g. "Finance Summary" Report + "Finance Summary" SemanticModel).
-            paginated_types = {"rdlreport", "paginatedreport"}
-            
+            # Log any remaining remote changes (e.g. paginated reports)
             if remote_changes:
-                paginated_to_sync = []
-                api_skipped = []
-                
+                logger.info(f"  ℹ {len(remote_changes)} remote change(s) still pending (e.g. paginated reports):")
                 for rc in remote_changes:
                     r_meta = rc.get("itemMetadata", {})
-                    r_name = r_meta.get("displayName", "")
-                    r_type = r_meta.get("itemType", "")
-                    
-                    if r_type.lower() in paginated_types:
-                        paginated_to_sync.append(rc)
-                    else:
-                        api_skipped.append(f"{r_name} ({r_type})")
-                
-                if api_skipped:
-                    logger.info(f"  ⏭ Skipping {len(api_skipped)} item(s) from Git sync (deployed via API):")
-                    for s in api_skipped:
-                        logger.info(f"    - {s}")
-                
-                # Only call updateFromGit if there are paginated reports to sync
-                if paginated_to_sync:
-                    # Build selective items list
-                    selective_items = []
-                    for rc in paginated_to_sync:
-                        item_meta = rc.get("itemMetadata", {})
-                        item_entry = {}
-                        if item_meta.get("logicalId"):
-                            item_entry["logicalId"] = item_meta["logicalId"]
-                        if item_meta.get("objectId"):
-                            item_entry["objectId"] = item_meta["objectId"]
-                        if item_entry:
-                            selective_items.append(item_entry)
-                    
-                    sync_names = [
-                        f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
-                        for c in paginated_to_sync
-                    ]
-                    logger.info(f"  📥 {len(paginated_to_sync)} paginated report(s) to sync from Git:")
-                    for sn in sync_names:
-                        logger.info(f"    - {sn}")
-                    
-                    self.client.update_from_git(
-                        workspace_id=self.workspace_id,
-                        remote_commit_hash=remote_commit,
-                        workspace_head=workspace_head,
-                        conflict_resolution_policy="PreferWorkspace",
-                        allow_override_items=True,
-                        items=selective_items if selective_items else None
-                    )
-                    logger.info("  ✓ Paginated reports synced from Git")
-                    for sn in sync_names:
-                        logger.info(f"  ✅ Deployed via Git sync: {sn}")
-                else:
-                    logger.info("  ✓ No paginated reports pending — skipping updateFromGit")
-                
-                # Re-fetch status after updateFromGit (or after skipping)
-                status = self.client.get_git_status(self.workspace_id)
-                workspace_head = status.get("workspaceHead")
-                changes = status.get("changes", [])
-                workspace_changes = [c for c in changes if c.get("workspaceChange")]
+                    logger.info(f"    - {r_meta.get('displayName', '?')} ({r_meta.get('itemType', '?')})")
             
-            # Step 2: Commit workspace changes to Git.
-            # API-deployed items appear as workspace "Added" changes.
-            # Committing them links them to the Git repo.
-            if workspace_changes:
-                change_names = [
-                    f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
-                    for c in workspace_changes
-                ]
-                logger.info(f"  📤 {len(workspace_changes)} workspace change(s) to commit:")
-                for cn in change_names:
-                    logger.info(f"    - {cn}")
-                
-                self.client.commit_to_git(
-                    workspace_id=self.workspace_id,
-                    mode="All",
-                    workspace_head=workspace_head,
-                    comment="CI/CD: sync API-deployed items to Git"
-                )
-                logger.info("  ✓ Workspace changes committed to Git")
+            # Commit workspace changes to Git.
+            # API-updated items appear as workspace "Modified" changes.
+            change_names = [
+                f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
+                for c in workspace_changes
+            ]
+            logger.info(f"  📤 {len(workspace_changes)} workspace change(s) to commit:")
+            for cn in change_names:
+                logger.info(f"    - {cn}")
             
-            logger.info("  ✓ Source Control sync complete — no conflicts")
+            self.client.commit_to_git(
+                workspace_id=self.workspace_id,
+                mode="All",
+                workspace_head=workspace_head,
+                comment="CI/CD: sync API-deployed items to Git"
+            )
+            logger.info("  ✓ Workspace changes committed to Git")
             return True
             
         except Exception as e:
@@ -1668,36 +1601,6 @@ class FabricDeployer:
                     except Exception as e:
                         logger.debug(f"Skipping folder {item.name}: {e}")
         
-        # Discover PBIR companion .SemanticModel folders in Reports/
-        # These are thin semantic models that sit alongside .Report folders
-        # and may be referenced via byPath in definition.pbir
-        reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
-        if reports_dir.exists():
-            for item in reports_dir.iterdir():
-                if item.is_dir() and item.name.endswith(".SemanticModel"):
-                    platform_file = item / ".platform"
-                    if platform_file.exists():
-                        try:
-                            with open(platform_file, 'r') as f:
-                                platform_data = json.load(f)
-                            
-                            model_name = platform_data.get("metadata", {}).get("displayName", item.name.replace(".SemanticModel", ""))
-                            folder_base = item.name.replace(".SemanticModel", "")
-                            self._register_name_alias("SemanticModel", folder_base, model_name)
-                            discovered.append(f"{model_name} (Fabric Git, companion)")
-                            model_id = platform_data.get("config", {}).get("logicalId", f"semanticmodel-{model_name}")
-                            
-                            self.resolver.add_artifact(
-                                model_id,
-                                ArtifactType.SEMANTIC_MODEL,
-                                model_name,
-                                dependencies=[]
-                            )
-                            
-                            logger.debug(f"Discovered companion semantic model (Fabric Git): {model_name} from Reports/{item.name}")
-                        except Exception as e:
-                            logger.debug(f"Skipping companion folder {item.name}: {e}")
-        
         if discovered:
             logger.info(f"Discovered {len(discovered)} semantic model(s): {', '.join(sorted(discovered))}")
     
@@ -1740,27 +1643,21 @@ class FabricDeployer:
                         model_folder_name = path.rsplit("/", 1)[-1] if "/" in path else path
                         model_name = model_folder_name.replace(".SemanticModel", "")
                         
-                        # Search for the .SemanticModel folder in multiple locations:
-                        # 1. Semanticmodels/ (standard location)
-                        # 2. Reports/ (PBIR companion models that sit alongside .Report folders)
-                        model_folder = None
-                        search_dirs = [
-                            self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels",
-                            self.artifacts_dir / self.artifacts_root_folder / "Reports",
-                        ]
-                        for search_dir in search_dirs:
-                            candidate = search_dir / model_folder_name
-                            if candidate.exists():
-                                model_folder = candidate
-                                break
+                        # Only add a deployment dependency for STANDALONE models
+                        # in Semanticmodels/.  Companion .SemanticModel folders
+                        # in Reports/ are thin auto-managed models that Fabric
+                        # creates/syncs automatically via Git — they do NOT need
+                        # separate API deployment and must NOT be registered as
+                        # artifacts (doing so would create duplicates).
+                        models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
+                        model_folder = models_dir / model_folder_name
                         
-                        if model_folder is not None:
+                        if model_folder.exists():
                             model_platform_file = model_folder / ".platform"
                             if model_platform_file.exists():
                                 try:
                                     with open(model_platform_file, 'r') as f:
                                         model_platform = json.load(f)
-                                    # Use the same ID that was registered during semantic model discovery
                                     model_id = model_platform.get("config", {}).get("logicalId", f"semanticmodel-{model_name}")
                                     model_name = model_platform.get("metadata", {}).get("displayName", model_name)
                                 except Exception:
@@ -1769,9 +1666,12 @@ class FabricDeployer:
                                 model_id = f"semanticmodel-{model_name}"
                             
                             dependencies.append(model_id)
-                            logger.debug(f"Report '{report_name}' depends on semantic model '{model_name}' (dep ID: {model_id}) found at {model_folder}")
+                            logger.debug(f"Report '{report_name}' depends on standalone semantic model '{model_name}' (dep ID: {model_id})")
                         else:
-                            logger.warning(f"Report '{report_name}' references semantic model '{model_name}' but folder not found in Semanticmodels/ or Reports/ — skipping dependency")
+                            # Companion model in Reports/ or external reference.
+                            # Fabric manages these via Git sync — no deployment
+                            # dependency needed.
+                            logger.debug(f"Report '{report_name}' references semantic model '{model_name}' — companion/external model, skipping dependency")
                 except Exception as e:
                     logger.debug(f"Could not extract semantic model dependency: {e}")
             
@@ -4044,39 +3944,28 @@ print('Notebook initialized')
             definition = json.loads(definition_str)
         else:
             # Try Fabric Git format - search for folder with matching displayName
-            # Search both Semanticmodels/ (standard) and Reports/ (PBIR companions)
-            search_dirs = [models_dir]
-            reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
-            if reports_dir.exists():
-                search_dirs.append(reports_dir)
-            
+            # Only search Semanticmodels/ — companion .SemanticModel folders
+            # in Reports/ are managed by Git sync, not API deployment.
             found = False
-            for search_dir in search_dirs:
-                if not search_dir.exists():
-                    continue
-                for item in search_dir.iterdir():
-                    if item.is_dir() and item.name.endswith(".SemanticModel"):
-                        platform_file = item / ".platform"
-                        if platform_file.exists():
-                            try:
-                                with open(platform_file, 'r') as f:
-                                    platform_data = json.load(f)
-                                display_name = platform_data.get("metadata", {}).get("displayName", "")
-                                
-                                if display_name == name:
-                                    logger.info(f"  Reading semantic model from Fabric Git format: {item.name} (in {search_dir.name}/)") 
-                                    definition = self._read_semantic_model_git_format(item)
-                                    found = True
-                                    break
-                            except Exception as e:
-                                logger.debug(f"  Skipping folder {item.name}: {e}")
-                if found:
-                    break
+            for item in models_dir.iterdir():
+                if item.is_dir() and item.name.endswith(".SemanticModel"):
+                    platform_file = item / ".platform"
+                    if platform_file.exists():
+                        try:
+                            with open(platform_file, 'r') as f:
+                                platform_data = json.load(f)
+                            display_name = platform_data.get("metadata", {}).get("displayName", "")
+                            
+                            if display_name == name:
+                                logger.info(f"  Reading semantic model from Fabric Git format: {item.name}")
+                                definition = self._read_semantic_model_git_format(item)
+                                found = True
+                                break
+                        except Exception as e:
+                            logger.debug(f"  Skipping folder {item.name}: {e}")
             
             if not found:
-                raise FileNotFoundError(f"Semantic model '{name}' not found in Semanticmodels/ or Reports/")
-        
-        # Check if model exists
+                raise FileNotFoundError(f"Semantic model '{name}' not found in JSON or Fabric Git format")
         existing = self.client.list_semantic_models(self.workspace_id)
         existing_model = next((m for m in existing if m["displayName"] == name), None)
         

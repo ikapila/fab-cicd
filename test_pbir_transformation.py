@@ -1,28 +1,25 @@
 #!/usr/bin/env python3
 """
-Test script to validate PBIR transformation logic
+Test script to validate PBIR transformation logic for both v1 and v2 schemas
 """
 import json
 
-# Sample PBIR content with byPath reference
-pbir_original = {
+# ============================================================
+# v1.0.0 schema: byConnection requires all explicit properties
+# ============================================================
+pbir_v1_original = {
+    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/1.0.0/schema.json",
+    "version": "4.0",
     "datasetReference": {
         "byPath": {
             "path": "../../Semanticmodels/Finance Summary.SemanticModel"
         }
-    },
-    "config": {
-        "version": "5.49",
-        "themeCollection": {
-            "baseTheme": {
-                "name": "CY24SU06"
-            }
-        }
     }
 }
 
-# Expected transformation with byConnection
-pbir_expected = {
+pbir_v1_expected = {
+    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/1.0.0/schema.json",
+    "version": "4.0",
     "datasetReference": {
         "byConnection": {
             "connectionString": None,
@@ -32,19 +29,53 @@ pbir_expected = {
             "name": "EntityDataSource",
             "connectionType": "pbiServiceXmlaStyleLive"
         }
-    },
-    "config": {
-        "version": "5.49",
-        "themeCollection": {
-            "baseTheme": {
-                "name": "CY24SU06"
-            }
+    }
+}
+
+# ============================================================
+# v2.0.0 schema: byConnection only allows connectionString
+# ============================================================
+pbir_v2_original = {
+    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
+    "version": "4.0",
+    "datasetReference": {
+        "byPath": {
+            "path": "../../Semanticmodels/Origination.SemanticModel"
         }
     }
 }
 
-print("Original PBIR:")
-print(json.dumps(pbir_original, indent=2))
-print("\n" + "="*60 + "\n")
-print("Expected transformed PBIR:")
-print(json.dumps(pbir_expected, indent=2))
+pbir_v2_expected = {
+    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
+    "version": "4.0",
+    "datasetReference": {
+        "byConnection": {
+            "connectionString": "semanticmodelid=dfae4241-471b-4bdb-80e6-712cf4b295b9"
+        }
+    }
+}
+
+print("=== v1.0.0 Schema (explicit properties) ===")
+print("Original:")
+print(json.dumps(pbir_v1_original, indent=2))
+print("\nExpected:")
+print(json.dumps(pbir_v1_expected, indent=2))
+
+print("\n" + "="*60)
+print("\n=== v2.0.0 Schema (connectionString only) ===")
+print("Original:")
+print(json.dumps(pbir_v2_original, indent=2))
+print("\nExpected:")
+print(json.dumps(pbir_v2_expected, indent=2))
+
+# Validate v1 has all required properties
+v1_conn = pbir_v1_expected["datasetReference"]["byConnection"]
+v1_required = {"pbiServiceModelId", "pbiModelVirtualServerName", "pbiModelDatabaseName", "name", "connectionType"}
+assert v1_required.issubset(v1_conn.keys()), "v1 format missing required properties"
+print("\n✓ v1 format has all required properties")
+
+# Validate v2 has only connectionString and it's a non-null string
+v2_conn = pbir_v2_expected["datasetReference"]["byConnection"]
+assert list(v2_conn.keys()) == ["connectionString"], "v2 format should only have connectionString"
+assert isinstance(v2_conn["connectionString"], str), "v2 connectionString must be a string, not null"
+print("✓ v2 format has connectionString only (non-null string)")

@@ -1884,6 +1884,34 @@ class FabricDeployer:
         
         return {"parts": parts}
     
+    def _build_by_connection(self, pbir_data: dict, dataset_id: str) -> dict:
+        """
+        Build the correct byConnection object based on the report's $schema version.
+        
+        - Schema v1.0.0: requires explicit properties (pbiServiceModelId, etc.)
+        - Schema v2.0.0 or absent: only allows connectionString as a String
+        
+        The Fabric REST API createReport endpoint validates definition.pbir
+        against the $schema URL, so the format MUST match the schema version.
+        """
+        schema_url = pbir_data.get('$schema', '')
+        is_v1 = '1.0.0' in schema_url
+        
+        if is_v1:
+            return {
+                "connectionString": None,
+                "pbiServiceModelId": None,
+                "pbiModelVirtualServerName": "sobe_wowvirtualserver",
+                "pbiModelDatabaseName": dataset_id,
+                "name": "EntityDataSource",
+                "connectionType": "pbiServiceXmlaStyleLive"
+            }
+        else:
+            # v2.0.0 or unknown schema — connectionString only (must be a String, not null)
+            return {
+                "connectionString": f"semanticmodelid={dataset_id}"
+            }
+    
     def _transform_pbir_dataset_reference(self, pbir_content: bytes, dataset_id: str = None) -> bytes:
         """
         Transform PBIR datasetReference to use byConnection with the actual
@@ -1898,6 +1926,10 @@ class FabricDeployer:
         3. Raises an error if the model cannot be found (instead of silently
            falling back to byPath which always fails).
         
+        The byConnection format depends on the report's $schema version:
+        - v1.0.0: requires all explicit properties (pbiServiceModelId, etc.)
+        - v2.0.0: only allows connectionString as a non-null String
+        
         Args:
             pbir_content: Original PBIR file content as bytes
             dataset_id: The ID of the deployed semantic model (optional, can be looked up)
@@ -1909,35 +1941,47 @@ class FabricDeployer:
             pbir_str = pbir_content.decode('utf-8')
             pbir_data = json.loads(pbir_str)
             
-            # If already using byConnection, validate required properties are present
+            schema_url = pbir_data.get('$schema', '')
+            is_v1 = '1.0.0' in schema_url
+            schema_label = 'v1' if is_v1 else 'v2'
+            
+            # If already using byConnection, validate it matches the schema
             if 'datasetReference' in pbir_data and 'byConnection' in pbir_data['datasetReference']:
                 conn = pbir_data['datasetReference']['byConnection']
-                required_keys = {'pbiServiceModelId', 'pbiModelVirtualServerName',
-                                 'pbiModelDatabaseName', 'name', 'connectionType'}
-                if required_keys.issubset(conn.keys()):
-                    logger.info(f"    ✓ Report already uses byConnection reference")
-                    return pbir_content
+                
+                if is_v1:
+                    # v1 schema requires all explicit properties
+                    required_keys = {'pbiServiceModelId', 'pbiModelVirtualServerName',
+                                     'pbiModelDatabaseName', 'name', 'connectionType'}
+                    if required_keys.issubset(conn.keys()):
+                        logger.info(f"    ✓ Report already uses byConnection reference ({schema_label} schema)")
+                        return pbir_content
                 else:
-                    logger.info(f"    ⚠ byConnection is missing required properties, will re-transform")
-                    # Fall through to byPath logic — but we need to extract model name
-                    # from connectionString if byPath is not available
-                    if 'connectionString' in conn and 'byPath' not in pbir_data.get('datasetReference', {}):
-                        cs = conn.get('connectionString', '')
-                        cs_match = re.search(r'semanticmodelid=([a-f0-9-]+)', cs, re.IGNORECASE)
-                        if cs_match:
-                            existing_id = cs_match.group(1)
-                            pbir_data['datasetReference'] = {
-                                "byConnection": {
-                                    "connectionString": None,
-                                    "pbiServiceModelId": None,
-                                    "pbiModelVirtualServerName": "sobe_wowvirtualserver",
-                                    "pbiModelDatabaseName": existing_id,
-                                    "name": "EntityDataSource",
-                                    "connectionType": "pbiServiceXmlaStyleLive"
-                                }
-                            }
-                            logger.info(f"    ✓ Fixed byConnection with model ID from connectionString: {existing_id}")
-                            return json.dumps(pbir_data, indent=2).encode('utf-8')
+                    # v2 schema only needs connectionString (as a non-null string)
+                    cs = conn.get('connectionString')
+                    if isinstance(cs, str) and cs:
+                        logger.info(f"    ✓ Report already uses byConnection reference ({schema_label} schema)")
+                        return pbir_content
+                
+                # Existing byConnection doesn't match schema — try to extract model ID and rebuild
+                logger.info(f"    ⚠ byConnection doesn't match {schema_label} schema, will re-transform")
+                if 'connectionString' in conn and 'byPath' not in pbir_data.get('datasetReference', {}):
+                    cs = conn.get('connectionString', '') or ''
+                    cs_match = re.search(r'semanticmodelid=([a-f0-9-]+)', cs, re.IGNORECASE)
+                    if not cs_match and 'pbiModelDatabaseName' in conn and conn['pbiModelDatabaseName']:
+                        # Fall back to pbiModelDatabaseName (v1 format stores the ID there)
+                        existing_id = conn['pbiModelDatabaseName']
+                    elif cs_match:
+                        existing_id = cs_match.group(1)
+                    else:
+                        existing_id = None
+                    
+                    if existing_id:
+                        pbir_data['datasetReference'] = {
+                            "byConnection": self._build_by_connection(pbir_data, existing_id)
+                        }
+                        logger.info(f"    ✓ Fixed byConnection ({schema_label} schema) with model ID: {existing_id}")
+                        return json.dumps(pbir_data, indent=2).encode('utf-8')
             
             # Check if there's a datasetReference with byPath
             if 'datasetReference' in pbir_data and 'byPath' in pbir_data['datasetReference']:
@@ -1967,19 +2011,10 @@ class FabricDeployer:
                     
                     # Step 3: Transform to byConnection or fail
                     if dataset_id:
-                        # Fabric REST API requires the full byConnection schema with
-                        # all required properties — connectionString-only format is rejected.
                         pbir_data['datasetReference'] = {
-                            "byConnection": {
-                                "connectionString": None,
-                                "pbiServiceModelId": None,
-                                "pbiModelVirtualServerName": "sobe_wowvirtualserver",
-                                "pbiModelDatabaseName": dataset_id,
-                                "name": "EntityDataSource",
-                                "connectionType": "pbiServiceXmlaStyleLive"
-                            }
+                            "byConnection": self._build_by_connection(pbir_data, dataset_id)
                         }
-                        logger.info(f"    ✓ Using byConnection reference for '{model_name}' (ID: {dataset_id})")
+                        logger.info(f"    ✓ Using byConnection reference ({schema_label} schema) for '{model_name}' (ID: {dataset_id})")
                     else:
                         # byPath is always rejected by Fabric REST API — fail with clear message
                         raise RuntimeError(

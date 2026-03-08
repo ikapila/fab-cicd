@@ -1729,60 +1729,70 @@ class FabricDeployer:
     def _discover_paginated_reports(self) -> None:
         """Discover paginated report definitions (JSON and Fabric Git format).
         
-        Paginated reports live in the PaginatedReports/ folder.
+        Scans PaginatedReports/ (primary) and Reports/ (fallback) for
+        .PaginatedReport folders.  Some repos store them under Reports/
+        (the native Fabric Git layout) while others use a dedicated
+        PaginatedReports/ directory.
         """
-        reports_dir = self.artifacts_dir / self.artifacts_root_folder / "PaginatedReports"
-        
-        if not reports_dir.exists():
-            logger.debug("No paginated reports directory found")
-            return
+        paginated_dir = self.artifacts_dir / self.artifacts_root_folder / "PaginatedReports"
+        reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
         
         discovered = []
+        seen_names: set = set()   # avoid duplicates across directories
         
-        # Discover JSON files (legacy format)
-        for report_file in reports_dir.glob("*.json"):
-            with open(report_file, 'r') as f:
-                definition = json.load(f)
-            
-            report_name = definition.get("name", report_file.stem)
-            discovered.append(f"{report_name} (JSON)")
-            report_id = definition.get("id", f"paginatedreport-{report_name}")
-            dependencies = definition.get("dependencies", [])
-            
-            self.resolver.add_artifact(
-                report_id,
-                ArtifactType.PAGINATED_REPORT,
-                report_name,
-                dependencies=dependencies
-            )
-            
-            logger.debug(f"Discovered paginated report (JSON): {report_name}")
+        # Discover JSON files (legacy format) from PaginatedReports/
+        if paginated_dir.exists():
+            for report_file in paginated_dir.glob("*.json"):
+                with open(report_file, 'r') as f:
+                    definition = json.load(f)
+                
+                report_name = definition.get("name", report_file.stem)
+                if report_name in seen_names:
+                    continue
+                seen_names.add(report_name)
+                discovered.append(f"{report_name} (JSON)")
+                report_id = definition.get("id", f"paginatedreport-{report_name}")
+                dependencies = definition.get("dependencies", [])
+                
+                self.resolver.add_artifact(
+                    report_id,
+                    ArtifactType.PAGINATED_REPORT,
+                    report_name,
+                    dependencies=dependencies
+                )
+                
+                logger.debug(f"Discovered paginated report (JSON): {report_name}")
         
-        # Discover Fabric Git format folders (.PaginatedReport)
-        for item in reports_dir.iterdir():
-            if item.is_dir() and item.name.endswith(".PaginatedReport"):
-                platform_file = item / ".platform"
-                if platform_file.exists():
-                    try:
-                        with open(platform_file, 'r') as f:
-                            platform_data = json.load(f)
-                        
-                        report_name = platform_data.get("metadata", {}).get("displayName", item.name.replace(".PaginatedReport", ""))
-                        folder_base = item.name.replace(".PaginatedReport", "")
-                        self._register_name_alias("PaginatedReport", folder_base, report_name)
-                        discovered.append(f"{report_name} (Fabric Git)")
-                        report_id = platform_data.get("config", {}).get("logicalId", f"paginatedreport-{report_name}")
-                        
-                        self.resolver.add_artifact(
-                            report_id,
-                            ArtifactType.PAGINATED_REPORT,
-                            report_name,
-                            dependencies=[]
-                        )
-                        
-                        logger.debug(f"Discovered paginated report (Fabric Git): {report_name} from {item.name}")
-                    except Exception as e:
-                        logger.debug(f"Skipping folder {item.name}: {e}")
+        # Discover Fabric Git format folders (.PaginatedReport) from both dirs
+        scan_dirs = [d for d in (paginated_dir, reports_dir) if d.exists()]
+        for scan_dir in scan_dirs:
+            for item in scan_dir.iterdir():
+                if item.is_dir() and item.name.endswith(".PaginatedReport"):
+                    platform_file = item / ".platform"
+                    if platform_file.exists():
+                        try:
+                            with open(platform_file, 'r') as f:
+                                platform_data = json.load(f)
+                            
+                            report_name = platform_data.get("metadata", {}).get("displayName", item.name.replace(".PaginatedReport", ""))
+                            if report_name in seen_names:
+                                continue
+                            seen_names.add(report_name)
+                            folder_base = item.name.replace(".PaginatedReport", "")
+                            self._register_name_alias("PaginatedReport", folder_base, report_name)
+                            discovered.append(f"{report_name} (Fabric Git)")
+                            report_id = platform_data.get("config", {}).get("logicalId", f"paginatedreport-{report_name}")
+                            
+                            self.resolver.add_artifact(
+                                report_id,
+                                ArtifactType.PAGINATED_REPORT,
+                                report_name,
+                                dependencies=[]
+                            )
+                            
+                            logger.debug(f"Discovered paginated report (Fabric Git): {report_name} from {item.name}")
+                        except Exception as e:
+                            logger.debug(f"Skipping folder {item.name}: {e}")
         
         if discovered:
             logger.info(f"Discovered {len(discovered)} paginated report(s): {', '.join(sorted(discovered))}")
@@ -4232,9 +4242,10 @@ print('Notebook initialized')
             logger.warning(f"  ⚠ Paginated report '{name}' is in JSON format — Git format (.PaginatedReport folder) required")
             return
         
-        # Fabric Git format in PaginatedReports/
+        # Fabric Git format in PaginatedReports/ (primary) and Reports/ (fallback)
         git_paths = [
-            self.artifacts_dir / self.artifacts_root_folder / "PaginatedReports"
+            self.artifacts_dir / self.artifacts_root_folder / "PaginatedReports",
+            self.artifacts_dir / self.artifacts_root_folder / "Reports",
         ]
         
         for base_path in git_paths:
@@ -4367,15 +4378,15 @@ print('Notebook initialized')
                     report_id = result.get('id', 'unknown')
                     logger.info(f"  ✓ Created paginated report '{name}' via Imports API (ID: {report_id})")
         
-        # Move into the "Reports" folder and update data sources
+        # Move into the "PaginatedReports" folder and update data sources
         if report_id and report_id != 'unknown':
             try:
-                folder_id = self._get_or_create_folder("Reports")
+                folder_id = self._get_or_create_folder("PaginatedReports")
                 if folder_id:
                     self.client.move_item_to_folder(self.workspace_id, report_id, folder_id)
-                    logger.info(f"  ✓ Moved paginated report '{name}' to 'Reports' folder")
+                    logger.info(f"  ✓ Moved paginated report '{name}' to 'PaginatedReports' folder")
             except Exception as move_err:
-                logger.warning(f"  ⚠ Could not move paginated report to Reports folder: {move_err}")
+                logger.warning(f"  ⚠ Could not move paginated report to PaginatedReports folder: {move_err}")
             
             # Configure connection — prefer ShareableCloud binding (no PersonalCloud),
             # fall back to TakeOver + UpdateDatasources if no connection configured

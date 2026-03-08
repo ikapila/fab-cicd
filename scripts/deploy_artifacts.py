@@ -847,7 +847,15 @@ class FabricDeployer:
             
         except Exception as e:
             error_msg = str(e)
-            if "InvalidSystemFiles" in error_msg:
+            response_text = ""
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    response_text = e.response.text or ""
+                except Exception:
+                    pass
+            combined_msg = error_msg + " " + response_text
+            
+            if "InvalidSystemFiles" in combined_msg:
                 logger.warning(f"  ⚠ Post-deploy Git sync failed: Git directory contains invalid system files")
                 logger.warning("    This is usually caused by a .platform file with an empty logicalId.")
                 logger.warning("    Fix: ensure every .platform file in the connected Git branch has")
@@ -3286,6 +3294,12 @@ print('Notebook initialized')
         if failure_count == 0:
             self._save_deployment_state()
         
+        # Post-deploy: link API-deployed items back to Git.
+        # Without this, API-created items have different IDs to the Git items,
+        # causing "duplicate display name" errors in the Source Control panel.
+        if failure_count == 0 and not dry_run:
+            self._commit_workspace_to_git()
+        
         # Refresh semantic models that were deployed in this run.
         # This must happen after connection binding (done in _deploy_semantic_model)
         # so the model can connect to the data source during refresh.
@@ -4030,26 +4044,37 @@ print('Notebook initialized')
             definition = json.loads(definition_str)
         else:
             # Try Fabric Git format - search for folder with matching displayName
+            # Search both Semanticmodels/ (standard) and Reports/ (PBIR companions)
+            search_dirs = [models_dir]
+            reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
+            if reports_dir.exists():
+                search_dirs.append(reports_dir)
+            
             found = False
-            for item in models_dir.iterdir():
-                if item.is_dir() and item.name.endswith(".SemanticModel"):
-                    platform_file = item / ".platform"
-                    if platform_file.exists():
-                        try:
-                            with open(platform_file, 'r') as f:
-                                platform_data = json.load(f)
-                            display_name = platform_data.get("metadata", {}).get("displayName", "")
-                            
-                            if display_name == name:
-                                logger.info(f"  Reading semantic model from Fabric Git format: {item.name}")
-                                definition = self._read_semantic_model_git_format(item)
-                                found = True
-                                break
-                        except Exception as e:
-                            logger.debug(f"  Skipping folder {item.name}: {e}")
+            for search_dir in search_dirs:
+                if not search_dir.exists():
+                    continue
+                for item in search_dir.iterdir():
+                    if item.is_dir() and item.name.endswith(".SemanticModel"):
+                        platform_file = item / ".platform"
+                        if platform_file.exists():
+                            try:
+                                with open(platform_file, 'r') as f:
+                                    platform_data = json.load(f)
+                                display_name = platform_data.get("metadata", {}).get("displayName", "")
+                                
+                                if display_name == name:
+                                    logger.info(f"  Reading semantic model from Fabric Git format: {item.name} (in {search_dir.name}/)") 
+                                    definition = self._read_semantic_model_git_format(item)
+                                    found = True
+                                    break
+                            except Exception as e:
+                                logger.debug(f"  Skipping folder {item.name}: {e}")
+                if found:
+                    break
             
             if not found:
-                raise FileNotFoundError(f"Semantic model '{name}' not found in JSON or Fabric Git format")
+                raise FileNotFoundError(f"Semantic model '{name}' not found in Semanticmodels/ or Reports/")
         
         # Check if model exists
         existing = self.client.list_semantic_models(self.workspace_id)

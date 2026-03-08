@@ -682,9 +682,26 @@ class FabricDeployer:
                 return False
             elif "PrincipalTypeNotSupported" in combined_msg:
                 logger.warning("  ⚠ Service principal is not supported for Git operations on some item types")
-                logger.warning("    Paginated reports can only be synced interactively. They will be")
-                logger.warning("    handled by post-sync datasource updates if already in workspace.")
-                logger.warning("    All other artifacts are deployed via API.")
+                logger.warning("    Paginated reports in the Git directory block updateFromGit for SPs.")
+                logger.warning("    Attempting initializeConnection(PreferRemote) to advance workspace head...")
+                
+                # When updateFromGit fails because paginated reports exist in
+                # Git, the workspace head stays stale.  This means a later
+                # commitToGit will also fail (workspace behind remote).
+                # Calling initializeConnection(PreferRemote) re-maps workspace
+                # items to Git items by display name + type and advances the
+                # workspace head so post-deploy commitToGit can succeed.
+                try:
+                    self.client.initialize_connection(
+                        workspace_id=self.workspace_id,
+                        initialization_strategy="PreferRemote"
+                    )
+                    logger.info("  ✓ Git connection re-initialized — workspace head is up to date")
+                except Exception as init_err:
+                    init_msg = str(init_err)
+                    logger.warning(f"  ⚠ initializeConnection(PreferRemote) also failed: {init_msg}")
+                    logger.warning("    Post-deploy commitToGit will attempt initializeConnection(PreferWorkspace)")
+                
                 return True  # Treat as non-fatal; API deployment handles non-paginated items
             elif "GitCredentialsNotConfigured" in combined_msg:
                 logger.warning("  ⚠ Git credentials are not configured for the service principal")
@@ -1894,9 +1911,16 @@ class FabricDeployer:
         
         parts = []
         
-        # Read all files recursively and encode them
+        # Read all files recursively and encode them.
+        # IMPORTANT: .platform is EXCLUDED — see _read_report_git_format
+        # docstring for the rationale (prevents duplicate display-name
+        # conflicts in Source Control).
         for file_path in model_folder.rglob("*"):
             if file_path.is_file():
+                # Skip .platform — Git-only metadata, not needed by REST API
+                if file_path.name == ".platform":
+                    continue
+                
                 # Get relative path from model folder
                 relative_path = file_path.relative_to(model_folder)
                 
@@ -1939,9 +1963,21 @@ class FabricDeployer:
         """
         parts = []
         
-        # Read all files recursively and encode them
+        # Read all files recursively and encode them.
+        # IMPORTANT: .platform is EXCLUDED from the definition submitted
+        # to the REST API.  It is a Git-integration metadata file that
+        # contains a logicalId.  If included, Fabric may assign the
+        # API-created item a conflicting logicalId, causing Source Control
+        # to see it as a SEPARATE item from the Git counterpart (
+        # "multiple items have the same name" error).  Excluding it lets
+        # initializeConnection / commitToGit cleanly map the API-created
+        # item to the Git item by display name + type.
         for file_path in report_folder.rglob("*"):
             if file_path.is_file():
+                # Skip .platform — Git-only metadata, not needed by REST API
+                if file_path.name == ".platform":
+                    continue
+                
                 # Get relative path from report folder
                 relative_path = file_path.relative_to(report_folder)
                 
@@ -2187,6 +2223,10 @@ class FabricDeployer:
         # Encode all files except .rdl first
         for file_path in report_folder.rglob("*"):
             if file_path.is_file() and not file_path.suffix == ".rdl":
+                # Skip .platform — Git-only metadata (see _read_report_git_format)
+                if file_path.name == ".platform":
+                    continue
+                
                 relative_path = file_path.relative_to(report_folder)
                 
                 with open(file_path, 'rb') as f:

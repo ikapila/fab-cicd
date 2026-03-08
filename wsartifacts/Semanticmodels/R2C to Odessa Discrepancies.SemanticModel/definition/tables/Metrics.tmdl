@@ -1,0 +1,42 @@
+table Metrics
+	lineageTag: 597563ad-5020-4c3f-bd22-faa6cfb6d6bb
+
+	measure 'R2C Updated date (Invoiced Jobs Sent)' = MAX('flat_r2c_invoiced_jobs_sent'[dp_process_date])
+		formatString: dd/mm/yyyy
+		lineageTag: ef21e4d3-4dae-484b-a183-bc8951b94faf
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	measure 'R2C Updated date (Invoiced Jobs Received)' = MAX('flat_r2c_invoiced_jobs_received'[dp_process_date])
+		formatString: dd/mm/yyyy
+		lineageTag: 69edf060-16c8-4ace-a763-bbaa84e4d3a7
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	measure 'R2C Updated date (Invoice Credits Sent)' = MAX('flat_r2c_invoice_credits_sent'[dp_process_date])
+		formatString: dd/mm/yyyy
+		lineageTag: e25b6d3a-ff33-4382-8754-7d605d3385f9
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	measure 'R2C Updated date (Invoice Credits Received)' = MAX('flat_r2c_invoice_credits_received'[dp_process_date])
+		formatString: dd/mm/yyyy
+		lineageTag: c47cb261-35f4-4227-ad75-ea437081689f
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	column Value
+		formatString: 0
+		lineageTag: 855d7704-a036-4c53-9ced-913641dabb26
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Metrics = calculated
+		mode: import
+		source = {1}
+
+	annotation PBI_Id = 35464dc722d845fc8457f8b6a1925689
+

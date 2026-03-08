@@ -1,0 +1,163 @@
+table aggregated_odessa_dim_date
+	lineageTag: a6a23a7e-acee-4665-9ca6-04032731cd45
+
+	column sk_aggregated_dim_date
+		dataType: int64
+		formatString: 0
+		lineageTag: c3e339e2-9b5d-47d2-8fa8-fdf3f805e325
+		summarizeBy: sum
+		sourceColumn: sk_aggregated_dim_date
+
+		annotation SummarizationSetBy = Automatic
+
+	column bk_aggregated_dim_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 42467def-9d0c-4ac5-8621-e8f62cd5d829
+		summarizeBy: none
+		sourceColumn: bk_aggregated_dim_date
+
+		variation Variation
+			isDefault
+			relationship: c9c54932-05a8-4369-91de-565e3b06da33
+			defaultHierarchy: LocalDateTable_31e41a74-9c9c-472a-aa05-79ad09752dd5.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column year_num
+		dataType: int64
+		formatString: 0
+		lineageTag: f89d78ab-7ddf-4957-b1d9-5e7971e7ed1b
+		summarizeBy: sum
+		sourceColumn: year_num
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_num
+		dataType: int64
+		formatString: 0
+		lineageTag: fd87091f-d7e3-40d5-94b1-0ede0ccb519a
+		summarizeBy: sum
+		sourceColumn: month_num
+
+		annotation SummarizationSetBy = Automatic
+
+	column quarter_num
+		dataType: int64
+		formatString: 0
+		lineageTag: 0de0cf4a-5c5f-4b33-b139-083a4d1e7ffe
+		summarizeBy: sum
+		sourceColumn: quarter_num
+
+		annotation SummarizationSetBy = Automatic
+
+	column day_of_month
+		dataType: int64
+		formatString: 0
+		lineageTag: 46f2f095-8481-444b-891b-34b91271d12d
+		summarizeBy: sum
+		sourceColumn: day_of_month
+
+		annotation SummarizationSetBy = Automatic
+
+	column day_of_week
+		dataType: int64
+		formatString: 0
+		lineageTag: 138fb9f9-3aaa-42ee-abdf-d2f15e346e6f
+		summarizeBy: sum
+		sourceColumn: day_of_week
+
+		annotation SummarizationSetBy = Automatic
+
+	column day_of_year
+		dataType: int64
+		formatString: 0
+		lineageTag: 3803ea97-bcbe-48e6-85b2-b5f66476adab
+		summarizeBy: sum
+		sourceColumn: day_of_year
+
+		annotation SummarizationSetBy = Automatic
+
+	column week_of_year
+		dataType: int64
+		formatString: 0
+		lineageTag: 0cc00035-e196-49cd-ad3d-ca1ef833c9d7
+		summarizeBy: sum
+		sourceColumn: week_of_year
+
+		annotation SummarizationSetBy = Automatic
+
+	column year_month_num
+		dataType: int64
+		formatString: 0
+		lineageTag: 58caa372-d6d5-45ef-bb52-a982e5dd86fa
+		summarizeBy: sum
+		sourceColumn: year_month_num
+
+		annotation SummarizationSetBy = Automatic
+
+	column year_quarter_num
+		dataType: int64
+		formatString: 0
+		lineageTag: 5fc2d030-8380-4590-b351-1e6ff1dfd097
+		summarizeBy: sum
+		sourceColumn: year_quarter_num
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_name
+		dataType: string
+		lineageTag: 2a4603e4-3811-49b3-95e1-48d6416d7642
+		summarizeBy: none
+		sourceColumn: month_name
+		sortByColumn: month_num
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_name_short
+		dataType: string
+		lineageTag: cb02ab17-c961-4c46-bec4-18393b1171f3
+		summarizeBy: none
+		sourceColumn: month_name_short
+
+		annotation SummarizationSetBy = Automatic
+
+	column day_name
+		dataType: string
+		lineageTag: 72f33139-fddc-4314-bf6c-6388ddfd926e
+		summarizeBy: none
+		sourceColumn: day_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column day_name_short
+		dataType: string
+		lineageTag: 4dac30ef-03dc-4781-9d40-fe74c363b8f9
+		summarizeBy: none
+		sourceColumn: day_name_short
+
+		annotation SummarizationSetBy = Automatic
+
+	column row_type
+		dataType: string
+		lineageTag: 16678309-ad36-4b81-af44-2c064793a149
+		summarizeBy: none
+		sourceColumn: row_type
+
+		annotation SummarizationSetBy = Automatic
+
+	partition aggregated_odessa_dim_date = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com", "ReportingLakehouse"),
+				    dbo_aggregated_odessa_dim_date = Source{[Schema="dbo",Item="aggregated_odessa_dim_date"]}[Data]
+				in
+				    dbo_aggregated_odessa_dim_date
+
+	annotation PBI_ResultType = Table
+

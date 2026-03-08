@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "R2C to Odessa Discrepancies"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "bd84b9a7-6abd-97e0-43fd-91d112376e65"
+  }
+}

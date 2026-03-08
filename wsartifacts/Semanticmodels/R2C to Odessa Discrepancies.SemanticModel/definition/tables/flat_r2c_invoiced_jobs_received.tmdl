@@ -1,0 +1,442 @@
+table flat_r2c_invoiced_jobs_received
+	lineageTag: beda4aec-71bb-4623-a494-532015634eeb
+
+	column missing_from_odessa
+		dataType: int64
+		formatString: 0
+		lineageTag: 880647a8-e3ae-443a-b95d-b21eb2d1b448
+		summarizeBy: sum
+		sourceColumn: missing_from_odessa
+
+		annotation SummarizationSetBy = Automatic
+
+	column mismatch_with_odessa
+		dataType: int64
+		formatString: 0
+		lineageTag: 8fb44fd8-e930-4275-9231-84ae3397eac3
+		summarizeBy: sum
+		sourceColumn: mismatch_with_odessa
+
+		annotation SummarizationSetBy = Automatic
+
+	column booked_in_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: f1ba304b-7206-4fcf-99a1-14db1e82829f
+		summarizeBy: none
+		sourceColumn: booked_in_date
+
+		variation Variation
+			isDefault
+			relationship: 60a35eb3-618c-4ef7-87ac-7d8bd15025eb
+			defaultHierarchy: LocalDateTable_8d4110de-1ddb-496f-9c57-e273e8a980ea.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column inspection_date
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		lineageTag: 396d03cd-feff-4036-a1ae-a72f0441c977
+		summarizeBy: none
+		sourceColumn: inspection_date
+
+		variation Variation
+			isDefault
+			relationship: 25cf88a8-7b8f-4297-aa74-0e6bf165f98d
+			defaultHierarchy: LocalDateTable_47a64313-d50f-415a-8ed8-db83687dc229.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	column incident_number
+		dataType: string
+		lineageTag: 06467065-97c2-4a58-b463-c05018bc4745
+		summarizeBy: none
+		sourceColumn: incident_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column job_reference
+		dataType: string
+		lineageTag: 19ef2fe3-2b1f-4f91-aba3-ec2c0eaef897
+		summarizeBy: none
+		sourceColumn: job_reference
+
+		annotation SummarizationSetBy = Automatic
+
+	column job_status
+		dataType: string
+		lineageTag: f6f4c2a4-7e40-46dd-9dea-7655a73bd963
+		summarizeBy: none
+		sourceColumn: job_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column authorisation_status
+		dataType: string
+		lineageTag: f1c861b1-9faa-4a78-ae03-66361b496e07
+		summarizeBy: none
+		sourceColumn: authorisation_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column registration_number
+		dataType: string
+		lineageTag: 66ac515b-9452-4853-a09c-f14dc377fbf3
+		summarizeBy: none
+		sourceColumn: registration_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column fleet_number
+		dataType: string
+		lineageTag: 57828976-1c08-470f-b655-ff3a7964fc7c
+		summarizeBy: none
+		sourceColumn: fleet_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column parent_reg
+		dataType: string
+		lineageTag: d6e5d5c4-2573-4986-8e9b-aa4b2d66f626
+		summarizeBy: none
+		sourceColumn: parent_reg
+
+		annotation SummarizationSetBy = Automatic
+
+	column task_category
+		dataType: string
+		lineageTag: ac269a7c-31bc-4a96-8ebc-11f2b38f39d7
+		summarizeBy: none
+		sourceColumn: task_category
+
+		annotation SummarizationSetBy = Automatic
+
+	column task_description
+		dataType: string
+		lineageTag: df1d4c74-43f1-4043-93c2-39bf4a465807
+		summarizeBy: none
+		sourceColumn: task_description
+
+		annotation SummarizationSetBy = Automatic
+
+	column line_code
+		dataType: string
+		lineageTag: c1dcb85f-7c6d-4dd0-a897-915d470a2603
+		summarizeBy: none
+		sourceColumn: line_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column repair_code
+		dataType: string
+		lineageTag: e7966bc3-3adc-4726-b6b2-12301b996b82
+		summarizeBy: none
+		sourceColumn: repair_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column workshop
+		dataType: string
+		lineageTag: edf9bc01-09f3-4c21-89e4-a472e84fa902
+		summarizeBy: none
+		sourceColumn: workshop
+
+		annotation SummarizationSetBy = Automatic
+
+	column net_line_total
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 4c7d111d-7998-4733-9bea-fe60642ece26
+		summarizeBy: sum
+		sourceColumn: net_line_total
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column total_job_net_cost
+		dataType: double
+		lineageTag: 1c4d86f5-c6d6-4c6c-93d6-f38e86656ed8
+		summarizeBy: sum
+		sourceColumn: total_job_net_cost
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tax_amount
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 6ae35638-a3dd-4940-9f2a-02f952c42d04
+		summarizeBy: sum
+		sourceColumn: tax_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column line_total_with_tax
+		dataType: double
+		lineageTag: 8492c402-1275-4ec4-9776-7beb655587c5
+		summarizeBy: sum
+		sourceColumn: line_total_with_tax
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tax_code
+		dataType: string
+		lineageTag: f299e60b-effa-4c0a-b553-d6f8e5917208
+		summarizeBy: none
+		sourceColumn: tax_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column invoice_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: f80675fe-0e08-470e-872f-7a4a50f1e7b1
+		summarizeBy: none
+		sourceColumn: invoice_date
+
+		variation Variation
+			isDefault
+			relationship: 12b3efeb-b6de-4f34-8f03-017a92c49931
+			defaultHierarchy: LocalDateTable_504bb256-c03a-4c0a-8b6c-e330dc5cdb79.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column invoice_number
+		dataType: string
+		lineageTag: 4fd67ad8-301a-4518-9ace-739aec1e9ad2
+		summarizeBy: none
+		sourceColumn: invoice_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column invoice_creation_date
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		lineageTag: 97202c28-13eb-467c-bbf8-0678d626eeee
+		summarizeBy: none
+		sourceColumn: invoice_creation_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	column depot_site_id
+		dataType: string
+		lineageTag: 60e3a422-ed0b-4cba-b3b2-a835f70c24bb
+		summarizeBy: none
+		sourceColumn: depot_site_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column depot
+		dataType: string
+		lineageTag: 76e50875-834c-4660-bc66-6880614966b6
+		summarizeBy: none
+		sourceColumn: depot
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_name
+		dataType: string
+		lineageTag: a6ebafb1-4764-4074-99c3-cf563866b71b
+		summarizeBy: none
+		sourceColumn: customer_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_po_number
+		dataType: string
+		lineageTag: adca1a4e-7987-42f1-a8a2-9ee30e54df09
+		summarizeBy: none
+		sourceColumn: customer_po_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column reason_for_work
+		dataType: string
+		lineageTag: 4b3cfbc0-d1df-4bf7-ab78-3ee9ffa6d307
+		summarizeBy: none
+		sourceColumn: reason_for_work
+
+		annotation SummarizationSetBy = Automatic
+
+	column recharged
+		dataType: string
+		lineageTag: ca0d5b4c-5ffd-4081-b06a-61b9251e1d26
+		summarizeBy: none
+		sourceColumn: recharged
+
+		annotation SummarizationSetBy = Automatic
+
+	column dp_source_name
+		dataType: string
+		lineageTag: 38fee5e4-cbf1-4b9f-9216-3375ce9df0d6
+		summarizeBy: none
+		sourceColumn: dp_source_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column dp_process_datetime
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 38afc4b4-16c1-4e76-9afb-b51d722e4fcd
+		summarizeBy: none
+		sourceColumn: dp_process_datetime
+
+		variation Variation
+			isDefault
+			relationship: 932b26c0-40a1-4728-8e4b-8c849a239a07
+			defaultHierarchy: LocalDateTable_f954dcd9-307e-45f7-bae3-31fa11644451.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column dp_process_date
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		lineageTag: 4ec8b960-ed67-453a-b975-47c4075dc0a8
+		summarizeBy: none
+		sourceColumn: dp_process_date
+
+		variation Variation
+			isDefault
+			relationship: dc9a6b4c-6088-4cb0-b170-10e84317fc0f
+			defaultHierarchy: LocalDateTable_c38966de-18d1-416f-b05c-c9208e6ad487.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	column dp_process_name
+		dataType: string
+		lineageTag: 8aae3452-5096-4df0-bdb6-a3ff661465bf
+		summarizeBy: none
+		sourceColumn: dp_process_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column dp_record_insert_datetime
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: bfcfc960-563b-46a9-a92d-22d6b926d12c
+		summarizeBy: none
+		sourceColumn: dp_record_insert_datetime
+
+		variation Variation
+			isDefault
+			relationship: 233900eb-0bad-4a64-836c-1dfdd2d958bf
+			defaultHierarchy: LocalDateTable_70400850-95ea-4641-8f0d-c96492386673.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column net_line_total_sum
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 5f30255a-20b8-482d-a1b6-ac00e5004aff
+		summarizeBy: sum
+		sourceColumn: net_line_total_sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column tax_amount_sum
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 16be2372-7e8f-4a9e-a241-505e89e891ac
+		summarizeBy: sum
+		sourceColumn: tax_amount_sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column odessa_r2c_invoice_number
+		dataType: string
+		lineageTag: 54920cdc-c8c1-4614-8fb9-e6671945a5cb
+		summarizeBy: none
+		sourceColumn: odessa_r2c_invoice_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column odessa_invoice_sum
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 1733ac6f-92fa-4ce8-b874-ff7b50a12ef1
+		summarizeBy: sum
+		sourceColumn: odessa_invoice_sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column odessa_projected_vat_sum
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 10156476-0b3b-4e22-ac2f-9a2f88d23af1
+		summarizeBy: sum
+		sourceColumn: odessa_projected_vat_sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column odessa_payable_total
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 66923671-6219-4fce-bfcb-79c41b0ef1e5
+		summarizeBy: sum
+		sourceColumn: odessa_payable_total
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column r2c_credit_total
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 249a2181-4f88-4bc2-824a-f31d605db745
+		summarizeBy: sum
+		sourceColumn: r2c_credit_total
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column Diff = flat_r2c_invoiced_jobs_received[net_line_total_sum] - flat_r2c_invoiced_jobs_received[r2c_credit_total] - flat_r2c_invoiced_jobs_received[odessa_payable_total]
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: d5cb523a-9674-4ec0-b4f2-98a0edf53ee5
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	partition flat_r2c_invoiced_jobs_received = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com", "ReportingLakehouse"),
+				    dbo_flat_r2c_invoiced_jobs_received = Source{[Schema="dbo",Item="flat_r2c_invoiced_jobs_received"]}[Data]
+				in
+				    dbo_flat_r2c_invoiced_jobs_received
+
+	annotation PBI_ResultType = Table
+

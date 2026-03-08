@@ -1,0 +1,44 @@
+model Model
+	culture: en-GB
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_QueryOrder = ["flat_r2c_invoiced_jobs_sent","aggregated_odessa_dim_date","flat_r2c_invoice_credits_received","flat_r2c_invoice_credits_sent","flat_r2c_invoiced_jobs_received"]
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBIDesktopVersion = 2.141.1451.0 (25.03)+5007b75f0f7edbed506e31fcb76584cd6d711788
+
+ref table flat_r2c_invoiced_jobs_sent
+ref table DateTableTemplate_084f1694-5ebd-40c1-a4ca-d31f8ae7c3ea
+ref table LocalDateTable_506a9f25-381c-4ee2-ac6d-95b34095592a
+ref table LocalDateTable_d47666c7-50f3-4faa-88ba-1b25d88bc235
+ref table LocalDateTable_434cc928-2ddf-497c-a930-032e91466f66
+ref table LocalDateTable_4c28bf8d-15b6-453c-8b87-900c4733ddb4
+ref table LocalDateTable_dc277dd1-fc0a-4496-be33-26f3d55af168
+ref table aggregated_odessa_dim_date
+ref table LocalDateTable_31e41a74-9c9c-472a-aa05-79ad09752dd5
+ref table flat_r2c_invoice_credits_received
+ref table LocalDateTable_9cde93d4-537b-4fa7-9e62-d47a7a6562dc
+ref table LocalDateTable_25d158fc-7513-431f-912e-a83addfbd118
+ref table LocalDateTable_dfaa4a6b-074d-4269-9af1-903ef6420457
+ref table LocalDateTable_87955e5a-fee7-42f6-9c61-1c3509549ec9
+ref table flat_r2c_invoice_credits_sent
+ref table LocalDateTable_f4ab62f4-8faf-4680-962c-9d0b028e0fc4
+ref table LocalDateTable_50a13e74-0693-42a4-a11f-0d947f474cf2
+ref table LocalDateTable_81090d1b-ff92-4f90-b920-af6f4efe5c38
+ref table LocalDateTable_4122c484-771b-44a7-a9dd-ea44b7353de0
+ref table flat_r2c_invoiced_jobs_received
+ref table LocalDateTable_8d4110de-1ddb-496f-9c57-e273e8a980ea
+ref table LocalDateTable_47a64313-d50f-415a-8ed8-db83687dc229
+ref table LocalDateTable_504bb256-c03a-4c0a-8b6c-e330dc5cdb79
+ref table LocalDateTable_f954dcd9-307e-45f7-bae3-31fa11644451
+ref table LocalDateTable_c38966de-18d1-416f-b05c-c9208e6ad487
+ref table LocalDateTable_70400850-95ea-4641-8f0d-c96492386673
+ref table Metrics
+
+ref cultureInfo en-GB
+

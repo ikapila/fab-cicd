@@ -1,0 +1,338 @@
+table flat_r2c_invoice_credits_sent
+	lineageTag: 4bd76921-9801-4f8b-a576-293ea9bf8928
+
+	column missing_from_odessa
+		dataType: int64
+		formatString: 0
+		lineageTag: f3b7d34e-2ee5-4381-b6ba-20c6b5aaf80e
+		summarizeBy: sum
+		sourceColumn: missing_from_odessa
+
+		annotation SummarizationSetBy = Automatic
+
+	column mismatch_with_odessa
+		dataType: int64
+		formatString: 0
+		lineageTag: 85b31899-24c2-42f6-b0b7-8d0fee4cf89f
+		summarizeBy: sum
+		sourceColumn: mismatch_with_odessa
+
+		annotation SummarizationSetBy = Automatic
+
+	column type
+		dataType: string
+		lineageTag: a6cd745a-7421-42bc-a8a2-a95daf66e452
+		summarizeBy: none
+		sourceColumn: type
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_reference
+		dataType: string
+		lineageTag: 623c9012-0c1b-405d-9b91-6ef13abc66f1
+		summarizeBy: none
+		sourceColumn: account_reference
+
+		annotation SummarizationSetBy = Automatic
+
+	column nominal_ac_reference
+		dataType: string
+		lineageTag: 035e6027-780b-4c49-87fb-adc5779dc469
+		summarizeBy: none
+		sourceColumn: nominal_ac_reference
+
+		annotation SummarizationSetBy = Automatic
+
+	column date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: a2ad6365-aa8c-418f-b242-7fe646c38e06
+		summarizeBy: none
+		sourceColumn: date
+
+		variation Variation
+			isDefault
+			relationship: a3167da4-1616-4946-bbe4-d7dcbaf5a369
+			defaultHierarchy: LocalDateTable_f4ab62f4-8faf-4680-962c-9d0b028e0fc4.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column reference
+		dataType: string
+		lineageTag: f8c0be93-b79c-4b5c-b214-07f2ec3fe2b1
+		summarizeBy: none
+		sourceColumn: reference
+
+		annotation SummarizationSetBy = Automatic
+
+	column details
+		dataType: string
+		lineageTag: 1ea06146-2110-4d34-ab9b-7fc907572de0
+		summarizeBy: none
+		sourceColumn: details
+
+		annotation SummarizationSetBy = Automatic
+
+	column net_amount
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 6a7a029e-c6b5-4a78-934d-156c28f4b8fd
+		summarizeBy: sum
+		sourceColumn: net_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column tax_code
+		dataType: string
+		lineageTag: daccfd5f-ddea-42ff-b852-72a22cf77fbf
+		summarizeBy: none
+		sourceColumn: tax_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column tax_amount
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 0a0f9cfa-9230-4b38-9d77-92cc13d5628a
+		summarizeBy: sum
+		sourceColumn: tax_amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column extra_reference
+		dataType: string
+		lineageTag: 7ffc0eb5-d337-442d-b725-21c6988eddf7
+		summarizeBy: none
+		sourceColumn: extra_reference
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer
+		dataType: string
+		lineageTag: 39605db0-366b-4e2d-a53c-728dd15907a4
+		summarizeBy: none
+		sourceColumn: customer
+
+		annotation SummarizationSetBy = Automatic
+
+	column registration_fleet_number
+		dataType: string
+		lineageTag: ef87486c-616f-4748-a111-1290c67b35f6
+		summarizeBy: none
+		sourceColumn: registration_fleet_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column parent_reg
+		dataType: string
+		lineageTag: 8c6c6d45-a3f8-4acd-ad8f-e793b85f0de9
+		summarizeBy: none
+		sourceColumn: parent_reg
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_description
+		dataType: string
+		lineageTag: eabacd29-b6cd-46fd-a222-8226befd1d58
+		summarizeBy: none
+		sourceColumn: status_description
+
+		annotation SummarizationSetBy = Automatic
+
+	column invoice_creation_date
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		lineageTag: dc9edb90-5b5d-46b3-8530-1a2a86b75a50
+		summarizeBy: none
+		sourceColumn: invoice_creation_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	column credit_reference
+		dataType: string
+		lineageTag: 90bfc1cd-a31b-4adb-ad49-7718f3e68979
+		summarizeBy: none
+		sourceColumn: credit_reference
+
+		annotation SummarizationSetBy = Automatic
+
+	column credit_reason
+		dataType: string
+		lineageTag: b572ac2f-5ec4-4687-b9f0-3fcc34792593
+		summarizeBy: none
+		sourceColumn: credit_reason
+
+		annotation SummarizationSetBy = Automatic
+
+	column current_cost_code
+		dataType: string
+		lineageTag: 027c578c-f165-4b91-958d-0705a470629a
+		summarizeBy: none
+		sourceColumn: current_cost_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column dp_source_name
+		dataType: string
+		lineageTag: 49010345-2fb5-4f4f-aec9-a9cd4132dd16
+		summarizeBy: none
+		sourceColumn: dp_source_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column dp_process_datetime
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 52e7bd6c-a8a0-424e-832b-e134c981c8e1
+		summarizeBy: none
+		sourceColumn: dp_process_datetime
+
+		variation Variation
+			isDefault
+			relationship: 16966232-1199-4e4b-82e3-ece5b69aec78
+			defaultHierarchy: LocalDateTable_50a13e74-0693-42a4-a11f-0d947f474cf2.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column dp_process_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 7c6174cd-13de-4bcf-9be9-1d31cb8fbe4c
+		summarizeBy: none
+		sourceColumn: dp_process_date
+
+		variation Variation
+			isDefault
+			relationship: 8de8a3ad-76d7-402a-a0a0-02030aa3df43
+			defaultHierarchy: LocalDateTable_81090d1b-ff92-4f90-b920-af6f4efe5c38.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column dp_process_name
+		dataType: string
+		lineageTag: b527e4c1-b3c7-4ca0-86b1-de95dcc85584
+		summarizeBy: none
+		sourceColumn: dp_process_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column dp_record_insert_datetime
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 7b86c772-d91e-40e0-8466-b0ac59b03ca7
+		summarizeBy: none
+		sourceColumn: dp_record_insert_datetime
+
+		variation Variation
+			isDefault
+			relationship: e0b55230-cd50-4de6-b600-10a5be3a9247
+			defaultHierarchy: LocalDateTable_4122c484-771b-44a7-a9dd-ea44b7353de0.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column net_line_total_sum
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: c386a8ef-5802-4811-9788-0bd8b294a4c1
+		summarizeBy: sum
+		sourceColumn: net_line_total_sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column tax_amount_sum
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 1239e4d0-9959-4feb-80ce-a89ed41fb90e
+		summarizeBy: sum
+		sourceColumn: tax_amount_sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column odessa_r2c_invoice_number
+		dataType: string
+		lineageTag: 5fe1755b-80a0-4ccf-93f9-9d3e83fbdec6
+		summarizeBy: none
+		sourceColumn: odessa_r2c_invoice_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column odessa_invoice_sum
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: d084e493-72ef-4589-aa38-8ba97315fd9e
+		summarizeBy: sum
+		sourceColumn: odessa_invoice_sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column odessa_projected_vat_sum
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 25dca2ae-46a8-4faa-a762-aa7a4d91d3b5
+		summarizeBy: sum
+		sourceColumn: odessa_projected_vat_sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column odessa_receivable_total
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 4cf269bf-50b4-46e8-a197-f3b0663de676
+		summarizeBy: sum
+		sourceColumn: odessa_receivable_total
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column r2c_invoice_total
+		dataType: double
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 4cfd01d7-dc39-47a1-9bd1-c04fa106d713
+		summarizeBy: sum
+		sourceColumn: r2c_invoice_total
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	column Diff = flat_r2c_invoice_credits_sent[r2c_invoice_total] - flat_r2c_invoice_credits_sent[net_line_total_sum] - flat_r2c_invoice_credits_sent[odessa_receivable_total]
+		formatString: "£"#,0.00;-"£"#,0.00;"£"#,0.00
+		lineageTag: 8819d61b-f7ca-42cb-a16b-1d0aaa807085
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-GB"}
+
+	partition flat_r2c_invoice_credits_sent = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com", "ReportingLakehouse"),
+				    dbo_flat_r2c_invoice_credits_sent = Source{[Schema="dbo",Item="flat_r2c_invoice_credits_sent"]}[Data]
+				in
+				    dbo_flat_r2c_invoice_credits_sent
+
+	annotation PBI_ResultType = Table
+

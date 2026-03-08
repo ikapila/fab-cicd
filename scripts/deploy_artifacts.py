@@ -1909,10 +1909,35 @@ class FabricDeployer:
             pbir_str = pbir_content.decode('utf-8')
             pbir_data = json.loads(pbir_str)
             
-            # If already using byConnection, no transformation needed
+            # If already using byConnection, validate required properties are present
             if 'datasetReference' in pbir_data and 'byConnection' in pbir_data['datasetReference']:
-                logger.info(f"    ✓ Report already uses byConnection reference")
-                return pbir_content
+                conn = pbir_data['datasetReference']['byConnection']
+                required_keys = {'pbiServiceModelId', 'pbiModelVirtualServerName',
+                                 'pbiModelDatabaseName', 'name', 'connectionType'}
+                if required_keys.issubset(conn.keys()):
+                    logger.info(f"    ✓ Report already uses byConnection reference")
+                    return pbir_content
+                else:
+                    logger.info(f"    ⚠ byConnection is missing required properties, will re-transform")
+                    # Fall through to byPath logic — but we need to extract model name
+                    # from connectionString if byPath is not available
+                    if 'connectionString' in conn and 'byPath' not in pbir_data.get('datasetReference', {}):
+                        cs = conn.get('connectionString', '')
+                        cs_match = re.search(r'semanticmodelid=([a-f0-9-]+)', cs, re.IGNORECASE)
+                        if cs_match:
+                            existing_id = cs_match.group(1)
+                            pbir_data['datasetReference'] = {
+                                "byConnection": {
+                                    "connectionString": None,
+                                    "pbiServiceModelId": None,
+                                    "pbiModelVirtualServerName": "sobe_wowvirtualserver",
+                                    "pbiModelDatabaseName": existing_id,
+                                    "name": "EntityDataSource",
+                                    "connectionType": "pbiServiceXmlaStyleLive"
+                                }
+                            }
+                            logger.info(f"    ✓ Fixed byConnection with model ID from connectionString: {existing_id}")
+                            return json.dumps(pbir_data, indent=2).encode('utf-8')
             
             # Check if there's a datasetReference with byPath
             if 'datasetReference' in pbir_data and 'byPath' in pbir_data['datasetReference']:
@@ -1942,16 +1967,18 @@ class FabricDeployer:
                     
                     # Step 3: Transform to byConnection or fail
                     if dataset_id:
-                        # PBIR v2.0.0 schema: byConnection only allows connectionString
-                        # See: https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json
+                        # Fabric REST API requires the full byConnection schema with
+                        # all required properties — connectionString-only format is rejected.
                         pbir_data['datasetReference'] = {
                             "byConnection": {
-                                "connectionString": f"semanticmodelid={dataset_id}"
+                                "connectionString": None,
+                                "pbiServiceModelId": None,
+                                "pbiModelVirtualServerName": "sobe_wowvirtualserver",
+                                "pbiModelDatabaseName": dataset_id,
+                                "name": "EntityDataSource",
+                                "connectionType": "pbiServiceXmlaStyleLive"
                             }
                         }
-                        # Ensure schema + version are set for PBIR v2
-                        pbir_data.setdefault('$schema', 'https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json')
-                        pbir_data.setdefault('version', '4.0')
                         logger.info(f"    ✓ Using byConnection reference for '{model_name}' (ID: {dataset_id})")
                     else:
                         # byPath is always rejected by Fabric REST API — fail with clear message

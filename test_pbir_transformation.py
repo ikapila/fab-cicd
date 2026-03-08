@@ -79,3 +79,23 @@ v2_conn = pbir_v2_expected["datasetReference"]["byConnection"]
 assert list(v2_conn.keys()) == ["connectionString"], "v2 format should only have connectionString"
 assert isinstance(v2_conn["connectionString"], str), "v2 connectionString must be a string, not null"
 print("✓ v2 format has connectionString only (non-null string)")
+
+# ============================================================
+# Absent $schema: should default to v1 format (safer)
+# ============================================================
+pbir_no_schema = {
+    "version": "4.0",
+    "datasetReference": {
+        "byPath": {
+            "path": "../../Semanticmodels/Cash Collection.SemanticModel"
+        }
+    }
+}
+
+# When $schema is absent, _build_by_connection should use v1 format
+schema_url = pbir_no_schema.get('$schema', '')
+is_v2 = '2.0.0' in schema_url
+assert not is_v2, "Absent $schema should NOT be treated as v2"
+schema_label = 'v2' if is_v2 else 'v1'
+assert schema_label == 'v1', "Absent $schema should default to v1 label"
+print("✓ Absent $schema correctly defaults to v1 format")

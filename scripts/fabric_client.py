@@ -1654,6 +1654,70 @@ class FabricClient:
         logger.info(f"  ✓ Commit to Git completed")
         return response
     
+    def initialize_connection(self, workspace_id: str,
+                              initialization_strategy: str = "PreferWorkspace") -> Dict:
+        """
+        Initialize the Git connection for a workspace already connected to Git.
+        Endpoint: POST /v1/workspaces/{workspaceId}/git/initializeConnection
+        
+        This matches each workspace item to a Git item by display name, type,
+        and containing folder.  Use after API deployment to link API-created
+        items to their Git counterparts, resolving duplicate display-name
+        issues that arise when updateFromGit cannot sync items (e.g. due to
+        PrincipalTypeNotSupported for paginated reports).
+        
+        With "PreferWorkspace": workspace items are kept, Git is overwritten.
+        With "PreferRemote": Git items are pulled into workspace.
+        
+        See: https://learn.microsoft.com/en-us/rest/api/fabric/core/git/initialize-connection
+        
+        Args:
+            workspace_id: Workspace GUID
+            initialization_strategy: "PreferWorkspace" or "PreferRemote"
+            
+        Returns:
+            Operation result or success status
+        """
+        logger.info(f"Initializing Git connection (strategy: {initialization_strategy})")
+        
+        payload = {
+            "initializationStrategy": initialization_strategy
+        }
+        
+        response = self._make_request(
+            "POST",
+            f"/workspaces/{workspace_id}/git/initializeConnection",
+            json_data=payload
+        )
+        
+        # Handle LRO (202 Accepted)
+        if response.get("status_code") == 202 and response.get("operation_id"):
+            operation_id = response["operation_id"]
+            retry_after = response.get("retry_after", 5)
+            logger.info(f"  Initialize connection in progress (operation: {operation_id}), polling...")
+            
+            for attempt in range(1, 25):
+                time.sleep(retry_after)
+                state = self.poll_operation_state(operation_id)
+                status = state.get("status")
+                percent = state.get("percentComplete", 0)
+                logger.info(f"    Poll {attempt}: {status} ({percent}% complete)")
+                
+                if status == "Succeeded":
+                    logger.info(f"  ✓ Git connection initialized successfully")
+                    return {"status": "success", "operation_id": operation_id}
+                elif status == "Failed":
+                    error = state.get("error", {})
+                    error_msg = error.get("message", "Unknown error")
+                    logger.error(f"  ✗ Initialize connection failed: {error_msg}")
+                    raise RuntimeError(f"Initialize connection failed: {error_msg}")
+            
+            raise RuntimeError(f"Initialize connection timed out after polling")
+        
+        # 200 = completed immediately
+        logger.info(f"  ✓ Git connection initialized")
+        return response
+    
     # ==================== Power BI Report Operations ====================
     
     def list_reports(self, workspace_id: str) -> List[Dict]:

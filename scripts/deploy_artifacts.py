@@ -706,17 +706,29 @@ class FabricDeployer:
         """
         Commit API-deployed workspace changes back to Git after deployment.
         
-        Pre-deploy, _update_source_control() synced all non-paginated items
-        from Git so they exist with correct logicalIds.  API deployment then
-        updated those items in-place.  This method commits any resulting
-        workspace modifications (updated definitions, new items) back to Git
-        so Source Control stays clean.
+        Pre-deploy, _update_source_control() attempts to sync non-paginated
+        items from Git so they exist with correct logicalIds.  When that
+        succeeds, API deployment updates items in-place and this method
+        simply commits the modifications back.
+        
+        When updateFromGit FAILS (e.g. PrincipalTypeNotSupported because
+        paginated reports exist in the Git directory), API creates items
+        with NEW IDs that differ from the Git logicalIds.  A direct
+        commitToGit will then fail because the workspace head is behind
+        remote.  To break this deadlock the method uses:
+        
+          initializeConnection(PreferWorkspace)
+        
+        This re-maps workspace items to Git items **by display name, type,
+        and folder**, advancing the workspace head so commitToGit succeeds.
         
         Flow:
           1. Get Git status.
-          2. If there are still unresolved remote changes (e.g. paginated
-             reports skipped in pre-deploy), log them but don't block.
-          3. commitToGit — push workspace modifications back.
+          2. If workspace changes exist, attempt commitToGit.
+          3. If commit fails AND there are pending remote changes:
+             a. Call initializeConnection(PreferWorkspace) to re-link items.
+             b. Re-fetch Git status and retry commitToGit.
+          4. If all attempts fail, log manual resolution steps.
         
         Returns:
             True if sync succeeded or was not needed, False on failure
@@ -755,27 +767,79 @@ class FabricDeployer:
             # Log any remaining remote changes (e.g. paginated reports)
             if remote_changes:
                 logger.info(f"  ℹ {len(remote_changes)} remote change(s) still pending (e.g. paginated reports):")
-                for rc in remote_changes:
+                for rc in remote_changes[:10]:  # Limit logging
                     r_meta = rc.get("itemMetadata", {})
                     logger.info(f"    - {r_meta.get('displayName', '?')} ({r_meta.get('itemType', '?')})")
+                if len(remote_changes) > 10:
+                    logger.info(f"    ... and {len(remote_changes) - 10} more")
             
-            # Commit workspace changes to Git.
-            # API-updated items appear as workspace "Modified" changes.
+            # Log workspace changes to commit
             change_names = [
                 f"{c.get('itemMetadata', {}).get('displayName', '?')} ({c.get('itemMetadata', {}).get('itemType', '?')})"
                 for c in workspace_changes
             ]
             logger.info(f"  📤 {len(workspace_changes)} workspace change(s) to commit:")
-            for cn in change_names:
+            for cn in change_names[:10]:  # Limit logging
                 logger.info(f"    - {cn}")
+            if len(change_names) > 10:
+                logger.info(f"    ... and {len(change_names) - 10} more")
+            
+            # ── Attempt 1: Direct commitToGit ──
+            try:
+                self.client.commit_to_git(
+                    workspace_id=self.workspace_id,
+                    mode="All",
+                    workspace_head=workspace_head,
+                    comment="CI/CD: sync API-deployed items to Git"
+                )
+                logger.info("  ✓ Workspace changes committed to Git")
+                return True
+            except Exception as commit_err:
+                commit_msg = str(commit_err)
+                logger.warning(f"  ⚠ commitToGit failed: {commit_msg}")
+                
+                # If there are no pending remote changes, can't recover
+                if not remote_changes:
+                    raise
+            
+            # ── Attempt 2: initializeConnection(PreferWorkspace) + retry ──
+            # When updateFromGit failed (e.g. PrincipalTypeNotSupported for
+            # paginated reports), the workspace head is behind the remote.
+            # commitToGit cannot push because there are unresolved remote
+            # changes.  Re-initializing the connection with PreferWorkspace
+            # re-maps workspace items to Git items by display name / type /
+            # folder, advancing the workspace head so the commit can proceed.
+            logger.info("  ⟳ Workspace is behind remote — re-initializing Git connection (PreferWorkspace)...")
+            logger.info("    This re-links API-created items to their Git counterparts by display name")
+            
+            try:
+                self.client.initialize_connection(
+                    workspace_id=self.workspace_id,
+                    initialization_strategy="PreferWorkspace"
+                )
+            except Exception as init_err:
+                logger.warning(f"  ⚠ initializeConnection failed: {init_err}")
+                raise  # Let outer handler log manual steps
+            
+            # Re-fetch status after re-initialization
+            status = self.client.get_git_status(self.workspace_id)
+            new_workspace_head = status.get("workspaceHead")
+            new_changes = status.get("changes", [])
+            new_workspace_changes = [c for c in new_changes if c.get("workspaceChange")]
+            
+            if not new_workspace_changes:
+                logger.info("  ✓ No workspace changes after re-initialization — Git is in sync")
+                return True
+            
+            logger.info(f"  📤 {len(new_workspace_changes)} workspace change(s) to commit (after re-init):")
             
             self.client.commit_to_git(
                 workspace_id=self.workspace_id,
                 mode="All",
-                workspace_head=workspace_head,
+                workspace_head=new_workspace_head,
                 comment="CI/CD: sync API-deployed items to Git"
             )
-            logger.info("  ✓ Workspace changes committed to Git")
+            logger.info("  ✓ Workspace changes committed to Git (after re-initialization)")
             return True
             
         except Exception as e:
@@ -795,11 +859,18 @@ class FabricDeployer:
                 logger.warning("    a valid GUID in config.logicalId, then commit and push the fix.")
                 logger.warning("    The pipeline auto-fixes local files, but the remote branch must also be updated.")
             else:
-                logger.warning(f"  ⚠ Post-deploy Git sync failed: {e}")
-                logger.warning("    You may need to resolve Source Control conflicts manually in Fabric portal:")
-                logger.warning("    1. Open the workspace in Fabric")
-                logger.warning("    2. Click 'Source control' > 'Update all' (to pull Git changes)")
-                logger.warning("    3. Then commit any remaining workspace changes")
+                logger.warning(f"  ⚠ Post-deploy Git sync could not be completed automatically: {e}")
+                logger.warning("    This is caused by paginated reports in the Git directory blocking")
+                logger.warning("    the service principal from syncing (PrincipalTypeNotSupported).")
+                logger.warning("")
+                logger.warning("    ONE-TIME MANUAL FIX (as a user, not SP):")
+                logger.warning("    1. Open the workspace in Fabric portal")
+                logger.warning("    2. Click 'Source control'")
+                logger.warning("    3. Click 'Update all' to accept pending changes")
+                logger.warning("    4. Commit any remaining workspace changes")
+                logger.warning("")
+                logger.warning("    After this one-time fix, subsequent CI/CD deployments will find")
+                logger.warning("    existing items and update them in-place — no more duplicates.")
             return False
 
     def _ensure_git_credentials(self) -> None:
@@ -1898,16 +1969,24 @@ class FabricDeployer:
         """
         Build the correct byConnection object based on the report's $schema version.
         
-        - Schema v1.0.0: requires explicit properties (pbiServiceModelId, etc.)
-        - Schema v2.0.0 or absent: only allows connectionString as a String
+        - Schema v1.0.0 (or absent): requires explicit properties (pbiServiceModelId, etc.)
+        - Schema v2.0.0: only allows connectionString as a String
         
-        The Fabric REST API createReport endpoint validates definition.pbir
-        against the $schema URL, so the format MUST match the schema version.
+        When $schema is absent, we default to v1 format because:
+        - Older reports without a $schema field were created under v1 rules
+        - The Fabric createReport API validates against v1 for those reports
+        - v1 format includes all properties, so it's the safer default
         """
         schema_url = pbir_data.get('$schema', '')
-        is_v1 = '1.0.0' in schema_url
+        is_v2 = '2.0.0' in schema_url
         
-        if is_v1:
+        if is_v2:
+            # v2.0.0 schema — connectionString only (must be a String, not null)
+            return {
+                "connectionString": f"semanticmodelid={dataset_id}"
+            }
+        else:
+            # v1.0.0 or absent $schema — full explicit properties required
             return {
                 "connectionString": None,
                 "pbiServiceModelId": None,
@@ -1915,11 +1994,6 @@ class FabricDeployer:
                 "pbiModelDatabaseName": dataset_id,
                 "name": "EntityDataSource",
                 "connectionType": "pbiServiceXmlaStyleLive"
-            }
-        else:
-            # v2.0.0 or unknown schema — connectionString only (must be a String, not null)
-            return {
-                "connectionString": f"semanticmodelid={dataset_id}"
             }
     
     def _transform_pbir_dataset_reference(self, pbir_content: bytes, dataset_id: str = None) -> bytes:
@@ -1952,15 +2026,15 @@ class FabricDeployer:
             pbir_data = json.loads(pbir_str)
             
             schema_url = pbir_data.get('$schema', '')
-            is_v1 = '1.0.0' in schema_url
-            schema_label = 'v1' if is_v1 else 'v2'
+            is_v2 = '2.0.0' in schema_url
+            schema_label = 'v2' if is_v2 else 'v1'
             
             # If already using byConnection, validate it matches the schema
             if 'datasetReference' in pbir_data and 'byConnection' in pbir_data['datasetReference']:
                 conn = pbir_data['datasetReference']['byConnection']
                 
-                if is_v1:
-                    # v1 schema requires all explicit properties
+                if not is_v2:
+                    # v1 schema (or absent) requires all explicit properties
                     required_keys = {'pbiServiceModelId', 'pbiModelVirtualServerName',
                                      'pbiModelDatabaseName', 'name', 'connectionType'}
                     if required_keys.issubset(conn.keys()):
@@ -3262,26 +3336,29 @@ print('Notebook initialized')
         logger.info(f"Failed: {failure_count}")
         logger.info("="*60)
         
-        # Save deployment commit if successful
+        # Save deployment commit if fully successful
         if failure_count == 0:
             self._save_deployment_state()
         
         # Post-deploy: link API-deployed items back to Git.
         # Without this, API-created items have different IDs to the Git items,
         # causing "duplicate display name" errors in the Source Control panel.
-        if failure_count == 0 and not dry_run:
+        # Run even on partial failure to keep Source Control clean — failed
+        # items were never created so they won't appear in the commit.
+        if not dry_run and success_count > 0:
             self._commit_workspace_to_git()
         
         # Refresh semantic models that were deployed in this run.
         # This must happen after connection binding (done in _deploy_semantic_model)
         # so the model can connect to the data source during refresh.
-        if failure_count == 0 and not dry_run and self._deployed_semantic_model_ids:
+        # Run even on partial failure to refresh what was successfully deployed.
+        if not dry_run and self._deployed_semantic_model_ids:
             self._refresh_deployed_semantic_models()
         
         # Run table maintenance on lakehouses deployed in this run.
         # This refreshes the SQL analytics endpoint metadata so shortcuts
         # and tables are visible via SQL queries.
-        if failure_count == 0 and not dry_run and self._deployed_lakehouse_ids:
+        if not dry_run and self._deployed_lakehouse_ids:
             self._refresh_deployed_lakehouses()
         
         # Post-sync: fix paginated report connection strings (dev only).

@@ -117,6 +117,33 @@ class FabricDeployer:
             repo_root=self.artifacts_dir
         )
     
+    # ---- helpers ----
+    
+    def _resolve_artifact_folder(self, folder_name: str) -> Optional[Path]:
+        """Resolve an artifact sub-folder under artifacts_root_folder,
+        falling back to a case-insensitive match.
+
+        On macOS (case-insensitive HFS+) both casings work, but on Linux
+        (Azure DevOps agents, ext4) ``Paginatedreports`` ≠ ``PaginatedReports``.
+        This helper tries the exact name first, then scans for a
+        case-insensitive match so the code works on any filesystem.
+
+        Returns:
+            Resolved Path if found, else None.
+        """
+        parent = self.artifacts_dir / self.artifacts_root_folder
+        exact = parent / folder_name
+        if exact.exists():
+            return exact
+        # Fallback: case-insensitive scan
+        if parent.exists():
+            target = folder_name.lower()
+            for child in parent.iterdir():
+                if child.is_dir() and child.name.lower() == target:
+                    logger.debug(f"Case-insensitive folder match: '{child.name}' for '{folder_name}'")
+                    return child
+        return None
+    
     def _substitute_parameters(self, content: str) -> str:
         """
         Substitute ${parameter_name} placeholders with values from config parameters.
@@ -406,8 +433,8 @@ class FabricDeployer:
         # Add semantic models when their dependent reports change
         # Check if any reports changed, and include their semantic model dependencies
         if "Report" in changed_artifacts:
-            reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
-            if reports_dir.exists():
+            reports_dir = self._resolve_artifact_folder("Reports")
+            if reports_dir and reports_dir.exists():
                 for report_name in changed_artifacts["Report"]:
                     # Try both formats: folder with .Report suffix and without
                     for report_folder in [reports_dir / f"{report_name}.Report", reports_dir / report_name]:
@@ -1780,8 +1807,8 @@ class FabricDeployer:
         Power BI reports live in the Reports/ folder.
         Paginated reports have their own PaginatedReports/ folder.
         """
-        reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
-        if not reports_dir.exists():
+        reports_dir = self._resolve_artifact_folder("Reports")
+        if not reports_dir or not reports_dir.exists():
             logger.debug("No reports directory found")
             return
         
@@ -1822,14 +1849,14 @@ class FabricDeployer:
         (the native Fabric Git layout) while others use a dedicated
         PaginatedReports/ directory.
         """
-        paginated_dir = self.artifacts_dir / self.artifacts_root_folder / "PaginatedReports"
-        reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
+        paginated_dir = self._resolve_artifact_folder("PaginatedReports")
+        reports_dir = self._resolve_artifact_folder("Reports")
         
         discovered = []
         seen_names: set = set()   # avoid duplicates across directories
         
         # Discover JSON files (legacy format) from PaginatedReports/
-        if paginated_dir.exists():
+        if paginated_dir and paginated_dir.exists():
             for report_file in paginated_dir.glob("*.json"):
                 with open(report_file, 'r') as f:
                     definition = json.load(f)
@@ -1852,7 +1879,7 @@ class FabricDeployer:
                 logger.debug(f"Discovered paginated report (JSON): {report_name}")
         
         # Discover Fabric Git format folders (.PaginatedReport) from both dirs
-        scan_dirs = [d for d in (paginated_dir, reports_dir) if d.exists()]
+        scan_dirs = [d for d in (paginated_dir, reports_dir) if d and d.exists()]
         for scan_dir in scan_dirs:
             for item in scan_dir.iterdir():
                 if item.is_dir() and item.name.endswith(".PaginatedReport"):
@@ -4233,7 +4260,9 @@ print('Notebook initialized')
         The Git sync step (if enabled) uses PreferWorkspace to avoid
         overwriting API-deployed items.
         """
-        reports_dir = self.artifacts_dir / self.artifacts_root_folder / "Reports"
+        reports_dir = self._resolve_artifact_folder("Reports")
+        if not reports_dir:
+            raise FileNotFoundError(f"Report '{name}' not found — no Reports folder exists")
         
         # Check for JSON file first
         report_file = reports_dir / f"{name}.json"
@@ -4353,17 +4382,19 @@ print('Notebook initialized')
         # ── locate the local RDL ──
         
         # JSON file in PaginatedReports/ (legacy format — not deployable)
-        report_file = self.artifacts_dir / self.artifacts_root_folder / "PaginatedReports" / f"{name}.json"
-        if report_file.exists():
-            logger.info(f"  Reading paginated report from JSON: {report_file}")
-            logger.warning(f"  ⚠ Paginated report '{name}' is in JSON format — Git format (.PaginatedReport folder) required")
-            return
+        paginated_dir = self._resolve_artifact_folder("PaginatedReports")
+        if paginated_dir:
+            report_file = paginated_dir / f"{name}.json"
+            if report_file.exists():
+                logger.info(f"  Reading paginated report from JSON: {report_file}")
+                logger.warning(f"  ⚠ Paginated report '{name}' is in JSON format — Git format (.PaginatedReport folder) required")
+                return
         
         # Fabric Git format in PaginatedReports/ (primary) and Reports/ (fallback)
-        git_paths = [
-            self.artifacts_dir / self.artifacts_root_folder / "PaginatedReports",
-            self.artifacts_dir / self.artifacts_root_folder / "Reports",
-        ]
+        git_paths = [p for p in [
+            self._resolve_artifact_folder("PaginatedReports"),
+            self._resolve_artifact_folder("Reports"),
+        ] if p is not None]
         
         for base_path in git_paths:
             if not base_path.exists():

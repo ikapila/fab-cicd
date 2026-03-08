@@ -144,9 +144,12 @@ class ChangeDetector:
             return []
         
         try:
-            # Get changed files between commits
+            # Get changed files between commits.
+            # --diff-filter=ACMR: only Added/Copied/Modified/Renamed.
+            # Excludes Deleted files so we don't attempt to deploy
+            # artifacts that no longer exist in the repo.
             result = subprocess.run(
-                ["git", "diff", "--name-only", since_commit, "HEAD"],
+                ["git", "diff", "--diff-filter=ACMR", "--name-only", since_commit, "HEAD"],
                 cwd=self.repo_root,
                 capture_output=True,
                 text=True,
@@ -185,10 +188,13 @@ class ChangeDetector:
             
             folder_name = parts[1]  # e.g., "Notebooks", "Lakehouses"
             
-            # Map folder to artifact type
+            # Map folder to artifact type (case-insensitive to handle
+            # different casing between Git repo and code, e.g.
+            # "Paginatedreports" vs "PaginatedReports").
             artifact_type = None
+            folder_name_lower = folder_name.lower()
             for atype, afolder in self.artifact_folders.items():
-                if folder_name == afolder:
+                if folder_name_lower == afolder.lower():
                     artifact_type = atype
                     break
             

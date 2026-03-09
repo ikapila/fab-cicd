@@ -872,6 +872,30 @@ class FabricDeployer:
                 comment="CI/CD: sync API-deployed items to Git"
             )
             logger.info("  ✓ Workspace changes committed to Git")
+
+            # ── Step 4: advance workspace head to the post-commit remote ──
+            # commitToGit just created a new remote commit, so the remote is
+            # now ahead of the workspace head.  updateFromGit advances the
+            # workspace head to match — since workspace and Git are now
+            # identical (we just committed the workspace state) there are no
+            # content changes to sync and PrincipalTypeNotSupported is not
+            # triggered.  Without this step Fabric UI shows "Update all" after
+            # every pipeline run, which the user must clear manually.
+            post_status = self.client.get_git_status(self.workspace_id)
+            new_remote = post_status.get("remoteCommitHash")
+            new_head   = post_status.get("workspaceHead")
+            if new_remote and new_remote != new_head:
+                logger.info("  ⟳ Advancing workspace head to post-commit remote...")
+                self.client.update_from_git(
+                    workspace_id=self.workspace_id,
+                    remote_commit_hash=new_remote,
+                    workspace_head=new_head,
+                    conflict_resolution_policy="PreferWorkspace",
+                    allow_override_items=False
+                )
+                logger.info("  ✓ Workspace head advanced — Source Control is now clean")
+            else:
+                logger.info("  ✓ Workspace head already at remote — Source Control is clean")
             return True
             
         except Exception as e:

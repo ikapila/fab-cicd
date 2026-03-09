@@ -814,8 +814,9 @@ class FabricDeployer:
             
             # ── Step 1: initializeConnection(PreferWorkspace) ──
             # Maps every API-deployed workspace item to its Git counterpart
-            # by displayName+type and advances the workspace head.
-            # Works for all item types (no PrincipalTypeNotSupported).
+            # by displayName+type.  This is a ONE-TIME call — once the
+            # workspace Git connection has been initialized, 409 is returned
+            # on subsequent calls.  That's fine: items are already linked.
             logger.info("  ⟳ Running initializeConnection(PreferWorkspace)...")
             logger.info("    Maps API-deployed items to Git items by displayName + type")
             try:
@@ -826,9 +827,17 @@ class FabricDeployer:
                 logger.info("  ✓ Workspace items linked to Git counterparts")
             except Exception as init_err:
                 init_msg = str(init_err)
-                logger.warning(f"  ⚠ initializeConnection failed: {init_msg}")
-                logger.warning("    Workspace items may not be linked to Git — Source Control may show duplicates")
-                return False
+                init_response = ""
+                if hasattr(init_err, 'response') and init_err.response is not None:
+                    try:
+                        init_response = init_err.response.text or ""
+                    except Exception:
+                        pass
+                if "AlreadyInitialized" in init_msg or "AlreadyInitialized" in init_response:
+                    logger.info("  ✓ Git connection already initialized — items are already linked")
+                else:
+                    logger.warning(f"  ⚠ initializeConnection failed: {init_msg}")
+                    logger.warning("    Continuing to commitToGit — items may already be linked from prior initialization")
             
             # ── Step 2: GET /git/status ──
             status = self.client.get_git_status(self.workspace_id)
@@ -875,27 +884,47 @@ class FabricDeployer:
 
             # ── Step 4: advance workspace head to the post-commit remote ──
             # commitToGit creates a new remote commit, leaving the workspace
-            # head one commit behind.  We CANNOT use updateFromGit here
-            # because it fails with PrincipalTypeNotSupported when paginated
-            # reports exist anywhere in the Git directory — even though there
-            # are no actual content changes to sync.
+            # head one commit behind.  We use updateFromGit to advance the
+            # workspace head.  Since we just committed the workspace state,
+            # there should be no content differences to sync — only the head
+            # pointer needs to move.
             #
-            # Instead, calling initializeConnection(PreferWorkspace) again
-            # achieves the same result: it advances the workspace head to
-            # the current remote commit and keeps workspace item definitions
-            # where they differ (e.g. paginated reports the SP couldn't
-            # commit).  No PrincipalTypeNotSupported restriction.
+            # If paginated reports in the Git directory have unsyncable
+            # differences, updateFromGit may fail with
+            # PrincipalTypeNotSupported.  In that case the head stays behind
+            # and Fabric UI shows "Update all" — a one-time manual click
+            # by a user resolves it.
             post_status = self.client.get_git_status(self.workspace_id)
             new_remote = post_status.get("remoteCommitHash")
             new_head   = post_status.get("workspaceHead")
             if new_remote and new_remote != new_head:
                 logger.info("  ⟳ Advancing workspace head to post-commit remote...")
-                logger.info("    (using initializeConnection — updateFromGit blocked by paginated reports)")
-                self.client.initialize_connection(
-                    workspace_id=self.workspace_id,
-                    initialization_strategy="PreferWorkspace"
-                )
-                logger.info("  ✓ Workspace head advanced — Source Control is now clean")
+                try:
+                    self.client.update_from_git(
+                        workspace_id=self.workspace_id,
+                        remote_commit_hash=new_remote,
+                        workspace_head=new_head,
+                        conflict_resolution_policy="PreferWorkspace",
+                        allow_override_items=False
+                    )
+                    logger.info("  ✓ Workspace head advanced — Source Control is now clean")
+                except Exception as update_err:
+                    update_msg = str(update_err)
+                    update_response = ""
+                    if hasattr(update_err, 'response') and update_err.response is not None:
+                        try:
+                            update_response = update_err.response.text or ""
+                        except Exception:
+                            pass
+                    combined = update_msg + " " + update_response
+                    if "PrincipalTypeNotSupported" in combined:
+                        logger.warning("  ⚠ Cannot advance workspace head automatically")
+                        logger.warning("    Paginated reports in Git directory block updateFromGit for service principals")
+                        logger.warning("    ONE-TIME FIX: Open workspace in Fabric UI → Source Control → click 'Update all'")
+                        logger.warning("    After that, subsequent pipeline runs will keep Source Control clean")
+                    else:
+                        logger.warning(f"  ⚠ updateFromGit failed: {update_msg}")
+                        logger.warning("    Fabric UI may show 'Update all' — click it to sync")
             else:
                 logger.info("  ✓ Workspace head already at remote — Source Control is clean")
             return True

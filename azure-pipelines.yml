@@ -221,60 +221,6 @@ stages:
                     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                   continueOnError: true
 
-                - script: |
-                    set -e
-                    cd $(Build.SourcesDirectory)
-
-                    echo "========================================"
-                    echo "Promoting wsartifacts from dev to main"
-                    echo "========================================"
-                    echo "This ensures reports, semantic models, paginated reports"
-                    echo "and all other artifacts committed on dev are available"
-                    echo "for the prod pipeline to deploy."
-                    echo ""
-
-                    # Configure git identity
-                    git config user.email "azure-pipelines@fabcicd.com"
-                    git config user.name "Azure Pipelines"
-                    git config http.extraheader "AUTHORIZATION: bearer $(System.AccessToken)"
-
-                    # Fetch both branches so we can switch between them
-                    git fetch origin main dev
-
-                    # Switch to main (creates local tracking branch if needed)
-                    git checkout -B main origin/main
-
-                    # Overlay wsartifacts/ from dev onto main.
-                    # This copies the full folder tree from dev into the main
-                    # working tree without affecting scripts/, config/ or anything
-                    # else on main.
-                    git checkout origin/dev -- wsartifacts/
-
-                    # Stage all artifact changes
-                    git add wsartifacts/
-
-                    # Only commit+push when there are actual differences
-                    if git diff --cached --quiet; then
-                      echo "No artifact changes between dev and main — nothing to promote."
-                    else
-                      echo "Artifact changes detected — promoting to main..."
-                      git diff --cached --name-only | head -40
-                      git commit -m "Promote wsartifacts from dev to main [auto-promote]"
-
-                      echo "Pushing to main..."
-                      git push origin HEAD:refs/heads/main
-                      echo ""
-                      echo "✓ Artifacts promoted to main."
-                      echo "  The prod pipeline will now be triggered on main."
-                      echo "  (Ensure the 'fabric-prod' environment in AzDevOps"
-                      echo "   has an approval gate to prevent unreviewed changes"
-                      echo "   reaching production automatically.)"
-                    fi
-                  displayName: 'Promote artifacts from dev to main'
-                  env:
-                    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-                  continueOnError: true
-
   # ========================================
   # Stage 3: Deploy to UAT
   # ========================================

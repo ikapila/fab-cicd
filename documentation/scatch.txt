@@ -1,181 +1,181 @@
-2026-03-09T17:49:33.9017351Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2026-03-09T17:49:33.9027001Z ==============================================================================
-2026-03-09T17:49:33.9027406Z Task         : Command line
-2026-03-09T17:49:33.9027538Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-03-09T17:49:33.9027830Z Version      : 2.268.0
-2026-03-09T17:49:33.9027996Z Author       : Microsoft Corporation
-2026-03-09T17:49:33.9028208Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-03-09T17:49:33.9028409Z ==============================================================================
-2026-03-09T17:49:34.0485528Z Generating script.
-2026-03-09T17:49:34.0492321Z ========================== Starting Command Output ===========================
-2026-03-09T17:49:34.0509110Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/a9a8fcc0-05c4-4731-a0d8-154f260812ff.sh
-2026-03-09T17:49:34.0575005Z ========================================
-2026-03-09T17:49:34.0577738Z DEBUG: Verifying Repository Checkout
-2026-03-09T17:49:34.0580708Z ========================================
-2026-03-09T17:49:34.0581382Z Current directory: /home/vsts/work/1/s
-2026-03-09T17:49:34.0581939Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-03-09T17:49:34.0582329Z 
-2026-03-09T17:49:34.0583121Z Contents of Build.SourcesDirectory:
-2026-03-09T17:49:34.0595694Z total 40
-2026-03-09T17:49:34.0599139Z drwxr-xr-x 8 vsts vsts 4096 Mar  9 17:48 .
-2026-03-09T17:49:34.0602515Z drwxr-xr-x 7 vsts vsts 4096 Mar  9 17:48 ..
-2026-03-09T17:49:34.0603200Z drwxr-xr-x 2 vsts vsts 4096 Mar  9 17:48 .deployment_tracking
-2026-03-09T17:49:34.0603588Z drwxr-xr-x 7 vsts vsts 4096 Mar  9 17:48 .git
-2026-03-09T17:49:34.0603958Z -rw-r--r-- 1 vsts vsts   44 Mar  9 17:48 .gitignore
-2026-03-09T17:49:34.0604315Z -rw-r--r-- 1 vsts vsts  985 Mar  9 17:48 README.md
-2026-03-09T17:49:34.0604675Z drwxr-xr-x 2 vsts vsts 4096 Mar  9 17:48 azure-pipelines
-2026-03-09T17:49:34.0605037Z drwxr-xr-x 2 vsts vsts 4096 Mar  9 17:48 config
-2026-03-09T17:49:34.0605658Z drwxr-xr-x 2 vsts vsts 4096 Mar  9 17:48 scripts
-2026-03-09T17:49:34.0606029Z drwxr-xr-x 7 vsts vsts 4096 Mar  9 17:48 wsartifacts
-2026-03-09T17:49:34.0606217Z 
-2026-03-09T17:49:34.0606488Z Checking for required folders:
-2026-03-09T17:49:34.0607016Z ✓ scripts/ exists
-2026-03-09T17:49:34.0607344Z ✓ config/ exists
-2026-03-09T17:49:34.0607681Z ✓ wsartifacts/ exists
-2026-03-09T17:49:34.0607992Z ========================================
-2026-03-09T17:49:34.0608316Z ========================================
-2026-03-09T17:49:34.0608872Z Deploying to Dev Environment
-2026-03-09T17:49:34.0609180Z ========================================
-2026-03-09T17:49:34.0609465Z Features:
-2026-03-09T17:49:34.0609899Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-03-09T17:49:34.0610325Z   📊 Dependency-aware deployment ordering
-2026-03-09T17:49:34.0610757Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-03-09T17:49:34.0610914Z 
-2026-03-09T17:49:34.0611176Z Deployment steps:
-2026-03-09T17:49:34.0611486Z   1. Create artifacts from config file
-2026-03-09T17:49:34.0611821Z   2. Detect changed artifacts using Git diff
-2026-03-09T17:49:34.0612186Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-03-09T17:49:34.0612562Z ========================================
-2026-03-09T17:49:34.5856089Z 2026-03-09 17:49:34,585 - __main__ - INFO - Initializing deployment to dev environment
-2026-03-09T17:49:34.5860140Z 2026-03-09 17:49:34,585 - config_manager - INFO - Loading configuration from: config/dev.json
-2026-03-09T17:49:34.5861493Z 2026-03-09 17:49:34,585 - __main__ - INFO - Using environment-specific service principal for dev
-2026-03-09T17:49:34.5862442Z 2026-03-09 17:49:34,585 - __main__ - INFO - Using artifacts root folder: wsartifacts
-2026-03-09T17:49:34.5864029Z 2026-03-09 17:49:34,585 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
-2026-03-09T17:49:34.9569190Z 2026-03-09 17:49:34,956 - fabric_auth - INFO - Authentication validation successful
-2026-03-09T17:49:34.9580230Z 2026-03-09 17:49:34,957 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
-2026-03-09T17:49:34.9583446Z 2026-03-09 17:49:34,958 - __main__ - INFO - Running in artifact creation mode
-2026-03-09T17:49:34.9584986Z 2026-03-09 17:49:34,958 - __main__ - INFO - ============================================================
-2026-03-09T17:49:34.9585709Z 2026-03-09 17:49:34,958 - __main__ - INFO - Creating artifacts from configuration for dev
-2026-03-09T17:49:34.9586187Z 2026-03-09 17:49:34,958 - __main__ - INFO - ============================================================
-2026-03-09T17:49:34.9589497Z 2026-03-09 17:49:34,958 - __main__ - INFO - No artifacts configured for creation
-2026-03-09T17:49:34.9589935Z 2026-03-09 17:49:34,958 - __main__ - INFO - Artifact creation completed successfully
-2026-03-09T17:49:34.9590416Z 2026-03-09 17:49:34,958 - __main__ - INFO - ============================================================
-2026-03-09T17:49:34.9590914Z 2026-03-09 17:49:34,958 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
-2026-03-09T17:49:34.9591690Z 2026-03-09 17:49:34,958 - __main__ - INFO - ============================================================
-2026-03-09T17:49:34.9592186Z 2026-03-09 17:49:34,958 - __main__ - INFO - Discovering artifacts from file system...
-2026-03-09T17:49:34.9592737Z 2026-03-09 17:49:34,959 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
-2026-03-09T17:49:34.9596420Z 2026-03-09 17:49:34,959 - __main__ - INFO - Discovered 1 Variable Library: ReportingWSVariables
-2026-03-09T17:49:34.9627649Z 2026-03-09 17:49:34,962 - __main__ - INFO - Discovered 28 semantic model(s): Aged Debtors - With Filters (Fabric Git), All Assets Summary (Fabric Git), Asset Alias & Registration Number Check (Fabric Git), BDM Credit Report - Sales Team (Fabric Git), Cash Collection (Fabric Git), CloudLending Documents (Fabric Git), Contract Management (Fabric Git), Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), Reports Unavailable (Fabric Git), TTS Sales (Fabric Git), TTS Stock (Fabric Git), Tyre Analysis (Fabric Git), Welcome (Fabric Git)
-2026-03-09T17:49:34.9707524Z 2026-03-09 17:49:34,970 - __main__ - INFO - Discovered 28 report(s): Aged Debtors - With Filters (Fabric Git), All Assets Summary (Fabric Git), Asset Alias & Registration Number Check (Fabric Git), BDM Credit Report - Sales Team (Fabric Git), Cash Collection (Fabric Git), CloudLending Documents (Fabric Git), Contract Management (Fabric Git), Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), Reports Unavailable (Fabric Git), TTS Sales (Fabric Git), TTS Stock (Fabric Git), Tyre Analysis (Fabric Git), Welcome (Fabric Git)
-2026-03-09T17:49:34.9758923Z 2026-03-09 17:49:34,975 - __main__ - INFO - Discovered 51 paginated report(s): Aged Debtors (Fabric Git), Aged Debtors by Due Date (Fabric Git), All Assets - Maintenance Provision (Fabric Git), All Assets Report (Fabric Git), Anna Asset Delivery Dates (Fabric Git), Annual Reviews - Proposed Exposure greater than 0 (Fabric Git), Application to Lease Contract (Fabric Git), Applications in Progress (Fabric Git), Arbuthnot Loan Agreement Report (Fabric Git), Arbuthnot MI Contract Report (Fabric Git), Arbuthnot MI Report (Fabric Git), Arbuthnot Regulatory Report (Fabric Git), Asset Transfer Report (Fabric Git), Assets Awaiting Delivery (Fabric Git), Assets terminated in a month (Fabric Git), Available Assets (Fabric Git), Bounced Direct Debit (Fabric Git), Contract Hire - Maintenance Provision (Fabric Git), Contracts Created in Month (Fabric Git), Contracts Terminated Live (Fabric Git), Contracts for Origination (Fabric Git), Contracts with Maintenance Budgets (Fabric Git), Customers cw Credit Rating (Fabric Git), Equipment Accruals - On Contract (Fabric Git), Evergreen Leased (Fabric Git), Evergreen Rental (Fabric Git), Incoming Payment (Fabric Git), Individual Customer Exposure (Fabric Git), Open Lease File (Fabric Git), Open Lease for for individual customers (Fabric Git), QA Queue for Ops (Fabric Git), R2C Daily Report @12 (Fabric Git), R2C Paid Recharges (Fabric Git), R2C Stock Assets Report (Fabric Git), RV Receivables - Assets Not On Hire (Fabric Git), RV Receivables from Live Contracts (Fabric Git), Rental Availability Report (Fabric Git), TS Applications in Progress (Fabric Git), TS Asset NBV (Fabric Git), TS Asset NBV for Funding Migration (Fabric Git), TS Assets Funding Analysis (Fabric Git), TS CL Invoices Outstanding (Fabric Git), TS Contracts Not Activated (Fabric Git), TS Depreciation Stream Contract Info (Fabric Git), TS Equipment Accruals - On Contract (Fabric Git), TS LS Contract Income Streams (Fabric Git), TS Recharge for Debt Reporting (Fabric Git), TTS MSF (Fabric Git), TTS OC (Fabric Git), TTS Unpaid Sales (Fabric Git), Warehouse assets inc stock (Fabric Git)
-2026-03-09T17:49:34.9766424Z 2026-03-09 17:49:34,975 - __main__ - INFO - ============================================================
-2026-03-09T17:49:34.9766898Z 2026-03-09 17:49:34,975 - __main__ - INFO - DISCOVERY COMPLETE: Found 109 total artifacts
-2026-03-09T17:49:34.9767352Z 2026-03-09 17:49:34,975 - __main__ - INFO - ============================================================
-2026-03-09T17:49:34.9767751Z 2026-03-09 17:49:34,976 - __main__ - INFO - 
-2026-03-09T17:49:34.9777711Z 2026-03-09 17:49:34,976 - __main__ - INFO - ============================================================
-2026-03-09T17:49:34.9778333Z 2026-03-09 17:49:34,976 - __main__ - INFO - CHANGE DETECTION
-2026-03-09T17:49:34.9778885Z 2026-03-09 17:49:34,976 - __main__ - INFO - ============================================================
-2026-03-09T17:49:34.9883382Z 2026-03-09 17:49:34,988 - change_detector - INFO - Found 3 changed file(s) since 563ac70d
-2026-03-09T17:49:34.9885843Z 2026-03-09 17:49:34,988 - change_detector - INFO - Change detection: 1 artifact(s) changed
-2026-03-09T17:49:34.9887608Z 2026-03-09 17:49:34,988 - change_detector - INFO -   Report: Aged Debtors - With Filters
-2026-03-09T17:49:34.9889069Z 2026-03-09 17:49:34,988 - fabric_client - INFO - Listing items in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-09T17:49:35.2231334Z 2026-03-09 17:49:35,222 - __main__ - INFO - Including semantic model 'Aged Debtors - With Filters' (report 'Aged Debtors - With Filters' changed)
-2026-03-09T17:49:35.2234321Z 2026-03-09 17:49:35,222 - __main__ - INFO - Changed artifacts: 2
-2026-03-09T17:49:35.2237865Z 2026-03-09 17:49:35,223 - __main__ - INFO -   Report: Aged Debtors - With Filters
-2026-03-09T17:49:35.2238615Z 2026-03-09 17:49:35,223 - __main__ - INFO -   SemanticModel: Aged Debtors - With Filters
-2026-03-09T17:49:35.2240277Z 2026-03-09 17:49:35,223 - __main__ - INFO - Skipped (unchanged): 107
-2026-03-09T17:49:35.2240781Z 2026-03-09 17:49:35,223 - __main__ - INFO - ============================================================
-2026-03-09T17:49:35.2241308Z 2026-03-09 17:49:35,223 - __main__ - INFO - ============================================================
-2026-03-09T17:49:35.2241800Z 2026-03-09 17:49:35,223 - __main__ - INFO - Starting deployment to dev environment
-2026-03-09T17:49:35.2242593Z 2026-03-09 17:49:35,223 - __main__ - INFO - ============================================================
-2026-03-09T17:49:35.2243564Z 2026-03-09 17:49:35,223 - __main__ - INFO -   ℹ Pre-deploy Git sync skipped — using post-deploy initializeConnection(PreferWorkspace)
-2026-03-09T17:49:35.2244267Z 2026-03-09 17:49:35,223 - dependency_resolver - INFO - ✅ All dependencies are valid
-2026-03-09T17:49:35.2244736Z 2026-03-09 17:49:35,223 - dependency_resolver - INFO - Deployment order determined:
-2026-03-09T17:49:35.2245902Z 2026-03-09 17:49:35,223 - dependency_resolver - INFO -   1. Aged Debtors - With Filters (SemanticModel)
-2026-03-09T17:49:35.2246416Z 2026-03-09 17:49:35,223 - dependency_resolver - INFO -   2. Aged Debtors - With Filters (Report)
-2026-03-09T17:49:35.2246861Z 2026-03-09 17:49:35,223 - __main__ - INFO - 
-2026-03-09T17:49:35.2247219Z 2026-03-09 17:49:35,223 - __main__ - INFO - --- Deploying 2 artifact(s) ---
-2026-03-09T17:49:35.2247593Z 2026-03-09 17:49:35,223 - __main__ - INFO - 
-2026-03-09T17:49:35.2247999Z 2026-03-09 17:49:35,223 - __main__ - INFO - Deploying: Aged Debtors - With Filters (SemanticModel)
-2026-03-09T17:49:35.2249178Z 2026-03-09 17:49:35,224 - __main__ - INFO -   Reading semantic model from Fabric Git format: Aged Debtors - With Filters.SemanticModel
-2026-03-09T17:49:35.2261710Z 2026-03-09 17:49:35,225 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
-2026-03-09T17:49:35.2268935Z 2026-03-09 17:49:35,226 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-09T17:49:35.4429115Z 2026-03-09 17:49:35,442 - __main__ - INFO -   Semantic model 'Aged Debtors - With Filters' already exists, updating...
-2026-03-09T17:49:35.4429718Z 2026-03-09 17:49:35,442 - fabric_client - INFO - Updating semantic model: 4f140540-1a9b-4d83-a178-fa239403e213
-2026-03-09T17:49:35.6869024Z 2026-03-09 17:49:35,686 - __main__ - INFO -   Updated semantic model (ID: 4f140540-1a9b-4d83-a178-fa239403e213)
-2026-03-09T17:49:35.6869891Z 2026-03-09 17:49:35,686 - __main__ - INFO -   Waiting for definition update to complete...
-2026-03-09T17:49:55.8116708Z 2026-03-09 17:49:55,811 - fabric_client - INFO -     Attempt 1/15: Succeeded (100% complete)
-2026-03-09T17:49:55.8119846Z 2026-03-09 17:49:55,811 - fabric_client - INFO -   ✓ Operation completed successfully
-2026-03-09T17:49:55.9404839Z 2026-03-09 17:49:55,940 - fabric_client - INFO -   ℹ Operation has no result (expected for update operations)
-2026-03-09T17:49:55.9414007Z 2026-03-09 17:49:55,941 - __main__ - INFO -   Looking up Fabric connection: 'dev-tmp02-reporting-lakehouse-connection'
-2026-03-09T17:49:55.9417045Z 2026-03-09 17:49:55,941 - fabric_client - INFO - Listing connections via Fabric Connections API
-2026-03-09T17:49:56.0899583Z 2026-03-09 17:49:56,089 - fabric_client - INFO -   Retrieved 4 connections total
-2026-03-09T17:49:56.0903352Z 2026-03-09 17:49:56,089 - __main__ - INFO -   ✓ Found connection: 'dev-tmp02-reporting-lakehouse-connection'
-2026-03-09T17:49:56.0904687Z 2026-03-09 17:49:56,089 - __main__ - INFO -   Binding 'Aged Debtors - With Filters' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
-2026-03-09T17:49:56.0905819Z 2026-03-09 17:49:56,089 - fabric_client - INFO - Binding semantic model to Fabric connection
-2026-03-09T17:49:56.0906482Z 2026-03-09 17:49:56,089 - fabric_client - INFO - Taking over ownership of semantic model 4f140540-1a9b-4d83-a178-fa239403e213
-2026-03-09T17:49:56.2307363Z 2026-03-09 17:49:56,230 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 4f140540-1a9b-4d83-a178-fa239403e213
-2026-03-09T17:49:56.2318016Z 2026-03-09 17:49:56,231 - fabric_client - INFO -   Listing connections for item 4f140540-1a9b-4d83-a178-fa239403e213
-2026-03-09T17:49:56.3890624Z 2026-03-09 17:49:56,388 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
-2026-03-09T17:49:56.3894173Z 2026-03-09 17:49:56,388 - fabric_client - INFO -   ✓ Already bound to target connection (path=urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com;ReportingLakehouse)
-2026-03-09T17:49:56.3895788Z 2026-03-09 17:49:56,388 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
-2026-03-09T17:49:56.3899456Z 2026-03-09 17:49:56,388 - __main__ - INFO -   ✓ Bound 'Aged Debtors - With Filters' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
-2026-03-09T17:49:56.3900689Z 2026-03-09 17:49:56,388 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Aged Debtors - With Filters'
-2026-03-09T17:49:56.3901639Z 2026-03-09 17:49:56,389 - __main__ - INFO - ✅ Successfully deployed: Aged Debtors - With Filters
-2026-03-09T17:49:56.3902498Z 2026-03-09 17:49:56,389 - __main__ - INFO - 
-2026-03-09T17:49:56.3909896Z 2026-03-09 17:49:56,389 - __main__ - INFO - Deploying: Aged Debtors - With Filters (Report)
-2026-03-09T17:49:56.3910430Z 2026-03-09 17:49:56,390 - __main__ - INFO -   Reading report from Fabric Git format: Aged Debtors - With Filters.Report
-2026-03-09T17:49:56.3912856Z 2026-03-09 17:49:56,390 - __main__ - INFO -     Found semantic model 'Aged Debtors - With Filters' in deployment cache (ID: 4f140540-1a9b-4d83-a178-fa239403e213)
-2026-03-09T17:49:56.3914304Z 2026-03-09 17:49:56,391 - __main__ - INFO -     ✓ Using byConnection reference (v2 schema) for 'Aged Debtors - With Filters' (ID: 4f140540-1a9b-4d83-a178-fa239403e213)
-2026-03-09T17:49:56.3943506Z 2026-03-09 17:49:56,394 - fabric_client - INFO - Listing reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-09T17:49:56.6143453Z 2026-03-09 17:49:56,613 - __main__ - INFO -   Power BI report 'Aged Debtors - With Filters' already exists, updating...
-2026-03-09T17:49:56.6146315Z 2026-03-09 17:49:56,614 - fabric_client - INFO - Updating Power BI report: 12f50309-c40c-4300-87a8-89a14933f599
-2026-03-09T17:49:56.9251637Z 2026-03-09 17:49:56,924 - __main__ - INFO -   Updated report (ID: 12f50309-c40c-4300-87a8-89a14933f599)
-2026-03-09T17:49:56.9254867Z 2026-03-09 17:49:56,924 - __main__ - INFO -   ✓ Dataset reference transformed during deployment for 'Aged Debtors - With Filters'
-2026-03-09T17:49:56.9256316Z 2026-03-09 17:49:56,925 - __main__ - INFO - ✅ Successfully deployed: Aged Debtors - With Filters
-2026-03-09T17:49:56.9257439Z 2026-03-09 17:49:56,925 - __main__ - INFO - 
-2026-03-09T17:49:56.9259653Z 2026-03-09 17:49:56,925 - __main__ - INFO - ============================================================
-2026-03-09T17:49:56.9260555Z 2026-03-09 17:49:56,925 - __main__ - INFO - DEPLOYMENT SUMMARY
-2026-03-09T17:49:56.9261503Z 2026-03-09 17:49:56,925 - __main__ - INFO - ============================================================
-2026-03-09T17:49:56.9262210Z 2026-03-09 17:49:56,925 - __main__ - INFO - Total artifacts: 2
-2026-03-09T17:49:56.9262868Z 2026-03-09 17:49:56,925 - __main__ - INFO - Successful: 2
-2026-03-09T17:49:56.9263524Z 2026-03-09 17:49:56,925 - __main__ - INFO - Failed: 0
-2026-03-09T17:49:56.9265785Z 2026-03-09 17:49:56,925 - __main__ - INFO - ============================================================
-2026-03-09T17:49:56.9283589Z 2026-03-09 17:49:56,928 - change_detector - INFO - Saved deployment commit: 28ff7620
-2026-03-09T17:49:56.9284122Z 2026-03-09 17:49:56,928 - __main__ - INFO - Saved deployment state: 28ff7620
-2026-03-09T17:49:56.9284561Z 2026-03-09 17:49:56,928 - __main__ - INFO - 
-2026-03-09T17:49:56.9285663Z 2026-03-09 17:49:56,928 - __main__ - INFO - ------------------------------------------------------------
-2026-03-09T17:49:56.9288938Z 2026-03-09 17:49:56,928 - __main__ - INFO - POST-DEPLOY: LINK WORKSPACE TO GIT + COMMIT
-2026-03-09T17:49:56.9289752Z 2026-03-09 17:49:56,928 - __main__ - INFO - ------------------------------------------------------------
-2026-03-09T17:49:56.9290606Z 2026-03-09 17:49:56,928 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-09T17:49:57.1126846Z 2026-03-09 17:49:57,112 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
-2026-03-09T17:49:57.1130477Z 2026-03-09 17:49:57,112 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-09T17:50:07.1915741Z 2026-03-09 17:50:07,191 - __main__ - INFO -   ⟳ Running initializeConnection(PreferWorkspace)...
-2026-03-09T17:50:07.1916298Z 2026-03-09 17:50:07,191 - __main__ - INFO -     Maps API-deployed items to Git items by displayName + type
-2026-03-09T17:50:07.1917308Z 2026-03-09 17:50:07,191 - fabric_client - INFO - Initializing Git connection (strategy: PreferWorkspace)
-2026-03-09T17:50:07.4127610Z 2026-03-09 17:50:07,412 - fabric_client - ERROR - HTTP Error: 403 - {"requestId":"d07452dd-02cb-40e8-bf75-7ba44189e6d1","errorCode":"InsufficientPrivileges","message":"The caller does not have sufficient permissions to access the requested resource","relatedResource":{"resourceId":"d7faf1fa-0e7e-4061-b3e5-50fa3873eb64","resourceType":"Workspace"}}
-2026-03-09T17:50:07.4128823Z 2026-03-09 17:50:07,412 - fabric_client - ERROR - Error details: {
-2026-03-09T17:50:07.4129479Z   "requestId": "d07452dd-02cb-40e8-bf75-7ba44189e6d1",
-2026-03-09T17:50:07.4130846Z   "errorCode": "InsufficientPrivileges",
-2026-03-09T17:50:07.4131397Z   "message": "The caller does not have sufficient permissions to access the requested resource",
-2026-03-09T17:50:07.4132554Z   "relatedResource": {
-2026-03-09T17:50:07.4133037Z     "resourceId": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb64",
-2026-03-09T17:50:07.4134575Z     "resourceType": "Workspace"
-2026-03-09T17:50:07.4134856Z   }
-2026-03-09T17:50:07.4135314Z }
-2026-03-09T17:50:07.4136352Z 2026-03-09 17:50:07,412 - __main__ - WARNING -   ⚠ initializeConnection failed: 403 Client Error: Forbidden for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/initializeConnection
-2026-03-09T17:50:07.4137163Z 2026-03-09 17:50:07,412 - __main__ - WARNING -     Workspace items may not be linked to Git — Source Control may show duplicates
-2026-03-09T17:50:07.4140354Z 2026-03-09 17:50:07,413 - __main__ - INFO - 
-2026-03-09T17:50:07.4143036Z 2026-03-09 17:50:07,413 - __main__ - INFO - ------------------------------------------------------------
-2026-03-09T17:50:07.4143722Z 2026-03-09 17:50:07,413 - __main__ - INFO - POST-DEPLOY: SEMANTIC MODEL REFRESH
-2026-03-09T17:50:07.4144338Z 2026-03-09 17:50:07,414 - __main__ - INFO - ------------------------------------------------------------
-2026-03-09T17:50:07.4145293Z 2026-03-09 17:50:07,414 - __main__ - INFO -   Triggering refresh for 1 deployed semantic model(s)
-2026-03-09T17:50:07.4157330Z 2026-03-09 17:50:07,414 - __main__ - INFO -   Refreshing 'Aged Debtors - With Filters' (ID: 4f140540-1a9b-4d83-a178-fa239403e213)...
-2026-03-09T17:50:07.4158118Z 2026-03-09 17:50:07,414 - fabric_client - INFO - Triggering full refresh for semantic model: 4f140540-1a9b-4d83-a178-fa239403e213
-2026-03-09T17:50:07.6683474Z 2026-03-09 17:50:07,667 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
-2026-03-09T17:50:07.6693774Z 2026-03-09 17:50:07,668 - __main__ - INFO -   ✓ Refresh triggered for 'Aged Debtors - With Filters'
-2026-03-09T17:50:07.6696155Z 2026-03-09 17:50:07,669 - __main__ - INFO -   Done — 1 refresh(es) triggered, 0 failed
-2026-03-09T17:50:07.7010343Z 
-2026-03-09T17:50:07.7011819Z ✓ Dev deployment completed successfully
-2026-03-09T17:50:07.7023689Z 
-2026-03-09T17:50:07.7087942Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-09T18:06:45.5854864Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-09T18:06:45.5863507Z ==============================================================================
+2026-03-09T18:06:45.5863698Z Task         : Command line
+2026-03-09T18:06:45.5863809Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-03-09T18:06:45.5863991Z Version      : 2.268.0
+2026-03-09T18:06:45.5864101Z Author       : Microsoft Corporation
+2026-03-09T18:06:45.5864235Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-03-09T18:06:45.5864417Z ==============================================================================
+2026-03-09T18:06:45.7306890Z Generating script.
+2026-03-09T18:06:45.7317094Z ========================== Starting Command Output ===========================
+2026-03-09T18:06:45.7327637Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/e7bbdbd8-90dc-4246-bb00-da76787ac361.sh
+2026-03-09T18:06:45.7399490Z ========================================
+2026-03-09T18:06:45.7401971Z DEBUG: Verifying Repository Checkout
+2026-03-09T18:06:45.7403173Z ========================================
+2026-03-09T18:06:45.7403690Z Current directory: /home/vsts/work/1/s
+2026-03-09T18:06:45.7404005Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-03-09T18:06:45.7404142Z 
+2026-03-09T18:06:45.7404404Z Contents of Build.SourcesDirectory:
+2026-03-09T18:06:45.7418446Z total 40
+2026-03-09T18:06:45.7420638Z drwxr-xr-x 8 vsts vsts 4096 Mar  9 18:06 .
+2026-03-09T18:06:45.7421197Z drwxr-xr-x 7 vsts vsts 4096 Mar  9 18:06 ..
+2026-03-09T18:06:45.7421552Z drwxr-xr-x 2 vsts vsts 4096 Mar  9 18:06 .deployment_tracking
+2026-03-09T18:06:45.7421894Z drwxr-xr-x 7 vsts vsts 4096 Mar  9 18:06 .git
+2026-03-09T18:06:45.7422425Z -rw-r--r-- 1 vsts vsts   44 Mar  9 18:06 .gitignore
+2026-03-09T18:06:45.7422783Z -rw-r--r-- 1 vsts vsts  985 Mar  9 18:06 README.md
+2026-03-09T18:06:45.7423126Z drwxr-xr-x 2 vsts vsts 4096 Mar  9 18:06 azure-pipelines
+2026-03-09T18:06:45.7423471Z drwxr-xr-x 2 vsts vsts 4096 Mar  9 18:06 config
+2026-03-09T18:06:45.7423848Z drwxr-xr-x 2 vsts vsts 4096 Mar  9 18:06 scripts
+2026-03-09T18:06:45.7424199Z drwxr-xr-x 7 vsts vsts 4096 Mar  9 18:06 wsartifacts
+2026-03-09T18:06:45.7428975Z 
+2026-03-09T18:06:45.7429331Z Checking for required folders:
+2026-03-09T18:06:45.7429924Z ✓ scripts/ exists
+2026-03-09T18:06:45.7430676Z ✓ config/ exists
+2026-03-09T18:06:45.7438510Z ✓ wsartifacts/ exists
+2026-03-09T18:06:45.7439420Z ========================================
+2026-03-09T18:06:45.7440513Z ========================================
+2026-03-09T18:06:45.7441351Z Deploying to Dev Environment
+2026-03-09T18:06:45.7442141Z ========================================
+2026-03-09T18:06:45.7442927Z Features:
+2026-03-09T18:06:45.7443398Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-03-09T18:06:45.7443813Z   📊 Dependency-aware deployment ordering
+2026-03-09T18:06:45.7444214Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-03-09T18:06:45.7444364Z 
+2026-03-09T18:06:45.7444606Z Deployment steps:
+2026-03-09T18:06:45.7444876Z   1. Create artifacts from config file
+2026-03-09T18:06:45.7445176Z   2. Detect changed artifacts using Git diff
+2026-03-09T18:06:45.7445492Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-03-09T18:06:45.7445812Z ========================================
+2026-03-09T18:06:46.2838646Z 2026-03-09 18:06:46,283 - __main__ - INFO - Initializing deployment to dev environment
+2026-03-09T18:06:46.2855824Z 2026-03-09 18:06:46,283 - config_manager - INFO - Loading configuration from: config/dev.json
+2026-03-09T18:06:46.2856488Z 2026-03-09 18:06:46,283 - __main__ - INFO - Using environment-specific service principal for dev
+2026-03-09T18:06:46.2857055Z 2026-03-09 18:06:46,283 - __main__ - INFO - Using artifacts root folder: wsartifacts
+2026-03-09T18:06:46.2857631Z 2026-03-09 18:06:46,283 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
+2026-03-09T18:06:46.7002231Z 2026-03-09 18:06:46,699 - fabric_auth - INFO - Authentication validation successful
+2026-03-09T18:06:46.7012915Z 2026-03-09 18:06:46,700 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
+2026-03-09T18:06:46.7019681Z 2026-03-09 18:06:46,701 - __main__ - INFO - Running in artifact creation mode
+2026-03-09T18:06:46.7020605Z 2026-03-09 18:06:46,701 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.7021261Z 2026-03-09 18:06:46,701 - __main__ - INFO - Creating artifacts from configuration for dev
+2026-03-09T18:06:46.7022822Z 2026-03-09 18:06:46,701 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.7023264Z 2026-03-09 18:06:46,701 - __main__ - INFO - No artifacts configured for creation
+2026-03-09T18:06:46.7023647Z 2026-03-09 18:06:46,701 - __main__ - INFO - Artifact creation completed successfully
+2026-03-09T18:06:46.7024064Z 2026-03-09 18:06:46,701 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.7024466Z 2026-03-09 18:06:46,701 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
+2026-03-09T18:06:46.7024860Z 2026-03-09 18:06:46,701 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.7025271Z 2026-03-09 18:06:46,701 - __main__ - INFO - Discovering artifacts from file system...
+2026-03-09T18:06:46.7034270Z 2026-03-09 18:06:46,703 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
+2026-03-09T18:06:46.7038221Z 2026-03-09 18:06:46,703 - __main__ - INFO - Discovered 1 Variable Library: ReportingWSVariables
+2026-03-09T18:06:46.7056700Z 2026-03-09 18:06:46,705 - __main__ - INFO - Discovered 28 semantic model(s): Aged Debtors - With Filters (Fabric Git), All Assets Summary (Fabric Git), Asset Alias & Registration Number Check (Fabric Git), BDM Credit Report - Sales Team (Fabric Git), Cash Collection (Fabric Git), CloudLending Documents (Fabric Git), Contract Management (Fabric Git), Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), Reports Unavailable (Fabric Git), TTS Sales (Fabric Git), TTS Stock (Fabric Git), Tyre Analysis (Fabric Git), Welcome (Fabric Git)
+2026-03-09T18:06:46.7101712Z 2026-03-09 18:06:46,709 - __main__ - INFO - Discovered 28 report(s): Aged Debtors - With Filters (Fabric Git), All Assets Summary (Fabric Git), Asset Alias & Registration Number Check (Fabric Git), BDM Credit Report - Sales Team (Fabric Git), Cash Collection (Fabric Git), CloudLending Documents (Fabric Git), Contract Management (Fabric Git), Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), Reports Unavailable (Fabric Git), TTS Sales (Fabric Git), TTS Stock (Fabric Git), Tyre Analysis (Fabric Git), Welcome (Fabric Git)
+2026-03-09T18:06:46.7134983Z 2026-03-09 18:06:46,712 - __main__ - INFO - Discovered 51 paginated report(s): Aged Debtors (Fabric Git), Aged Debtors by Due Date (Fabric Git), All Assets - Maintenance Provision (Fabric Git), All Assets Report (Fabric Git), Anna Asset Delivery Dates (Fabric Git), Annual Reviews - Proposed Exposure greater than 0 (Fabric Git), Application to Lease Contract (Fabric Git), Applications in Progress (Fabric Git), Arbuthnot Loan Agreement Report (Fabric Git), Arbuthnot MI Contract Report (Fabric Git), Arbuthnot MI Report (Fabric Git), Arbuthnot Regulatory Report (Fabric Git), Asset Transfer Report (Fabric Git), Assets Awaiting Delivery (Fabric Git), Assets terminated in a month (Fabric Git), Available Assets (Fabric Git), Bounced Direct Debit (Fabric Git), Contract Hire - Maintenance Provision (Fabric Git), Contracts Created in Month (Fabric Git), Contracts Terminated Live (Fabric Git), Contracts for Origination (Fabric Git), Contracts with Maintenance Budgets (Fabric Git), Customers cw Credit Rating (Fabric Git), Equipment Accruals - On Contract (Fabric Git), Evergreen Leased (Fabric Git), Evergreen Rental (Fabric Git), Incoming Payment (Fabric Git), Individual Customer Exposure (Fabric Git), Open Lease File (Fabric Git), Open Lease for for individual customers (Fabric Git), QA Queue for Ops (Fabric Git), R2C Daily Report @12 (Fabric Git), R2C Paid Recharges (Fabric Git), R2C Stock Assets Report (Fabric Git), RV Receivables - Assets Not On Hire (Fabric Git), RV Receivables from Live Contracts (Fabric Git), Rental Availability Report (Fabric Git), TS Applications in Progress (Fabric Git), TS Asset NBV (Fabric Git), TS Asset NBV for Funding Migration (Fabric Git), TS Assets Funding Analysis (Fabric Git), TS CL Invoices Outstanding (Fabric Git), TS Contracts Not Activated (Fabric Git), TS Depreciation Stream Contract Info (Fabric Git), TS Equipment Accruals - On Contract (Fabric Git), TS LS Contract Income Streams (Fabric Git), TS Recharge for Debt Reporting (Fabric Git), TTS MSF (Fabric Git), TTS OC (Fabric Git), TTS Unpaid Sales (Fabric Git), Warehouse assets inc stock (Fabric Git)
+2026-03-09T18:06:46.7145292Z 2026-03-09 18:06:46,713 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.7145748Z 2026-03-09 18:06:46,713 - __main__ - INFO - DISCOVERY COMPLETE: Found 109 total artifacts
+2026-03-09T18:06:46.7146187Z 2026-03-09 18:06:46,713 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.7146569Z 2026-03-09 18:06:46,713 - __main__ - INFO - 
+2026-03-09T18:06:46.7146925Z 2026-03-09 18:06:46,713 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.7147287Z 2026-03-09 18:06:46,713 - __main__ - INFO - CHANGE DETECTION
+2026-03-09T18:06:46.7147674Z 2026-03-09 18:06:46,713 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.7200550Z 2026-03-09 18:06:46,719 - change_detector - INFO - Found 3 changed file(s) since 28ff7620
+2026-03-09T18:06:46.7203999Z 2026-03-09 18:06:46,719 - change_detector - INFO - Change detection: 1 artifact(s) changed
+2026-03-09T18:06:46.7204685Z 2026-03-09 18:06:46,719 - change_detector - INFO -   Report: Aged Debtors - With Filters
+2026-03-09T18:06:46.7207154Z 2026-03-09 18:06:46,720 - fabric_client - INFO - Listing items in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-09T18:06:46.9361064Z 2026-03-09 18:06:46,935 - __main__ - INFO - Including semantic model 'Aged Debtors - With Filters' (report 'Aged Debtors - With Filters' changed)
+2026-03-09T18:06:46.9364636Z 2026-03-09 18:06:46,935 - __main__ - INFO - Changed artifacts: 2
+2026-03-09T18:06:46.9365514Z 2026-03-09 18:06:46,936 - __main__ - INFO -   Report: Aged Debtors - With Filters
+2026-03-09T18:06:46.9366448Z 2026-03-09 18:06:46,936 - __main__ - INFO -   SemanticModel: Aged Debtors - With Filters
+2026-03-09T18:06:46.9367209Z 2026-03-09 18:06:46,936 - __main__ - INFO - Skipped (unchanged): 107
+2026-03-09T18:06:46.9367890Z 2026-03-09 18:06:46,936 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.9368596Z 2026-03-09 18:06:46,936 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.9369742Z 2026-03-09 18:06:46,936 - __main__ - INFO - Starting deployment to dev environment
+2026-03-09T18:06:46.9371211Z 2026-03-09 18:06:46,936 - __main__ - INFO - ============================================================
+2026-03-09T18:06:46.9375711Z 2026-03-09 18:06:46,936 - __main__ - INFO -   ℹ Pre-deploy Git sync skipped — using post-deploy initializeConnection(PreferWorkspace)
+2026-03-09T18:06:46.9376344Z 2026-03-09 18:06:46,936 - dependency_resolver - INFO - ✅ All dependencies are valid
+2026-03-09T18:06:46.9376764Z 2026-03-09 18:06:46,936 - dependency_resolver - INFO - Deployment order determined:
+2026-03-09T18:06:46.9377195Z 2026-03-09 18:06:46,936 - dependency_resolver - INFO -   1. Aged Debtors - With Filters (SemanticModel)
+2026-03-09T18:06:46.9377624Z 2026-03-09 18:06:46,936 - dependency_resolver - INFO -   2. Aged Debtors - With Filters (Report)
+2026-03-09T18:06:46.9378000Z 2026-03-09 18:06:46,936 - __main__ - INFO - 
+2026-03-09T18:06:46.9378370Z 2026-03-09 18:06:46,936 - __main__ - INFO - --- Deploying 2 artifact(s) ---
+2026-03-09T18:06:46.9378750Z 2026-03-09 18:06:46,936 - __main__ - INFO - 
+2026-03-09T18:06:46.9379146Z 2026-03-09 18:06:46,936 - __main__ - INFO - Deploying: Aged Debtors - With Filters (SemanticModel)
+2026-03-09T18:06:46.9381080Z 2026-03-09 18:06:46,937 - __main__ - INFO -   Reading semantic model from Fabric Git format: Aged Debtors - With Filters.SemanticModel
+2026-03-09T18:06:46.9394810Z 2026-03-09 18:06:46,939 - __main__ - INFO -     ✓ Transformed 1 SQL endpoint(s) to 'urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com'
+2026-03-09T18:06:46.9402666Z 2026-03-09 18:06:46,940 - fabric_client - INFO - Listing semantic models in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-09T18:06:47.1514446Z 2026-03-09 18:06:47,150 - __main__ - INFO -   Semantic model 'Aged Debtors - With Filters' already exists, updating...
+2026-03-09T18:06:47.1517509Z 2026-03-09 18:06:47,151 - fabric_client - INFO - Updating semantic model: 4f140540-1a9b-4d83-a178-fa239403e213
+2026-03-09T18:06:47.4449878Z 2026-03-09 18:06:47,444 - __main__ - INFO -   Updated semantic model (ID: 4f140540-1a9b-4d83-a178-fa239403e213)
+2026-03-09T18:06:47.4450964Z 2026-03-09 18:06:47,444 - __main__ - INFO -   Waiting for definition update to complete...
+2026-03-09T18:07:07.5888493Z 2026-03-09 18:07:07,588 - fabric_client - INFO -     Attempt 1/15: Succeeded (100% complete)
+2026-03-09T18:07:07.5891152Z 2026-03-09 18:07:07,588 - fabric_client - INFO -   ✓ Operation completed successfully
+2026-03-09T18:07:07.7401197Z 2026-03-09 18:07:07,739 - fabric_client - INFO -   ℹ Operation has no result (expected for update operations)
+2026-03-09T18:07:07.7414536Z 2026-03-09 18:07:07,741 - __main__ - INFO -   Looking up Fabric connection: 'dev-tmp02-reporting-lakehouse-connection'
+2026-03-09T18:07:07.7415530Z 2026-03-09 18:07:07,741 - fabric_client - INFO - Listing connections via Fabric Connections API
+2026-03-09T18:07:07.9246579Z 2026-03-09 18:07:07,924 - fabric_client - INFO -   Retrieved 4 connections total
+2026-03-09T18:07:07.9250092Z 2026-03-09 18:07:07,924 - __main__ - INFO -   ✓ Found connection: 'dev-tmp02-reporting-lakehouse-connection'
+2026-03-09T18:07:07.9251050Z 2026-03-09 18:07:07,924 - __main__ - INFO -   Binding 'Aged Debtors - With Filters' to Fabric connection 'dev-tmp02-reporting-lakehouse-connection'...
+2026-03-09T18:07:07.9253512Z 2026-03-09 18:07:07,924 - fabric_client - INFO - Binding semantic model to Fabric connection
+2026-03-09T18:07:07.9254090Z 2026-03-09 18:07:07,924 - fabric_client - INFO - Taking over ownership of semantic model 4f140540-1a9b-4d83-a178-fa239403e213
+2026-03-09T18:07:08.0827574Z 2026-03-09 18:07:08,082 - fabric_client - INFO -   ✓ Successfully took over ownership of semantic model 4f140540-1a9b-4d83-a178-fa239403e213
+2026-03-09T18:07:08.0840246Z 2026-03-09 18:07:08,083 - fabric_client - INFO -   Listing connections for item 4f140540-1a9b-4d83-a178-fa239403e213
+2026-03-09T18:07:08.2858946Z 2026-03-09 18:07:08,285 - fabric_client - INFO -   Found 1 existing connection reference(s) on semantic model
+2026-03-09T18:07:08.2865115Z 2026-03-09 18:07:08,285 - fabric_client - INFO -   ✓ Already bound to target connection (path=urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com;ReportingLakehouse)
+2026-03-09T18:07:08.2865893Z 2026-03-09 18:07:08,285 - fabric_client - INFO -   ✓ Bound 1 data source(s) to Fabric connection
+2026-03-09T18:07:08.2866646Z 2026-03-09 18:07:08,285 - __main__ - INFO -   ✓ Bound 'Aged Debtors - With Filters' to connection 'dev-tmp02-reporting-lakehouse-connection' (1 data source(s))
+2026-03-09T18:07:08.2867397Z 2026-03-09 18:07:08,285 - __main__ - INFO -   ✓ SQL endpoints transformed during deployment for 'Aged Debtors - With Filters'
+2026-03-09T18:07:08.2868057Z 2026-03-09 18:07:08,285 - __main__ - INFO - ✅ Successfully deployed: Aged Debtors - With Filters
+2026-03-09T18:07:08.2868455Z 2026-03-09 18:07:08,285 - __main__ - INFO - 
+2026-03-09T18:07:08.2868842Z 2026-03-09 18:07:08,285 - __main__ - INFO - Deploying: Aged Debtors - With Filters (Report)
+2026-03-09T18:07:08.2877475Z 2026-03-09 18:07:08,287 - __main__ - INFO -   Reading report from Fabric Git format: Aged Debtors - With Filters.Report
+2026-03-09T18:07:08.2882717Z 2026-03-09 18:07:08,287 - __main__ - INFO -     Found semantic model 'Aged Debtors - With Filters' in deployment cache (ID: 4f140540-1a9b-4d83-a178-fa239403e213)
+2026-03-09T18:07:08.2883658Z 2026-03-09 18:07:08,287 - __main__ - INFO -     ✓ Using byConnection reference (v2 schema) for 'Aged Debtors - With Filters' (ID: 4f140540-1a9b-4d83-a178-fa239403e213)
+2026-03-09T18:07:08.2910227Z 2026-03-09 18:07:08,290 - fabric_client - INFO - Listing reports in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-09T18:07:08.5589466Z 2026-03-09 18:07:08,558 - __main__ - INFO -   Power BI report 'Aged Debtors - With Filters' already exists, updating...
+2026-03-09T18:07:08.5593155Z 2026-03-09 18:07:08,558 - fabric_client - INFO - Updating Power BI report: 12f50309-c40c-4300-87a8-89a14933f599
+2026-03-09T18:07:08.8424737Z 2026-03-09 18:07:08,842 - __main__ - INFO -   Updated report (ID: 12f50309-c40c-4300-87a8-89a14933f599)
+2026-03-09T18:07:08.8428435Z 2026-03-09 18:07:08,842 - __main__ - INFO -   ✓ Dataset reference transformed during deployment for 'Aged Debtors - With Filters'
+2026-03-09T18:07:08.8431799Z 2026-03-09 18:07:08,842 - __main__ - INFO - ✅ Successfully deployed: Aged Debtors - With Filters
+2026-03-09T18:07:08.8432180Z 2026-03-09 18:07:08,842 - __main__ - INFO - 
+2026-03-09T18:07:08.8432789Z 2026-03-09 18:07:08,842 - __main__ - INFO - ============================================================
+2026-03-09T18:07:08.8433481Z 2026-03-09 18:07:08,842 - __main__ - INFO - DEPLOYMENT SUMMARY
+2026-03-09T18:07:08.8433962Z 2026-03-09 18:07:08,842 - __main__ - INFO - ============================================================
+2026-03-09T18:07:08.8434358Z 2026-03-09 18:07:08,842 - __main__ - INFO - Total artifacts: 2
+2026-03-09T18:07:08.8434696Z 2026-03-09 18:07:08,842 - __main__ - INFO - Successful: 2
+2026-03-09T18:07:08.8435026Z 2026-03-09 18:07:08,842 - __main__ - INFO - Failed: 0
+2026-03-09T18:07:08.8435435Z 2026-03-09 18:07:08,842 - __main__ - INFO - ============================================================
+2026-03-09T18:07:08.8453072Z 2026-03-09 18:07:08,845 - change_detector - INFO - Saved deployment commit: db1e2b5e
+2026-03-09T18:07:08.8457219Z 2026-03-09 18:07:08,845 - __main__ - INFO - Saved deployment state: db1e2b5e
+2026-03-09T18:07:08.8457901Z 2026-03-09 18:07:08,845 - __main__ - INFO - 
+2026-03-09T18:07:08.8458294Z 2026-03-09 18:07:08,845 - __main__ - INFO - ------------------------------------------------------------
+2026-03-09T18:07:08.8458846Z 2026-03-09 18:07:08,845 - __main__ - INFO - POST-DEPLOY: LINK WORKSPACE TO GIT + COMMIT
+2026-03-09T18:07:08.8459265Z 2026-03-09 18:07:08,845 - __main__ - INFO - ------------------------------------------------------------
+2026-03-09T18:07:08.8459730Z 2026-03-09 18:07:08,845 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-09T18:07:09.0281547Z 2026-03-09 18:07:09,027 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
+2026-03-09T18:07:09.0285517Z 2026-03-09 18:07:09,027 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
+2026-03-09T18:07:18.6102793Z 2026-03-09 18:07:18,609 - __main__ - INFO -   ⟳ Running initializeConnection(PreferWorkspace)...
+2026-03-09T18:07:18.6103431Z 2026-03-09 18:07:18,609 - __main__ - INFO -     Maps API-deployed items to Git items by displayName + type
+2026-03-09T18:07:18.6104008Z 2026-03-09 18:07:18,609 - fabric_client - INFO - Initializing Git connection (strategy: PreferWorkspace)
+2026-03-09T18:07:18.7391654Z 2026-03-09 18:07:18,738 - fabric_client - ERROR - HTTP Error: 403 - {"requestId":"e28d5bba-aaa0-4451-b67c-c5028dadbd30","errorCode":"InsufficientPrivileges","message":"The caller does not have sufficient permissions to access the requested resource","relatedResource":{"resourceId":"d7faf1fa-0e7e-4061-b3e5-50fa3873eb64","resourceType":"Workspace"}}
+2026-03-09T18:07:18.7395218Z 2026-03-09 18:07:18,738 - fabric_client - ERROR - Error details: {
+2026-03-09T18:07:18.7395980Z   "requestId": "e28d5bba-aaa0-4451-b67c-c5028dadbd30",
+2026-03-09T18:07:18.7396618Z   "errorCode": "InsufficientPrivileges",
+2026-03-09T18:07:18.7397270Z   "message": "The caller does not have sufficient permissions to access the requested resource",
+2026-03-09T18:07:18.7404448Z   "relatedResource": {
+2026-03-09T18:07:18.7404772Z     "resourceId": "d7faf1fa-0e7e-4061-b3e5-50fa3873eb64",
+2026-03-09T18:07:18.7405065Z     "resourceType": "Workspace"
+2026-03-09T18:07:18.7405331Z   }
+2026-03-09T18:07:18.7405571Z }
+2026-03-09T18:07:18.7415375Z 2026-03-09 18:07:18,738 - __main__ - WARNING -   ⚠ initializeConnection failed: 403 Client Error: Forbidden for url: https://api.fabric.microsoft.com/v1/workspaces/d7faf1fa-0e7e-4061-b3e5-50fa3873eb64/git/initializeConnection
+2026-03-09T18:07:18.7416254Z 2026-03-09 18:07:18,739 - __main__ - WARNING -     Workspace items may not be linked to Git — Source Control may show duplicates
+2026-03-09T18:07:18.7416719Z 2026-03-09 18:07:18,740 - __main__ - INFO - 
+2026-03-09T18:07:18.7417114Z 2026-03-09 18:07:18,740 - __main__ - INFO - ------------------------------------------------------------
+2026-03-09T18:07:18.7417552Z 2026-03-09 18:07:18,740 - __main__ - INFO - POST-DEPLOY: SEMANTIC MODEL REFRESH
+2026-03-09T18:07:18.7417982Z 2026-03-09 18:07:18,740 - __main__ - INFO - ------------------------------------------------------------
+2026-03-09T18:07:18.7418432Z 2026-03-09 18:07:18,740 - __main__ - INFO -   Triggering refresh for 1 deployed semantic model(s)
+2026-03-09T18:07:18.7419199Z 2026-03-09 18:07:18,740 - __main__ - INFO -   Refreshing 'Aged Debtors - With Filters' (ID: 4f140540-1a9b-4d83-a178-fa239403e213)...
+2026-03-09T18:07:18.7419696Z 2026-03-09 18:07:18,740 - fabric_client - INFO - Triggering full refresh for semantic model: 4f140540-1a9b-4d83-a178-fa239403e213
+2026-03-09T18:07:19.0107482Z 2026-03-09 18:07:19,010 - fabric_client - INFO -   ✓ Refresh queued (202 Accepted)
+2026-03-09T18:07:19.0117678Z 2026-03-09 18:07:19,011 - __main__ - INFO -   ✓ Refresh triggered for 'Aged Debtors - With Filters'
+2026-03-09T18:07:19.0119836Z 2026-03-09 18:07:19,011 - __main__ - INFO -   Done — 1 refresh(es) triggered, 0 failed
+2026-03-09T18:07:19.0442126Z 
+2026-03-09T18:07:19.0443414Z ✓ Dev deployment completed successfully
+2026-03-09T18:07:19.0451849Z 
+2026-03-09T18:07:19.0520585Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

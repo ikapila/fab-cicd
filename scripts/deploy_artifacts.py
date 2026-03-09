@@ -570,7 +570,7 @@ class FabricDeployer:
         Returns:
             True if update succeeded or was not needed, False on failure
         """
-        # Check if auto-update is enabled (default: True)
+        # Check if git integration is enabled (default: True)
         git_config = self.config.config.get("git_integration", {})
         auto_update = git_config.get("auto_update_from_git", True)
         
@@ -578,11 +578,25 @@ class FabricDeployer:
             logger.info("  ℹ Git auto-update is disabled (git_integration.auto_update_from_git = false)")
             return True
         
-        logger.info("")
-        logger.info("-"*60)
-        logger.info("SOURCE CONTROL SYNC")
-        logger.info("-"*60)
-        logger.info("Checking for pending Git updates in workspace...")
+        # Pre-deploy updateFromGit is no longer used.
+        #
+        # Previously we called updateFromGit before API deployment so items
+        # would exist with correct Git logicalIds, preventing duplicates.
+        # This caused PrincipalTypeNotSupported failures for paginated
+        # reports, which blocked the whole sync and left workspace heads
+        # stale — causing the very duplicate problem it tried to prevent.
+        #
+        # Replacement flow (identical to UAT/prod):
+        #   1. API-deploy all items (create or update in-place by displayName)
+        #   2. POST-DEPLOY: initializeConnection(PreferWorkspace) maps every
+        #      API-deployed item to its Git counterpart by displayName+type.
+        #      This works for ALL item types including paginated reports.
+        #   3. commitToGit pushes any definition differences back to Git.
+        #
+        # Result: Source Control shows reports and semantic models as synced,
+        # paginated reports as uncommitted (SP limitation — same as before).
+        logger.info("  ℹ Pre-deploy Git sync skipped — using post-deploy initializeConnection(PreferWorkspace)")
+        return True
         
         try:
             # Step 0: Ensure Git credentials are configured for the SP
@@ -748,31 +762,31 @@ class FabricDeployer:
 
     def _commit_workspace_to_git(self) -> bool:
         """
-        Commit API-deployed workspace changes back to Git after deployment.
+        Link API-deployed workspace items to Git and commit any differences.
         
-        Pre-deploy, _update_source_control() attempts to sync non-paginated
-        items from Git so they exist with correct logicalIds.  When that
-        succeeds, API deployment updates items in-place and this method
-        simply commits the modifications back.
+        Flow (runs after all API deployments complete):
+          1. initializeConnection(PreferWorkspace)
+             - Matches every workspace item to its Git counterpart by
+               displayName + type (works for ALL item types, including
+               paginated reports — no PrincipalTypeNotSupported).
+             - Advances the workspace head to the current remote commit.
+             - Workspace item definitions take precedence over Git.
+          2. GET /git/status — find items whose workspace definition
+             differs from what is in Git.
+          3. commitToGit — push those differences back to Git so the
+             Source Control panel shows items as in-sync.
         
-        When updateFromGit FAILS (e.g. PrincipalTypeNotSupported because
-        paginated reports exist in the Git directory), API creates items
-        with NEW IDs that differ from the Git logicalIds.  A direct
-        commitToGit will then fail because the workspace head is behind
-        remote.  To break this deadlock the method uses:
+        Why initializeConnection instead of updateFromGit:
+          updateFromGit fails with PrincipalTypeNotSupported when paginated
+          reports are in the Git directory.  initializeConnection has no such
+          restriction and achieves the equivalent result for our use-case.
         
-          initializeConnection(PreferWorkspace)
-        
-        This re-maps workspace items to Git items **by display name, type,
-        and folder**, advancing the workspace head so commitToGit succeeds.
-        
-        Flow:
-          1. Get Git status.
-          2. If workspace changes exist, attempt commitToGit.
-          3. If commit fails AND there are pending remote changes:
-             a. Call initializeConnection(PreferWorkspace) to re-link items.
-             b. Re-fetch Git status and retry commitToGit.
-          4. If all attempts fail, log manual resolution steps.
+        Paginated reports after initializeConnection:
+          Their workspace definitions are linked to Git, but the SP cannot
+          commit them via commitToGit (PrincipalTypeNotSupported applies to
+          paginated reports in the commit path too).  They show as
+          "uncommitted" in Source Control — identical to the previous
+          behaviour.  A user can commit them manually from the UI.
         
         Returns:
             True if sync succeeded or was not needed, False on failure
@@ -785,37 +799,59 @@ class FabricDeployer:
         
         logger.info("")
         logger.info("-"*60)
-        logger.info("POST-DEPLOY: COMMIT WORKSPACE CHANGES TO GIT")
+        logger.info("POST-DEPLOY: LINK WORKSPACE TO GIT + COMMIT")
         logger.info("-"*60)
         
         try:
             self._ensure_git_credentials()
             
-            # Get current git status
+            # Quick connectivity check — if the workspace has no Git
+            # connection there is nothing to do.
             status = self.client.get_git_status(self.workspace_id)
-            workspace_head = status.get("workspaceHead")
-            remote_commit = status.get("remoteCommitHash")
-            changes = status.get("changes", [])
+            if not status.get("remoteCommitHash"):
+                logger.info("  ℹ Workspace is not connected to Git — skipping post-deploy sync")
+                return True
             
-            if not workspace_head or not remote_commit:
-                logger.warning("  ⚠ Cannot sync — workspace not connected to Git")
+            # ── Step 1: initializeConnection(PreferWorkspace) ──
+            # Maps every API-deployed workspace item to its Git counterpart
+            # by displayName+type and advances the workspace head.
+            # Works for all item types (no PrincipalTypeNotSupported).
+            logger.info("  ⟳ Running initializeConnection(PreferWorkspace)...")
+            logger.info("    Maps API-deployed items to Git items by displayName + type")
+            try:
+                self.client.initialize_connection(
+                    workspace_id=self.workspace_id,
+                    initialization_strategy="PreferWorkspace"
+                )
+                logger.info("  ✓ Workspace items linked to Git counterparts")
+            except Exception as init_err:
+                init_msg = str(init_err)
+                logger.warning(f"  ⚠ initializeConnection failed: {init_msg}")
+                logger.warning("    Workspace items may not be linked to Git — Source Control may show duplicates")
                 return False
             
+            # ── Step 2: GET /git/status ──
+            status = self.client.get_git_status(self.workspace_id)
+            workspace_head = status.get("workspaceHead")
+            changes = status.get("changes", [])
+            
             workspace_changes = [c for c in changes if c.get("workspaceChange")]
-            remote_changes = [c for c in changes if c.get("remoteChange")]
+            remote_changes    = [c for c in changes if c.get("remoteChange")]
             
             if not workspace_changes:
                 logger.info("  ✓ No workspace changes to commit — Git is in sync")
                 return True
             
-            # Log any remaining remote changes (e.g. paginated reports)
+            # Log paginated reports that remain uncommitted (SP limitation)
             if remote_changes:
-                logger.info(f"  ℹ {len(remote_changes)} remote change(s) still pending (e.g. paginated reports):")
-                for rc in remote_changes[:10]:  # Limit logging
-                    r_meta = rc.get("itemMetadata", {})
-                    logger.info(f"    - {r_meta.get('displayName', '?')} ({r_meta.get('itemType', '?')})")
-                if len(remote_changes) > 10:
-                    logger.info(f"    ... and {len(remote_changes) - 10} more")
+                paginated_types = {"rdlreport", "paginatedreport"}
+                pending_pgr = [
+                    rc for rc in remote_changes
+                    if rc.get("itemMetadata", {}).get("itemType", "").lower() in paginated_types
+                ]
+                if pending_pgr:
+                    logger.info(f"  ℹ {len(pending_pgr)} paginated report(s) remain uncommitted")
+                    logger.info("    (SP cannot commit paginated reports — commit them manually from the Fabric UI)")
             
             # Log workspace changes to commit
             change_names = [
@@ -823,67 +859,19 @@ class FabricDeployer:
                 for c in workspace_changes
             ]
             logger.info(f"  📤 {len(workspace_changes)} workspace change(s) to commit:")
-            for cn in change_names[:10]:  # Limit logging
+            for cn in change_names[:15]:
                 logger.info(f"    - {cn}")
-            if len(change_names) > 10:
-                logger.info(f"    ... and {len(change_names) - 10} more")
+            if len(change_names) > 15:
+                logger.info(f"    ... and {len(change_names) - 15} more")
             
-            # ── Attempt 1: Direct commitToGit ──
-            try:
-                self.client.commit_to_git(
-                    workspace_id=self.workspace_id,
-                    mode="All",
-                    workspace_head=workspace_head,
-                    comment="CI/CD: sync API-deployed items to Git"
-                )
-                logger.info("  ✓ Workspace changes committed to Git")
-                return True
-            except Exception as commit_err:
-                commit_msg = str(commit_err)
-                logger.warning(f"  ⚠ commitToGit failed: {commit_msg}")
-                
-                # If there are no pending remote changes, can't recover
-                if not remote_changes:
-                    raise
-            
-            # ── Attempt 2: initializeConnection(PreferWorkspace) + retry ──
-            # When updateFromGit failed (e.g. PrincipalTypeNotSupported for
-            # paginated reports), the workspace head is behind the remote.
-            # commitToGit cannot push because there are unresolved remote
-            # changes.  Re-initializing the connection with PreferWorkspace
-            # re-maps workspace items to Git items by display name / type /
-            # folder, advancing the workspace head so the commit can proceed.
-            logger.info("  ⟳ Workspace is behind remote — re-initializing Git connection (PreferWorkspace)...")
-            logger.info("    This re-links API-created items to their Git counterparts by display name")
-            
-            try:
-                self.client.initialize_connection(
-                    workspace_id=self.workspace_id,
-                    initialization_strategy="PreferWorkspace"
-                )
-            except Exception as init_err:
-                logger.warning(f"  ⚠ initializeConnection failed: {init_err}")
-                raise  # Let outer handler log manual steps
-            
-            # Re-fetch status after re-initialization
-            status = self.client.get_git_status(self.workspace_id)
-            new_workspace_head = status.get("workspaceHead")
-            new_changes = status.get("changes", [])
-            new_workspace_changes = [c for c in new_changes if c.get("workspaceChange")]
-            
-            if not new_workspace_changes:
-                logger.info("  ✓ No workspace changes after re-initialization — Git is in sync")
-                return True
-            
-            logger.info(f"  📤 {len(new_workspace_changes)} workspace change(s) to commit (after re-init):")
-            
+            # ── Step 3: commitToGit ──
             self.client.commit_to_git(
                 workspace_id=self.workspace_id,
                 mode="All",
-                workspace_head=new_workspace_head,
+                workspace_head=workspace_head,
                 comment="CI/CD: sync API-deployed items to Git"
             )
-            logger.info("  ✓ Workspace changes committed to Git (after re-initialization)")
+            logger.info("  ✓ Workspace changes committed to Git")
             return True
             
         except Exception as e:
@@ -901,20 +889,12 @@ class FabricDeployer:
                 logger.warning("    This is usually caused by a .platform file with an empty logicalId.")
                 logger.warning("    Fix: ensure every .platform file in the connected Git branch has")
                 logger.warning("    a valid GUID in config.logicalId, then commit and push the fix.")
-                logger.warning("    The pipeline auto-fixes local files, but the remote branch must also be updated.")
+            elif "WorkspaceNotConnectedToGit" in combined_msg:
+                logger.info("  ℹ Workspace is not connected to Git — skipping post-deploy sync")
             else:
-                logger.warning(f"  ⚠ Post-deploy Git sync could not be completed automatically: {e}")
-                logger.warning("    This is caused by paginated reports in the Git directory blocking")
-                logger.warning("    the service principal from syncing (PrincipalTypeNotSupported).")
-                logger.warning("")
-                logger.warning("    ONE-TIME MANUAL FIX (as a user, not SP):")
-                logger.warning("    1. Open the workspace in Fabric portal")
-                logger.warning("    2. Click 'Source control'")
-                logger.warning("    3. Click 'Update all' to accept pending changes")
-                logger.warning("    4. Commit any remaining workspace changes")
-                logger.warning("")
-                logger.warning("    After this one-time fix, subsequent CI/CD deployments will find")
-                logger.warning("    existing items and update them in-place — no more duplicates.")
+                logger.warning(f"  ⚠ Post-deploy Git sync could not be completed: {e}")
+                logger.warning("    You can commit any remaining workspace changes manually from the Fabric UI")
+                logger.warning("    (Source control → commit)")
             return False
 
     def _ensure_git_credentials(self) -> None:
@@ -3428,12 +3408,9 @@ print('Notebook initialized')
         if not dry_run and self._deployed_lakehouse_ids:
             self._refresh_deployed_lakehouses()
         
-        # Post-sync: fix paginated report connection strings (dev only).
-        # _pending_paginated_report_updates is only populated when
-        # auto_update_from_git=true.  UAT/prod paginated reports are
-        # deployed via API and handled in _deploy_paginated_report directly.
-        if failure_count == 0 and not dry_run and self._pending_paginated_report_updates:
-            self._process_paginated_reports_after_git_sync()
+        # (Paginated reports previously had a dev-specific deferred path
+        #  via _process_paginated_reports_after_git_sync.  They are now
+        #  deployed via API in all environments so this call is removed.)
         
         return failure_count == 0
     
@@ -4420,22 +4397,10 @@ print('Notebook initialized')
         if not found:
             raise FileNotFoundError(f"Paginated report '{name}' not found in Fabric Git format (.PaginatedReport folder)")
         
-        # ── check deployment strategy ──
-        git_config = self.config.config.get("git_integration", {})
-        use_git_sync = git_config.get("auto_update_from_git", False)
-        
-        if use_git_sync:
-            # ── DEV path: defer to Git sync ──
-            logger.info(f"  📦 Paginated report '{name}' will be synced from Git (updateFromGit)")
-            logger.info(f"    Post-sync: Connection configuration will be applied")
-            
-            self._pending_paginated_report_updates.append({
-                "name": name,
-                "rdl_content": rdl_content,
-            })
-            return
-        
-        # ── UAT / PROD path: deploy via API ──
+        # ── Deploy via API (all environments) ──
+        # Previously dev used updateFromGit to sync paginated reports, but
+        # that fails with PrincipalTypeNotSupported for service principals.
+        # All environments now use the same API deploy path.
         logger.info(f"  Deploying paginated report '{name}' via Power BI Imports API")
         
         # NOTE: The RDL ConnectString is deliberately NOT transformed before

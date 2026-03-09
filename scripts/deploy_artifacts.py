@@ -842,10 +842,53 @@ class FabricDeployer:
             # ── Step 2: GET /git/status ──
             status = self.client.get_git_status(self.workspace_id)
             workspace_head = status.get("workspaceHead")
+            remote_commit  = status.get("remoteCommitHash")
             changes = status.get("changes", [])
             
             workspace_changes = [c for c in changes if c.get("workspaceChange")]
             remote_changes    = [c for c in changes if c.get("remoteChange")]
+            
+            # ── Step 2a: catch up if workspace is behind remote ──
+            # If the workspace head is behind the remote (e.g. from a prior
+            # commitToGit that wasn't followed by updateFromGit), we must
+            # advance the head first — otherwise commitToGit will fail with
+            # CommitFailedDueToIncomingChanges.
+            if remote_commit and workspace_head and remote_commit != workspace_head and remote_changes:
+                logger.info(f"  ⟳ Workspace is behind remote — advancing head before commit...")
+                logger.info(f"    workspace: {workspace_head[:12]}...  remote: {remote_commit[:12]}...")
+                try:
+                    self.client.update_from_git(
+                        workspace_id=self.workspace_id,
+                        remote_commit_hash=remote_commit,
+                        workspace_head=workspace_head,
+                        conflict_resolution_policy="PreferWorkspace",
+                        allow_override_items=True
+                    )
+                    logger.info("  ✓ Workspace head advanced to remote")
+                    # Refresh status after updateFromGit
+                    status = self.client.get_git_status(self.workspace_id)
+                    workspace_head = status.get("workspaceHead")
+                    changes = status.get("changes", [])
+                    workspace_changes = [c for c in changes if c.get("workspaceChange")]
+                    remote_changes    = [c for c in changes if c.get("remoteChange")]
+                except Exception as ufg_err:
+                    ufg_msg = str(ufg_err)
+                    ufg_response = ""
+                    if hasattr(ufg_err, 'response') and ufg_err.response is not None:
+                        try:
+                            ufg_response = ufg_err.response.text or ""
+                        except Exception:
+                            pass
+                    combined = ufg_msg + " " + ufg_response
+                    if "PrincipalTypeNotSupported" in combined:
+                        logger.warning("  ⚠ Cannot advance workspace head automatically (PrincipalTypeNotSupported)")
+                        logger.warning("    Paginated reports in the Git directory block updateFromGit for service principals")
+                        logger.warning("    ONE-TIME FIX: Open workspace in Fabric UI → Source Control → click 'Update all'")
+                        logger.warning("    After that, subsequent pipeline runs will keep Source Control clean")
+                        return False
+                    else:
+                        logger.warning(f"  ⚠ updateFromGit failed: {ufg_msg}")
+                        logger.warning("    commitToGit may fail — try clicking 'Update all' in Fabric UI Source Control")
             
             if not workspace_changes:
                 logger.info("  ✓ No workspace changes to commit — Git is in sync")

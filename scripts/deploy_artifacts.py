@@ -874,24 +874,26 @@ class FabricDeployer:
             logger.info("  ✓ Workspace changes committed to Git")
 
             # ── Step 4: advance workspace head to the post-commit remote ──
-            # commitToGit just created a new remote commit, so the remote is
-            # now ahead of the workspace head.  updateFromGit advances the
-            # workspace head to match — since workspace and Git are now
-            # identical (we just committed the workspace state) there are no
-            # content changes to sync and PrincipalTypeNotSupported is not
-            # triggered.  Without this step Fabric UI shows "Update all" after
-            # every pipeline run, which the user must clear manually.
+            # commitToGit creates a new remote commit, leaving the workspace
+            # head one commit behind.  We CANNOT use updateFromGit here
+            # because it fails with PrincipalTypeNotSupported when paginated
+            # reports exist anywhere in the Git directory — even though there
+            # are no actual content changes to sync.
+            #
+            # Instead, calling initializeConnection(PreferWorkspace) again
+            # achieves the same result: it advances the workspace head to
+            # the current remote commit and keeps workspace item definitions
+            # where they differ (e.g. paginated reports the SP couldn't
+            # commit).  No PrincipalTypeNotSupported restriction.
             post_status = self.client.get_git_status(self.workspace_id)
             new_remote = post_status.get("remoteCommitHash")
             new_head   = post_status.get("workspaceHead")
             if new_remote and new_remote != new_head:
                 logger.info("  ⟳ Advancing workspace head to post-commit remote...")
-                self.client.update_from_git(
+                logger.info("    (using initializeConnection — updateFromGit blocked by paginated reports)")
+                self.client.initialize_connection(
                     workspace_id=self.workspace_id,
-                    remote_commit_hash=new_remote,
-                    workspace_head=new_head,
-                    conflict_resolution_policy="PreferWorkspace",
-                    allow_override_items=False
+                    initialization_strategy="PreferWorkspace"
                 )
                 logger.info("  ✓ Workspace head advanced — Source Control is now clean")
             else:

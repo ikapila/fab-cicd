@@ -1,0 +1,18 @@
+{
+  "lakehouse": "ReportingLakehouse",
+  "description": "SQL views for reporting on ReportingLakehouse",
+  "dependencies": {
+    "01_Engineering_Views": {
+      "tables": [],
+      "views": []
+    },
+    "02_Base_Views": {
+      "tables": [],
+      "views": ["01_Engineering_Views"]
+    },
+    "03_Report_Views": {
+      "tables": [],
+      "views": ["02_Base_Views"]
+    }
+  }
+}

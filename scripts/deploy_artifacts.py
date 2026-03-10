@@ -595,7 +595,7 @@ class FabricDeployer:
         #
         # Result: Source Control shows reports and semantic models as synced,
         # paginated reports as uncommitted (SP limitation — same as before).
-        logger.info("  ℹ Pre-deploy Git sync skipped — using post-deploy initializeConnection(PreferWorkspace)")
+        logger.info("  ℹ Pre-deploy Git sync skipped — using post-deploy commitToGit")
         return True
         
         try:
@@ -762,31 +762,15 @@ class FabricDeployer:
 
     def _commit_workspace_to_git(self) -> bool:
         """
-        Link API-deployed workspace items to Git and commit any differences.
+        Commit API-deployed workspace items back to Git.
         
         Flow (runs after all API deployments complete):
-          1. initializeConnection(PreferWorkspace)
-             - Matches every workspace item to its Git counterpart by
-               displayName + type (works for ALL item types, including
-               paginated reports — no PrincipalTypeNotSupported).
-             - Advances the workspace head to the current remote commit.
-             - Workspace item definitions take precedence over Git.
-          2. GET /git/status — find items whose workspace definition
-             differs from what is in Git.
-          3. commitToGit — push those differences back to Git so the
+          1. GET /git/status
+          2. If workspace head != remote commit, call updateFromGit(PreferWorkspace)
+             to advance the workspace head without overwriting workspace content.
+          3. commitToGit — push workspace definitions back to Git so the
              Source Control panel shows items as in-sync.
-        
-        Why initializeConnection instead of updateFromGit:
-          updateFromGit fails with PrincipalTypeNotSupported when paginated
-          reports are in the Git directory.  initializeConnection has no such
-          restriction and achieves the equivalent result for our use-case.
-        
-        Paginated reports after initializeConnection:
-          Their workspace definitions are linked to Git, but the SP cannot
-          commit them via commitToGit (PrincipalTypeNotSupported applies to
-          paginated reports in the commit path too).  They show as
-          "uncommitted" in Source Control — identical to the previous
-          behaviour.  A user can commit them manually from the UI.
+          4. Advance workspace head to the post-commit remote.
         
         Returns:
             True if sync succeeded or was not needed, False on failure
@@ -799,48 +783,18 @@ class FabricDeployer:
         
         logger.info("")
         logger.info("-"*60)
-        logger.info("POST-DEPLOY: LINK WORKSPACE TO GIT + COMMIT")
+        logger.info("POST-DEPLOY: COMMIT WORKSPACE TO GIT")
         logger.info("-"*60)
         
         try:
             self._ensure_git_credentials()
             
-            # Quick connectivity check — if the workspace has no Git
-            # connection there is nothing to do.
+            # ── Step 1: GET /git/status ──
             status = self.client.get_git_status(self.workspace_id)
             if not status.get("remoteCommitHash"):
                 logger.info("  ℹ Workspace is not connected to Git — skipping post-deploy sync")
                 return True
             
-            # ── Step 1: initializeConnection(PreferWorkspace) ──
-            # Maps every API-deployed workspace item to its Git counterpart
-            # by displayName+type.  This is a ONE-TIME call — once the
-            # workspace Git connection has been initialized, 409 is returned
-            # on subsequent calls.  That's fine: items are already linked.
-            logger.info("  ⟳ Running initializeConnection(PreferWorkspace)...")
-            logger.info("    Maps API-deployed items to Git items by displayName + type")
-            try:
-                self.client.initialize_connection(
-                    workspace_id=self.workspace_id,
-                    initialization_strategy="PreferWorkspace"
-                )
-                logger.info("  ✓ Workspace items linked to Git counterparts")
-            except Exception as init_err:
-                init_msg = str(init_err)
-                init_response = ""
-                if hasattr(init_err, 'response') and init_err.response is not None:
-                    try:
-                        init_response = init_err.response.text or ""
-                    except Exception:
-                        pass
-                if "AlreadyInitialized" in init_msg or "AlreadyInitialized" in init_response:
-                    logger.info("  ✓ Git connection already initialized — items are already linked")
-                else:
-                    logger.warning(f"  ⚠ initializeConnection failed: {init_msg}")
-                    logger.warning("    Continuing to commitToGit — items may already be linked from prior initialization")
-            
-            # ── Step 2: GET /git/status ──
-            status = self.client.get_git_status(self.workspace_id)
             workspace_head = status.get("workspaceHead")
             remote_commit  = status.get("remoteCommitHash")
             changes = status.get("changes", [])
@@ -848,12 +802,14 @@ class FabricDeployer:
             workspace_changes = [c for c in changes if c.get("workspaceChange")]
             remote_changes    = [c for c in changes if c.get("remoteChange")]
             
-            # ── Step 2a: catch up if workspace is behind remote ──
+            # ── Step 2: catch up if workspace is behind remote ──
             # If the workspace head is behind the remote (e.g. from a prior
             # commitToGit that wasn't followed by updateFromGit), we must
             # advance the head first — otherwise commitToGit will fail with
             # CommitFailedDueToIncomingChanges.
-            if remote_commit and workspace_head and remote_commit != workspace_head and remote_changes:
+            # NOTE: heads can be misaligned even when there are no item-level
+            # remote changes, so we check only the commit hashes.
+            if remote_commit and workspace_head and remote_commit != workspace_head:
                 logger.info(f"  ⟳ Workspace is behind remote — advancing head before commit...")
                 logger.info(f"    workspace: {workspace_head[:12]}...  remote: {remote_commit[:12]}...")
                 try:

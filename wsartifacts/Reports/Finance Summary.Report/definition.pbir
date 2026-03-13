@@ -3,7 +3,7 @@
   "version": "4.0",
   "datasetReference": {
     "byPath": {
-      "path": "../../Semanticmodels/Finance Summary.SemanticModel"
+      "path": "../../SemanticModels/Finance Summary.SemanticModel"
     }
   }
 }

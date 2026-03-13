@@ -38,14 +38,14 @@ class ChangeDetector:
         self.artifact_folders = {
             "Lakehouse": "Lakehouses",
             "Notebook": "Notebooks",
-            "VariableLibrary": "Variablelibraries",
-            "DataPipeline": "Datapipelines",
+            "VariableLibrary": "VariableLibraries",
+            "DataPipeline": "DataPipelines",
             "Environment": "Environments",
-            "SparkJobDefinition": "Sparkjobdefinitions",
+            "SparkJobDefinition": "SparkJobDefinitions",
             "SqlView": "Views",
             "Report": "Reports",
             "PaginatedReport": "PaginatedReports",
-            "SemanticModel": "Semanticmodels"
+            "SemanticModel": "SemanticModels"
         }
     
     def is_git_available(self) -> bool:
@@ -190,7 +190,7 @@ class ChangeDetector:
             
             # Map folder to artifact type (case-insensitive to handle
             # different casing between Git repo and code, e.g.
-            # "Paginatedreports" vs "PaginatedReports").
+            # "paginatedreports" vs "PaginatedReports").
             artifact_type = None
             folder_name_lower = folder_name.lower()
             for atype, afolder in self.artifact_folders.items():

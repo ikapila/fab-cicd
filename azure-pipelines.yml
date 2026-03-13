@@ -25,14 +25,14 @@ trigger:
   paths:
     include:
       - wsartifacts/Notebooks/**
-      - wsartifacts/Sparkjobdefinitions/**
-      - wsartifacts/Datapipelines/**
+      - wsartifacts/SparkJobDefinitions/**
+      - wsartifacts/DataPipelines/**
       - wsartifacts/Lakehouses/**
       - wsartifacts/Environments/**
       - wsartifacts/Reports/**
-      - wsartifacts/Semanticmodels/**
-      - wsartifacts/Paginatedreports/**
-      - wsartifacts/Variablelibraries/**
+      - wsartifacts/SemanticModels/**
+      - wsartifacts/PaginatedReports/**
+      - wsartifacts/VariableLibraries/**
       - wsartifacts/Views/**
       - config/**
       - scripts/**

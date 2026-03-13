@@ -72,7 +72,7 @@ def test_change_detector():
         "wsartifacts/Notebooks/ProcessSalesData.ipynb",
         "wsartifacts/Lakehouses/SalesDataLakehouse.json",
         "wsartifacts/Lakehouses/SampleLakehouse.Lakehouse/.platform",
-        "wsartifacts/Variablelibraries/DevVariables.VariableLibrary/valueSets/dev.json",
+        "wsartifacts/VariableLibraries/DevVariables.VariableLibrary/valueSets/dev.json",
         "wsartifacts/Views/SalesDataLakehouse/SalesSummary.sql",
         "config/dev.json",
         "README.md"

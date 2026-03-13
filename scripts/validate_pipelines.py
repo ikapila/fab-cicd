@@ -75,7 +75,7 @@ def main():
     
     # Find all pipeline files
     repo_root = Path(__file__).parent.parent
-    pipelines_dir = repo_root / args.artifacts_root / "Datapipelines"
+    pipelines_dir = repo_root / args.artifacts_root / "DataPipelines"
     
     if not pipelines_dir.exists():
         logger.warning(f"Pipelines directory not found: {pipelines_dir}")

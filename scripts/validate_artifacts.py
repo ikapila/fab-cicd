@@ -142,12 +142,12 @@ def main():
         ("Lakehouses", "Lakehouse", "*.json"),
         ("Environments", "Environment", "*.json"),
         ("Notebooks", "Notebook", "*.ipynb"),
-        ("Sparkjobdefinitions", "Spark Job", "*.json"),
-        ("Datapipelines", "Pipeline", "*.json"),
+        ("SparkJobDefinitions", "Spark Job", "*.json"),
+        ("DataPipelines", "Pipeline", "*.json"),
         ("Reports", "Report", "*.json"),
-        ("Semanticmodels", "Semantic Model", "*.json"),
+        ("SemanticModels", "Semantic Model", "*.json"),
         ("PaginatedReports", "Paginated Report", "*.json"),
-        ("Variablelibraries", "Variable Library", "*.json"),
+        ("VariableLibraries", "Variable Library", "*.json"),
     ]
     
     total_artifacts = 0

@@ -124,7 +124,7 @@ class FabricDeployer:
         falling back to a case-insensitive match.
 
         On macOS (case-insensitive HFS+) both casings work, but on Linux
-        (Azure DevOps agents, ext4) ``Paginatedreports`` ≠ ``PaginatedReports``.
+        (Azure DevOps agents, ext4) ``paginatedreports`` ≠ ``PaginatedReports``.
         This helper tries the exact name first, then scans for a
         case-insensitive match so the code works on any filesystem.
 
@@ -447,8 +447,8 @@ class FabricDeployer:
                                     
                                     # Extract semantic model reference
                                     path = pbir_data.get("datasetReference", {}).get("byPath", {}).get("path", "")
-                                    if path and "Semanticmodels/" in path:
-                                        model_name = path.split("Semanticmodels/")[1].replace(".SemanticModel", "")
+                                    if path and "SemanticModels/" in path:
+                                        model_name = path.split("SemanticModels/")[1].replace(".SemanticModel", "")
                                         
                                         # Check if semantic model exists in discovered artifacts
                                         if "SemanticModel" in all_discovered and model_name in all_discovered["SemanticModel"]:
@@ -1486,7 +1486,7 @@ class FabricDeployer:
     
     def _discover_spark_jobs(self) -> None:
         """Discover Spark job definitions"""
-        job_dir = self.artifacts_dir / self.artifacts_root_folder / "Sparkjobdefinitions"
+        job_dir = self.artifacts_dir / self.artifacts_root_folder / "SparkJobDefinitions"
         if not job_dir.exists():
             logger.debug("No Spark job definitions directory found")
             return
@@ -1517,7 +1517,7 @@ class FabricDeployer:
     
     def _discover_pipelines(self) -> None:
         """Discover data pipeline definitions"""
-        pipeline_dir = self.artifacts_dir / self.artifacts_root_folder / "Datapipelines"
+        pipeline_dir = self.artifacts_dir / self.artifacts_root_folder / "DataPipelines"
         if not pipeline_dir.exists():
             logger.debug("No data pipelines directory found")
             return
@@ -1541,7 +1541,7 @@ class FabricDeployer:
     
     def _discover_variable_libraries(self) -> None:
         """Discover Variable Library definitions"""
-        library_dir = self.artifacts_dir / self.artifacts_root_folder / "Variablelibraries"
+        library_dir = self.artifacts_dir / self.artifacts_root_folder / "VariableLibraries"
         if not library_dir.exists():
             logger.debug("No variable libraries directory found")
             return
@@ -1698,7 +1698,7 @@ class FabricDeployer:
     
     def _discover_semantic_models(self) -> None:
         """Discover semantic model definitions (JSON and Fabric Git format)"""
-        models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
+        models_dir = self.artifacts_dir / self.artifacts_root_folder / "SemanticModels"
         if not models_dir.exists():
             logger.debug("No semantic models directory found")
             return
@@ -1786,19 +1786,19 @@ class FabricDeployer:
                     by_path = dataset_ref.get("byPath", {})
                     path = by_path.get("path", "")
                     
-                    # Parse semantic model folder name from path like "../../Semanticmodels/Finance Summary.SemanticModel"
+                    # Parse semantic model folder name from path like "../../SemanticModels/Finance Summary.SemanticModel"
                     if path and ".SemanticModel" in path:
                         # Extract the folder name (last segment of the path)
                         model_folder_name = path.rsplit("/", 1)[-1] if "/" in path else path
                         model_name = model_folder_name.replace(".SemanticModel", "")
                         
                         # Only add a deployment dependency for STANDALONE models
-                        # in Semanticmodels/.  Companion .SemanticModel folders
+                        # in SemanticModels/.  Companion .SemanticModel folders
                         # in Reports/ are thin auto-managed models that Fabric
                         # creates/syncs automatically via Git — they do NOT need
                         # separate API deployment and must NOT be registered as
                         # artifacts (doing so would create duplicates).
-                        models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
+                        models_dir = self.artifacts_dir / self.artifacts_root_folder / "SemanticModels"
                         model_folder = models_dir / model_folder_name
                         
                         if model_folder.exists():
@@ -2681,7 +2681,7 @@ class FabricDeployer:
                                 logger.warning(f"  ⚠ Could not update Spark job: {str(e)}")
                     elif create_if_not_exists:
                         # Get or create folder for Spark jobs
-                        folder_id = self._get_or_create_folder("Sparkjobdefinitions")
+                        folder_id = self._get_or_create_folder("SparkJobDefinitions")
                         
                         # Create basic Spark job definition
                         job_definition = self._create_spark_job_template(name, description, job_def)
@@ -2703,7 +2703,7 @@ class FabricDeployer:
                         self._created_in_this_run.add(('spark_job_definition', name))
                         
                         # Save to local file
-                        self._save_artifact_to_file("Sparkjobdefinitions", name, job_definition)
+                        self._save_artifact_to_file("SparkJobDefinitions", name, job_definition)
                     else:
                         logger.warning(f"  ⚠ Spark job '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -2747,7 +2747,7 @@ class FabricDeployer:
                                 logger.warning(f"  ⚠ Could not update pipeline: {str(e)}")
                     elif create_if_not_exists:
                         # Get or create folder for pipelines
-                        folder_id = self._get_or_create_folder("Datapipelines")
+                        folder_id = self._get_or_create_folder("DataPipelines")
                         
                         # Create basic pipeline definition
                         pipeline_definition = self._create_pipeline_template(name, description, pipeline_def)
@@ -2760,11 +2760,11 @@ class FabricDeployer:
                         
                         pipeline_id = result.get('id') if result else None
                         if pipeline_id:
-                            logger.info(f"  ✓ Created pipeline '{name}' in 'Datapipelines' folder (ID: {pipeline_id})")
+                            logger.info(f"  ✓ Created pipeline '{name}' in 'DataPipelines' folder (ID: {pipeline_id})")
                         else:
-                            logger.info(f"  ✓ Created pipeline '{name}' in 'Datapipelines' folder (async operation)")
+                            logger.info(f"  ✓ Created pipeline '{name}' in 'DataPipelines' folder (async operation)")
                         # Save to local file
-                        self._save_artifact_to_file("Datapipelines", name, pipeline_definition)
+                        self._save_artifact_to_file("DataPipelines", name, pipeline_definition)
                     else:
                         logger.warning(f"  ⚠ Pipeline '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -2797,7 +2797,7 @@ class FabricDeployer:
                         result = self.client.create_semantic_model(self.workspace_id, name, model_definition)
                         logger.info(f"  ✓ Created semantic model '{name}' (ID: {result['id']})")
                         # Save to local file
-                        self._save_artifact_to_file("Semanticmodels", name, model_definition)
+                        self._save_artifact_to_file("SemanticModels", name, model_definition)
                     else:
                         logger.warning(f"  ⚠ Semantic model '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -2914,7 +2914,7 @@ class FabricDeployer:
                                 raise
                     elif create_if_not_exists:
                         # Get or create folder for Variable Libraries
-                        folder_id = self._get_or_create_folder("Variablelibraries")
+                        folder_id = self._get_or_create_folder("VariableLibraries")
                         
                         library_def = self._create_variable_library_template(library_config)
                         variables = library_def.get("variables", [])
@@ -2945,7 +2945,7 @@ class FabricDeployer:
                             definition=definition
                         )
                         
-                        logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder with {len(variables)} variables (ID: {result['id']})")
+                        logger.info(f"  ✓ Created Variable Library '{name}' in 'VariableLibraries' folder with {len(variables)} variables (ID: {result['id']})")
                         
                         # Save to local file
                         library_definition = {
@@ -2954,7 +2954,7 @@ class FabricDeployer:
                             "description": library_def.get("description", ""),
                             "variables": variables
                         }
-                        self._save_artifact_to_file("Variablelibraries", name, library_definition)
+                        self._save_artifact_to_file("VariableLibraries", name, library_definition)
                     else:
                         logger.warning(f"  ⚠ Variable Library '{name}' does not exist and create_if_not_exists is false")
                 else:
@@ -4058,7 +4058,7 @@ print('Notebook initialized')
     def _deploy_spark_job(self, name: str) -> None:
         """Deploy a Spark job definition"""
         # Note: We no longer skip config-created spark jobs to allow wsartifacts updates
-        job_file = self.artifacts_dir / self.artifacts_root_folder / "Sparkjobdefinitions" / f"{name}.json"
+        job_file = self.artifacts_dir / self.artifacts_root_folder / "SparkJobDefinitions" / f"{name}.json"
         
         # Check if file exists locally
         if not job_file.exists():
@@ -4104,7 +4104,7 @@ print('Notebook initialized')
             logger.info(f"  ✓ Updated Spark job '{name}' (ID: {existing_job['id']})")
         else:
             # Get or create folder for Spark jobs
-            folder_id = self._get_or_create_folder("Sparkjobdefinitions")
+            folder_id = self._get_or_create_folder("SparkJobDefinitions")
             
             # For creation, client.create_spark_job_definition handles displayName + definition wrapping
             result = self.client.create_spark_job_definition(
@@ -4114,11 +4114,11 @@ print('Notebook initialized')
                 folder_id=folder_id
             )
             job_id = result.get('id') if result else 'unknown'
-            logger.info(f"  ✓ Created Spark job '{name}' in 'Sparkjobdefinitions' folder (ID: {job_id})")
+            logger.info(f"  ✓ Created Spark job '{name}' in 'SparkJobDefinitions' folder (ID: {job_id})")
     
     def _deploy_pipeline(self, name: str) -> None:
         """Deploy a data pipeline"""
-        pipeline_file = self.artifacts_dir / self.artifacts_root_folder / "Datapipelines" / f"{name}.json"
+        pipeline_file = self.artifacts_dir / self.artifacts_root_folder / "DataPipelines" / f"{name}.json"
         with open(pipeline_file, 'r') as f:
             pipeline_content = f.read()
         
@@ -4154,7 +4154,7 @@ print('Notebook initialized')
             logger.info(f"  ✓ Updated pipeline '{name}' (ID: {existing_pipeline['id']})")
         else:
             # Get or create folder for pipelines
-            folder_id = self._get_or_create_folder("Datapipelines")
+            folder_id = self._get_or_create_folder("DataPipelines")
             
             # For creation, client.create_data_pipeline handles displayName + definition wrapping
             result = self.client.create_data_pipeline(
@@ -4164,7 +4164,7 @@ print('Notebook initialized')
                 folder_id=folder_id
             )
             pipeline_id = result.get('id') if result else 'unknown'
-            logger.info(f"  ✓ Created data pipeline '{name}' in 'Datapipelines' folder (ID: {pipeline_id})")
+            logger.info(f"  ✓ Created data pipeline '{name}' in 'DataPipelines' folder (ID: {pipeline_id})")
     
     def _deploy_semantic_model(self, name: str) -> None:
         """Deploy a semantic model (JSON or Fabric Git format)
@@ -4174,7 +4174,7 @@ print('Notebook initialized')
         The Git sync step (if enabled) uses PreferWorkspace to avoid
         overwriting API-deployed items.
         """
-        models_dir = self.artifacts_dir / self.artifacts_root_folder / "Semanticmodels"
+        models_dir = self.artifacts_dir / self.artifacts_root_folder / "SemanticModels"
         
         # Check for JSON file first
         model_file = models_dir / f"{name}.json"
@@ -4191,7 +4191,7 @@ print('Notebook initialized')
             definition = json.loads(definition_str)
         else:
             # Try Fabric Git format - search for folder with matching displayName
-            # Only search Semanticmodels/ — companion .SemanticModel folders
+            # Only search SemanticModels/ — companion .SemanticModel folders
             # in Reports/ are managed by Git sync, not API deployment.
             found = False
             for item in models_dir.iterdir():
@@ -4238,7 +4238,7 @@ print('Notebook initialized')
                 )
         else:
             # Get or create folder for semantic models
-            folder_id = self._get_or_create_folder("Semanticmodels")
+            folder_id = self._get_or_create_folder("SemanticModels")
             
             result = self.client.create_semantic_model(
                 self.workspace_id, 
@@ -4261,13 +4261,13 @@ print('Notebook initialized')
                 
                 if operation_result and 'id' in operation_result:
                     model_id = operation_result['id']
-                    logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {model_id})")
+                    logger.info(f"  ✓ Created semantic model '{name}' in 'SemanticModels' folder (ID: {model_id})")
                 else:
                     model_id = 'unknown'
                     logger.warning(f"  ⚠ Semantic model created but ID not in operation result")
             elif result and 'id' in result:
                 model_id = result['id']
-                logger.info(f"  ✓ Created semantic model '{name}' in 'Semanticmodels' folder (ID: {model_id})")
+                logger.info(f"  ✓ Created semantic model '{name}' in 'SemanticModels' folder (ID: {model_id})")
             else:
                 model_id = 'unknown'
                 logger.warning(f"  ⚠ Unexpected response from semantic model creation")
@@ -4626,7 +4626,7 @@ print('Notebook initialized')
 
     def _deploy_variable_library(self, name: str) -> None:
         """Deploy a Variable Library"""
-        library_dir = self.artifacts_dir / self.artifacts_root_folder / "Variablelibraries"
+        library_dir = self.artifacts_dir / self.artifacts_root_folder / "VariableLibraries"
         library_file = library_dir / f"{name}.json"
         library_folder_v2 = library_dir / f"{name}.VariableLibrary"  # Potential Git format
         library_folder_v1 = library_dir / name  # Legacy/custom format
@@ -4959,7 +4959,7 @@ print('Notebook initialized')
             logger.info(f"  Creating Variable Library: {name}")
             
             # Get or create folder for variable libraries
-            folder_id = self._get_or_create_folder("Variablelibraries")
+            folder_id = self._get_or_create_folder("VariableLibraries")
             
             try:
                 result = self.client.create_variable_library(
@@ -4974,7 +4974,7 @@ print('Notebook initialized')
                     logger.error(f"  ❌ Failed to create Variable Library '{name}': No ID returned")
                     raise ValueError(f"Failed to create Variable Library '{name}': No ID in response")
                 
-                logger.info(f"  ✓ Created Variable Library '{name}' in 'Variablelibraries' folder (ID: {library_id})")
+                logger.info(f"  ✓ Created Variable Library '{name}' in 'VariableLibraries' folder (ID: {library_id})")
                 
                 if variables:
                     # Check if we have value sets (dict with base_variables and value_sets) or just a list of variables

@@ -12,7 +12,7 @@ pbir_v1_original = {
     "version": "4.0",
     "datasetReference": {
         "byPath": {
-            "path": "../../Semanticmodels/Finance Summary.SemanticModel"
+            "path": "../../SemanticModels/Finance Summary.SemanticModel"
         }
     }
 }
@@ -40,7 +40,7 @@ pbir_v2_original = {
     "version": "4.0",
     "datasetReference": {
         "byPath": {
-            "path": "../../Semanticmodels/Origination.SemanticModel"
+            "path": "../../SemanticModels/Origination.SemanticModel"
         }
     }
 }
@@ -87,7 +87,7 @@ pbir_no_schema = {
     "version": "4.0",
     "datasetReference": {
         "byPath": {
-            "path": "../../Semanticmodels/Cash Collection.SemanticModel"
+            "path": "../../SemanticModels/Cash Collection.SemanticModel"
         }
     }
 }

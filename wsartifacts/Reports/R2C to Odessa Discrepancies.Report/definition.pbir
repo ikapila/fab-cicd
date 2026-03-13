@@ -3,7 +3,7 @@
   "version": "4.0",
   "datasetReference": {
     "byPath": {
-      "path": "../../Semanticmodels/R2C to Odessa Discrepancies.SemanticModel"
+      "path": "../../SemanticModels/R2C to Odessa Discrepancies.SemanticModel"
     }
   }
 }

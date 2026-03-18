@@ -1,734 +1,97 @@
-2026-03-10T16:36:31.6124403Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
-2026-03-10T16:36:31.6133733Z ==============================================================================
-2026-03-10T16:36:31.6133988Z Task         : Command line
-2026-03-10T16:36:31.6134091Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
-2026-03-10T16:36:31.6134331Z Version      : 2.268.0
-2026-03-10T16:36:31.6134437Z Author       : Microsoft Corporation
-2026-03-10T16:36:31.6134631Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
-2026-03-10T16:36:31.6134793Z ==============================================================================
-2026-03-10T16:36:31.7662857Z Generating script.
-2026-03-10T16:36:31.7678678Z ========================== Starting Command Output ===========================
-2026-03-10T16:36:31.7697472Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/aabd52a1-2597-4a63-951b-2131077a854d.sh
-2026-03-10T16:36:31.7798112Z ========================================
-2026-03-10T16:36:31.7803670Z DEBUG: Verifying Repository Checkout
-2026-03-10T16:36:31.7803976Z ========================================
-2026-03-10T16:36:31.7812586Z Current directory: /home/vsts/work/1/s
-2026-03-10T16:36:31.7813881Z Build.SourcesDirectory: /home/vsts/work/1/s
-2026-03-10T16:36:31.7814126Z 
-2026-03-10T16:36:31.7814633Z Contents of Build.SourcesDirectory:
-2026-03-10T16:36:31.7842791Z total 40
-2026-03-10T16:36:31.7843351Z drwxr-xr-x 8 vsts vsts 4096 Mar 10 16:35 .
-2026-03-10T16:36:31.7844003Z drwxr-xr-x 7 vsts vsts 4096 Mar 10 16:35 ..
-2026-03-10T16:36:31.7844726Z drwxr-xr-x 2 vsts vsts 4096 Mar 10 16:35 .deployment_tracking
-2026-03-10T16:36:31.7845392Z drwxr-xr-x 7 vsts vsts 4096 Mar 10 16:35 .git
-2026-03-10T16:36:31.7845814Z -rw-r--r-- 1 vsts vsts   44 Mar 10 16:35 .gitignore
-2026-03-10T16:36:31.7846260Z -rw-r--r-- 1 vsts vsts  985 Mar 10 16:35 README.md
-2026-03-10T16:36:31.7846676Z drwxr-xr-x 2 vsts vsts 4096 Mar 10 16:35 azure-pipelines
-2026-03-10T16:36:31.7847108Z drwxr-xr-x 2 vsts vsts 4096 Mar 10 16:35 config
-2026-03-10T16:36:31.7847608Z drwxr-xr-x 2 vsts vsts 4096 Mar 10 16:35 scripts
-2026-03-10T16:36:31.7847923Z drwxr-xr-x 8 vsts vsts 4096 Mar 10 16:35 wsartifacts
-2026-03-10T16:36:31.7851816Z 
-2026-03-10T16:36:31.7852332Z Checking for required folders:
-2026-03-10T16:36:31.7852876Z ✓ scripts/ exists
-2026-03-10T16:36:31.7853157Z ✓ config/ exists
-2026-03-10T16:36:31.7853449Z ✓ wsartifacts/ exists
-2026-03-10T16:36:31.7853705Z ========================================
-2026-03-10T16:36:31.7853989Z ========================================
-2026-03-10T16:36:31.7854261Z Deploying to Dev Environment
-2026-03-10T16:36:31.7854530Z ========================================
-2026-03-10T16:36:31.7854773Z Features:
-2026-03-10T16:36:31.7855160Z   ⚡ Automatic change detection (deploys only modified artifacts)
-2026-03-10T16:36:31.7872631Z   📊 Dependency-aware deployment ordering
-2026-03-10T16:36:31.7873037Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
-2026-03-10T16:36:31.7873182Z 
-2026-03-10T16:36:31.7873404Z Deployment steps:
-2026-03-10T16:36:31.7873664Z   1. Create artifacts from config file
-2026-03-10T16:36:31.7873954Z   2. Detect changed artifacts using Git diff
-2026-03-10T16:36:31.7874248Z   3. Deploy only changed artifacts (use --force-all to override)
-2026-03-10T16:36:31.7874536Z ========================================
-2026-03-10T16:36:32.4693032Z 2026-03-10 16:36:32,468 - __main__ - INFO - Initializing deployment to dev environment
-2026-03-10T16:36:32.4695373Z 2026-03-10 16:36:32,468 - config_manager - INFO - Loading configuration from: config/dev.json
-2026-03-10T16:36:32.4695766Z 2026-03-10 16:36:32,468 - __main__ - INFO - Using environment-specific service principal for dev
-2026-03-10T16:36:32.4696134Z 2026-03-10 16:36:32,469 - __main__ - INFO - Using artifacts root folder: wsartifacts
-2026-03-10T16:36:32.4696517Z 2026-03-10 16:36:32,469 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***d8da)
-2026-03-10T16:36:32.9257336Z 2026-03-10 16:36:32,924 - fabric_auth - INFO - Authentication validation successful
-2026-03-10T16:36:32.9265889Z 2026-03-10 16:36:32,926 - __main__ - INFO - Target workspace: AAG-SIT-FWS-ENGINEERING-01
-2026-03-10T16:36:32.9271288Z 2026-03-10 16:36:32,926 - __main__ - INFO - Running in artifact creation mode
-2026-03-10T16:36:32.9272406Z 2026-03-10 16:36:32,926 - __main__ - INFO - ============================================================
-2026-03-10T16:36:32.9273376Z 2026-03-10 16:36:32,926 - __main__ - INFO - Creating artifacts from configuration for dev
-2026-03-10T16:36:32.9277976Z 2026-03-10 16:36:32,926 - __main__ - INFO - ============================================================
-2026-03-10T16:36:32.9278833Z 2026-03-10 16:36:32,926 - __main__ - INFO - No artifacts configured for creation
-2026-03-10T16:36:32.9280847Z 2026-03-10 16:36:32,926 - __main__ - INFO - Artifact creation completed successfully
-2026-03-10T16:36:32.9281265Z 2026-03-10 16:36:32,926 - __main__ - INFO - ============================================================
-2026-03-10T16:36:32.9281644Z 2026-03-10 16:36:32,926 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
-2026-03-10T16:36:32.9282282Z 2026-03-10 16:36:32,926 - __main__ - INFO - ============================================================
-2026-03-10T16:36:32.9282666Z 2026-03-10 16:36:32,926 - __main__ - INFO - Discovering artifacts from file system...
-2026-03-10T16:36:32.9283032Z 2026-03-10 16:36:32,927 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
-2026-03-10T16:36:32.9284206Z 2026-03-10 16:36:32,927 - __main__ - INFO - Discovered 1 Variable Library: ReportingWSVariables
-2026-03-10T16:36:32.9298997Z 2026-03-10 16:36:32,929 - __main__ - INFO - Discovered 28 semantic model(s): Aged Debtors - With Filters (Fabric Git), All Assets Summary (Fabric Git), Asset Alias & Registration Number Check (Fabric Git), BDM Credit Report - Sales Team (Fabric Git), Cash Collection (Fabric Git), CloudLending Documents (Fabric Git), Contract Management (Fabric Git), Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), Reports Unavailable (Fabric Git), TTS Sales (Fabric Git), TTS Stock (Fabric Git), Tyre Analysis (Fabric Git), Welcome (Fabric Git)
-2026-03-10T16:36:32.9335240Z 2026-03-10 16:36:32,933 - __main__ - INFO - Discovered 28 report(s): Aged Debtors - With Filters (Fabric Git), All Assets Summary (Fabric Git), Asset Alias & Registration Number Check (Fabric Git), BDM Credit Report - Sales Team (Fabric Git), Cash Collection (Fabric Git), CloudLending Documents (Fabric Git), Contract Management (Fabric Git), Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), Reports Unavailable (Fabric Git), TTS Sales (Fabric Git), TTS Stock (Fabric Git), Tyre Analysis (Fabric Git), Welcome (Fabric Git)
-2026-03-10T16:36:32.9363781Z 2026-03-10 16:36:32,935 - __main__ - INFO - Discovered 51 paginated report(s): Aged Debtors (Fabric Git), Aged Debtors by Due Date (Fabric Git), All Assets - Maintenance Provision (Fabric Git), All Assets Report (Fabric Git), Anna Asset Delivery Dates (Fabric Git), Annual Reviews - Proposed Exposure greater than 0 (Fabric Git), Application to Lease Contract (Fabric Git), Applications in Progress (Fabric Git), Arbuthnot Loan Agreement Report (Fabric Git), Arbuthnot MI Contract Report (Fabric Git), Arbuthnot MI Report (Fabric Git), Arbuthnot Regulatory Report (Fabric Git), Asset Transfer Report (Fabric Git), Assets Awaiting Delivery (Fabric Git), Assets terminated in a month (Fabric Git), Available Assets (Fabric Git), Bounced Direct Debit (Fabric Git), Contract Hire - Maintenance Provision (Fabric Git), Contracts Created in Month (Fabric Git), Contracts Terminated Live (Fabric Git), Contracts for Origination (Fabric Git), Contracts with Maintenance Budgets (Fabric Git), Customers cw Credit Rating (Fabric Git), Equipment Accruals - On Contract (Fabric Git), Evergreen Leased (Fabric Git), Evergreen Rental (Fabric Git), Incoming Payment (Fabric Git), Individual Customer Exposure (Fabric Git), Open Lease File (Fabric Git), Open Lease for for individual customers (Fabric Git), QA Queue for Ops (Fabric Git), R2C Daily Report @12 (Fabric Git), R2C Paid Recharges (Fabric Git), R2C Stock Assets Report (Fabric Git), RV Receivables - Assets Not On Hire (Fabric Git), RV Receivables from Live Contracts (Fabric Git), Rental Availability Report (Fabric Git), TS Applications in Progress (Fabric Git), TS Asset NBV (Fabric Git), TS Asset NBV for Funding Migration (Fabric Git), TS Assets Funding Analysis (Fabric Git), TS CL Invoices Outstanding (Fabric Git), TS Contracts Not Activated (Fabric Git), TS Depreciation Stream Contract Info (Fabric Git), TS Equipment Accruals - On Contract (Fabric Git), TS LS Contract Income Streams (Fabric Git), TS Recharge for Debt Reporting (Fabric Git), TTS MSF (Fabric Git), TTS OC (Fabric Git), TTS Unpaid Sales (Fabric Git), Warehouse assets inc stock (Fabric Git)
-2026-03-10T16:36:32.9367570Z 2026-03-10 16:36:32,936 - __main__ - INFO - ============================================================
-2026-03-10T16:36:32.9368190Z 2026-03-10 16:36:32,936 - __main__ - INFO - DISCOVERY COMPLETE: Found 112 total artifacts
-2026-03-10T16:36:32.9369162Z 2026-03-10 16:36:32,936 - __main__ - INFO - ============================================================
-2026-03-10T16:36:32.9369657Z 2026-03-10 16:36:32,936 - __main__ - INFO - 
-2026-03-10T16:36:32.9370216Z 2026-03-10 16:36:32,936 - __main__ - INFO - ============================================================
-2026-03-10T16:36:32.9370673Z 2026-03-10 16:36:32,936 - __main__ - INFO - CHANGE DETECTION
-2026-03-10T16:36:32.9371109Z 2026-03-10 16:36:32,936 - __main__ - INFO - ============================================================
-2026-03-10T16:36:32.9433999Z 2026-03-10 16:36:32,943 - change_detector - INFO - Found 4 changed file(s) since c1aa38e8
-2026-03-10T16:36:32.9439117Z 2026-03-10 16:36:32,943 - change_detector - INFO - Change detection: 3 artifact(s) changed
-2026-03-10T16:36:32.9443423Z 2026-03-10 16:36:32,943 - change_detector - INFO -   SqlView: 01_Engineering_Views, 02_Base_Views, 03_Report_Views
-2026-03-10T16:36:32.9444214Z 2026-03-10 16:36:32,943 - fabric_client - INFO - Listing items in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-10T16:36:33.1587796Z 2026-03-10 16:36:33,158 - __main__ - INFO - Changed artifacts: 3
-2026-03-10T16:36:33.1588749Z 2026-03-10 16:36:33,158 - __main__ - INFO -   SqlView: 01_Engineering_Views, 02_Base_Views, 03_Report_Views
-2026-03-10T16:36:33.1589778Z 2026-03-10 16:36:33,158 - __main__ - INFO - Skipped (unchanged): 108
-2026-03-10T16:36:33.1590149Z 2026-03-10 16:36:33,158 - __main__ - INFO - ============================================================
-2026-03-10T16:36:33.1590554Z 2026-03-10 16:36:33,158 - __main__ - INFO - ============================================================
-2026-03-10T16:36:33.1600435Z 2026-03-10 16:36:33,159 - __main__ - INFO - Starting deployment to dev environment
-2026-03-10T16:36:33.1600841Z 2026-03-10 16:36:33,159 - __main__ - INFO - ============================================================
-2026-03-10T16:36:33.1601631Z 2026-03-10 16:36:33,159 - __main__ - INFO -   ℹ Pre-deploy Git sync skipped — using post-deploy commitToGit
-2026-03-10T16:36:33.1602742Z 2026-03-10 16:36:33,159 - dependency_resolver - INFO - ✅ All dependencies are valid
-2026-03-10T16:36:33.1603089Z 2026-03-10 16:36:33,159 - dependency_resolver - INFO - Deployment order determined:
-2026-03-10T16:36:33.1603443Z 2026-03-10 16:36:33,159 - dependency_resolver - INFO -   1. ReportingLakehouse (Lakehouse)
-2026-03-10T16:36:33.1603793Z 2026-03-10 16:36:33,159 - dependency_resolver - INFO -   2. 02_Base_Views (SqlView)
-2026-03-10T16:36:33.1604172Z 2026-03-10 16:36:33,159 - dependency_resolver - INFO -   3. 01_Engineering_Views (SqlView)
-2026-03-10T16:36:33.1604540Z 2026-03-10 16:36:33,159 - dependency_resolver - INFO -   4. 03_Report_Views (SqlView)
-2026-03-10T16:36:33.1604869Z 2026-03-10 16:36:33,159 - __main__ - INFO - 
-2026-03-10T16:36:33.1605195Z 2026-03-10 16:36:33,159 - __main__ - INFO - --- Deploying 4 artifact(s) ---
-2026-03-10T16:36:33.1605516Z 2026-03-10 16:36:33,159 - __main__ - INFO - 
-2026-03-10T16:36:33.1605866Z 2026-03-10 16:36:33,159 - __main__ - INFO - Deploying: ReportingLakehouse (Lakehouse)
-2026-03-10T16:36:33.1606275Z 2026-03-10 16:36:33,159 - __main__ - INFO -   Reading lakehouse definition from Fabric Git folder: ReportingLakehouse.Lakehouse/
-2026-03-10T16:36:33.1606670Z 2026-03-10 16:36:33,159 - __main__ - INFO -   Using .platform file for metadata
-2026-03-10T16:36:33.1607061Z 2026-03-10 16:36:33,159 - fabric_client - INFO - Listing lakehouses in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-10T16:36:33.8152951Z 2026-03-10 16:36:33,814 - __main__ - INFO -   Lakehouse 'ReportingLakehouse' already exists (ID: 0b0bb152-eb0d-4248-86bc-7a620ea59ed6)
-2026-03-10T16:36:33.8154239Z 2026-03-10 16:36:33,814 - __main__ - INFO -   Deploying lakehouse definition using updateDefinition API...
-2026-03-10T16:36:33.8156703Z 2026-03-10 16:36:33,815 - __main__ - INFO -   Including lakehouse.metadata.json (required)
-2026-03-10T16:36:33.8157493Z 2026-03-10 16:36:33,815 - __main__ - INFO -   Including shortcuts.metadata.json in definition
-2026-03-10T16:36:33.8164116Z 2026-03-10 16:36:33,815 - __main__ - INFO -   Including alm.settings.json in definition
-2026-03-10T16:36:33.8165092Z 2026-03-10 16:36:33,815 - __main__ - INFO -   Including .platform file in definition
-2026-03-10T16:36:33.8166040Z 2026-03-10 16:36:33,815 - fabric_client - INFO - Updating lakehouse definition - workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64, lakehouse: 0b0bb152-eb0d-4248-86bc-7a620ea59ed6
-2026-03-10T16:36:33.8167051Z 2026-03-10 16:36:33,815 - fabric_client - INFO -   Including 4 definition part(s)
-2026-03-10T16:36:35.7496730Z 2026-03-10 16:36:35,749 - fabric_client - INFO - Lakehouse definition update accepted (202) - LRO started
-2026-03-10T16:36:35.7497586Z 2026-03-10 16:36:35,749 - fabric_client - INFO -   Polling operation: a40a5481-458b-4204-aeec-b6a7c2d4723b
-2026-03-10T16:36:55.8800183Z 2026-03-10 16:36:55,879 - fabric_client - INFO -     Attempt 1/12: Succeeded (100% complete)
-2026-03-10T16:36:55.8802113Z 2026-03-10 16:36:55,879 - fabric_client - INFO -   ✓ Operation completed successfully
-2026-03-10T16:36:56.0150316Z 2026-03-10 16:36:56,014 - __main__ - INFO -   ✓ Lakehouse definition updated successfully
-2026-03-10T16:36:56.0153533Z 2026-03-10 16:36:56,014 - __main__ - INFO - ✅ Successfully deployed: ReportingLakehouse
-2026-03-10T16:36:56.0154701Z 2026-03-10 16:36:56,014 - __main__ - INFO - 
-2026-03-10T16:36:56.0155341Z 2026-03-10 16:36:56,014 - __main__ - INFO - Deploying: 02_Base_Views (SqlView)
-2026-03-10T16:36:56.0159379Z 2026-03-10 16:36:56,015 - fabric_client - INFO - Listing items in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-10T16:36:56.1536358Z 2026-03-10 16:36:56,152 - __main__ - INFO -   Connecting to SQL endpoint for lakehouse: ReportingLakehouse
-2026-03-10T16:36:56.1536883Z 2026-03-10 16:36:56,153 - fabric_client - INFO - Getting SQL endpoint for lakehouse: 0b0bb152-eb0d-4248-86bc-7a620ea59ed6
-2026-03-10T16:36:56.1537325Z 2026-03-10 16:36:56,153 - fabric_client - INFO - Getting lakehouse: 0b0bb152-eb0d-4248-86bc-7a620ea59ed6
-2026-03-10T16:36:56.6538893Z 2026-03-10 16:36:56,653 - fabric_client - INFO - Found SQL endpoint from properties: urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com
-2026-03-10T16:36:56.6546779Z 2026-03-10 16:36:56,654 - __main__ - INFO -   Found 32 batch(es) in SQL file
-2026-03-10T16:36:56.6549068Z 2026-03-10 16:36:56,654 - __main__ - INFO -   Processing batch 1 (1318 chars)
-2026-03-10T16:36:56.6552235Z 2026-03-10 16:36:56,654 - __main__ - INFO -   Batch 1: Parsed view name 'dbo.vw_additional_charges_detail'
-2026-03-10T16:36:56.6553361Z 2026-03-10 16:36:56,654 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.3329791Z 2026-03-10 16:36:57,332 - __main__ - INFO -   Creating new view 'dbo.vw_additional_charges_detail'...
-2026-03-10T16:36:57.3332312Z 2026-03-10 16:36:57,332 - __main__ - INFO -   Processing batch 2 (490 chars)
-2026-03-10T16:36:57.3332808Z 2026-03-10 16:36:57,332 - __main__ - INFO -   Batch 2: Parsed view name 'dbo.vw_asset_additional_charges'
-2026-03-10T16:36:57.3333310Z 2026-03-10 16:36:57,332 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.3440000Z 2026-03-10 16:36:57,343 - __main__ - INFO -   Creating new view 'dbo.vw_asset_additional_charges'...
-2026-03-10T16:36:57.3440641Z 2026-03-10 16:36:57,343 - __main__ - INFO -   Processing batch 3 (4123 chars)
-2026-03-10T16:36:57.3441116Z 2026-03-10 16:36:57,343 - __main__ - INFO -   Batch 3: Parsed view name 'dbo.vw_asset_description'
-2026-03-10T16:36:57.3441585Z 2026-03-10 16:36:57,343 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.3549760Z 2026-03-10 16:36:57,354 - __main__ - INFO -   Creating new view 'dbo.vw_asset_description'...
-2026-03-10T16:36:57.3550169Z 2026-03-10 16:36:57,354 - __main__ - INFO -   Processing batch 4 (1252 chars)
-2026-03-10T16:36:57.3550519Z 2026-03-10 16:36:57,354 - __main__ - INFO -   Batch 4: Parsed view name 'dbo.vw_asset_features'
-2026-03-10T16:36:57.3550925Z 2026-03-10 16:36:57,354 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.3660926Z 2026-03-10 16:36:57,365 - __main__ - INFO -   Creating new view 'dbo.vw_asset_features'...
-2026-03-10T16:36:57.3661385Z 2026-03-10 16:36:57,365 - __main__ - INFO -   Processing batch 5 (1192 chars)
-2026-03-10T16:36:57.3661831Z 2026-03-10 16:36:57,365 - __main__ - INFO -   Batch 5: Parsed view name 'dbo.vw_contract_assignments'
-2026-03-10T16:36:57.3662402Z 2026-03-10 16:36:57,365 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.3765534Z 2026-03-10 16:36:57,376 - __main__ - INFO -   Creating new view 'dbo.vw_contract_assignments'...
-2026-03-10T16:36:57.3766185Z 2026-03-10 16:36:57,376 - __main__ - INFO -   Processing batch 6 (2346 chars)
-2026-03-10T16:36:57.3766545Z 2026-03-10 16:36:57,376 - __main__ - INFO -   Batch 6: Parsed view name 'dbo.vw_customer_assignments'
-2026-03-10T16:36:57.3766922Z 2026-03-10 16:36:57,376 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.3870398Z 2026-03-10 16:36:57,386 - __main__ - INFO -   Creating new view 'dbo.vw_customer_assignments'...
-2026-03-10T16:36:57.3870947Z 2026-03-10 16:36:57,386 - __main__ - INFO -   Processing batch 7 (5318 chars)
-2026-03-10T16:36:57.3872630Z 2026-03-10 16:36:57,386 - __main__ - INFO -   Batch 7: Parsed view name 'dbo.vw_credit_application'
-2026-03-10T16:36:57.3873178Z 2026-03-10 16:36:57,387 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.3984339Z 2026-03-10 16:36:57,398 - __main__ - INFO -   Creating new view 'dbo.vw_credit_application'...
-2026-03-10T16:36:57.3984735Z 2026-03-10 16:36:57,398 - __main__ - INFO -   Processing batch 8 (8532 chars)
-2026-03-10T16:36:57.3985107Z 2026-03-10 16:36:57,398 - __main__ - INFO -   Batch 8: Parsed view name 'dbo.vw_in_application'
-2026-03-10T16:36:57.3985472Z 2026-03-10 16:36:57,398 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.4085714Z 2026-03-10 16:36:57,408 - __main__ - INFO -   Creating new view 'dbo.vw_in_application'...
-2026-03-10T16:36:57.4086133Z 2026-03-10 16:36:57,408 - __main__ - INFO -   Processing batch 9 (469 chars)
-2026-03-10T16:36:57.4086503Z 2026-03-10 16:36:57,408 - __main__ - INFO -   Batch 9: Parsed view name 'dbo.vw_lease_additional_charges'
-2026-03-10T16:36:57.4086901Z 2026-03-10 16:36:57,408 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.4189983Z 2026-03-10 16:36:57,418 - __main__ - INFO -   Creating new view 'dbo.vw_lease_additional_charges'...
-2026-03-10T16:36:57.4190406Z 2026-03-10 16:36:57,418 - __main__ - INFO -   Processing batch 10 (3517 chars)
-2026-03-10T16:36:57.4190875Z 2026-03-10 16:36:57,418 - __main__ - INFO -   Batch 10: Parsed view name 'dbo.vw_lease_asset_all'
-2026-03-10T16:36:57.4191475Z 2026-03-10 16:36:57,418 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.4301593Z 2026-03-10 16:36:57,429 - __main__ - INFO -   Creating new view 'dbo.vw_lease_asset_all'...
-2026-03-10T16:36:57.4303785Z 2026-03-10 16:36:57,430 - __main__ - INFO -   Processing batch 11 (337 chars)
-2026-03-10T16:36:57.4305071Z 2026-03-10 16:36:57,430 - __main__ - INFO -   Batch 11: Parsed view name 'dbo.vw_lease_asset_current'
-2026-03-10T16:36:57.4305458Z 2026-03-10 16:36:57,430 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.4408676Z 2026-03-10 16:36:57,440 - __main__ - INFO -   Creating new view 'dbo.vw_lease_asset_current'...
-2026-03-10T16:36:57.4409096Z 2026-03-10 16:36:57,440 - __main__ - INFO -   Processing batch 12 (4758 chars)
-2026-03-10T16:36:57.4409465Z 2026-03-10 16:36:57,440 - __main__ - INFO -   Batch 12: Parsed view name 'dbo.vw_lease_finance_detail'
-2026-03-10T16:36:57.4409851Z 2026-03-10 16:36:57,440 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.4513491Z 2026-03-10 16:36:57,450 - __main__ - INFO -   Creating new view 'dbo.vw_lease_finance_detail'...
-2026-03-10T16:36:57.4513943Z 2026-03-10 16:36:57,450 - __main__ - INFO -   Processing batch 13 (8896 chars)
-2026-03-10T16:36:57.4514600Z 2026-03-10 16:36:57,451 - __main__ - INFO -   Batch 13: Parsed view name 'dbo.vw_lease_contracts'
-2026-03-10T16:36:57.4514973Z 2026-03-10 16:36:57,451 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.4618391Z 2026-03-10 16:36:57,461 - __main__ - INFO -   Creating new view 'dbo.vw_lease_contracts'...
-2026-03-10T16:36:57.4618804Z 2026-03-10 16:36:57,461 - __main__ - INFO -   Processing batch 14 (4245 chars)
-2026-03-10T16:36:57.4619181Z 2026-03-10 16:36:57,461 - __main__ - INFO -   Batch 14: Parsed view name 'dbo.vw_asset_in_application'
-2026-03-10T16:36:57.4619559Z 2026-03-10 16:36:57,461 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.4722408Z 2026-03-10 16:36:57,471 - __main__ - INFO -   Creating new view 'dbo.vw_asset_in_application'...
-2026-03-10T16:36:57.4722975Z 2026-03-10 16:36:57,471 - __main__ - INFO -   Processing batch 15 (3521 chars)
-2026-03-10T16:36:57.4723598Z 2026-03-10 16:36:57,472 - __main__ - INFO -   Batch 15: Parsed view name 'dbo.vw_asset_rentals'
-2026-03-10T16:36:57.4723965Z 2026-03-10 16:36:57,472 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.4828374Z 2026-03-10 16:36:57,482 - __main__ - INFO -   Creating new view 'dbo.vw_asset_rentals'...
-2026-03-10T16:36:57.4830191Z 2026-03-10 16:36:57,482 - __main__ - INFO -   Processing batch 16 (4323 chars)
-2026-03-10T16:36:57.4830744Z 2026-03-10 16:36:57,482 - __main__ - INFO -   Batch 16: Parsed view name 'dbo.vw_lease_payments'
-2026-03-10T16:36:57.4831141Z 2026-03-10 16:36:57,482 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.4930889Z 2026-03-10 16:36:57,492 - __main__ - INFO -   Creating new view 'dbo.vw_lease_payments'...
-2026-03-10T16:36:57.4931310Z 2026-03-10 16:36:57,492 - __main__ - INFO -   Processing batch 17 (2221 chars)
-2026-03-10T16:36:57.4932150Z 2026-03-10 16:36:57,492 - __main__ - INFO -   Batch 17: Parsed view name 'dbo.vw_contract_origination'
-2026-03-10T16:36:57.4932545Z 2026-03-10 16:36:57,492 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.5040383Z 2026-03-10 16:36:57,503 - __main__ - INFO -   Creating new view 'dbo.vw_contract_origination'...
-2026-03-10T16:36:57.5041094Z 2026-03-10 16:36:57,503 - __main__ - INFO -   Processing batch 18 (812 chars)
-2026-03-10T16:36:57.5041478Z 2026-03-10 16:36:57,503 - __main__ - INFO -   Batch 18: Parsed view name 'dbo.vw_lease_payment_vat_deferrals'
-2026-03-10T16:36:57.5042053Z 2026-03-10 16:36:57,503 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.5153320Z 2026-03-10 16:36:57,514 - __main__ - INFO -   Creating new view 'dbo.vw_lease_payment_vat_deferrals'...
-2026-03-10T16:36:57.5157870Z 2026-03-10 16:36:57,514 - __main__ - INFO -   Processing batch 19 (634 chars)
-2026-03-10T16:36:57.5159089Z 2026-03-10 16:36:57,515 - __main__ - INFO -   Batch 19: Parsed view name 'dbo.vw_lease_payments_current'
-2026-03-10T16:36:57.5159801Z 2026-03-10 16:36:57,515 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.5258334Z 2026-03-10 16:36:57,525 - __main__ - INFO -   Creating new view 'dbo.vw_lease_payments_current'...
-2026-03-10T16:36:57.5258739Z 2026-03-10 16:36:57,525 - __main__ - INFO -   Processing batch 20 (1833 chars)
-2026-03-10T16:36:57.5259048Z 2026-03-10 16:36:57,525 - __main__ - INFO -   Batch 20: Parsed view name 'dbo.vw_receipts'
-2026-03-10T16:36:57.5259387Z 2026-03-10 16:36:57,525 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.5365970Z 2026-03-10 16:36:57,536 - __main__ - INFO -   Creating new view 'dbo.vw_receipts'...
-2026-03-10T16:36:57.5366599Z 2026-03-10 16:36:57,536 - __main__ - INFO -   Processing batch 21 (3624 chars)
-2026-03-10T16:36:57.5367128Z 2026-03-10 16:36:57,536 - __main__ - INFO -   Batch 21: Parsed view name 'dbo.vw_receivable_invoice_detail'
-2026-03-10T16:36:57.5367533Z 2026-03-10 16:36:57,536 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.5467633Z 2026-03-10 16:36:57,546 - __main__ - INFO -   Creating new view 'dbo.vw_receivable_invoice_detail'...
-2026-03-10T16:36:57.5469357Z 2026-03-10 16:36:57,546 - __main__ - INFO -   Processing batch 22 (1467 chars)
-2026-03-10T16:36:57.5469742Z 2026-03-10 16:36:57,546 - __main__ - INFO -   Batch 22: Parsed view name 'dbo.vw_receivable_invoices'
-2026-03-10T16:36:57.5470119Z 2026-03-10 16:36:57,546 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.5572249Z 2026-03-10 16:36:57,556 - __main__ - INFO -   Creating new view 'dbo.vw_receivable_invoices'...
-2026-03-10T16:36:57.5572930Z 2026-03-10 16:36:57,556 - __main__ - INFO -   Processing batch 23 (1378 chars)
-2026-03-10T16:36:57.5573304Z 2026-03-10 16:36:57,556 - __main__ - INFO -   Batch 23: Parsed view name 'dbo.vw_lease_receivables'
-2026-03-10T16:36:57.5573681Z 2026-03-10 16:36:57,557 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.5679390Z 2026-03-10 16:36:57,567 - __main__ - INFO -   Creating new view 'dbo.vw_lease_receivables'...
-2026-03-10T16:36:57.5681274Z 2026-03-10 16:36:57,567 - __main__ - INFO -   Processing batch 24 (818 chars)
-2026-03-10T16:36:57.5681650Z 2026-03-10 16:36:57,567 - __main__ - INFO -   Batch 24: Parsed view name 'dbo.vw_customer_receivables'
-2026-03-10T16:36:57.5682230Z 2026-03-10 16:36:57,567 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.5779567Z 2026-03-10 16:36:57,577 - __main__ - INFO -   Creating new view 'dbo.vw_customer_receivables'...
-2026-03-10T16:36:57.5781294Z 2026-03-10 16:36:57,577 - __main__ - INFO -   Processing batch 25 (4108 chars)
-2026-03-10T16:36:57.5781684Z 2026-03-10 16:36:57,577 - __main__ - INFO -   Batch 25: Parsed view name 'dbo.vw_customer'
-2026-03-10T16:36:57.5782281Z 2026-03-10 16:36:57,577 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.5885741Z 2026-03-10 16:36:57,588 - __main__ - INFO -   Creating new view 'dbo.vw_customer'...
-2026-03-10T16:36:57.5887661Z 2026-03-10 16:36:57,588 - __main__ - INFO -   Processing batch 26 (1456 chars)
-2026-03-10T16:36:57.5889207Z 2026-03-10 16:36:57,588 - __main__ - INFO -   Batch 26: Parsed view name 'dbo.vw_receivables'
-2026-03-10T16:36:57.5889580Z 2026-03-10 16:36:57,588 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.5993018Z 2026-03-10 16:36:57,598 - __main__ - INFO -   Creating new view 'dbo.vw_receivables'...
-2026-03-10T16:36:57.5993694Z 2026-03-10 16:36:57,598 - __main__ - INFO -   Processing batch 27 (2948 chars)
-2026-03-10T16:36:57.5994062Z 2026-03-10 16:36:57,599 - __main__ - INFO -   Batch 27: Parsed view name 'dbo.vw_sundry'
-2026-03-10T16:36:57.5994427Z 2026-03-10 16:36:57,599 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.6103340Z 2026-03-10 16:36:57,610 - __main__ - INFO -   Creating new view 'dbo.vw_sundry'...
-2026-03-10T16:36:57.6105605Z 2026-03-10 16:36:57,610 - __main__ - INFO -   Processing batch 28 (2254 chars)
-2026-03-10T16:36:57.6106010Z 2026-03-10 16:36:57,610 - __main__ - INFO -   Batch 28: Parsed view name 'dbo.vw_sundry_details'
-2026-03-10T16:36:57.6106381Z 2026-03-10 16:36:57,610 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.6218801Z 2026-03-10 16:36:57,621 - __main__ - INFO -   Creating new view 'dbo.vw_sundry_details'...
-2026-03-10T16:36:57.6219290Z 2026-03-10 16:36:57,621 - __main__ - INFO -   Processing batch 29 (1717 chars)
-2026-03-10T16:36:57.6219528Z 2026-03-10 16:36:57,621 - __main__ - INFO -   Batch 29: Parsed view name 'dbo.vw_sundry_recurring_charges'
-2026-03-10T16:36:57.6219756Z 2026-03-10 16:36:57,621 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.6384120Z 2026-03-10 16:36:57,637 - __main__ - INFO -   Creating new view 'dbo.vw_sundry_recurring_charges'...
-2026-03-10T16:36:57.6384854Z 2026-03-10 16:36:57,638 - __main__ - INFO -   Processing batch 30 (1673 chars)
-2026-03-10T16:36:57.6387044Z 2026-03-10 16:36:57,638 - __main__ - INFO -   Batch 30: Parsed view name 'dbo.vw_sundry_recurring_charge_details'
-2026-03-10T16:36:57.6388516Z 2026-03-10 16:36:57,638 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.6493468Z 2026-03-10 16:36:57,648 - __main__ - INFO -   Creating new view 'dbo.vw_sundry_recurring_charge_details'...
-2026-03-10T16:36:57.6493903Z 2026-03-10 16:36:57,649 - __main__ - INFO -   Processing batch 31 (649 chars)
-2026-03-10T16:36:57.6494363Z 2026-03-10 16:36:57,649 - __main__ - INFO -   Batch 31: Parsed view name 'dbo.vw_sundry_recurring_schedule'
-2026-03-10T16:36:57.6494745Z 2026-03-10 16:36:57,649 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.6604870Z 2026-03-10 16:36:57,660 - __main__ - INFO -   Creating new view 'dbo.vw_sundry_recurring_schedule'...
-2026-03-10T16:36:57.6605281Z 2026-03-10 16:36:57,660 - __main__ - INFO -   Batch 32: Empty, skipping
-2026-03-10T16:36:57.6605649Z 2026-03-10 16:36:57,660 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:57.6617677Z 2026-03-10 16:36:57,661 - fabric_client - INFO -   Executing batch 1/31
-2026-03-10T16:36:57.7869404Z 2026-03-10 16:36:57,786 - fabric_client - INFO -   Executing batch 2/31
-2026-03-10T16:36:57.7973804Z 2026-03-10 16:36:57,797 - fabric_client - INFO -   Executing batch 3/31
-2026-03-10T16:36:57.9458456Z 2026-03-10 16:36:57,945 - fabric_client - INFO -   Executing batch 4/31
-2026-03-10T16:36:57.9690246Z 2026-03-10 16:36:57,968 - fabric_client - INFO -   Executing batch 5/31
-2026-03-10T16:36:58.0174523Z 2026-03-10 16:36:58,017 - fabric_client - INFO -   Executing batch 6/31
-2026-03-10T16:36:58.0570717Z 2026-03-10 16:36:58,056 - fabric_client - INFO -   Executing batch 7/31
-2026-03-10T16:36:58.0840356Z 2026-03-10 16:36:58,083 - fabric_client - INFO -   Executing batch 8/31
-2026-03-10T16:36:58.1173441Z 2026-03-10 16:36:58,117 - fabric_client - INFO -   Executing batch 9/31
-2026-03-10T16:36:58.1271435Z 2026-03-10 16:36:58,126 - fabric_client - INFO -   Executing batch 10/31
-2026-03-10T16:36:58.2019068Z 2026-03-10 16:36:58,201 - fabric_client - INFO -   Executing batch 11/31
-2026-03-10T16:36:58.2157794Z 2026-03-10 16:36:58,215 - fabric_client - INFO -   Executing batch 12/31
-2026-03-10T16:36:58.2898347Z 2026-03-10 16:36:58,289 - fabric_client - INFO -   Executing batch 13/31
-2026-03-10T16:36:58.3189126Z 2026-03-10 16:36:58,318 - fabric_client - INFO -   Executing batch 14/31
-2026-03-10T16:36:58.3337511Z 2026-03-10 16:36:58,333 - fabric_client - ERROR - SQL execution error: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'vw_asset'. (208) (SQLExecDirectW)")
-2026-03-10T16:36:58.3356408Z 2026-03-10 16:36:58,335 - __main__ - ERROR - ❌ Failed to deploy 02_Base_Views: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'vw_asset'. (208) (SQLExecDirectW)")
-2026-03-10T16:36:58.3359041Z 2026-03-10 16:36:58,335 - __main__ - INFO - 
-2026-03-10T16:36:58.3359392Z 2026-03-10 16:36:58,335 - __main__ - INFO - Deploying: 01_Engineering_Views (SqlView)
-2026-03-10T16:36:58.3364230Z 2026-03-10 16:36:58,335 - fabric_client - INFO - Listing items in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-10T16:36:58.5198203Z 2026-03-10 16:36:58,518 - __main__ - INFO -   Connecting to SQL endpoint for lakehouse: ReportingLakehouse
-2026-03-10T16:36:58.5199474Z 2026-03-10 16:36:58,519 - fabric_client - INFO - Getting SQL endpoint for lakehouse: 0b0bb152-eb0d-4248-86bc-7a620ea59ed6
-2026-03-10T16:36:58.5200228Z 2026-03-10 16:36:58,519 - fabric_client - INFO - Getting lakehouse: 0b0bb152-eb0d-4248-86bc-7a620ea59ed6
-2026-03-10T16:36:58.9791548Z 2026-03-10 16:36:58,978 - fabric_client - INFO - Found SQL endpoint from properties: urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com
-2026-03-10T16:36:58.9792407Z 2026-03-10 16:36:58,978 - __main__ - INFO -   Found 13 batch(es) in SQL file
-2026-03-10T16:36:58.9797242Z 2026-03-10 16:36:58,979 - __main__ - INFO -   Processing batch 1 (1297 chars)
-2026-03-10T16:36:58.9797632Z 2026-03-10 16:36:58,979 - __main__ - INFO -   Batch 1: Parsed view name 'dbo.vw_asset_value'
-2026-03-10T16:36:58.9798012Z 2026-03-10 16:36:58,979 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:58.9924191Z 2026-03-10 16:36:58,992 - __main__ - INFO -   Creating new view 'dbo.vw_asset_value'...
-2026-03-10T16:36:58.9927448Z 2026-03-10 16:36:58,992 - __main__ - INFO -   Processing batch 2 (1286 chars)
-2026-03-10T16:36:58.9927918Z 2026-03-10 16:36:58,992 - __main__ - INFO -   Batch 2: Parsed view name 'dbo.vw_book_depreciation'
-2026-03-10T16:36:58.9928487Z 2026-03-10 16:36:58,992 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.0030237Z 2026-03-10 16:36:59,002 - __main__ - INFO -   Creating new view 'dbo.vw_book_depreciation'...
-2026-03-10T16:36:59.0031095Z 2026-03-10 16:36:59,002 - __main__ - INFO -   Processing batch 3 (1205 chars)
-2026-03-10T16:36:59.0031636Z 2026-03-10 16:36:59,002 - __main__ - INFO -   Batch 3: Parsed view name 'dbo.vw_aggregated_odessa_fact_asset_status_latest'
-2026-03-10T16:36:59.0032202Z 2026-03-10 16:36:59,002 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.0139601Z 2026-03-10 16:36:59,013 - __main__ - INFO -   Creating new view 'dbo.vw_aggregated_odessa_fact_asset_status_latest'...
-2026-03-10T16:36:59.0141492Z 2026-03-10 16:36:59,013 - __main__ - INFO -   Processing batch 4 (208 chars)
-2026-03-10T16:36:59.0143100Z 2026-03-10 16:36:59,013 - __main__ - INFO -   Batch 4: Parsed view name 'dbo.vw_asset'
-2026-03-10T16:36:59.0143485Z 2026-03-10 16:36:59,013 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.0249344Z 2026-03-10 16:36:59,024 - __main__ - INFO -   Creating new view 'dbo.vw_asset'...
-2026-03-10T16:36:59.0251427Z 2026-03-10 16:36:59,024 - __main__ - INFO -   Processing batch 5 (425 chars)
-2026-03-10T16:36:59.0252308Z 2026-03-10 16:36:59,024 - __main__ - WARNING -   Could not parse view name from batch 5
-2026-03-10T16:36:59.0252661Z 2026-03-10 16:36:59,024 - __main__ - WARNING -   Batch content (first 200 chars): /*
-2026-03-10T16:36:59.0252808Z 
-2026-03-10T16:36:59.0253049Z *****IMPORTANT - DO NOT UNCOMMENT ******
-2026-03-10T16:36:59.0253434Z If you need to make any changes to the following four views,
-2026-03-10T16:36:59.0253593Z vw_asset_value
-2026-03-10T16:36:59.0253735Z vw_book_depreciation
-2026-03-10T16:36:59.0253891Z vw_aggregated_odessa_fact_asset_status_latest
-2026-03-10T16:36:59.0254041Z vw_asset
-2026-03-10T16:36:59.0254176Z Ple
-2026-03-10T16:36:59.0254343Z 2026-03-10 16:36:59,024 - __main__ - INFO -   Processing batch 6 (1161 chars)
-2026-03-10T16:36:59.0254556Z 2026-03-10 16:36:59,024 - __main__ - INFO -   Batch 6: Parsed view name 'dbo.vw_asset_value'
-2026-03-10T16:36:59.0254767Z 2026-03-10 16:36:59,024 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.0292910Z 2026-03-10 16:36:59,028 - __main__ - INFO -   Creating new view 'dbo.vw_asset_value'...
-2026-03-10T16:36:59.0293282Z 2026-03-10 16:36:59,028 - __main__ - INFO -   Processing batch 7 (49 chars)
-2026-03-10T16:36:59.0293625Z 2026-03-10 16:36:59,028 - __main__ - WARNING -   Could not parse view name from batch 7
-2026-03-10T16:36:59.0294025Z 2026-03-10 16:36:59,028 - __main__ - WARNING -   Batch content (first 200 chars): DROP VIEW if EXISTS [dbo].[vw_book_depreciation];
-2026-03-10T16:36:59.0294407Z 2026-03-10 16:36:59,028 - __main__ - INFO -   Processing batch 8 (1128 chars)
-2026-03-10T16:36:59.0294775Z 2026-03-10 16:36:59,029 - __main__ - INFO -   Batch 8: Parsed view name 'dbo.vw_book_depreciation'
-2026-03-10T16:36:59.0295146Z 2026-03-10 16:36:59,029 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.0333182Z 2026-03-10 16:36:59,033 - __main__ - INFO -   Creating new view 'dbo.vw_book_depreciation'...
-2026-03-10T16:36:59.0334884Z 2026-03-10 16:36:59,033 - __main__ - INFO -   Processing batch 9 (77 chars)
-2026-03-10T16:36:59.0335484Z 2026-03-10 16:36:59,033 - __main__ - WARNING -   Could not parse view name from batch 9
-2026-03-10T16:36:59.0335852Z 2026-03-10 16:36:59,033 - __main__ - WARNING -   Batch content (first 200 chars): ;
-2026-03-10T16:36:59.0335997Z 
-2026-03-10T16:36:59.0336276Z DROP VIEW if EXISTS [dbo].[vw_aggregated_odessa_fact_asset_status_latest];
-2026-03-10T16:36:59.0336610Z 2026-03-10 16:36:59,033 - __main__ - INFO -   Processing batch 10 (1020 chars)
-2026-03-10T16:36:59.0336939Z 2026-03-10 16:36:59,033 - __main__ - INFO -   Batch 10: Parsed view name 'dbo.vw_aggregated_odessa_fact_asset_status_latest'
-2026-03-10T16:36:59.0337215Z 2026-03-10 16:36:59,033 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.0369061Z 2026-03-10 16:36:59,036 - __main__ - INFO -   Creating new view 'dbo.vw_aggregated_odessa_fact_asset_status_latest'...
-2026-03-10T16:36:59.0369359Z 2026-03-10 16:36:59,036 - __main__ - INFO -   Processing batch 11 (37 chars)
-2026-03-10T16:36:59.0369571Z 2026-03-10 16:36:59,036 - __main__ - WARNING -   Could not parse view name from batch 11
-2026-03-10T16:36:59.0369797Z 2026-03-10 16:36:59,036 - __main__ - WARNING -   Batch content (first 200 chars): DROP VIEW if EXISTS [dbo].[vw_asset];
-2026-03-10T16:36:59.0370016Z 2026-03-10 16:36:59,036 - __main__ - INFO -   Processing batch 12 (14188 chars)
-2026-03-10T16:36:59.0370221Z 2026-03-10 16:36:59,036 - __main__ - INFO -   Batch 12: Parsed view name 'dbo.vw_asset'
-2026-03-10T16:36:59.0370437Z 2026-03-10 16:36:59,036 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.0409415Z 2026-03-10 16:36:59,040 - __main__ - INFO -   Creating new view 'dbo.vw_asset'...
-2026-03-10T16:36:59.0410239Z 2026-03-10 16:36:59,040 - __main__ - INFO -   Processing batch 13 (41 chars)
-2026-03-10T16:36:59.0411516Z 2026-03-10 16:36:59,040 - __main__ - WARNING -   Could not parse view name from batch 13
-2026-03-10T16:36:59.0412324Z 2026-03-10 16:36:59,040 - __main__ - WARNING -   Batch content (first 200 chars): ********* DO NOT UNCOMMENT ***********
-2026-03-10T16:36:59.0412625Z */
-2026-03-10T16:36:59.0412909Z 2026-03-10 16:36:59,040 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.0415850Z 2026-03-10 16:36:59,041 - fabric_client - INFO -   Executing batch 1/8
-2026-03-10T16:36:59.0657533Z 2026-03-10 16:36:59,065 - fabric_client - INFO -   Executing batch 2/8
-2026-03-10T16:36:59.0891363Z 2026-03-10 16:36:59,088 - fabric_client - INFO -   Executing batch 3/8
-2026-03-10T16:36:59.0986807Z 2026-03-10 16:36:59,098 - fabric_client - INFO -   Executing batch 4/8
-2026-03-10T16:36:59.1605690Z 2026-03-10 16:36:59,160 - fabric_client - INFO -   Executing batch 5/8
-2026-03-10T16:36:59.1721253Z 2026-03-10 16:36:59,171 - fabric_client - INFO -   Executing batch 6/8
-2026-03-10T16:36:59.1753920Z 2026-03-10 16:36:59,174 - fabric_client - ERROR - SQL execution error: ('42S01', "[42S01] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]There is already an object named 'vw_book_depreciation' in the database. (2714) (SQLExecDirectW)")
-2026-03-10T16:36:59.1755208Z 2026-03-10 16:36:59,174 - __main__ - ERROR - ❌ Failed to deploy 01_Engineering_Views: ('42S01', "[42S01] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]There is already an object named 'vw_book_depreciation' in the database. (2714) (SQLExecDirectW)")
-2026-03-10T16:36:59.1755695Z 2026-03-10 16:36:59,174 - __main__ - INFO - 
-2026-03-10T16:36:59.1756024Z 2026-03-10 16:36:59,174 - __main__ - INFO - Deploying: 03_Report_Views (SqlView)
-2026-03-10T16:36:59.1767263Z 2026-03-10 16:36:59,176 - fabric_client - INFO - Listing items in workspace: d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-10T16:36:59.3460035Z 2026-03-10 16:36:59,345 - __main__ - INFO -   Connecting to SQL endpoint for lakehouse: ReportingLakehouse
-2026-03-10T16:36:59.3460540Z 2026-03-10 16:36:59,345 - fabric_client - INFO - Getting SQL endpoint for lakehouse: 0b0bb152-eb0d-4248-86bc-7a620ea59ed6
-2026-03-10T16:36:59.3461487Z 2026-03-10 16:36:59,345 - fabric_client - INFO - Getting lakehouse: 0b0bb152-eb0d-4248-86bc-7a620ea59ed6
-2026-03-10T16:36:59.7891323Z 2026-03-10 16:36:59,788 - fabric_client - INFO - Found SQL endpoint from properties: urucevsjhkyejogdndw7poe5fi-7ly7vv36bzqubm7fkd5dq47lmq.datawarehouse.fabric.microsoft.com
-2026-03-10T16:36:59.7915964Z 2026-03-10 16:36:59,791 - __main__ - INFO -   Found 86 batch(es) in SQL file
-2026-03-10T16:36:59.7917854Z 2026-03-10 16:36:59,791 - __main__ - INFO -   Processing batch 1 (6236 chars)
-2026-03-10T16:36:59.7918506Z 2026-03-10 16:36:59,791 - __main__ - INFO -   Batch 1: Parsed view name 'dbo.rpt_aged_debtors'
-2026-03-10T16:36:59.7918893Z 2026-03-10 16:36:59,791 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.8052629Z 2026-03-10 16:36:59,804 - __main__ - INFO -   Creating new view 'dbo.rpt_aged_debtors'...
-2026-03-10T16:36:59.8057749Z 2026-03-10 16:36:59,805 - __main__ - INFO -   Processing batch 2 (6458 chars)
-2026-03-10T16:36:59.8058474Z 2026-03-10 16:36:59,805 - __main__ - INFO -   Batch 2: Parsed view name 'dbo.rpt_aged_debtors_by_due_date'
-2026-03-10T16:36:59.8059308Z 2026-03-10 16:36:59,805 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.8163466Z 2026-03-10 16:36:59,816 - __main__ - INFO -   Creating new view 'dbo.rpt_aged_debtors_by_due_date'...
-2026-03-10T16:36:59.8163959Z 2026-03-10 16:36:59,816 - __main__ - INFO -   Processing batch 3 (3011 chars)
-2026-03-10T16:36:59.8164418Z 2026-03-10 16:36:59,816 - __main__ - INFO -   Batch 3: Parsed view name 'dbo.rpt_all_asset'
-2026-03-10T16:36:59.8164986Z 2026-03-10 16:36:59,816 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.8272072Z 2026-03-10 16:36:59,826 - __main__ - INFO -   Creating new view 'dbo.rpt_all_asset'...
-2026-03-10T16:36:59.8272751Z 2026-03-10 16:36:59,826 - __main__ - INFO -   Processing batch 4 (5105 chars)
-2026-03-10T16:36:59.8273639Z 2026-03-10 16:36:59,826 - __main__ - INFO -   Batch 4: Parsed view name 'dbo.rpt_all_asset_maintenance_costs'
-2026-03-10T16:36:59.8274033Z 2026-03-10 16:36:59,827 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.8382705Z 2026-03-10 16:36:59,838 - __main__ - INFO -   Creating new view 'dbo.rpt_all_asset_maintenance_costs'...
-2026-03-10T16:36:59.8384623Z 2026-03-10 16:36:59,838 - __main__ - INFO -   Processing batch 5 (3598 chars)
-2026-03-10T16:36:59.8386046Z 2026-03-10 16:36:59,838 - __main__ - INFO -   Batch 5: Parsed view name 'dbo.rpt_annual_reviews_proposed_exposure_greater_than_0'
-2026-03-10T16:36:59.8386461Z 2026-03-10 16:36:59,838 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.8493148Z 2026-03-10 16:36:59,848 - __main__ - INFO -   Creating new view 'dbo.rpt_annual_reviews_proposed_exposure_greater_than_0'...
-2026-03-10T16:36:59.8493651Z 2026-03-10 16:36:59,849 - __main__ - INFO -   Processing batch 6 (1093 chars)
-2026-03-10T16:36:59.8494037Z 2026-03-10 16:36:59,849 - __main__ - INFO -   Batch 6: Parsed view name 'dbo.rpt_application_lease_contract'
-2026-03-10T16:36:59.8494413Z 2026-03-10 16:36:59,849 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.8594037Z 2026-03-10 16:36:59,859 - __main__ - INFO -   Creating new view 'dbo.rpt_application_lease_contract'...
-2026-03-10T16:36:59.8594493Z 2026-03-10 16:36:59,859 - __main__ - INFO -   Processing batch 7 (1868 chars)
-2026-03-10T16:36:59.8594978Z 2026-03-10 16:36:59,859 - __main__ - INFO -   Batch 7: Parsed view name 'dbo.rpt_application_progress'
-2026-03-10T16:36:59.8595559Z 2026-03-10 16:36:59,859 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.8694710Z 2026-03-10 16:36:59,869 - __main__ - INFO -   Creating new view 'dbo.rpt_application_progress'...
-2026-03-10T16:36:59.8696564Z 2026-03-10 16:36:59,869 - __main__ - INFO -   Processing batch 8 (4400 chars)
-2026-03-10T16:36:59.8696972Z 2026-03-10 16:36:59,869 - __main__ - INFO -   Batch 8: Parsed view name 'dbo.rpt_arbuthnot_mi_contract'
-2026-03-10T16:36:59.8697628Z 2026-03-10 16:36:59,869 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.8806410Z 2026-03-10 16:36:59,880 - __main__ - INFO -   Creating new view 'dbo.rpt_arbuthnot_mi_contract'...
-2026-03-10T16:36:59.8807046Z 2026-03-10 16:36:59,880 - __main__ - INFO -   Processing batch 9 (788 chars)
-2026-03-10T16:36:59.8807582Z 2026-03-10 16:36:59,880 - __main__ - INFO -   Batch 9: Parsed view name 'dbo.rpt_arbuthnot_mi_report'
-2026-03-10T16:36:59.8807961Z 2026-03-10 16:36:59,880 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.8917243Z 2026-03-10 16:36:59,891 - __main__ - INFO -   Creating new view 'dbo.rpt_arbuthnot_mi_report'...
-2026-03-10T16:36:59.8918927Z 2026-03-10 16:36:59,891 - __main__ - INFO -   Processing batch 10 (2304 chars)
-2026-03-10T16:36:59.8919318Z 2026-03-10 16:36:59,891 - __main__ - INFO -   Batch 10: Parsed view name 'dbo.rpt_assets_terminated_month'
-2026-03-10T16:36:59.8919707Z 2026-03-10 16:36:59,891 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.9024674Z 2026-03-10 16:36:59,902 - __main__ - INFO -   Creating new view 'dbo.rpt_assets_terminated_month'...
-2026-03-10T16:36:59.9025299Z 2026-03-10 16:36:59,902 - __main__ - INFO -   Processing batch 11 (2916 chars)
-2026-03-10T16:36:59.9025670Z 2026-03-10 16:36:59,902 - __main__ - INFO -   Batch 11: Parsed view name 'dbo.rpt_available_assets'
-2026-03-10T16:36:59.9026052Z 2026-03-10 16:36:59,902 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.9125708Z 2026-03-10 16:36:59,912 - __main__ - INFO -   Creating new view 'dbo.rpt_available_assets'...
-2026-03-10T16:36:59.9127392Z 2026-03-10 16:36:59,912 - __main__ - INFO -   Processing batch 12 (1170 chars)
-2026-03-10T16:36:59.9127778Z 2026-03-10 16:36:59,912 - __main__ - INFO -   Batch 12: Parsed view name 'dbo.rpt_bounced_direct_debit'
-2026-03-10T16:36:59.9128478Z 2026-03-10 16:36:59,912 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.9234366Z 2026-03-10 16:36:59,923 - __main__ - INFO -   Creating new view 'dbo.rpt_bounced_direct_debit'...
-2026-03-10T16:36:59.9234789Z 2026-03-10 16:36:59,923 - __main__ - INFO -   Processing batch 13 (2577 chars)
-2026-03-10T16:36:59.9235157Z 2026-03-10 16:36:59,923 - __main__ - INFO -   Batch 13: Parsed view name 'dbo.rpt_contracts_created_month'
-2026-03-10T16:36:59.9235547Z 2026-03-10 16:36:59,923 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.9340364Z 2026-03-10 16:36:59,933 - __main__ - INFO -   Creating new view 'dbo.rpt_contracts_created_month'...
-2026-03-10T16:36:59.9340832Z 2026-03-10 16:36:59,933 - __main__ - INFO -   Processing batch 14 (1329 chars)
-2026-03-10T16:36:59.9341213Z 2026-03-10 16:36:59,933 - __main__ - INFO -   Batch 14: Parsed view name 'dbo.rpt_contracts_terminated_live'
-2026-03-10T16:36:59.9341613Z 2026-03-10 16:36:59,933 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.9450963Z 2026-03-10 16:36:59,944 - __main__ - INFO -   Creating new view 'dbo.rpt_contracts_terminated_live'...
-2026-03-10T16:36:59.9451373Z 2026-03-10 16:36:59,944 - __main__ - INFO -   Processing batch 15 (8493 chars)
-2026-03-10T16:36:59.9451760Z 2026-03-10 16:36:59,944 - __main__ - INFO -   Batch 15: Parsed view name 'dbo.rpt_contracts_with_maintenance_budgets'
-2026-03-10T16:36:59.9452325Z 2026-03-10 16:36:59,944 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.9552350Z 2026-03-10 16:36:59,954 - __main__ - INFO -   Creating new view 'dbo.rpt_contracts_with_maintenance_budgets'...
-2026-03-10T16:36:59.9553034Z 2026-03-10 16:36:59,954 - __main__ - INFO -   Processing batch 16 (4973 chars)
-2026-03-10T16:36:59.9553414Z 2026-03-10 16:36:59,955 - __main__ - INFO -   Batch 16: Parsed view name 'dbo.rpt_customer_cw_credit_rating'
-2026-03-10T16:36:59.9553835Z 2026-03-10 16:36:59,955 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.9654568Z 2026-03-10 16:36:59,965 - __main__ - INFO -   Creating new view 'dbo.rpt_customer_cw_credit_rating'...
-2026-03-10T16:36:59.9655328Z 2026-03-10 16:36:59,965 - __main__ - INFO -   Processing batch 17 (9703 chars)
-2026-03-10T16:36:59.9655865Z 2026-03-10 16:36:59,965 - __main__ - INFO -   Batch 17: Parsed view name 'dbo.rpt_equipment_accruals_on_contract'
-2026-03-10T16:36:59.9656263Z 2026-03-10 16:36:59,965 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.9753057Z 2026-03-10 16:36:59,975 - __main__ - INFO -   Creating new view 'dbo.rpt_equipment_accruals_on_contract'...
-2026-03-10T16:36:59.9754917Z 2026-03-10 16:36:59,975 - __main__ - INFO -   Processing batch 18 (3026 chars)
-2026-03-10T16:36:59.9755566Z 2026-03-10 16:36:59,975 - __main__ - INFO -   Batch 18: Parsed view name 'dbo.rpt_evergreen_leased'
-2026-03-10T16:36:59.9755950Z 2026-03-10 16:36:59,975 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.9856371Z 2026-03-10 16:36:59,985 - __main__ - INFO -   Creating new view 'dbo.rpt_evergreen_leased'...
-2026-03-10T16:36:59.9856812Z 2026-03-10 16:36:59,985 - __main__ - INFO -   Processing batch 19 (2976 chars)
-2026-03-10T16:36:59.9858260Z 2026-03-10 16:36:59,985 - __main__ - INFO -   Batch 19: Parsed view name 'dbo.rpt_evergreen_rental'
-2026-03-10T16:36:59.9858634Z 2026-03-10 16:36:59,985 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:36:59.9958362Z 2026-03-10 16:36:59,995 - __main__ - INFO -   Creating new view 'dbo.rpt_evergreen_rental'...
-2026-03-10T16:36:59.9958811Z 2026-03-10 16:36:59,995 - __main__ - INFO -   Processing batch 20 (1168 chars)
-2026-03-10T16:36:59.9959176Z 2026-03-10 16:36:59,995 - __main__ - INFO -   Batch 20: Parsed view name 'dbo.rpt_incoming_payments'
-2026-03-10T16:36:59.9959553Z 2026-03-10 16:36:59,995 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.0060783Z 2026-03-10 16:37:00,005 - __main__ - INFO -   Creating new view 'dbo.rpt_incoming_payments'...
-2026-03-10T16:37:00.0061592Z 2026-03-10 16:37:00,005 - __main__ - INFO -   Processing batch 21 (2356 chars)
-2026-03-10T16:37:00.0062307Z 2026-03-10 16:37:00,005 - __main__ - INFO -   Batch 21: Parsed view name 'dbo.rpt_individual_customers'
-2026-03-10T16:37:00.0062962Z 2026-03-10 16:37:00,005 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.0229833Z 2026-03-10 16:37:00,022 - __main__ - INFO -   Creating new view 'dbo.rpt_individual_customers'...
-2026-03-10T16:37:00.0231704Z 2026-03-10 16:37:00,022 - __main__ - INFO -   Processing batch 22 (2526 chars)
-2026-03-10T16:37:00.0232355Z 2026-03-10 16:37:00,022 - __main__ - INFO -   Batch 22: Parsed view name 'dbo.rpt_open_lease_customers'
-2026-03-10T16:37:00.0232739Z 2026-03-10 16:37:00,022 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.0335757Z 2026-03-10 16:37:00,033 - __main__ - INFO -   Creating new view 'dbo.rpt_open_lease_customers'...
-2026-03-10T16:37:00.0337559Z 2026-03-10 16:37:00,033 - __main__ - INFO -   Processing batch 23 (2586 chars)
-2026-03-10T16:37:00.0337963Z 2026-03-10 16:37:00,033 - __main__ - INFO -   Batch 23: Parsed view name 'dbo.rpt_open_lease_file'
-2026-03-10T16:37:00.0338334Z 2026-03-10 16:37:00,033 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.0444241Z 2026-03-10 16:37:00,044 - __main__ - INFO -   Creating new view 'dbo.rpt_open_lease_file'...
-2026-03-10T16:37:00.0446141Z 2026-03-10 16:37:00,044 - __main__ - INFO -   Processing batch 24 (1280 chars)
-2026-03-10T16:37:00.0447586Z 2026-03-10 16:37:00,044 - __main__ - INFO -   Batch 24: Parsed view name 'dbo.rpt_qa_queue_ops'
-2026-03-10T16:37:00.0447972Z 2026-03-10 16:37:00,044 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.0547074Z 2026-03-10 16:37:00,054 - __main__ - INFO -   Creating new view 'dbo.rpt_qa_queue_ops'...
-2026-03-10T16:37:00.0547502Z 2026-03-10 16:37:00,054 - __main__ - INFO -   Processing batch 25 (817 chars)
-2026-03-10T16:37:00.0548181Z 2026-03-10 16:37:00,054 - __main__ - INFO -   Batch 25: Parsed view name 'dbo.rpt_r2c_daily'
-2026-03-10T16:37:00.0548547Z 2026-03-10 16:37:00,054 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.0651504Z 2026-03-10 16:37:00,064 - __main__ - INFO -   Creating new view 'dbo.rpt_r2c_daily'...
-2026-03-10T16:37:00.0652343Z 2026-03-10 16:37:00,064 - __main__ - INFO -   Processing batch 26 (1231 chars)
-2026-03-10T16:37:00.0652715Z 2026-03-10 16:37:00,064 - __main__ - INFO -   Batch 26: Parsed view name 'dbo.rpt_r2c_paid_recharges'
-2026-03-10T16:37:00.0653096Z 2026-03-10 16:37:00,064 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.0760379Z 2026-03-10 16:37:00,075 - __main__ - INFO -   Creating new view 'dbo.rpt_r2c_paid_recharges'...
-2026-03-10T16:37:00.0762379Z 2026-03-10 16:37:00,075 - __main__ - INFO -   Processing batch 27 (1396 chars)
-2026-03-10T16:37:00.0763137Z 2026-03-10 16:37:00,075 - __main__ - INFO -   Batch 27: Parsed view name 'dbo.rpt_r2c_stock_assets'
-2026-03-10T16:37:00.0763826Z 2026-03-10 16:37:00,075 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.0863256Z 2026-03-10 16:37:00,085 - __main__ - INFO -   Creating new view 'dbo.rpt_r2c_stock_assets'...
-2026-03-10T16:37:00.0863670Z 2026-03-10 16:37:00,086 - __main__ - INFO -   Processing batch 28 (1755 chars)
-2026-03-10T16:37:00.0889802Z 2026-03-10 16:37:00,086 - __main__ - INFO -   Batch 28: Parsed view name 'dbo.rpt_rental_availability_report'
-2026-03-10T16:37:00.0890192Z 2026-03-10 16:37:00,086 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.0962940Z 2026-03-10 16:37:00,095 - __main__ - INFO -   Creating new view 'dbo.rpt_rental_availability_report'...
-2026-03-10T16:37:00.0963741Z 2026-03-10 16:37:00,096 - __main__ - INFO -   Processing batch 29 (1740 chars)
-2026-03-10T16:37:00.0964407Z 2026-03-10 16:37:00,096 - __main__ - INFO -   Batch 29: Parsed view name 'dbo.rpt_rv_rcv_assets_not_hire'
-2026-03-10T16:37:00.0964803Z 2026-03-10 16:37:00,096 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.1063324Z 2026-03-10 16:37:00,106 - __main__ - INFO -   Creating new view 'dbo.rpt_rv_rcv_assets_not_hire'...
-2026-03-10T16:37:00.1064960Z 2026-03-10 16:37:00,106 - __main__ - INFO -   Processing batch 30 (8146 chars)
-2026-03-10T16:37:00.1065358Z 2026-03-10 16:37:00,106 - __main__ - INFO -   Batch 30: Parsed view name 'dbo.rpt_rv_receivables_from_live_contracts'
-2026-03-10T16:37:00.1065763Z 2026-03-10 16:37:00,106 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.1163251Z 2026-03-10 16:37:00,116 - __main__ - INFO -   Creating new view 'dbo.rpt_rv_receivables_from_live_contracts'...
-2026-03-10T16:37:00.1165018Z 2026-03-10 16:37:00,116 - __main__ - INFO -   Processing batch 31 (10691 chars)
-2026-03-10T16:37:00.1165445Z 2026-03-10 16:37:00,116 - __main__ - INFO -   Batch 31: Parsed view name 'dbo.rpt_ts_arbuthnot_regulatory_report_v2'
-2026-03-10T16:37:00.1165838Z 2026-03-10 16:37:00,116 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.1267143Z 2026-03-10 16:37:00,126 - __main__ - INFO -   Creating new view 'dbo.rpt_ts_arbuthnot_regulatory_report_v2'...
-2026-03-10T16:37:00.1268797Z 2026-03-10 16:37:00,126 - __main__ - INFO -   Processing batch 32 (1345 chars)
-2026-03-10T16:37:00.1269191Z 2026-03-10 16:37:00,126 - __main__ - INFO -   Batch 32: Parsed view name 'dbo.rpt_arbuthnot_loan_agreement'
-2026-03-10T16:37:00.1271048Z 2026-03-10 16:37:00,126 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.1375799Z 2026-03-10 16:37:00,137 - __main__ - INFO -   Creating new view 'dbo.rpt_arbuthnot_loan_agreement'...
-2026-03-10T16:37:00.1377622Z 2026-03-10 16:37:00,137 - __main__ - INFO -   Processing batch 33 (1691 chars)
-2026-03-10T16:37:00.1378060Z 2026-03-10 16:37:00,137 - __main__ - INFO -   Batch 33: Parsed view name 'dbo.rpt_ts_asset_funding_analysis'
-2026-03-10T16:37:00.1382610Z 2026-03-10 16:37:00,137 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.1482844Z 2026-03-10 16:37:00,147 - __main__ - INFO -   Creating new view 'dbo.rpt_ts_asset_funding_analysis'...
-2026-03-10T16:37:00.1483283Z 2026-03-10 16:37:00,148 - __main__ - INFO -   Processing batch 34 (2167 chars)
-2026-03-10T16:37:00.1483841Z 2026-03-10 16:37:00,148 - __main__ - INFO -   Batch 34: Parsed view name 'dbo.rpt_ts_asset_nbv'
-2026-03-10T16:37:00.1484418Z 2026-03-10 16:37:00,148 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.1585750Z 2026-03-10 16:37:00,158 - __main__ - INFO -   Creating new view 'dbo.rpt_ts_asset_nbv'...
-2026-03-10T16:37:00.1586845Z 2026-03-10 16:37:00,158 - __main__ - INFO -   Processing batch 35 (1867 chars)
-2026-03-10T16:37:00.1587231Z 2026-03-10 16:37:00,158 - __main__ - INFO -   Batch 35: Parsed view name 'dbo.rpt_ts_asset_nbv_funding_migration'
-2026-03-10T16:37:00.1587639Z 2026-03-10 16:37:00,158 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.1688951Z 2026-03-10 16:37:00,168 - __main__ - INFO -   Creating new view 'dbo.rpt_ts_asset_nbv_funding_migration'...
-2026-03-10T16:37:00.1689424Z 2026-03-10 16:37:00,168 - __main__ - INFO -   Processing batch 36 (2499 chars)
-2026-03-10T16:37:00.1689789Z 2026-03-10 16:37:00,168 - __main__ - INFO -   Batch 36: Parsed view name 'dbo.rpt_ts_contracts_not_activated'
-2026-03-10T16:37:00.1690186Z 2026-03-10 16:37:00,168 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.1788870Z 2026-03-10 16:37:00,178 - __main__ - INFO -   Creating new view 'dbo.rpt_ts_contracts_not_activated'...
-2026-03-10T16:37:00.1789536Z 2026-03-10 16:37:00,178 - __main__ - INFO -   Processing batch 37 (2132 chars)
-2026-03-10T16:37:00.1790697Z 2026-03-10 16:37:00,178 - __main__ - INFO -   Batch 37: Parsed view name 'dbo.rpt_ts_contracts_origination'
-2026-03-10T16:37:00.1792679Z 2026-03-10 16:37:00,178 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.1893698Z 2026-03-10 16:37:00,189 - __main__ - INFO -   Creating new view 'dbo.rpt_ts_contracts_origination'...
-2026-03-10T16:37:00.1894363Z 2026-03-10 16:37:00,189 - __main__ - INFO -   Processing batch 38 (2671 chars)
-2026-03-10T16:37:00.1895618Z 2026-03-10 16:37:00,189 - __main__ - INFO -   Batch 38: Parsed view name 'dbo.rpt_ts_equipment_accruals_on_contract'
-2026-03-10T16:37:00.1897141Z 2026-03-10 16:37:00,189 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.1999067Z 2026-03-10 16:37:00,199 - __main__ - INFO -   Creating new view 'dbo.rpt_ts_equipment_accruals_on_contract'...
-2026-03-10T16:37:00.1999714Z 2026-03-10 16:37:00,199 - __main__ - INFO -   Processing batch 39 (1242 chars)
-2026-03-10T16:37:00.2000841Z 2026-03-10 16:37:00,199 - __main__ - INFO -   Batch 39: Parsed view name 'dbo.rpt_ts_invoices_outstanding'
-2026-03-10T16:37:00.2002449Z 2026-03-10 16:37:00,200 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.2107138Z 2026-03-10 16:37:00,210 - __main__ - INFO -   Creating new view 'dbo.rpt_ts_invoices_outstanding'...
-2026-03-10T16:37:00.2112860Z 2026-03-10 16:37:00,210 - __main__ - INFO -   Processing batch 40 (1469 chars)
-2026-03-10T16:37:00.2114750Z 2026-03-10 16:37:00,210 - __main__ - INFO -   Batch 40: Parsed view name 'dbo.rpt_ts_ls_income_streams'
-2026-03-10T16:37:00.2115136Z 2026-03-10 16:37:00,211 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.2215848Z 2026-03-10 16:37:00,221 - __main__ - INFO -   Creating new view 'dbo.rpt_ts_ls_income_streams'...
-2026-03-10T16:37:00.2216725Z 2026-03-10 16:37:00,221 - __main__ - INFO -   Processing batch 41 (3259 chars)
-2026-03-10T16:37:00.2217117Z 2026-03-10 16:37:00,221 - __main__ - INFO -   Batch 41: Parsed view name 'dbo.rpt_ts_recharge_for_debt_reporting'
-2026-03-10T16:37:00.2217538Z 2026-03-10 16:37:00,221 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.2315569Z 2026-03-10 16:37:00,231 - __main__ - INFO -   Creating new view 'dbo.rpt_ts_recharge_for_debt_reporting'...
-2026-03-10T16:37:00.2317605Z 2026-03-10 16:37:00,231 - __main__ - INFO -   Processing batch 42 (3003 chars)
-2026-03-10T16:37:00.2321611Z 2026-03-10 16:37:00,231 - __main__ - INFO -   Batch 42: Parsed view name 'dbo.rpt_tts_msf_report'
-2026-03-10T16:37:00.2322217Z 2026-03-10 16:37:00,231 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.2417155Z 2026-03-10 16:37:00,241 - __main__ - INFO -   Creating new view 'dbo.rpt_tts_msf_report'...
-2026-03-10T16:37:00.2418736Z 2026-03-10 16:37:00,241 - __main__ - INFO -   Processing batch 43 (2549 chars)
-2026-03-10T16:37:00.2419079Z 2026-03-10 16:37:00,241 - __main__ - INFO -   Batch 43: Parsed view name 'dbo.rpt_tts_oc_report'
-2026-03-10T16:37:00.2419318Z 2026-03-10 16:37:00,241 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.2516740Z 2026-03-10 16:37:00,251 - __main__ - INFO -   Creating new view 'dbo.rpt_tts_oc_report'...
-2026-03-10T16:37:00.2518411Z 2026-03-10 16:37:00,251 - __main__ - INFO -   Processing batch 44 (2145 chars)
-2026-03-10T16:37:00.2519786Z 2026-03-10 16:37:00,251 - __main__ - INFO -   Batch 44: Parsed view name 'dbo.rpt_tts_sales'
-2026-03-10T16:37:00.2520153Z 2026-03-10 16:37:00,251 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.2619624Z 2026-03-10 16:37:00,261 - __main__ - INFO -   Creating new view 'dbo.rpt_tts_sales'...
-2026-03-10T16:37:00.2619876Z 2026-03-10 16:37:00,261 - __main__ - INFO -   Processing batch 45 (1441 chars)
-2026-03-10T16:37:00.2620102Z 2026-03-10 16:37:00,261 - __main__ - INFO -   Batch 45: Parsed view name 'dbo.rpt_tts_stock'
-2026-03-10T16:37:00.2620318Z 2026-03-10 16:37:00,261 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.2720234Z 2026-03-10 16:37:00,271 - __main__ - INFO -   Creating new view 'dbo.rpt_tts_stock'...
-2026-03-10T16:37:00.2720827Z 2026-03-10 16:37:00,271 - __main__ - INFO -   Processing batch 46 (2909 chars)
-2026-03-10T16:37:00.2721215Z 2026-03-10 16:37:00,271 - __main__ - INFO -   Batch 46: Parsed view name 'dbo.rpt_tts_unpaid_sales'
-2026-03-10T16:37:00.2721728Z 2026-03-10 16:37:00,271 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.2819921Z 2026-03-10 16:37:00,281 - __main__ - INFO -   Creating new view 'dbo.rpt_tts_unpaid_sales'...
-2026-03-10T16:37:00.2820423Z 2026-03-10 16:37:00,281 - __main__ - INFO -   Processing batch 47 (1435 chars)
-2026-03-10T16:37:00.2820920Z 2026-03-10 16:37:00,281 - __main__ - INFO -   Batch 47: Parsed view name 'dbo.rpt_warehouse_assets_inc_stock'
-2026-03-10T16:37:00.2821331Z 2026-03-10 16:37:00,281 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.2922756Z 2026-03-10 16:37:00,291 - __main__ - INFO -   Creating new view 'dbo.rpt_warehouse_assets_inc_stock'...
-2026-03-10T16:37:00.2923256Z 2026-03-10 16:37:00,292 - __main__ - INFO -   Processing batch 48 (7018 chars)
-2026-03-10T16:37:00.2923495Z 2026-03-10 16:37:00,292 - __main__ - INFO -   Batch 48: Parsed view name 'dbo.pbi_aged_debtors'
-2026-03-10T16:37:00.3028165Z 2026-03-10 16:37:00,292 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.3028583Z 2026-03-10 16:37:00,302 - __main__ - INFO -   Creating new view 'dbo.pbi_aged_debtors'...
-2026-03-10T16:37:00.3029149Z 2026-03-10 16:37:00,302 - __main__ - INFO -   Processing batch 49 (2583 chars)
-2026-03-10T16:37:00.3029531Z 2026-03-10 16:37:00,302 - __main__ - INFO -   Batch 49: Parsed view name 'dbo.pbi_bdm_credit_assets'
-2026-03-10T16:37:00.3030034Z 2026-03-10 16:37:00,302 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.3138950Z 2026-03-10 16:37:00,313 - __main__ - INFO -   Creating new view 'dbo.pbi_bdm_credit_assets'...
-2026-03-10T16:37:00.3139419Z 2026-03-10 16:37:00,313 - __main__ - INFO -   Processing batch 50 (1731 chars)
-2026-03-10T16:37:00.3140247Z 2026-03-10 16:37:00,313 - __main__ - INFO -   Batch 50: Parsed view name 'dbo.pbi_bdm_customer'
-2026-03-10T16:37:00.3140656Z 2026-03-10 16:37:00,313 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.3240615Z 2026-03-10 16:37:00,323 - __main__ - INFO -   Creating new view 'dbo.pbi_bdm_customer'...
-2026-03-10T16:37:00.3241051Z 2026-03-10 16:37:00,323 - __main__ - INFO -   Processing batch 51 (4298 chars)
-2026-03-10T16:37:00.3241430Z 2026-03-10 16:37:00,323 - __main__ - INFO -   Batch 51: Parsed view name 'dbo.pbi_cash_collection_totals_by_age_bracket'
-2026-03-10T16:37:00.3242084Z 2026-03-10 16:37:00,323 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.3346805Z 2026-03-10 16:37:00,334 - __main__ - INFO -   Creating new view 'dbo.pbi_cash_collection_totals_by_age_bracket'...
-2026-03-10T16:37:00.3347404Z 2026-03-10 16:37:00,334 - __main__ - INFO -   Processing batch 52 (942 chars)
-2026-03-10T16:37:00.3347805Z 2026-03-10 16:37:00,334 - __main__ - INFO -   Batch 52: Parsed view name 'dbo.pbi_cash_collections_receipts'
-2026-03-10T16:37:00.3348328Z 2026-03-10 16:37:00,334 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.3456020Z 2026-03-10 16:37:00,345 - __main__ - INFO -   Creating new view 'dbo.pbi_cash_collections_receipts'...
-2026-03-10T16:37:00.3456376Z 2026-03-10 16:37:00,345 - __main__ - INFO -   Processing batch 53 (874 chars)
-2026-03-10T16:37:00.3456723Z 2026-03-10 16:37:00,345 - __main__ - INFO -   Batch 53: Parsed view name 'dbo.pbi_cl_application_documents_mata'
-2026-03-10T16:37:00.3457057Z 2026-03-10 16:37:00,345 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.3557901Z 2026-03-10 16:37:00,355 - __main__ - INFO -   Creating new view 'dbo.pbi_cl_application_documents_mata'...
-2026-03-10T16:37:00.3558745Z 2026-03-10 16:37:00,355 - __main__ - INFO -   Processing batch 54 (1171 chars)
-2026-03-10T16:37:00.3559148Z 2026-03-10 16:37:00,355 - __main__ - INFO -   Batch 54: Parsed view name 'dbo.pbi_cl_lease_documents_mata'
-2026-03-10T16:37:00.3559688Z 2026-03-10 16:37:00,355 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.3658869Z 2026-03-10 16:37:00,365 - __main__ - INFO -   Creating new view 'dbo.pbi_cl_lease_documents_mata'...
-2026-03-10T16:37:00.3659411Z 2026-03-10 16:37:00,365 - __main__ - INFO -   Processing batch 55 (7203 chars)
-2026-03-10T16:37:00.3659821Z 2026-03-10 16:37:00,365 - __main__ - INFO -   Batch 55: Parsed view name 'dbo.pbi_contract_management_contracts_created'
-2026-03-10T16:37:00.3660345Z 2026-03-10 16:37:00,365 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.3761491Z 2026-03-10 16:37:00,375 - __main__ - INFO -   Creating new view 'dbo.pbi_contract_management_contracts_created'...
-2026-03-10T16:37:00.3762196Z 2026-03-10 16:37:00,375 - __main__ - INFO -   Processing batch 56 (3157 chars)
-2026-03-10T16:37:00.3762672Z 2026-03-10 16:37:00,375 - __main__ - INFO -   Batch 56: Parsed view name 'dbo.pbi_contract_management_contracts_not_activated'
-2026-03-10T16:37:00.3762965Z 2026-03-10 16:37:00,376 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.3864417Z 2026-03-10 16:37:00,386 - __main__ - INFO -   Creating new view 'dbo.pbi_contract_management_contracts_not_activated'...
-2026-03-10T16:37:00.3864895Z 2026-03-10 16:37:00,386 - __main__ - INFO -   Processing batch 57 (5794 chars)
-2026-03-10T16:37:00.3973524Z 2026-03-10 16:37:00,386 - __main__ - INFO -   Batch 57: Parsed view name 'dbo.pbi_contract_management_live_locs'
-2026-03-10T16:37:00.3973988Z 2026-03-10 16:37:00,386 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.3974263Z 2026-03-10 16:37:00,397 - __main__ - INFO -   Creating new view 'dbo.pbi_contract_management_live_locs'...
-2026-03-10T16:37:00.3974763Z 2026-03-10 16:37:00,397 - __main__ - INFO -   Processing batch 58 (2866 chars)
-2026-03-10T16:37:00.3975538Z 2026-03-10 16:37:00,397 - __main__ - INFO -   Batch 58: Parsed view name 'dbo.pbi_contract_management_rentals_time_in_cm'
-2026-03-10T16:37:00.3975998Z 2026-03-10 16:37:00,397 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.4083985Z 2026-03-10 16:37:00,408 - __main__ - INFO -   Creating new view 'dbo.pbi_contract_management_rentals_time_in_cm'...
-2026-03-10T16:37:00.4084456Z 2026-03-10 16:37:00,408 - __main__ - INFO -   Processing batch 59 (2177 chars)
-2026-03-10T16:37:00.4084915Z 2026-03-10 16:37:00,408 - __main__ - INFO -   Batch 59: Parsed view name 'dbo.pbi_customer_retention_and_growth'
-2026-03-10T16:37:00.4085420Z 2026-03-10 16:37:00,408 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.4189820Z 2026-03-10 16:37:00,418 - __main__ - INFO -   Creating new view 'dbo.pbi_customer_retention_and_growth'...
-2026-03-10T16:37:00.4190294Z 2026-03-10 16:37:00,418 - __main__ - INFO -   Processing batch 60 (656 chars)
-2026-03-10T16:37:00.4190809Z 2026-03-10 16:37:00,418 - __main__ - INFO -   Batch 60: Parsed view name 'dbo.pbi_fleet_overheads_by_asset'
-2026-03-10T16:37:00.4191215Z 2026-03-10 16:37:00,418 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.4299849Z 2026-03-10 16:37:00,429 - __main__ - INFO -   Creating new view 'dbo.pbi_fleet_overheads_by_asset'...
-2026-03-10T16:37:00.4300352Z 2026-03-10 16:37:00,429 - __main__ - INFO -   Processing batch 61 (3464 chars)
-2026-03-10T16:37:00.4300722Z 2026-03-10 16:37:00,429 - __main__ - INFO -   Batch 61: Parsed view name 'dbo.pbi_fleetspendreporting1'
-2026-03-10T16:37:00.4301190Z 2026-03-10 16:37:00,429 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.4410819Z 2026-03-10 16:37:00,440 - __main__ - INFO -   Creating new view 'dbo.pbi_fleetspendreporting1'...
-2026-03-10T16:37:00.4411711Z 2026-03-10 16:37:00,440 - __main__ - INFO -   Processing batch 62 (2700 chars)
-2026-03-10T16:37:00.4412286Z 2026-03-10 16:37:00,440 - __main__ - INFO -   Batch 62: Parsed view name 'dbo.pbi_fleetspendreporting1_with_history'
-2026-03-10T16:37:00.4412518Z 2026-03-10 16:37:00,440 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.4517640Z 2026-03-10 16:37:00,451 - __main__ - INFO -   Creating new view 'dbo.pbi_fleetspendreporting1_with_history'...
-2026-03-10T16:37:00.4518097Z 2026-03-10 16:37:00,451 - __main__ - INFO -   Processing batch 63 (10983 chars)
-2026-03-10T16:37:00.4518469Z 2026-03-10 16:37:00,451 - __main__ - INFO -   Batch 63: Parsed view name 'dbo.pbi_fleetspendreporting2'
-2026-03-10T16:37:00.4518930Z 2026-03-10 16:37:00,451 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.4618821Z 2026-03-10 16:37:00,461 - __main__ - INFO -   Creating new view 'dbo.pbi_fleetspendreporting2'...
-2026-03-10T16:37:00.4619280Z 2026-03-10 16:37:00,461 - __main__ - INFO -   Processing batch 64 (6329 chars)
-2026-03-10T16:37:00.4619536Z 2026-03-10 16:37:00,461 - __main__ - INFO -   Batch 64: Parsed view name 'dbo.rpt_ch_maintenance_provision'
-2026-03-10T16:37:00.4619763Z 2026-03-10 16:37:00,461 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.4727520Z 2026-03-10 16:37:00,472 - __main__ - INFO -   Creating new view 'dbo.rpt_ch_maintenance_provision'...
-2026-03-10T16:37:00.4728006Z 2026-03-10 16:37:00,472 - __main__ - INFO -   Processing batch 65 (1199 chars)
-2026-03-10T16:37:00.4728391Z 2026-03-10 16:37:00,472 - __main__ - INFO -   Batch 65: Parsed view name 'dbo.pbi_fleetspendreporting2_in_application'
-2026-03-10T16:37:00.4728869Z 2026-03-10 16:37:00,472 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.4832102Z 2026-03-10 16:37:00,482 - __main__ - INFO -   Creating new view 'dbo.pbi_fleetspendreporting2_in_application'...
-2026-03-10T16:37:00.4832604Z 2026-03-10 16:37:00,482 - __main__ - INFO -   Processing batch 66 (4151 chars)
-2026-03-10T16:37:00.4833415Z 2026-03-10 16:37:00,483 - __main__ - INFO -   Batch 66: Parsed view name 'dbo.pbi_fleetspendreporting2_in_inventory'
-2026-03-10T16:37:00.4833891Z 2026-03-10 16:37:00,483 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.4940368Z 2026-03-10 16:37:00,493 - __main__ - INFO -   Creating new view 'dbo.pbi_fleetspendreporting2_in_inventory'...
-2026-03-10T16:37:00.4940828Z 2026-03-10 16:37:00,493 - __main__ - INFO -   Processing batch 67 (7366 chars)
-2026-03-10T16:37:00.4941292Z 2026-03-10 16:37:00,493 - __main__ - INFO -   Batch 67: Parsed view name 'dbo.pbi_fleetspendreporting2_service_scheduling'
-2026-03-10T16:37:00.4941752Z 2026-03-10 16:37:00,493 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.5048015Z 2026-03-10 16:37:00,504 - __main__ - INFO -   Creating new view 'dbo.pbi_fleetspendreporting2_service_scheduling'...
-2026-03-10T16:37:00.5048481Z 2026-03-10 16:37:00,504 - __main__ - INFO -   Processing batch 68 (3463 chars)
-2026-03-10T16:37:00.5049015Z 2026-03-10 16:37:00,504 - __main__ - INFO -   Batch 68: Parsed view name 'dbo.pbi_fleetspendreporting2_with_history'
-2026-03-10T16:37:00.5049430Z 2026-03-10 16:37:00,504 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.5155973Z 2026-03-10 16:37:00,515 - __main__ - INFO -   Creating new view 'dbo.pbi_fleetspendreporting2_with_history'...
-2026-03-10T16:37:00.5156437Z 2026-03-10 16:37:00,515 - __main__ - INFO -   Processing batch 69 (3138 chars)
-2026-03-10T16:37:00.5156860Z 2026-03-10 16:37:00,515 - __main__ - INFO -   Batch 69: Parsed view name 'dbo.pbi_maintenance_provision'
-2026-03-10T16:37:00.5157307Z 2026-03-10 16:37:00,515 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.5259241Z 2026-03-10 16:37:00,525 - __main__ - INFO -   Creating new view 'dbo.pbi_maintenance_provision'...
-2026-03-10T16:37:00.5259690Z 2026-03-10 16:37:00,525 - __main__ - INFO -   Processing batch 70 (1981 chars)
-2026-03-10T16:37:00.5260490Z 2026-03-10 16:37:00,525 - __main__ - INFO -   Batch 70: Parsed view name 'dbo.pbi_maintenance_provision_assets'
-2026-03-10T16:37:00.5260915Z 2026-03-10 16:37:00,525 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.5362613Z 2026-03-10 16:37:00,535 - __main__ - INFO -   Creating new view 'dbo.pbi_maintenance_provision_assets'...
-2026-03-10T16:37:00.5363066Z 2026-03-10 16:37:00,536 - __main__ - INFO -   Processing batch 71 (5241 chars)
-2026-03-10T16:37:00.5363559Z 2026-03-10 16:37:00,536 - __main__ - INFO -   Batch 71: Parsed view name 'dbo.pbi_mot_tracker'
-2026-03-10T16:37:00.5363955Z 2026-03-10 16:37:00,536 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.5472575Z 2026-03-10 16:37:00,546 - __main__ - INFO -   Creating new view 'dbo.pbi_mot_tracker'...
-2026-03-10T16:37:00.5473020Z 2026-03-10 16:37:00,547 - __main__ - INFO -   Processing batch 72 (4490 chars)
-2026-03-10T16:37:00.5473472Z 2026-03-10 16:37:00,547 - __main__ - INFO -   Batch 72: Parsed view name 'dbo.pbi_orders_over_time'
-2026-03-10T16:37:00.5473884Z 2026-03-10 16:37:00,547 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.5582491Z 2026-03-10 16:37:00,557 - __main__ - INFO -   Creating new view 'dbo.pbi_orders_over_time'...
-2026-03-10T16:37:00.5582839Z 2026-03-10 16:37:00,557 - __main__ - INFO -   Processing batch 73 (4591 chars)
-2026-03-10T16:37:00.5583166Z 2026-03-10 16:37:00,557 - __main__ - INFO -   Batch 73: Parsed view name 'dbo.pbi_origination'
-2026-03-10T16:37:00.5583550Z 2026-03-10 16:37:00,557 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.5690958Z 2026-03-10 16:37:00,568 - __main__ - INFO -   Creating new view 'dbo.pbi_origination'...
-2026-03-10T16:37:00.5693501Z 2026-03-10 16:37:00,568 - __main__ - INFO -   Processing batch 74 (1336 chars)
-2026-03-10T16:37:00.5695662Z 2026-03-10 16:37:00,569 - __main__ - INFO -   Batch 74: Parsed view name 'dbo.pbi_origination_asset'
-2026-03-10T16:37:00.5698530Z 2026-03-10 16:37:00,569 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.5800939Z 2026-03-10 16:37:00,579 - __main__ - INFO -   Creating new view 'dbo.pbi_origination_asset'...
-2026-03-10T16:37:00.5801474Z 2026-03-10 16:37:00,579 - __main__ - INFO -   Processing batch 75 (2496 chars)
-2026-03-10T16:37:00.5802009Z 2026-03-10 16:37:00,579 - __main__ - INFO -   Batch 75: Parsed view name 'dbo.pbi_origination_old'
-2026-03-10T16:37:00.5802526Z 2026-03-10 16:37:00,579 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.5913477Z 2026-03-10 16:37:00,591 - __main__ - INFO -   Creating new view 'dbo.pbi_origination_old'...
-2026-03-10T16:37:00.5914018Z 2026-03-10 16:37:00,591 - __main__ - INFO -   Processing batch 76 (892 chars)
-2026-03-10T16:37:00.5914391Z 2026-03-10 16:37:00,591 - __main__ - INFO -   Batch 76: Parsed view name 'dbo.pbi_pcn'
-2026-03-10T16:37:00.5914899Z 2026-03-10 16:37:00,591 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.6066638Z 2026-03-10 16:37:00,606 - __main__ - INFO -   Creating new view 'dbo.pbi_pcn'...
-2026-03-10T16:37:00.6066876Z 2026-03-10 16:37:00,606 - __main__ - INFO -   Processing batch 77 (3943 chars)
-2026-03-10T16:37:00.6067096Z 2026-03-10 16:37:00,606 - __main__ - INFO -   Batch 77: Parsed view name 'dbo.pbi_procurement_asset_funding'
-2026-03-10T16:37:00.6067321Z 2026-03-10 16:37:00,606 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.6180074Z 2026-03-10 16:37:00,617 - __main__ - INFO -   Creating new view 'dbo.pbi_procurement_asset_funding'...
-2026-03-10T16:37:00.6180654Z 2026-03-10 16:37:00,617 - __main__ - INFO -   Processing batch 78 (8100 chars)
-2026-03-10T16:37:00.6181054Z 2026-03-10 16:37:00,617 - __main__ - INFO -   Batch 78: Parsed view name 'dbo.pbi_procurement_asset_funding_over_time'
-2026-03-10T16:37:00.6181554Z 2026-03-10 16:37:00,617 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.6289168Z 2026-03-10 16:37:00,628 - __main__ - INFO -   Creating new view 'dbo.pbi_procurement_asset_funding_over_time'...
-2026-03-10T16:37:00.6289709Z 2026-03-10 16:37:00,628 - __main__ - INFO -   Processing batch 79 (7700 chars)
-2026-03-10T16:37:00.6290223Z 2026-03-10 16:37:00,628 - __main__ - INFO -   Batch 79: Parsed view name 'dbo.pbi_procurement_asset_origination'
-2026-03-10T16:37:00.6290643Z 2026-03-10 16:37:00,628 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.6393537Z 2026-03-10 16:37:00,639 - __main__ - INFO -   Creating new view 'dbo.pbi_procurement_asset_origination'...
-2026-03-10T16:37:00.6393987Z 2026-03-10 16:37:00,639 - __main__ - INFO -   Processing batch 80 (5116 chars)
-2026-03-10T16:37:00.6394419Z 2026-03-10 16:37:00,639 - __main__ - INFO -   Batch 80: Parsed view name 'dbo.pbi_procurement_report'
-2026-03-10T16:37:00.6394926Z 2026-03-10 16:37:00,639 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.6505102Z 2026-03-10 16:37:00,650 - __main__ - INFO -   Creating new view 'dbo.pbi_procurement_report'...
-2026-03-10T16:37:00.6505551Z 2026-03-10 16:37:00,650 - __main__ - INFO -   Processing batch 81 (8418 chars)
-2026-03-10T16:37:00.6505775Z 2026-03-10 16:37:00,650 - __main__ - INFO -   Batch 81: Parsed view name 'dbo.pbi_rental_utilisation'
-2026-03-10T16:37:00.6506050Z 2026-03-10 16:37:00,650 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.6616555Z 2026-03-10 16:37:00,661 - __main__ - INFO -   Creating new view 'dbo.pbi_rental_utilisation'...
-2026-03-10T16:37:00.6617957Z 2026-03-10 16:37:00,661 - __main__ - INFO -   Processing batch 82 (7707 chars)
-2026-03-10T16:37:00.6618320Z 2026-03-10 16:37:00,661 - __main__ - INFO -   Batch 82: Parsed view name 'dbo.pbi_rv_analysis'
-2026-03-10T16:37:00.6618694Z 2026-03-10 16:37:00,661 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.6719182Z 2026-03-10 16:37:00,671 - __main__ - INFO -   Creating new view 'dbo.pbi_rv_analysis'...
-2026-03-10T16:37:00.6719921Z 2026-03-10 16:37:00,671 - __main__ - INFO -   Processing batch 83 (7420 chars)
-2026-03-10T16:37:00.6720307Z 2026-03-10 16:37:00,671 - __main__ - INFO -   Batch 83: Parsed view name 'dbo.pbi_tyre_analysis_contracts'
-2026-03-10T16:37:00.6720812Z 2026-03-10 16:37:00,671 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.6822112Z 2026-03-10 16:37:00,681 - __main__ - INFO -   Creating new view 'dbo.pbi_tyre_analysis_contracts'...
-2026-03-10T16:37:00.6822486Z 2026-03-10 16:37:00,681 - __main__ - INFO -   Processing batch 84 (2023 chars)
-2026-03-10T16:37:00.6822775Z 2026-03-10 16:37:00,681 - __main__ - INFO -   Batch 84: Parsed view name 'dbo.pbi_tyre_analysis_income_and_expenses'
-2026-03-10T16:37:00.6823005Z 2026-03-10 16:37:00,681 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.6926756Z 2026-03-10 16:37:00,692 - __main__ - INFO -   Creating new view 'dbo.pbi_tyre_analysis_income_and_expenses'...
-2026-03-10T16:37:00.6927361Z 2026-03-10 16:37:00,692 - __main__ - INFO -   Processing batch 85 (2964 chars)
-2026-03-10T16:37:00.6927734Z 2026-03-10 16:37:00,692 - __main__ - INFO -   Batch 85: Parsed view name 'dbo.Assets'
-2026-03-10T16:37:00.6928204Z 2026-03-10 16:37:00,692 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.7033147Z 2026-03-10 16:37:00,703 - __main__ - INFO -   Creating new view 'dbo.Assets'...
-2026-03-10T16:37:00.7034573Z 2026-03-10 16:37:00,703 - __main__ - INFO -   Batch 86: Empty, skipping
-2026-03-10T16:37:00.7036985Z 2026-03-10 16:37:00,703 - fabric_client - INFO - Executing SQL command on ReportingLakehouse
-2026-03-10T16:37:00.7076382Z 2026-03-10 16:37:00,707 - fabric_client - INFO -   Executing batch 1/85
-2026-03-10T16:37:00.7885338Z 2026-03-10 16:37:00,787 - fabric_client - INFO -   Executing batch 2/85
-2026-03-10T16:37:00.8009099Z 2026-03-10 16:37:00,800 - fabric_client - INFO -   Executing batch 3/85
-2026-03-10T16:37:00.8127877Z 2026-03-10 16:37:00,812 - fabric_client - INFO -   Executing batch 4/85
-2026-03-10T16:37:00.8160639Z 2026-03-10 16:37:00,815 - fabric_client - ERROR - SQL execution error: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'vw_sundry_details'. (208) (SQLExecDirectW)")
-2026-03-10T16:37:00.8194520Z 2026-03-10 16:37:00,817 - __main__ - ERROR - ❌ Failed to deploy 03_Report_Views: ('42S02', "[42S02] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid object name 'vw_sundry_details'. (208) (SQLExecDirectW)")
-2026-03-10T16:37:00.8195379Z 2026-03-10 16:37:00,817 - __main__ - INFO - 
-2026-03-10T16:37:00.8196095Z 2026-03-10 16:37:00,817 - __main__ - INFO - ============================================================
-2026-03-10T16:37:00.8197456Z 2026-03-10 16:37:00,817 - __main__ - INFO - DEPLOYMENT SUMMARY
-2026-03-10T16:37:00.8198186Z 2026-03-10 16:37:00,817 - __main__ - INFO - ============================================================
-2026-03-10T16:37:00.8198841Z 2026-03-10 16:37:00,817 - __main__ - INFO - Total artifacts: 4
-2026-03-10T16:37:00.8199374Z 2026-03-10 16:37:00,817 - __main__ - INFO - Successful: 1
-2026-03-10T16:37:00.8199882Z 2026-03-10 16:37:00,817 - __main__ - INFO - Failed: 3
-2026-03-10T16:37:00.8200509Z 2026-03-10 16:37:00,817 - __main__ - INFO - ============================================================
-2026-03-10T16:37:00.8201242Z 2026-03-10 16:37:00,818 - __main__ - INFO - 
-2026-03-10T16:37:00.8202380Z 2026-03-10 16:37:00,818 - __main__ - INFO - ------------------------------------------------------------
-2026-03-10T16:37:00.8203389Z 2026-03-10 16:37:00,818 - __main__ - INFO - POST-DEPLOY: COMMIT WORKSPACE TO GIT
-2026-03-10T16:37:00.8204075Z 2026-03-10 16:37:00,818 - __main__ - INFO - ------------------------------------------------------------
-2026-03-10T16:37:00.8204725Z 2026-03-10 16:37:00,818 - fabric_client - INFO - Getting Git credentials for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-10T16:37:01.0632258Z 2026-03-10 16:37:01,062 - __main__ - INFO -   Git credentials already configured (source: ConfiguredConnection)
-2026-03-10T16:37:01.0638114Z 2026-03-10 16:37:01,062 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-10T16:37:09.2540789Z 2026-03-10 16:37:09,253 - __main__ - INFO -   ⟳ Workspace is behind remote — advancing head before commit...
-2026-03-10T16:37:09.2541773Z 2026-03-10 16:37:09,253 - __main__ - INFO -     workspace: c1aa38e81e8b...  remote: 991ae24c80f9...
-2026-03-10T16:37:09.2545473Z 2026-03-10 16:37:09,253 - fabric_client - INFO - Updating workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64 from Git (commit: 991ae24c80f9...)
-2026-03-10T16:37:15.4169608Z 2026-03-10 16:37:15,416 - fabric_client - INFO -   Update from Git in progress (operation: 8baf14b4-7544-4333-a78e-3f3a9c96b783), polling...
-2026-03-10T16:37:35.6073168Z 2026-03-10 16:37:35,606 - fabric_client - INFO -     Poll 1: Succeeded (100% complete)
-2026-03-10T16:37:35.6078469Z 2026-03-10 16:37:35,606 - fabric_client - INFO -   ✓ Update from Git completed successfully
-2026-03-10T16:37:35.6079393Z 2026-03-10 16:37:35,606 - __main__ - INFO -   ✓ Workspace head advanced to remote
-2026-03-10T16:37:35.6080149Z 2026-03-10 16:37:35,607 - fabric_client - INFO - Getting Git status for workspace d7faf1fa-0e7e-4061-b3e5-50fa3873eb64
-2026-03-10T16:37:40.3798382Z 2026-03-10 16:37:40,378 - __main__ - INFO -   ✓ No workspace changes to commit — Git is in sync
-2026-03-10T16:37:40.3798854Z 2026-03-10 16:37:40,379 - __main__ - INFO - 
-2026-03-10T16:37:40.3799216Z 2026-03-10 16:37:40,379 - __main__ - INFO - ------------------------------------------------------------
-2026-03-10T16:37:40.3799589Z 2026-03-10 16:37:40,379 - __main__ - INFO - POST-DEPLOY: LAKEHOUSE TABLE MAINTENANCE
-2026-03-10T16:37:40.3799961Z 2026-03-10 16:37:40,379 - __main__ - INFO - ------------------------------------------------------------
-2026-03-10T16:37:40.3800739Z 2026-03-10 16:37:40,379 - __main__ - INFO -   Triggering table maintenance for 1 deployed lakehouse(s)
-2026-03-10T16:37:40.3801149Z 2026-03-10 16:37:40,379 - __main__ - INFO -   Running table maintenance for 'ReportingLakehouse' (ID: 0b0bb152-eb0d-4248-86bc-7a620ea59ed6)...
-2026-03-10T16:37:40.3801585Z 2026-03-10 16:37:40,379 - fabric_client - INFO - Triggering table maintenance for lakehouse: 0b0bb152-eb0d-4248-86bc-7a620ea59ed6
-2026-03-10T16:37:40.5915610Z 2026-03-10 16:37:40,590 - fabric_client - INFO -   ✓ Table maintenance queued
-2026-03-10T16:37:40.5918156Z 2026-03-10 16:37:40,590 - __main__ - INFO -   ✓ Table maintenance triggered for 'ReportingLakehouse'
-2026-03-10T16:37:40.5918633Z 2026-03-10 16:37:40,590 - __main__ - INFO -   Done — 1 maintenance job(s) triggered, 0 failed
-2026-03-10T16:37:40.6294498Z 
-2026-03-10T16:37:40.6336048Z ##[error]Bash exited with code '1'.
-2026-03-10T16:37:40.6379497Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-18T16:38:06.9764805Z ##[section]Starting: Deploy to Dev Workspace (Change Detection Enabled)
+2026-03-18T16:38:06.9773636Z ==============================================================================
+2026-03-18T16:38:06.9773854Z Task         : Command line
+2026-03-18T16:38:06.9773980Z Description  : Run a command line script using Bash on Linux and macOS and cmd.exe on Windows
+2026-03-18T16:38:06.9774229Z Version      : 2.268.0
+2026-03-18T16:38:06.9774350Z Author       : Microsoft Corporation
+2026-03-18T16:38:06.9774495Z Help         : https://docs.microsoft.com/azure/devops/pipelines/tasks/utility/command-line
+2026-03-18T16:38:06.9774686Z ==============================================================================
+2026-03-18T16:38:07.1165875Z Generating script.
+2026-03-18T16:38:07.1176474Z ========================== Starting Command Output ===========================
+2026-03-18T16:38:07.1188025Z [command]/usr/bin/bash --noprofile --norc /home/vsts/work/_temp/96fd46fe-f0ee-4561-9eb8-e3e851fd13c3.sh
+2026-03-18T16:38:07.1254642Z ========================================
+2026-03-18T16:38:07.1255145Z DEBUG: Verifying Repository Checkout
+2026-03-18T16:38:07.1255661Z ========================================f
+2026-03-18T16:38:07.1257314Z Current directory: /home/vsts/work/1/s
+2026-03-18T16:38:07.1262123Z Build.SourcesDirectory: /home/vsts/work/1/s
+2026-03-18T16:38:07.1262728Z 
+2026-03-18T16:38:07.1263184Z Contents of Build.SourcesDirectory:
+2026-03-18T16:38:07.1281866Z total 40
+2026-03-18T16:38:07.1282898Z drwxr-xr-x 8 vsts vsts 4096 Mar 18 16:37 .
+2026-03-18T16:38:07.1283648Z drwxr-xr-x 7 vsts vsts 4096 Mar 18 16:37 ..
+2026-03-18T16:38:07.1285775Z drwxr-xr-x 2 vsts vsts 4096 Mar 18 16:37 .deployment_tracking
+2026-03-18T16:38:07.1286438Z drwxr-xr-x 7 vsts vsts 4096 Mar 18 16:37 .git
+2026-03-18T16:38:07.1286998Z -rw-r--r-- 1 vsts vsts   44 Mar 18 16:37 .gitignore
+2026-03-18T16:38:07.1292268Z -rw-r--r-- 1 vsts vsts  985 Mar 18 16:37 README.md
+2026-03-18T16:38:07.1292722Z drwxr-xr-x 2 vsts vsts 4096 Mar 18 16:37 azure-pipelines
+2026-03-18T16:38:07.1293109Z drwxr-xr-x 2 vsts vsts 4096 Mar 18 16:37 config
+2026-03-18T16:38:07.1293470Z drwxr-xr-x 2 vsts vsts 4096 Mar 18 16:37 scripts
+2026-03-18T16:38:07.1293845Z drwxr-xr-x 8 vsts vsts 4096 Mar 18 16:37 wsartifacts
+2026-03-18T16:38:07.1294002Z 
+2026-03-18T16:38:07.1294280Z Checking for required folders:
+2026-03-18T16:38:07.1294831Z ✓ scripts/ exists
+2026-03-18T16:38:07.1295168Z ✓ config/ exists
+2026-03-18T16:38:07.1295499Z ✓ wsartifacts/ exists
+2026-03-18T16:38:07.1295814Z ========================================
+2026-03-18T16:38:07.1296147Z ========================================
+2026-03-18T16:38:07.1296462Z Deploying to Dev Environment
+2026-03-18T16:38:07.1296786Z ========================================
+2026-03-18T16:38:07.1297075Z Features:
+2026-03-18T16:38:07.1297515Z   ⚡ Automatic change detection (deploys only modified artifacts)
+2026-03-18T16:38:07.1297964Z   📊 Dependency-aware deployment ordering
+2026-03-18T16:38:07.1298412Z   🔗 Auto-includes dependent artifacts (e.g., SQL views)
+2026-03-18T16:38:07.1298575Z 
+2026-03-18T16:38:07.1298841Z Deployment steps:
+2026-03-18T16:38:07.1299143Z   1. Create artifacts from config file
+2026-03-18T16:38:07.1299501Z   2. Detect changed artifacts using Git diff
+2026-03-18T16:38:07.1299934Z   3. Deploy only changed artifacts (use --force-all to override)
+2026-03-18T16:38:07.1300297Z ========================================
+2026-03-18T16:38:08.3586820Z 2026-03-18 16:38:08,357 - __main__ - INFO - Initializing deployment to dev environment
+2026-03-18T16:38:08.3590979Z 2026-03-18 16:38:08,358 - config_manager - INFO - Loading configuration from: config/dev.json
+2026-03-18T16:38:08.3592626Z 2026-03-18 16:38:08,358 - __main__ - INFO - Using environment-specific service principal for dev
+2026-03-18T16:38:08.3593770Z 2026-03-18 16:38:08,358 - __main__ - INFO - Using artifacts root folder: wsartifacts
+2026-03-18T16:38:08.3596000Z 2026-03-18 16:38:08,358 - fabric_auth - INFO - Using Service Principal authentication (Client ID: ***f72e)
+2026-03-18T16:38:08.7325487Z 2026-03-18 16:38:08,731 - fabric_auth - INFO - Authentication validation successful
+2026-03-18T16:38:08.7339673Z 2026-03-18 16:38:08,733 - __main__ - INFO - Target workspace: P-AAG-FWS-REPORTING-01
+2026-03-18T16:38:08.7344106Z 2026-03-18 16:38:08,733 - __main__ - INFO - Running in artifact creation mode
+2026-03-18T16:38:08.7345898Z 2026-03-18 16:38:08,733 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.7346412Z 2026-03-18 16:38:08,734 - __main__ - INFO - Creating artifacts from configuration for dev
+2026-03-18T16:38:08.7346875Z 2026-03-18 16:38:08,734 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.7347316Z 2026-03-18 16:38:08,734 - __main__ - INFO - No artifacts configured for creation
+2026-03-18T16:38:08.7347755Z 2026-03-18 16:38:08,734 - __main__ - INFO - Artifact creation completed successfully
+2026-03-18T16:38:08.7348244Z 2026-03-18 16:38:08,734 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.7348730Z 2026-03-18 16:38:08,734 - __main__ - INFO - ARTIFACT DISCOVERY PHASE
+2026-03-18T16:38:08.7349195Z 2026-03-18 16:38:08,734 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.7351702Z 2026-03-18 16:38:08,734 - __main__ - INFO - Discovering artifacts from file system...
+2026-03-18T16:38:08.7352459Z 2026-03-18 16:38:08,734 - __main__ - INFO - Discovered 1 lakehouse(s): ReportingLakehouse
+2026-03-18T16:38:08.7355770Z 2026-03-18 16:38:08,735 - __main__ - INFO - Discovered 1 Variable Library: ReportingWSVariables
+2026-03-18T16:38:08.7376188Z 2026-03-18 16:38:08,737 - __main__ - INFO - Discovered 28 semantic model(s): Aged Debtors - With Filters (Fabric Git), All Assets Summary (Fabric Git), Asset Alias & Registration Number Check (Fabric Git), BDM Credit Report - Sales Team (Fabric Git), Cash Collection (Fabric Git), CloudLending Documents (Fabric Git), Contract Management (Fabric Git), Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), Reports Unavailable (Fabric Git), TTS Sales (Fabric Git), TTS Stock (Fabric Git), Tyre Analysis (Fabric Git), Welcome (Fabric Git)
+2026-03-18T16:38:08.7420863Z 2026-03-18 16:38:08,741 - __main__ - INFO - Discovered 28 report(s): Aged Debtors - With Filters (Fabric Git), All Assets Summary (Fabric Git), Asset Alias & Registration Number Check (Fabric Git), BDM Credit Report - Sales Team (Fabric Git), Cash Collection (Fabric Git), CloudLending Documents (Fabric Git), Contract Management (Fabric Git), Customer Retention & Growth (Fabric Git), Finance Summary (Fabric Git), Fleet Overheads by Asset (Fabric Git), FleetSpendReporting 1 of 2 (Fabric Git), FleetSpendReporting 2 of 2 (Fabric Git), MOT Tracker (Fabric Git), Maintenance Provision (Fabric Git), Maintenance Provision - All Assets (Fabric Git), NewAssetAwaitingDelivery (Fabric Git), Odessa to Certinia Discrepancies (Fabric Git), Origination (Fabric Git), PCN (Fabric Git), Procurement Report (Fabric Git), R2C to Odessa Discrepancies (Fabric Git), RV Analysis (Fabric Git), Rental utilisation (Fabric Git), Reports Unavailable (Fabric Git), TTS Sales (Fabric Git), TTS Stock (Fabric Git), Tyre Analysis (Fabric Git), Welcome (Fabric Git)
+2026-03-18T16:38:08.7454985Z 2026-03-18 16:38:08,744 - __main__ - INFO - Discovered 51 paginated report(s): Aged Debtors (Fabric Git), Aged Debtors by Due Date (Fabric Git), All Assets - Maintenance Provision (Fabric Git), All Assets Report (Fabric Git), Anna Asset Delivery Dates (Fabric Git), Annual Reviews - Proposed Exposure greater than 0 (Fabric Git), Application to Lease Contract (Fabric Git), Applications in Progress (Fabric Git), Arbuthnot Loan Agreement Report (Fabric Git), Arbuthnot MI Contract Report (Fabric Git), Arbuthnot MI Report (Fabric Git), Arbuthnot Regulatory Report (Fabric Git), Asset Transfer Report (Fabric Git), Assets Awaiting Delivery (Fabric Git), Assets terminated in a month (Fabric Git), Available Assets (Fabric Git), Bounced Direct Debit (Fabric Git), Contract Hire - Maintenance Provision (Fabric Git), Contracts Created in Month (Fabric Git), Contracts Terminated Live (Fabric Git), Contracts for Origination (Fabric Git), Contracts with Maintenance Budgets (Fabric Git), Customers cw Credit Rating (Fabric Git), Equipment Accruals - On Contract (Fabric Git), Evergreen Leased (Fabric Git), Evergreen Rental (Fabric Git), Incoming Payment (Fabric Git), Individual Customer Exposure (Fabric Git), Open Lease File (Fabric Git), Open Lease for for individual customers (Fabric Git), QA Queue for Ops (Fabric Git), R2C Daily Report @12 (Fabric Git), R2C Paid Recharges (Fabric Git), R2C Stock Assets Report (Fabric Git), RV Receivables - Assets Not On Hire (Fabric Git), RV Receivables from Live Contracts (Fabric Git), Rental Availability Report (Fabric Git), TS Applications in Progress (Fabric Git), TS Asset NBV (Fabric Git), TS Asset NBV for Funding Migration (Fabric Git), TS Assets Funding Analysis (Fabric Git), TS CL Invoices Outstanding (Fabric Git), TS Contracts Not Activated (Fabric Git), TS Depreciation Stream Contract Info (Fabric Git), TS Equipment Accruals - On Contract (Fabric Git), TS LS Contract Income Streams (Fabric Git), TS Recharge for Debt Reporting (Fabric Git), TTS MSF (Fabric Git), TTS OC (Fabric Git), TTS Unpaid Sales (Fabric Git), Warehouse assets inc stock (Fabric Git)
+2026-03-18T16:38:08.7461026Z 2026-03-18 16:38:08,745 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.7468098Z 2026-03-18 16:38:08,745 - __main__ - INFO - DISCOVERY COMPLETE: Found 112 total artifacts
+2026-03-18T16:38:08.7468623Z 2026-03-18 16:38:08,745 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.7469035Z 2026-03-18 16:38:08,745 - __main__ - INFO - 
+2026-03-18T16:38:08.7469449Z 2026-03-18 16:38:08,745 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.7469841Z 2026-03-18 16:38:08,745 - __main__ - INFO - CHANGE DETECTION
+2026-03-18T16:38:08.7470225Z 2026-03-18 16:38:08,745 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.7528528Z 2026-03-18 16:38:08,752 - change_detector - INFO - Found 35 changed file(s) since 4b98571e
+2026-03-18T16:38:08.7533472Z 2026-03-18 16:38:08,753 - change_detector - INFO - Change detection: 34 artifact(s) changed
+2026-03-18T16:38:08.7536585Z 2026-03-18 16:38:08,753 - change_detector - INFO -   PaginatedReport: Aged Debtors, Aged Debtors by Due Date, All Assets Report, Anna Asset Delivery Dates, Application to Lease Contract, Applications in Progress, Arbuthnot MI Contract Report, Arbuthnot MI Report, Asset Transfer Report, Assets terminated in a month, Bounced Direct Debit, Contracts Created in Month, Contracts for Origination, Contracts with Maintenance Budgets, Equipment Accruals - On Contract, Incoming Payment, Individual Customer Exposure, Open Lease File, Open Lease for for individual customers, QA Queue for Ops, R2C Daily Report @12, R2C Paid Recharges, R2C Stock Assets Report, RV Receivables - Assets Not On Hire, Rental Availability Report, TS Asset NBV, TS Asset NBV for Funding Migration, TS Assets Funding Analysis, TS CL Invoices Outstanding, TS Depreciation Stream Contract Info, TS Equipment Accruals - On Contract, TS LS Contract Income Streams, Warehouse assets inc stock
+2026-03-18T16:38:08.7540240Z 2026-03-18 16:38:08,753 - change_detector - INFO -   SqlView: 03_Report_Views
+2026-03-18T16:38:08.7540758Z 2026-03-18 16:38:08,753 - fabric_client - INFO - Listing items in workspace: 207894e6-e70f-4e1b-952a-90b2277f636a
+2026-03-18T16:38:08.9883246Z 2026-03-18 16:38:08,987 - __main__ - INFO - Changed artifacts: 34
+2026-03-18T16:38:08.9884491Z 2026-03-18 16:38:08,987 - __main__ - INFO -   PaginatedReport: Aged Debtors, Aged Debtors by Due Date, All Assets Report, Anna Asset Delivery Dates, Application to Lease Contract, Applications in Progress, Arbuthnot MI Contract Report, Arbuthnot MI Report, Asset Transfer Report, Assets terminated in a month, Bounced Direct Debit, Contracts Created in Month, Contracts for Origination, Contracts with Maintenance Budgets, Equipment Accruals - On Contract, Incoming Payment, Individual Customer Exposure, Open Lease File, Open Lease for for individual customers, QA Queue for Ops, R2C Daily Report @12, R2C Paid Recharges, R2C Stock Assets Report, RV Receivables - Assets Not On Hire, Rental Availability Report, TS Asset NBV, TS Asset NBV for Funding Migration, TS Assets Funding Analysis, TS CL Invoices Outstanding, TS Depreciation Stream Contract Info, TS Equipment Accruals - On Contract, TS LS Contract Income Streams, Warehouse assets inc stock
+2026-03-18T16:38:08.9885749Z 2026-03-18 16:38:08,987 - __main__ - INFO -   SqlView: 03_Report_Views
+2026-03-18T16:38:08.9886139Z 2026-03-18 16:38:08,987 - __main__ - INFO - Skipped (unchanged): 76
+2026-03-18T16:38:08.9886533Z 2026-03-18 16:38:08,987 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.9886990Z 2026-03-18 16:38:08,987 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.9887401Z 2026-03-18 16:38:08,987 - __main__ - INFO - Starting deployment to dev environment
+2026-03-18T16:38:08.9887850Z 2026-03-18 16:38:08,987 - __main__ - INFO - ============================================================
+2026-03-18T16:38:08.9888740Z 2026-03-18 16:38:08,987 - __main__ - INFO -   ℹ Git auto-update is disabled (git_integration.auto_update_from_git = false)
+2026-03-18T16:38:08.9889189Z 2026-03-18 16:38:08,987 - dependency_resolver - ERROR - Dependency validation failed:
+2026-03-18T16:38:08.9889660Z 2026-03-18 16:38:08,987 - dependency_resolver - ERROR -   - Artifact '02_Base_Views' depends on non-existent artifact ID: view-ReportingLakehouse-01_Engineering_Views
+2026-03-18T16:38:08.9890112Z 2026-03-18 16:38:08,987 - __main__ - ERROR - Dependency validation failed. Aborting deployment.
+2026-03-18T16:38:09.0262071Z 
+2026-03-18T16:38:09.0300424Z ##[error]Bash exited with code '1'.
+2026-03-18T16:38:09.0337319Z ##[section]Finishing: Deploy to Dev Workspace (Change Detection Enabled)

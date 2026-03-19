@@ -476,11 +476,22 @@ class FabricDeployer:
                 filtered_artifacts.append(artifact)
                 changed_artifact_ids.add(artifact["id"])
         
-        # Second pass: Add dependencies of changed artifacts (they must exist for validation/deployment)
+        # Second pass: Add ALL transitive dependencies of changed artifacts.
+        # E.g. if 03_Report_Views changed and depends on 02_Base_Views which
+        # depends on 01_Engineering_Views, all three must be in the deploy set.
         dependency_ids = set()
-        for artifact in filtered_artifacts:
+        def _collect_transitive_deps(artifact_id: str) -> None:
+            """Recursively collect all dependencies of an artifact."""
+            artifact = next((a for a in self.resolver.artifacts if a["id"] == artifact_id), None)
+            if not artifact:
+                return
             for dep_id in artifact.get("dependencies", []):
-                dependency_ids.add(dep_id)
+                if dep_id not in dependency_ids and dep_id not in changed_artifact_ids:
+                    dependency_ids.add(dep_id)
+                    _collect_transitive_deps(dep_id)
+
+        for artifact in filtered_artifacts:
+            _collect_transitive_deps(artifact["id"])
         
         # Add dependency artifacts if they're not already in the filtered list
         for artifact in self.resolver.artifacts:

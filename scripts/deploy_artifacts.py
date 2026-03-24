@@ -3413,6 +3413,14 @@ print('Notebook initialized')
             logger.warning("No artifacts to deploy")
             return True
         
+        # Filter out paginated reports if managed by Git sync
+        git_config = self.config.config.get("git_integration", {})
+        if git_config.get("paginated_reports_managed_by_git", False):
+            paginated_in_list = [a for a in deployment_order if a["type"] == ArtifactType.PAGINATED_REPORT]
+            if paginated_in_list:
+                logger.info(f"Excluding {len(paginated_in_list)} paginated report(s) from deployment (managed by Git sync)")
+                deployment_order = [a for a in deployment_order if a["type"] != ArtifactType.PAGINATED_REPORT]
+        
         # Deploy all artifacts via API in dependency order
         success_count = 0
         failure_count = 0
@@ -4400,22 +4408,23 @@ print('Notebook initialized')
     def _deploy_paginated_report(self, name: str) -> None:
         """Deploy a paginated report.
         
-        Deployment strategy depends on git_integration.auto_update_from_git:
+        If git_integration.paginated_reports_managed_by_git is true, the
+        report is managed by Fabric Git sync and API deployment is skipped.
+        This prevents the delete+reimport cycle from creating new logicalIds
+        that conflict with Git-tracked items (causing duplicates).
         
-        - True  (dev):  Deferred to Git sync (updateFromGit).  The report is
-                        synced from the connected Git branch by
-                        _update_source_control().  After sync, the report is
-                        bound to a pre-created ShareableCloud connection
-                        (if configured) or falls back to TakeOver +
-                        UpdateDatasources.
-        
-        - False (uat/prod):  Deployed via the Power BI Imports API.  After
-                        import, the report is bound to a pre-created
-                        ShareableCloud connection (if configured) to avoid
-                        PersonalCloud ownership issues with the SP.
-                        Falls back to TakeOver + UpdateDatasources if no
-                        connection is configured.
+        Otherwise, the report is deployed via the Power BI Imports API.
+        After import, the report is bound to a pre-created ShareableCloud
+        connection (if configured) to avoid PersonalCloud ownership issues
+        with the SP.  Falls back to TakeOver + UpdateDatasources if no
+        connection is configured.
         """
+
+        # Skip API deployment if paginated reports are managed by Git sync
+        git_config = self.config.config.get("git_integration", {})
+        if git_config.get("paginated_reports_managed_by_git", False):
+            logger.info(f"  ⏭ Skipping paginated report '{name}' — managed by Git sync (paginated_reports_managed_by_git = true)")
+            return
 
         rdl_content = None
         report_folder = None

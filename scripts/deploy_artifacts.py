@@ -884,11 +884,13 @@ class FabricDeployer:
                 logger.info(f"    ... and {len(change_names) - 15} more")
             
             # ── Step 3: commitToGit ──
+            # [skip ci] prevents Azure DevOps from triggering another pipeline
+            # run when this commit lands on the branch.
             self.client.commit_to_git(
                 workspace_id=self.workspace_id,
                 mode="All",
                 workspace_head=workspace_head,
-                comment="CI/CD: sync API-deployed items to Git"
+                comment="[skip ci] CI/CD: sync API-deployed items to Git"
             )
             logger.info("  ✓ Workspace changes committed to Git")
 
@@ -3456,10 +3458,6 @@ print('Notebook initialized')
         logger.info(f"Failed: {failure_count}")
         logger.info("="*60)
         
-        # Save deployment commit if fully successful
-        if failure_count == 0:
-            self._save_deployment_state()
-        
         # Post-deploy: link API-deployed items back to Git.
         # Without this, API-created items have different IDs to the Git items,
         # causing "duplicate display name" errors in the Source Control panel.
@@ -3467,6 +3465,13 @@ print('Notebook initialized')
         # items were never created so they won't appear in the commit.
         if not dry_run and success_count > 0:
             self._commit_workspace_to_git()
+        
+        # Save deployment commit AFTER commitToGit so the tracking file
+        # includes the commit created by _commit_workspace_to_git().
+        # This prevents the next pipeline run from seeing the commitToGit
+        # changes as "new" and redeploying everything.
+        if failure_count == 0:
+            self._save_deployment_state()
         
         # Refresh semantic models that were deployed in this run.
         # This must happen after connection binding (done in _deploy_semantic_model)

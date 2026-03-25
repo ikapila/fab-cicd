@@ -3470,8 +3470,16 @@ print('Notebook initialized')
         # includes the commit created by _commit_workspace_to_git().
         # This prevents the next pipeline run from seeing the commitToGit
         # changes as "new" and redeploying everything.
-        if failure_count == 0:
+        #
+        # Save even on partial failure — otherwise persistent errors
+        # (e.g. incompatible definitions) prevent the tracking file from
+        # ever being created, causing a full re-deploy on every run.
+        # Failed artifacts will be retried when their definitions change.
+        if success_count > 0:
             self._save_deployment_state()
+            if failure_count > 0:
+                logger.warning(f"  ⚠ Deployment state saved despite {failure_count} failure(s) — "
+                             f"failed artifacts will be retried when their definitions change")
         
         # Refresh semantic models that were deployed in this run.
         # This must happen after connection binding (done in _deploy_semantic_model)
@@ -4564,8 +4572,13 @@ print('Notebook initialized')
                     logger.warning(f"  ⚠ Two-step creation also failed: {str(e2)}")
                     logger.info(f"  Falling back to Power BI Imports API...")
                     
+                    # Use overwrite=True here — the report may exist in the
+                    # workspace but not be returned by list_paginated_reports()
+                    # (e.g. if it was created by a previous Imports API call
+                    # and isn't tracked as a Fabric PaginatedReport item).
+                    # nameConflict=Abort would fail with 409 in that case.
                     result = self.client.import_paginated_report(
-                        self.workspace_id, name, rdl_content, overwrite=False
+                        self.workspace_id, name, rdl_content, overwrite=True
                     )
                     report_id = result.get('id', 'unknown')
                     logger.info(f"  ✓ Created paginated report '{name}' via Imports API (ID: {report_id})")
@@ -5473,72 +5486,24 @@ print('Notebook initialized')
     
     def _configure_paginated_report_connection(self, report_name: str, report_id: str, rdl_content: str = "") -> None:
         """
-        Bind a paginated report to a pre-created Fabric ShareableCloud connection.
+        Configure data sources for a paginated report after API deployment.
         
-        This avoids the TakeOver + UpdateDatasources approach which creates a
-        PersonalCloud connection owned by the SP.  PersonalCloud connections
-        do not work properly when the SP has ownership.
+        Uses TakeOver + UpdateDatasources via the Power BI Gateway API to
+        point the report at the correct server/database for this environment.
+        The server and database are parsed from ``connections.sql_connection_string``
+        in the environment config.
         
-        Strategy:
-        1. If ``paginated_report_connection`` is configured, look up the
-           connection by name and call bind_paginated_report_to_connection()
-           which does TakeOver + Gateway UpdateDatasource with OAuth2 +
-           useCallerAADIdentity.
-        2. If no connection is configured, fall back to the original
-           TakeOver + UpdateDatasources approach using sql_connection_string
-           to update server/database.
+        Note: ShareableCloud binding (Fabric Items API) is NOT supported for
+        paginated reports — the API returns OperationNotSupportedForItem.
+        The TakeOver + UpdateDatasources approach is the only working method.
         
         Args:
             report_name: Paginated report display name
             report_id: Paginated report GUID
-            rdl_content: Raw RDL XML string (for fallback datasource name extraction)
+            rdl_content: Raw RDL XML string (for datasource name extraction)
         """
-        
         try:
-            # Check if a ShareableCloud connection is configured
-            if not hasattr(self, '_paginated_report_connection'):
-                self._paginated_report_connection = self._get_paginated_report_connection()
-            
-            if self._paginated_report_connection:
-                connection_id = self._paginated_report_connection['id']
-                connection_name = self._paginated_report_connection['displayName']
-                
-                logger.info(f"  Binding '{report_name}' to ShareableCloud connection '{connection_name}'...")
-                
-                try:
-                    result = self.client.bind_paginated_report_to_connection(
-                        self.workspace_id,
-                        report_id,
-                        connection_id
-                    )
-                    if result and result.get("status") in ("bound", "already_bound"):
-                        status = result.get("status")
-                        bound_count = result.get("bound_count", 0)
-                        if status == "already_bound":
-                            logger.info(f"  ✓ '{report_name}' already bound to connection '{connection_name}'")
-                        else:
-                            logger.info(f"  ✓ Bound '{report_name}' to connection '{connection_name}' ({bound_count} data source(s))")
-                        return
-                    else:
-                        logger.warning(f"  ⚠ Could not bind '{report_name}' to connection '{connection_name}'")
-                        logger.info(f"    Falling back to TakeOver + UpdateDatasources")
-                except Exception as bind_err:
-                    logger.warning(f"  ⚠ Could not bind '{report_name}' to connection: {bind_err}")
-                    logger.info(f"    Falling back to TakeOver + UpdateDatasources")
-            
-            # Fall back to the original TakeOver + UpdateDatasources approach
-            # This runs when:
-            # - No paginated_report_connection is configured, OR
-            # - ShareableCloud binding failed (API limitation for paginated reports)
-            if not self._paginated_report_connection:
-                connection_name_cfg = self.config.config.get("connections", {}).get("paginated_report_connection", "")
-                if not connection_name_cfg:
-                    logger.info(f"  ℹ No paginated_report_connection configured for '{report_name}'")
-                    logger.info(f"    Set connections.paginated_report_connection in config/{self.config.environment}.json")
-                    logger.info(f"    Falling back to TakeOver + UpdateDatasources")
-            
             self._update_paginated_report_datasources_api(report_name, report_id, rdl_content)
-            
         except Exception as e:
             logger.warning(f"  ⚠ Could not configure connection for '{report_name}': {e}")
     

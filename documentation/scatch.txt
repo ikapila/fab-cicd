@@ -157,11 +157,12 @@ stages:
                     
                     # Change detection is automatic - no special flags needed
                     # Pass --force-all when forceDeployAll parameter is true
+                    FORCE_ALL_FLAG="${{ if eq(parameters.forceDeployAll, true) }}--force-all${{ endif }}"
                     python scripts/deploy_artifacts.py dev \
                       --config-dir config \
                       --artifacts-dir . \
                       --create-artifacts \
-                      ${{ if eq(parameters.forceDeployAll, true) }}--force-all${{ endif }}
+                      $FORCE_ALL_FLAG
                     
                     echo ""
                     echo "✓ Dev deployment completed successfully"
@@ -290,11 +291,12 @@ stages:
                     
                     # Change detection is automatic - no special flags needed
                     # Pass --force-all when forceDeployAll parameter is true
+                    FORCE_ALL_FLAG="${{ if eq(parameters.forceDeployAll, true) }}--force-all${{ endif }}"
                     python scripts/deploy_artifacts.py uat \
                       --config-dir config \
                       --artifacts-dir . \
                       --create-artifacts \
-                      ${{ if eq(parameters.forceDeployAll, true) }}--force-all${{ endif }}
+                      $FORCE_ALL_FLAG
                     
                     echo ""
                     echo "✓ UAT deployment completed successfully"
@@ -423,11 +425,12 @@ stages:
                     
                     # Change detection is automatic - no special flags needed
                     # Pass --force-all when forceDeployAll parameter is true
+                    FORCE_ALL_FLAG="${{ if eq(parameters.forceDeployAll, true) }}--force-all${{ endif }}"
                     python scripts/deploy_artifacts.py prod \
                       --config-dir config \
                       --artifacts-dir . \
                       --create-artifacts \
-                      ${{ if eq(parameters.forceDeployAll, true) }}--force-all${{ endif }}
+                      $FORCE_ALL_FLAG
                     
                     echo ""
                     echo "✓ Production deployment completed successfully"

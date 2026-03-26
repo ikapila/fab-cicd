@@ -4572,14 +4572,23 @@ print('Notebook initialized')
                     logger.warning(f"  ⚠ Two-step creation also failed: {str(e2)}")
                     logger.info(f"  Falling back to Power BI Imports API...")
                     
-                    # Use overwrite=True here — the report may exist in the
-                    # workspace but not be returned by list_paginated_reports()
-                    # (e.g. if it was created by a previous Imports API call
-                    # and isn't tracked as a Fabric PaginatedReport item).
-                    # nameConflict=Abort would fail with 409 in that case.
-                    result = self.client.import_paginated_report(
-                        self.workspace_id, name, rdl_content, overwrite=True
-                    )
+                    # Use overwrite=False (Abort) first — Overwrite on a
+                    # report that doesn't truly exist can cause
+                    # PowerBISqlOperationError because PBI tries to rebind
+                    # an absent data source.  If Abort fails with 409
+                    # (name collision from a ghost item), retry with Overwrite.
+                    try:
+                        result = self.client.import_paginated_report(
+                            self.workspace_id, name, rdl_content, overwrite=False
+                        )
+                    except Exception as abort_err:
+                        if '409' in str(abort_err):
+                            logger.info(f"  Name conflict detected, retrying with Overwrite...")
+                            result = self.client.import_paginated_report(
+                                self.workspace_id, name, rdl_content, overwrite=True
+                            )
+                        else:
+                            raise
                     report_id = result.get('id', 'unknown')
                     logger.info(f"  ✓ Created paginated report '{name}' via Imports API (ID: {report_id})")
         

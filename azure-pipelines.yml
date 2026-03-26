@@ -16,6 +16,12 @@
 #   Deployment state is tracked in .deployment_tracking/{env}_last_commit.txt files.
 #   These files are committed to the repository for persistence across pipeline runs.
 
+parameters:
+  - name: forceDeployAll
+    displayName: 'Force deploy ALL artifacts (bypass change detection)'
+    type: boolean
+    default: false
+
 trigger:
   branches:
     include:
@@ -166,10 +172,12 @@ stages:
                     echo "========================================"
                     
                     # Change detection is automatic - no special flags needed
+                    # Pass --force-all when forceDeployAll parameter is true
                     python scripts/deploy_artifacts.py dev \
                       --config-dir config \
                       --artifacts-dir . \
-                      --create-artifacts
+                      --create-artifacts \
+                      ${{ if eq(parameters.forceDeployAll, true) }}--force-all${{ endif }}
                     
                     echo ""
                     echo "✓ Dev deployment completed successfully"
@@ -297,10 +305,12 @@ stages:
                     echo "========================================"
                     
                     # Change detection is automatic - no special flags needed
+                    # Pass --force-all when forceDeployAll parameter is true
                     python scripts/deploy_artifacts.py uat \
                       --config-dir config \
                       --artifacts-dir . \
-                      --create-artifacts
+                      --create-artifacts \
+                      ${{ if eq(parameters.forceDeployAll, true) }}--force-all${{ endif }}
                     
                     echo ""
                     echo "✓ UAT deployment completed successfully"
@@ -428,11 +438,12 @@ stages:
                     echo "========================================"
                     
                     # Change detection is automatic - no special flags needed
-                    # Add --force-all flag here if you want to force full deployment
+                    # Pass --force-all when forceDeployAll parameter is true
                     python scripts/deploy_artifacts.py prod \
                       --config-dir config \
                       --artifacts-dir . \
-                      --create-artifacts
+                      --create-artifacts \
+                      ${{ if eq(parameters.forceDeployAll, true) }}--force-all${{ endif }}
                     
                     echo ""
                     echo "✓ Production deployment completed successfully"

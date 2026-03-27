@@ -1203,6 +1203,57 @@ class FabricDeployer:
         if refresh_fail > 0:
             logger.info(f"  ℹ Failed jobs can be retried manually from the Fabric portal")
 
+    def _update_workspace_app(self) -> None:
+        """
+        Update (or create) the workspace app after deployment so that
+        changes are distributed to app users.
+
+        Reads the ``workspace_app`` section from the environment config.
+        If absent or ``enabled`` is false, the step is silently skipped.
+
+        For each configured audience, report display names are resolved to
+        workspace report GUIDs.  Reports not found in the workspace are
+        logged as warnings but do not fail the deployment.
+        """
+        app_config = self.config.config.get("workspace_app")
+        if not app_config or not app_config.get("enabled"):
+            logger.info("  Workspace app update skipped (not enabled in config)")
+            return
+
+        logger.info("")
+        logger.info("-"*60)
+        logger.info("POST-DEPLOY: WORKSPACE APP UPDATE")
+        logger.info("-"*60)
+
+        audiences = app_config.get("audiences", [])
+        if not audiences:
+            logger.warning("  ⚠ workspace_app.audiences is empty — skipping app update")
+            return
+
+        # Fetch all reports from workspace via Power BI REST API
+        ws_reports = self.client.list_workspace_reports_pbi(self.workspace_id)
+        report_name_to_id = {r["name"]: r["id"] for r in ws_reports}
+
+        logger.info(f"  Workspace has {len(report_name_to_id)} report(s)")
+        logger.info(f"  Configuring {len(audiences)} audience(s)")
+
+        for aud in audiences:
+            aud_name = aud.get("name", "?")
+            aud_reports = aud.get("reports", [])
+            aud_users = aud.get("users", [])
+            aud_groups = aud.get("groups", [])
+            logger.info(f"    Audience '{aud_name}': {len(aud_reports)} report(s), "
+                        f"{len(aud_users)} user(s), {len(aud_groups)} group(s)")
+
+        success = self.client.create_or_update_workspace_app(
+            self.workspace_id, audiences, report_name_to_id
+        )
+
+        if success:
+            logger.info(f"  ✓ Workspace app updated with {len(audiences)} audience(s)")
+        else:
+            logger.warning("  ⚠ Workspace app update failed — deployment continues")
+
     def discover_artifacts(self, force_all: bool = False, specific_artifacts: List[str] = None) -> None:
         """
         Discover artifacts from file system and config file, then build dependency graph
@@ -3494,6 +3545,14 @@ print('Notebook initialized')
         if not dry_run and self._deployed_lakehouse_ids:
             self._refresh_deployed_lakehouses()
         
+        # Update workspace app to distribute changes to app users.
+        # Only runs for UAT/Prod (Dev does not have an app), when enabled
+        # in config, and when not skipped by pipeline parameter.
+        if not dry_run and self.environment in ("uat", "prod"):
+            if not getattr(self, "skip_app_update", False):
+                if self.config.config.get("workspace_app", {}).get("enabled"):
+                    self._update_workspace_app()
+        
         # (Paginated reports previously had a dev-specific deferred path
         #  via _process_paginated_reports_after_git_sync.  They are now
         #  deployed via API in all environments so this call is removed.)
@@ -5694,6 +5753,11 @@ def main():
         help="Deploy all artifacts, ignoring change detection"
     )
     parser.add_argument(
+        "--skip-app-update",
+        action="store_true",
+        help="Skip workspace app update after deployment"
+    )
+    parser.add_argument(
         "--artifacts",
         help="Comma-separated list of specific artifacts to deploy (e.g., 'Notebook1,Lakehouse2')"
     )
@@ -5706,6 +5770,9 @@ def main():
             args.config_dir,
             args.artifacts_dir
         )
+        
+        # Set skip-app-update flag on deployer so deploy_all() can check it
+        deployer.skip_app_update = args.skip_app_update
         
         # Create artifacts from config if requested
         if args.create_artifacts:

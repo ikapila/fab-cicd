@@ -195,5 +195,22 @@
     "auto_update_from_git": false,
     "conflict_resolution_policy": "PreferRemote",
     "allow_override_items": true
+  },
+  "workspace_app": {
+    "enabled": true,
+    "audiences": [
+      {
+        "name": "Finance Team",
+        "reports": ["Finance Summary", "Aged Debtors"],
+        "users": ["finance-user@company.com"],
+        "groups": ["00000000-0000-0000-0000-000000000000"]
+      },
+      {
+        "name": "Sales Team",
+        "reports": ["SalesDashboard", "R2C to Odessa Discrepancies"],
+        "users": [],
+        "groups": ["00000000-0000-0000-0000-000000000000"]
+      }
+    ]
   }
 }

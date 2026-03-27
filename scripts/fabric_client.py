@@ -2739,6 +2739,148 @@ class FabricClient:
         result = self.execute_sql_command(connection_string, database, query)
         return result[0]['definition'] if result else None
 
+    # ==================== Workspace App Operations ====================
+
+    def list_workspace_reports_pbi(self, workspace_id: str) -> List[Dict]:
+        """
+        List all reports (including paginated) in a workspace via the Power BI REST API.
+
+        Uses: GET /v1.0/myorg/groups/{groupId}/reports
+
+        Returns report objects with id, name, reportType etc. — needed for
+        resolving display names to GUIDs when building the workspace app.
+
+        Args:
+            workspace_id: Workspace GUID
+
+        Returns:
+            List of report dicts
+        """
+        logger.info(f"Listing workspace reports via Power BI API: {workspace_id}")
+        url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/reports"
+        headers = self.auth.get_auth_headers()
+
+        try:
+            response = requests.get(url, headers=headers, timeout=60)
+            response.raise_for_status()
+            reports = response.json().get("value", [])
+            logger.info(f"  Found {len(reports)} report(s) in workspace")
+            return reports
+        except Exception as e:
+            logger.error(f"  Failed to list workspace reports: {e}")
+            return []
+
+    def create_or_update_workspace_app(
+        self,
+        workspace_id: str,
+        audiences: List[Dict],
+        report_name_to_id: Dict[str, str],
+    ) -> bool:
+        """
+        Create or update the Power BI workspace app with per-audience
+        report visibility and user/group access.
+
+        Tries UpdateApp first; falls back to CreateApp on 404 (no app yet).
+
+        Uses Power BI REST API:
+          POST /v1.0/myorg/groups/{groupId}/UpdateApp
+          POST /v1.0/myorg/groups/{groupId}/CreateApp
+
+        Args:
+            workspace_id: Workspace GUID
+            audiences: List of audience dicts from config, each with
+                       name, reports (display names), users, groups
+            report_name_to_id: Mapping of report display name → report GUID
+
+        Returns:
+            True on success, False on failure
+        """
+        # Build combined access list and report inclusion list from all audiences
+        access_list = []
+        seen_identifiers = set()
+        included_report_ids = set()
+
+        for audience in audiences:
+            audience_name = audience.get("name", "Unknown")
+
+            # Resolve report names to IDs
+            for report_name in audience.get("reports", []):
+                report_id = report_name_to_id.get(report_name)
+                if report_id:
+                    included_report_ids.add(report_id)
+                else:
+                    logger.warning(f"  ⚠ Audience '{audience_name}': report '{report_name}' not found in workspace — skipping")
+
+            # Add users
+            for user_email in audience.get("users", []):
+                if user_email not in seen_identifiers:
+                    seen_identifiers.add(user_email)
+                    access_list.append({
+                        "identifier": user_email,
+                        "principalType": "User",
+                        "appUserAccessRight": "ReadExplore",
+                    })
+
+            # Add groups
+            for group_id in audience.get("groups", []):
+                if group_id not in seen_identifiers:
+                    seen_identifiers.add(group_id)
+                    access_list.append({
+                        "identifier": group_id,
+                        "principalType": "Group",
+                        "appUserAccessRight": "ReadExplore",
+                    })
+
+        # Build report inclusion list — include only reports that appear in at least one audience
+        report_configs = []
+        for report_name, report_id in report_name_to_id.items():
+            report_configs.append({
+                "reportId": report_id,
+                "isIncluded": report_id in included_report_ids,
+                "isVisibleInNavigation": report_id in included_report_ids,
+            })
+
+        payload = {
+            "updateAppSettings": {
+                "access": access_list,
+                "publishDetails": {
+                    "reports": report_configs,
+                },
+            }
+        }
+
+        headers = self.auth.get_auth_headers()
+        headers["Content-Type"] = "application/json"
+
+        # Try UpdateApp first
+        update_url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/UpdateApp"
+        logger.info(f"Updating workspace app ({len(access_list)} user/group(s), "
+                     f"{len(included_report_ids)} report(s) included)")
+
+        try:
+            response = requests.post(update_url, headers=headers, json=payload, timeout=120)
+
+            if response.status_code == 200:
+                logger.info("  ✓ Workspace app updated successfully")
+                return True
+            elif response.status_code == 404:
+                # No app exists yet — create one
+                logger.info("  App does not exist yet, creating...")
+                create_url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/CreateApp"
+                create_response = requests.post(create_url, headers=headers, json=payload, timeout=120)
+                if create_response.status_code in (200, 201):
+                    logger.info("  ✓ Workspace app created successfully")
+                    return True
+                else:
+                    logger.error(f"  ✗ CreateApp failed: {create_response.status_code} — {create_response.text}")
+                    return False
+            else:
+                logger.error(f"  ✗ UpdateApp failed: {response.status_code} — {response.text}")
+                return False
+
+        except Exception as e:
+            logger.error(f"  ✗ Workspace app update failed: {e}")
+            return False
 
     # ==================== Deployment Pipeline Operations ====================
 

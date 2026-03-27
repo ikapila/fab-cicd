@@ -3,6 +3,10 @@ parameters:
     displayName: 'Force deploy ALL artifacts (bypass change detection)'
     type: boolean
     default: false
+  - name: updateApp
+    displayName: 'Update workspace app after deployment (UAT/Prod only)'
+    type: boolean
+    default: true
 
 trigger:
   branches:
@@ -34,6 +38,12 @@ variables:
       value: '--force-all'
   - ${{ else }}:
     - name: forceAllFlag
+      value: ''
+  - ${{ if eq(parameters.updateApp, false) }}:
+    - name: skipAppUpdateFlag
+      value: '--skip-app-update'
+  - ${{ else }}:
+    - name: skipAppUpdateFlag
       value: ''
   
 pool:
@@ -300,7 +310,8 @@ stages:
                       --config-dir config \
                       --artifacts-dir . \
                       --create-artifacts \
-                      $(forceAllFlag)
+                      $(forceAllFlag) \
+                      $(skipAppUpdateFlag)
                     
                     echo ""
                     echo "✓ UAT deployment completed successfully"
@@ -433,7 +444,8 @@ stages:
                       --config-dir config \
                       --artifacts-dir . \
                       --create-artifacts \
-                      $(forceAllFlag)
+                      $(forceAllFlag) \
+                      $(skipAppUpdateFlag)
                     
                     echo ""
                     echo "✓ Production deployment completed successfully"

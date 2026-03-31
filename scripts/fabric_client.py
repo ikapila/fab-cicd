@@ -2871,9 +2871,21 @@ class FabricClient:
                 if create_response.status_code in (200, 201):
                     logger.info("  ✓ Workspace app created successfully")
                     return True
+                elif create_response.status_code == 404:
+                    logger.error(f"  ✗ CreateApp failed: 404 — endpoint not available")
+                    logger.error(f"    Both UpdateApp and CreateApp returned 404.")
+                    logger.error(f"    This means the SP is not permitted to manage workspace apps.")
+                    logger.error(f"    FIX: Ask your Fabric admin to enable 'Publish content packs and apps'")
+                    logger.error(f"    in admin.powerbi.com → Tenant settings → Content pack and app settings")
+                    logger.error(f"    for the security group containing this service principal.")
+                    return False
                 else:
                     logger.error(f"  ✗ CreateApp failed: {create_response.status_code} — {create_response.text}")
                     return False
+            elif response.status_code in (401, 403):
+                logger.error(f"  ✗ UpdateApp failed: {response.status_code} — {response.text}")
+                logger.error(f"    Ensure the SP has Admin role on the workspace (not just Member/Contributor)")
+                return False
             else:
                 logger.error(f"  ✗ UpdateApp failed: {response.status_code} — {response.text}")
                 return False

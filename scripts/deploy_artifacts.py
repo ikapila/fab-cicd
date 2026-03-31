@@ -3463,8 +3463,9 @@ print('Notebook initialized')
         deployment_order = self.resolver.get_deployment_order()
         
         if not deployment_order:
-            logger.warning("No artifacts to deploy")
-            return True
+            logger.info("No artifacts to deploy")
+            # Don't return early — post-deploy steps (app update, save state)
+            # must still run when only config/app settings changed.
         
         # Filter out paginated reports if managed by Git sync
         git_config = self.config.config.get("git_integration", {})
@@ -3526,7 +3527,11 @@ print('Notebook initialized')
         # (e.g. incompatible definitions) prevent the tracking file from
         # ever being created, causing a full re-deploy on every run.
         # Failed artifacts will be retried when their definitions change.
-        if success_count > 0:
+        #
+        # Also save when no artifacts were deployed but config changed
+        # (e.g. app-only config change) so the commit tracker advances.
+        app_config_changed = getattr(self.change_detector, "app_config_changed", False)
+        if success_count > 0 or app_config_changed:
             self._save_deployment_state()
             if failure_count > 0:
                 logger.warning(f"  ⚠ Deployment state saved despite {failure_count} failure(s) — "

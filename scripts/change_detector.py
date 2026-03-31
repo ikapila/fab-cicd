@@ -3,6 +3,7 @@ Change Detection for Microsoft Fabric Artifacts
 Uses Git to track which artifacts have changed since last deployment
 """
 
+import json
 import os
 import subprocess
 import logging
@@ -30,6 +31,9 @@ class ChangeDetector:
         self.repo_root = Path(repo_root) if repo_root else self.artifacts_dir.parent
         self.tracking_dir = self.repo_root / ".deployment_tracking"
         self.commit_file = self.tracking_dir / f"{environment}_last_commit.txt"
+        
+        # Flag set when only workspace_app config changed (no deployment-relevant changes)
+        self.app_config_changed = False
         
         # Ensure tracking directory exists
         self.tracking_dir.mkdir(exist_ok=True)
@@ -267,6 +271,74 @@ class ChangeDetector:
         
         return False
     
+    def has_deployment_config_changes(self, changed_files: List[str]) -> bool:
+        """
+        Check if deployment-relevant configuration has changed.
+        
+        Compares the old and current config JSON with the ``workspace_app``
+        key stripped.  If the remaining content is identical, only app config
+        changed — no full artifact redeployment needed.
+        
+        Sets ``self.app_config_changed = True`` when only app config changed
+        so that deploy_all() can still run the workspace app update step.
+        
+        Args:
+            changed_files: List of changed file paths
+            
+        Returns:
+            True if deployment-relevant config changed (triggers full deploy),
+            False otherwise
+        """
+        if not self.has_config_changes(changed_files):
+            return False
+        
+        # Config file changed — determine whether only workspace_app changed
+        last_commit = self.get_last_deployment_commit()
+        if not last_commit:
+            return True  # No previous commit to compare against
+        
+        config_file = f"config/{self.environment}.json"
+        
+        try:
+            # Load old config from last deployment commit
+            result = subprocess.run(
+                ["git", "show", f"{last_commit}:{config_file}"],
+                cwd=self.repo_root,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode != 0:
+                logger.debug(f"Could not read old config from git: {result.stderr.strip()}")
+                return True  # Can't compare, assume deployment-relevant
+            
+            old_config = json.loads(result.stdout)
+            
+            # Load current config from disk
+            current_path = self.repo_root / config_file
+            if not current_path.exists():
+                return True
+            
+            with open(current_path, 'r') as f:
+                current_config = json.load(f)
+            
+            # Strip workspace_app from both and compare
+            old_stripped = {k: v for k, v in old_config.items() if k != "workspace_app"}
+            current_stripped = {k: v for k, v in current_config.items() if k != "workspace_app"}
+            
+            if old_stripped == current_stripped:
+                # Only workspace_app changed — no full deploy needed
+                logger.info("Only workspace_app config changed — skipping full artifact deployment")
+                self.app_config_changed = True
+                return False
+            else:
+                logger.info("Deployment-relevant configuration changed — full deployment required")
+                return True
+            
+        except Exception as e:
+            logger.warning(f"Could not compare config versions: {e} — assuming deployment-relevant")
+            return True
+    
     def get_changed_artifacts(self, force_all: bool = False) -> Optional[Dict[str, Set[str]]]:
         """
         Get artifacts that have changed since last deployment
@@ -312,8 +384,9 @@ class ChangeDetector:
             logger.info("No file changes detected")
             return {}
         
-        # Check for config changes - if config changed, deploy all
-        if self.has_config_changes(changed_files):
+        # Check for config changes - if deployment-relevant config changed, deploy all.
+        # If only workspace_app changed, skip full deploy (app update runs separately).
+        if self.has_deployment_config_changes(changed_files):
             logger.info("Configuration files changed, deploying all artifacts")
             return None
         

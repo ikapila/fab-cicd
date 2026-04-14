@@ -3754,6 +3754,14 @@ print('Notebook initialized')
                 if isinstance(result, dict) and result.get("status") == "Failed":
                     logger.error(f"  ❌ Definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
                     raise Exception(f"Lakehouse definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
+                
+                # Deploy shortcuts via the Shortcut API
+                # The updateDefinition API does not create/update shortcuts from shortcuts.metadata.json;
+                # shortcuts must be deployed individually via the dedicated Shortcut API.
+                shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
+                if shortcuts_file.exists():
+                    logger.info(f"  Deploying shortcuts via Shortcut API...")
+                    self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, lakehouse_folder)
             else:
                 # Legacy JSON-based format: read shortcuts from JSON and create individually
                 logger.info(f"  Using legacy JSON-based format (not Git format folder)")
@@ -3869,6 +3877,12 @@ print('Notebook initialized')
                 if isinstance(result, dict) and result.get("status") == "Failed":
                     logger.error(f"  ❌ Definition deployment failed: {result.get('error', {}).get('message', 'Unknown error')}")
                     raise Exception(f"Lakehouse definition deployment failed: {result.get('error', {}).get('message', 'Unknown error')}")
+                
+                # Deploy shortcuts via the Shortcut API
+                shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
+                if shortcuts_file.exists():
+                    logger.info(f"  Deploying shortcuts via Shortcut API...")
+                    self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, lakehouse_folder)
             elif not use_definition_api:
                 # Legacy JSON-based shortcuts
                 logger.info(f"  Using legacy JSON-based format (not Git format folder)")
@@ -3899,11 +3913,14 @@ print('Notebook initialized')
             if shortcuts_file.exists():
                 logger.info(f"  Reading shortcuts from: shortcuts.metadata.json")
                 with open(shortcuts_file, 'r') as f:
-                    shortcuts_data = json.load(f)
-                    if isinstance(shortcuts_data, list):
-                        shortcuts = shortcuts_data
-                    elif isinstance(shortcuts_data, dict):
-                        shortcuts = shortcuts_data.get("shortcuts", [])
+                    shortcuts_content = f.read()
+                # Substitute parameters (e.g., ${storage_account}, ${connection_id})
+                shortcuts_content = self._substitute_parameters(shortcuts_content)
+                shortcuts_data = json.loads(shortcuts_content)
+                if isinstance(shortcuts_data, list):
+                    shortcuts = shortcuts_data
+                elif isinstance(shortcuts_data, dict):
+                    shortcuts = shortcuts_data.get("shortcuts", [])
         
         if not shortcuts:
             logger.info(f"  No shortcuts to deploy")

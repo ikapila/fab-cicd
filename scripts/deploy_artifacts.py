@@ -3701,6 +3701,7 @@ print('Notebook initialized')
                 
                 # Add shortcuts.metadata.json if it exists
                 shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
+                has_shortcuts = False
                 if shortcuts_file.exists():
                     logger.info(f"  Including shortcuts.metadata.json in definition")
                     with open(shortcuts_file, 'r') as f:
@@ -3709,19 +3710,35 @@ print('Notebook initialized')
                     # Substitute parameters (e.g., ${storage_account}, ${connection_id})
                     shortcuts_content = self._substitute_parameters(shortcuts_content)
                     
+                    # Ensure each shortcut target has the required 'type' field
+                    shortcuts_content = self._ensure_shortcut_type_field(shortcuts_content)
+                    
                     shortcuts_base64 = base64.b64encode(shortcuts_content.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "shortcuts.metadata.json",
                         "payload": shortcuts_base64,
                         "payloadType": "InlineBase64"
                     })
+                    has_shortcuts = True
                 
-                # Add alm.settings.json if it exists
+                # Add alm.settings.json - always include to ensure shortcuts are enabled
                 alm_settings_file = lakehouse_folder / "alm.settings.json"
                 if alm_settings_file.exists():
                     logger.info(f"  Including alm.settings.json in definition")
                     with open(alm_settings_file, 'r') as f:
                         alm_content = f.read()
+                    alm_base64 = base64.b64encode(alm_content.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "alm.settings.json",
+                        "payload": alm_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                elif has_shortcuts:
+                    # Generate default alm.settings.json with all shortcut types enabled
+                    # This ensures the API manages shortcuts even if the file doesn't exist in the repo
+                    logger.info(f"  Generating default alm.settings.json (shortcuts enabled)")
+                    alm_settings = self._generate_default_alm_settings()
+                    alm_content = json.dumps(alm_settings, indent=2)
                     alm_base64 = base64.b64encode(alm_content.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "alm.settings.json",
@@ -3755,13 +3772,9 @@ print('Notebook initialized')
                     logger.error(f"  ❌ Definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
                     raise Exception(f"Lakehouse definition update failed: {result.get('error', {}).get('message', 'Unknown error')}")
                 
-                # Deploy shortcuts via the Shortcut API
-                # The updateDefinition API does not create/update shortcuts from shortcuts.metadata.json;
-                # shortcuts must be deployed individually via the dedicated Shortcut API.
-                shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
-                if shortcuts_file.exists():
-                    logger.info(f"  Deploying shortcuts via Shortcut API...")
-                    self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, lakehouse_folder)
+                # Verify shortcuts were applied by fetching the current definition
+                if has_shortcuts:
+                    self._verify_lakehouse_shortcuts(lakehouse_id, name)
             else:
                 # Legacy JSON-based format: read shortcuts from JSON and create individually
                 logger.info(f"  Using legacy JSON-based format (not Git format folder)")
@@ -3836,6 +3849,7 @@ print('Notebook initialized')
                 
                 # Add shortcuts.metadata.json if it exists
                 shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
+                has_shortcuts = False
                 if shortcuts_file.exists():
                     logger.info(f"  Including shortcuts.metadata.json")
                     with open(shortcuts_file, 'r') as f:
@@ -3844,19 +3858,34 @@ print('Notebook initialized')
                     # Substitute parameters (e.g., ${storage_account}, ${connection_id})
                     shortcuts_content = self._substitute_parameters(shortcuts_content)
                     
+                    # Ensure each shortcut target has the required 'type' field
+                    shortcuts_content = self._ensure_shortcut_type_field(shortcuts_content)
+                    
                     shortcuts_base64 = base64.b64encode(shortcuts_content.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "shortcuts.metadata.json",
                         "payload": shortcuts_base64,
                         "payloadType": "InlineBase64"
                     })
+                    has_shortcuts = True
                 
-                # Add alm.settings.json if it exists
+                # Add alm.settings.json - always include to ensure shortcuts are enabled
                 alm_settings_file = lakehouse_folder / "alm.settings.json"
                 if alm_settings_file.exists():
                     logger.info(f"  Including alm.settings.json")
                     with open(alm_settings_file, 'r') as f:
                         alm_content = f.read()
+                    alm_base64 = base64.b64encode(alm_content.encode('utf-8')).decode('utf-8')
+                    parts.append({
+                        "path": "alm.settings.json",
+                        "payload": alm_base64,
+                        "payloadType": "InlineBase64"
+                    })
+                elif has_shortcuts:
+                    # Generate default alm.settings.json with all shortcut types enabled
+                    logger.info(f"  Generating default alm.settings.json (shortcuts enabled)")
+                    alm_settings = self._generate_default_alm_settings()
+                    alm_content = json.dumps(alm_settings, indent=2)
                     alm_base64 = base64.b64encode(alm_content.encode('utf-8')).decode('utf-8')
                     parts.append({
                         "path": "alm.settings.json",
@@ -3878,11 +3907,9 @@ print('Notebook initialized')
                     logger.error(f"  ❌ Definition deployment failed: {result.get('error', {}).get('message', 'Unknown error')}")
                     raise Exception(f"Lakehouse definition deployment failed: {result.get('error', {}).get('message', 'Unknown error')}")
                 
-                # Deploy shortcuts via the Shortcut API
-                shortcuts_file = lakehouse_folder / "shortcuts.metadata.json"
-                if shortcuts_file.exists():
-                    logger.info(f"  Deploying shortcuts via Shortcut API...")
-                    self._deploy_lakehouse_shortcuts_legacy(name, lakehouse_id, lakehouse_folder)
+                # Verify shortcuts were applied
+                if has_shortcuts:
+                    self._verify_lakehouse_shortcuts(lakehouse_id, name)
             elif not use_definition_api:
                 # Legacy JSON-based shortcuts
                 logger.info(f"  Using legacy JSON-based format (not Git format folder)")
@@ -3894,6 +3921,93 @@ print('Notebook initialized')
         # Track deployed lakehouse for post-deploy table maintenance
         if lakehouse_id and lakehouse_id != 'unknown':
             self._deployed_lakehouse_ids[name] = lakehouse_id
+    
+    def _ensure_shortcut_type_field(self, shortcuts_json: str) -> str:
+        """Ensure each shortcut target has the required 'type' field.
+        
+        The Fabric API requires a 'type' field in the shortcut target object.
+        If missing, infer it from which target property is present.
+        
+        Args:
+            shortcuts_json: JSON string of shortcuts array
+            
+        Returns:
+            JSON string with 'type' field added to any targets missing it
+        """
+        # Map of target property names to their type enum values
+        type_map = {
+            "oneLake": "OneLake",
+            "adlsGen2": "AdlsGen2",
+            "amazonS3": "AmazonS3",
+            "googleCloudStorage": "GoogleCloudStorage",
+            "s3Compatible": "S3Compatible",
+            "dataverse": "Dataverse",
+            "azureBlobStorage": "AzureBlobStorage",
+            "oneDriveSharePoint": "OneDriveSharePoint",
+        }
+        
+        try:
+            shortcuts = json.loads(shortcuts_json)
+            modified = False
+            for shortcut in shortcuts:
+                target = shortcut.get("target", {})
+                if "type" not in target:
+                    for prop, type_value in type_map.items():
+                        if prop in target:
+                            target["type"] = type_value
+                            logger.info(f"  Added missing 'type': '{type_value}' to shortcut '{shortcut.get('name', '?')}'")
+                            modified = True
+                            break
+            
+            if modified:
+                return json.dumps(shortcuts, indent=2)
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(f"  Could not parse shortcuts JSON to add type field: {e}")
+        
+        return shortcuts_json
+    
+    def _generate_default_alm_settings(self) -> dict:
+        """Generate default alm.settings.json with all shortcut types enabled."""
+        return {
+            "version": "1.0.1",
+            "objectTypes": [
+                {
+                    "name": "Shortcuts",
+                    "state": "Enabled",
+                    "subObjectTypes": [
+                        {"name": "Shortcuts.OneLake", "state": "Enabled"},
+                        {"name": "Shortcuts.AdlsGen2", "state": "Enabled"},
+                        {"name": "Shortcuts.Dataverse", "state": "Enabled"},
+                        {"name": "Shortcuts.AmazonS3", "state": "Enabled"},
+                        {"name": "Shortcuts.S3Compatible", "state": "Enabled"},
+                        {"name": "Shortcuts.GoogleCloudStorage", "state": "Enabled"},
+                    ]
+                }
+            ]
+        }
+    
+    def _verify_lakehouse_shortcuts(self, lakehouse_id: str, lakehouse_name: str) -> None:
+        """Verify shortcuts were applied by fetching the current definition."""
+        try:
+            logger.info(f"  Verifying shortcut deployment for '{lakehouse_name}'...")
+            definition = self.client.get_lakehouse_definition(self.workspace_id, lakehouse_id)
+            
+            # Find shortcuts part in the response
+            parts = definition.get("definition", {}).get("parts", [])
+            shortcuts_part = next((p for p in parts if p.get("path") == "shortcuts.metadata.json"), None)
+            
+            if shortcuts_part:
+                payload = shortcuts_part.get("payload", "")
+                try:
+                    shortcuts_data = json.loads(base64.b64decode(payload).decode('utf-8'))
+                    logger.info(f"  ✓ Verified: {len(shortcuts_data)} shortcut(s) in deployed definition")
+                except Exception:
+                    logger.info(f"  ✓ Verified: shortcuts.metadata.json present in deployed definition")
+            else:
+                logger.warning(f"  ⚠️  shortcuts.metadata.json NOT found in deployed definition — shortcuts may not have been applied")
+                logger.warning(f"  Check that alm.settings.json enables the correct shortcut types")
+        except Exception as e:
+            logger.warning(f"  Could not verify shortcut deployment: {e}")
     
     def _deploy_lakehouse_shortcuts_legacy(self, lakehouse_name: str, lakehouse_id: str, 
                                           lakehouse_folder, shortcuts_list=None) -> None:

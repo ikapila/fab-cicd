@@ -27,3 +27,4 @@ python scripts/deploy_artifacts.py dev --force-all
 ```
 
 Or delete the corresponding file to trigger a first-time deployment.
+;
